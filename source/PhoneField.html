@@ -34,18 +34,22 @@ define('Sage/Platform/Mobile/Fields/PhoneField', [
     'dojo/_base/declare',
     'dojo/has',
     'dojo/string',
-    'Sage/Platform/Mobile/Fields/TextField',
-    'Sage/Platform/Mobile/FieldManager',
+    '../FieldManager',
+    './TextField',
+    '../Format',
     'dojo/_base/sniff'
 ], function(
     declare,
     has,
     string,
+    FieldManager,
     TextField,
-    FieldManager
+    format,
+    sniff
 ) {
 <span id='Sage-Platform-Mobile-Fields-PhoneField'>    /**
-</span>     * The Phone field is a specialized {@link TextField TextField} that takes a string of numbers
+</span>     * @class Sage.Platform.Mobile.Fields.PhoneField
+     * The Phone field is a specialized {@link TextField TextField} that takes a string of numbers
      * and groups them into a phone number on blur or when setting a value directly the value
      * shown to the user gets passed through the
      * {@link #formatNumberForDisplay formatNumberForDisplay} function, while
@@ -60,50 +64,10 @@ define('Sage/Platform/Mobile/Fields/PhoneField', [
      *     }
      *
      * @alternateClassName PhoneField
-     * @extends TextField
-     * @requires FieldManager
+     * @extends Sage.Platform.Mobile.Fields.TextField
+     * @requires Sage.Platform.Mobile.FieldManager
      */
     var control = declare('Sage.Platform.Mobile.Fields.PhoneField', [TextField], {
-<span id='Sage-Platform-Mobile-Fields-PhoneField-property-formatters'>        /**
-</span>         * @property {Object[]}
-         * Array of objects that have the keys `test` and `format` where `test` is a RegExp that
-         * matches the phone grouping and `format` is the string format to be replaced.
-         *
-         * The RegExp may have capture groups but when you are defining the format strings use:
-         *
-         * * `${0}` - original value
-         * * `${1}` - cleaned value
-         * * `${2}` - entire match (against clean value)
-         * * `${3..n}` - match groups (against clean value)
-         *
-         * The `clean value` is taking the inputted numbers/text and removing any non-number
-         * and non-&quot;x&quot;.
-         *
-         * The three default formatters are:
-         * * `nnn-nnnn`
-         * * `(nnn)-nnn-nnnn`
-         * * `(nnn)-nnn-nnnxnnnn`
-         *
-         * If you plan to override this value make sure you include the default ones provided.
-         *
-         */
-        formatters: [{
-            test: /^\+.*/,
-            format: '${0}'
-        },{
-            test: /^(\d{3})(\d{3,4})$/,
-            format: '${3}-${4}'
-        },{
-            test: /^(\d{3})(\d{3})(\d{2,4})$/, // 555 555 5555
-            format: '(${3})-${4}-${5}'
-        },{
-            test: /^(\d{3})(\d{3})(\d{2,4})([^0-9]{1,}.*)$/, // 555 555 5555x
-            format: '(${3})-${4}-${5}${6}'
-        },{
-            test: /^(\d{11,})(.*)$/,
-            format: '${1}'
-        }],
-
 <span id='Sage-Platform-Mobile-Fields-PhoneField-property-inputType'>        /**
 </span>         * @property {String}
          * Sets the `&lt;input type=` of the field.
@@ -113,13 +77,13 @@ define('Sage/Platform/Mobile/Fields/PhoneField', [
         inputType: has('safari') ? 'tel' : 'text',
 
 <span id='Sage-Platform-Mobile-Fields-PhoneField-method-_onBlur'>        /**
-</span>         * Formats the displayed value (inputNode value) using {@link formatNumberForDisplay formatNumberForDisplay}.
+</span>         * Formats the displayed value (inputNode value) using {@link format.phone format.phone}.
          */
         _onBlur: function() {
             this.inherited(arguments);
 
             // temporarily added: http://code.google.com/p/android/issues/detail?id=14519
-            this.set('inputValue', this.formatNumberForDisplay(this.inputNode.value, this.getValue()));
+            this.set('inputValue', format.phone(this.inputNode.value));
         },
 <span id='Sage-Platform-Mobile-Fields-PhoneField-method-getValue'>        /**
 </span>         * Gets the value and strips out non-numbers and non-letter `x` before returning unless
@@ -131,11 +95,13 @@ define('Sage/Platform/Mobile/Fields/PhoneField', [
 
             if (/^\+/.test(value)) return value;
 
+            value = format.alphaToPhoneNumeric(value);
+
             return value.replace(/[^0-9x]/ig, &quot;&quot;);
         },
 <span id='Sage-Platform-Mobile-Fields-PhoneField-method-setValue'>        /**
 </span>         * Sets the original value if initial is true and sets the input value to the formatted
-         * value using {@link formatNumberForDisplay formatNumberForDisplay}.
+         * value using {@link format.phone format.phone}.
          * @param {String/Number} val String to set
          * @param {Boolean} initial True if the value is the original/clean value.
          */
@@ -144,29 +110,7 @@ define('Sage/Platform/Mobile/Fields/PhoneField', [
             
             this.previousValue = false;
 
-            this.set('inputValue', this.formatNumberForDisplay(val) || '');
-        },
-<span id='Sage-Platform-Mobile-Fields-PhoneField-method-formatNumberForDisplay'>        /**
-</span>         * Takes a number, and optional clean version, and tests it against each `formatters`.
-         * If a match is found it uses the formatter `format` to substitute the numbers.
-         * @param {String} number Original or source value
-         * @param {String} clean Cleaned or stripped of non-number, non-letter `x`
-         * @return {String}
-         */
-        formatNumberForDisplay: function(number, clean) {
-            if (typeof clean === 'undefined') clean = number;
-
-            for (var i = 0; i &lt; this.formatters.length; i++)
-            {
-                var formatter = this.formatters[i],
-                    match;
-                if ((match = formatter.test.exec(clean)))
-                {
-                    return string.substitute(formatter.format, [number, clean].concat(match));
-                }
-            }
-
-            return number;
+            this.set('inputValue', format.phone(val) || '');
         },
 <span id='Sage-Platform-Mobile-Fields-PhoneField-method-_onKeyUp'>        /**
 </span>         * Currently only calls parent implementation due to an [Android Bug](http://code.google.com/p/android/issues/detail?id=14519).
@@ -175,13 +119,14 @@ define('Sage/Platform/Mobile/Fields/PhoneField', [
         _onKeyUp: function(evt) {
             /*
             // temporarily removed: http://code.google.com/p/android/issues/detail?id=14519
-            this.set('inputValue', this.formatNumberForDisplay(this.inputNode.value, this.getValue()));
+            this.set('inputValue', format.phone(this.inputNode.value, this.getValue()));
             */
             this.inherited(arguments);
         }
     });
 
     return FieldManager.register('phone', control);
-});</pre>
+});
+</pre>
 </body>
 </html>

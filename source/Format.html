@@ -31,9 +31,10 @@
  */
 
 <span id='Sage-Platform-Mobile-Format'>/**
-</span> * Format is a singleton that provides various formatting functions.
+</span> * @class Sage.Platform.Mobile.Format
+ * Format is a singleton that provides various formatting functions.
  * @alternateClassName format
- * @requires convert
+ * @requires Sage.Platform.Mobile.Convert
  * @singleton
  */
 define('Sage/Platform/Mobile/Format', [
@@ -41,13 +42,15 @@ define('Sage/Platform/Mobile/Format', [
     'dojo/_base/lang',
     'dojo/dom-construct',
     'dojo/string',
-    'Sage/Platform/Mobile/Convert'
+    'Sage/Platform/Mobile/Convert',
+    'Sage/Platform/Mobile/Utility'
 ], function(
     json,
     lang,
     domConstruct,
     string,
-    convert
+    convert,
+    utility
 ) {
 
     var getVectorMaxSize = function (v) {
@@ -64,6 +67,35 @@ define('Sage/Platform/Mobile/Format', [
         // maybe should return bounding box? (x,y,w,h)
         return { width: w, height: h };
     };
+
+    var phoneLettersMap = [
+        {
+            test: /[ABC]/gi,
+            val: '2'
+        },{
+            test: /[DEF]/gi,
+            val: '3'
+        },{
+            test: /[GHI]/gi,
+            val: '4'
+        },{
+            test: /[JKL]/gi,
+            val: '5'
+        },{
+            test: /[MNO]/gi,
+            val: '6'
+        },{
+            test: /[PQRS]/gi,
+            val: '7'
+        },{
+            test: /[TUV]/gi,
+            val: '8'
+        },{
+            test: /[WXYZwyz]/g, // Note lowercase 'x' should stay for extensions
+            val: '9'
+        }
+    ];
+
 
     function isEmpty(val) {
         if (typeof val !== 'string') return !val;
@@ -132,7 +164,13 @@ define('Sage/Platform/Mobile/Format', [
          * Text used in {@link #timespan timespan} formatter for exactly one minute
          */
         minuteText: 'minute',
-
+<span id='Sage-Platform-Mobile-Format-property-percentFormatText'>        /**
+</span>        * @property {String}
+        * format string for percent
+         * * `${0}` - percent value
+         * * `${1}` - percent synmbol &quot;%&quot;
+        */
+        percentFormatText: '${0}${1}',
 <span id='Sage-Platform-Mobile-Format-method-encode'>        /**
 </span>         * Takes a String and encodes `&amp;`, `&lt;`, `&gt;`, `&quot;` to HTML entities
          * @param {String} String to encode
@@ -151,6 +189,45 @@ define('Sage/Platform/Mobile/Format', [
          * @return {Boolean} If passed item is empty
          */
         isEmpty: isEmpty,
+<span id='Sage-Platform-Mobile-Format-property-phoneFormat'>        /**
+</span>         * @property {Object[]}
+         * Array of objects that have the keys `test` and `format` where `test` is a RegExp that
+         * matches the phone grouping and `format` is the string format to be replaced.
+         *
+         * The RegExp may have capture groups but when you are defining the format strings use:
+         *
+         * * `${0}` - original value
+         * * `${1}` - cleaned value
+         * * `${2}` - entire match (against clean value)
+         * * `${3..n}` - match groups (against clean value)
+         *
+         * The `clean value` is taking the inputted numbers/text and removing any non-number
+         * and non-&quot;x&quot; and it replaces A-Z to their respective phone number character.
+         *
+         * The three default formatters are:
+         * * `nnn-nnnn`
+         * * `(nnn)-nnn-nnnn`
+         * * `(nnn)-nnn-nnnxnnnn`
+         *
+         * If you plan to override this value make sure you include the default ones provided.
+         *
+         */
+        phoneFormat: [{
+            test: /^\+.*/,
+            format: '${0}'
+        },{
+            test: /^(\d{3})(\d{3,4})$/,
+            format: '${3}-${4}'
+        },{
+            test: /^(\d{3})(\d{3})(\d{2,4})$/, // 555 555 5555
+            format: '(${3})-${4}-${5}'
+        },{
+            test: /^(\d{3})(\d{3})(\d{2,4})([^0-9]{1,}.*)$/, // 555 555 5555x
+            format: '(${3})-${4}-${5}${6}'
+        },{
+            test: /^(\d{11,})(.*)$/,
+            format: '${1}'
+        }],
 <span id='Sage-Platform-Mobile-Format-method-link'>        /**
 </span>         * Takes a url string and wraps it with an `&lt;a&gt;` element with `href=` pointing to the url.
          * @param {String} val Url string to be wrapped
@@ -225,17 +302,46 @@ define('Sage/Platform/Mobile/Format', [
             return v;
         },
 <span id='Sage-Platform-Mobile-Format-method-percent'>        /**
-</span>         * Takes a decimal number, multiplies by 100 and adds the % sign.
-         *
-         * `perecent(0.35)` =&gt; `'35%'`
-         * `percent(2)` =&gt; `'200%'`
+</span>         * Takes a decimal number, multiplies by 100 and adds the % sign with the number of palces to the right.
+         *  
+         * `perecent(0.35)` =&gt; `'35.00%'`
+         * `perecent(0.35, 0)` =&gt; `'35%'`
+         * `percent(2.9950)` =&gt; `'299.50%'`
+         * `percent(2.9950,0)` =&gt; `'300%'`
          *
          * @param {Number/String} val The value will be `parseFloat` before operating.
+         * @param {Number/String} places If no value is given the default value will be set to 2.
          * @return {String} Number as a percentage with % sign.
          */
-        percent: function(val) {
-            var intVal = Math.floor(100 * (parseFloat(val) || 0));
-            return intVal + &quot;%&quot;;
+        percent: function(val, places) {
+            var intVal, v, dp, wp, numberFormated
+
+            if (typeof places !== 'number') {
+                places = 2
+            }
+
+            places = Math.floor(places);
+            intVal = 100 * (parseFloat(val) || 0.00);
+            v = utility.roundNumberTo(intVal, places);
+
+            //get the whole number part
+            wp = (Math.floor(v)).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1' + Mobile.CultureInfo.numberFormat.percentGroupSeparator.replace(&quot;\\.&quot;, '.'))
+
+            if (places &lt; 1) { // format with out decimal part
+                numberFormated = string.substitute('${0}', [wp]).replace(/ /g, '\u00A0'); //keep numbers from breaking
+            } else {
+                dp = v % 1; //get the decimal part
+                dp = dp.toPrecision(places+1); // round to significant pecsion
+                dp = dp.toString(); 
+                dp = dp.substr(2, places); //get the whole decimal part
+                numberFormated = string.substitute(
+                    '${0}'
+                    + Mobile.CultureInfo.numberFormat.percentDecimalSeparator
+                    + '${1}', [wp, dp]
+                ).replace(/ /g, '\u00A0'); //keep numbers from breaking
+            }
+
+            return string.substitute(Sage.Platform.Mobile.Format.percentFormatText, [numberFormated, Mobile.CultureInfo.numberFormat.percentSymbol]);
         },
 <span id='Sage-Platform-Mobile-Format-method-yesNo'>        /**
 </span>         * Takes a boolean value and returns the string Yes or No for true or false
@@ -366,8 +472,54 @@ define('Sage/Platform/Mobile/Format', [
                     '&lt;img src=&quot;${0}&quot; width=&quot;${1}&quot; height=&quot;${2}&quot; alt=&quot;${3}&quot; /&gt;',
                     [img, options.width, options.height, options.title || ''])
                 : img;
+        },
+<span id='Sage-Platform-Mobile-Format-method-phone'>        /**
+</span>         * Takes a string phone input and attempts to match it against the predefined
+         * phone formats - if a match is found it is returned formatted if not it is returned
+         * as is.
+         * @param val {String} String inputted phone number to format
+         * @param asLink {Boolean} True to put the phone in an anchor element pointing to a tel: uri
+         * @returns {String}
+         */
+        phone: function(val, asLink) {
+            if (typeof val !== 'string')
+                return val;
+
+            val = Sage.Platform.Mobile.Format.alphaToPhoneNumeric(val);
+
+            var formatters = Sage.Platform.Mobile.Format.phoneFormat,
+                clean = /^\+/.test(val)
+                    ? val
+                    : val.replace(/[^0-9x]/ig, ''),
+                formattedMatch;
+
+            for (var i = 0; i &lt; formatters.length; i++)
+            {
+                var formatter = formatters[i],
+                    match;
+                if ((match = formatter.test.exec(clean)))
+                    formattedMatch = string.substitute(formatter.format, [val, clean].concat(match));
+            }
+
+            if (formattedMatch)
+                return asLink ? string.substitute('&lt;a href=&quot;tel:${0}&quot;&gt;${1}&lt;/a&gt;', [clean, formattedMatch]) : formattedMatch;
+
+            return val;
+        },
+<span id='Sage-Platform-Mobile-Format-method-alphaToPhoneNumeric'>        /**
+</span>         * Takes a string input and converts A-Z to their respective phone number character
+         * `1800CALLME` -&gt; `1800225563`
+         * @param val
+         * @returns {String}
+         */
+        alphaToPhoneNumeric: function(val) {
+            for (var i = 0; i &lt; phoneLettersMap.length; i++) {
+                val = val.replace(phoneLettersMap[i].test, phoneLettersMap[i].val);
+            }
+            return val;
         }
     });
-});</pre>
+});
+</pre>
 </body>
 </html>

@@ -300,7 +300,7 @@ Ticket List may be defined as:
     }); });
 
 
-Say, a user named Lee has the following actions:   
+Say, a user named Lee has the following actions:  
 
     App.context.userSecurity = {
         Entities/Account/View: true,
