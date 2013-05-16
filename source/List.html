@@ -316,7 +316,7 @@ define('Sage/Platform/Mobile/List', [
          *
          */
         widgetTemplate: new Simplate([
-            '&lt;div id=&quot;{%= $.id %}&quot; title=&quot;{%= $.titleText %}&quot; class=&quot;list {%= $.cls %}&quot; {% if ($.resourceKind) { %}data-resource-kind=&quot;{%= $.resourceKind %}&quot;{% } %}&gt;',
+            '&lt;div id=&quot;{%= $.id %}&quot; title=&quot;{%= $.titleText %}&quot; class=&quot;overthrow list {%= $.cls %}&quot; {% if ($.resourceKind) { %}data-resource-kind=&quot;{%= $.resourceKind %}&quot;{% } %}&gt;',
             '&lt;div data-dojo-attach-point=&quot;searchNode&quot;&gt;&lt;/div&gt;',
             '&lt;a href=&quot;#&quot; class=&quot;android-6059-fix&quot;&gt;fix for android issue #6059&lt;/a&gt;',                
             '{%! $.emptySelectionTemplate %}',
@@ -356,9 +356,11 @@ define('Sage/Platform/Mobile/List', [
         moreTemplate: new Simplate([
             '&lt;div class=&quot;list-more&quot; data-dojo-attach-point=&quot;moreNode&quot;&gt;',
             '&lt;div class=&quot;list-remaining&quot;&gt;&lt;span data-dojo-attach-point=&quot;remainingContentNode&quot;&gt;&lt;/span&gt;&lt;/div&gt;',
-            '&lt;button class=&quot;button&quot; data-action=&quot;more&quot;&gt;',
-            '&lt;span&gt;{%= $.moreText %}&lt;/span&gt;',
-            '&lt;/button&gt;',
+            '{% if (!$.continuousScrolling) { %}',
+                '&lt;button class=&quot;button&quot; data-action=&quot;more&quot;&gt;',
+                '&lt;span&gt;{%= $.moreText %}&lt;/span&gt;',
+                '&lt;/button&gt;',
+            '{% } %}',
             '&lt;/div&gt;'
         ]),
 <span id='Sage-Platform-Mobile-ConfigurableSelectionModel-property-emptySelectionTemplate'>        /**
@@ -392,7 +394,7 @@ define('Sage/Platform/Mobile/List', [
                 '&lt;button data-action=&quot;selectEntry&quot; class=&quot;list-item-selector button&quot;&gt;',
                     '&lt;img src=&quot;{%= $$.icon || $$.selectIcon %}&quot; class=&quot;icon&quot; /&gt;',
                 '&lt;/button&gt;',
-                '&lt;div class=&quot;list-item-content&quot;&gt;{%! $$.itemTemplate %}&lt;/div&gt;',
+                '&lt;div class=&quot;list-item-content&quot; data-snap-ignore=&quot;true&quot;&gt;{%! $$.itemTemplate %}&lt;/div&gt;',
             '&lt;/li&gt;'
         ]),
 <span id='Sage-Platform-Mobile-ConfigurableSelectionModel-cfg-itemTemplate'>        /**
@@ -669,6 +671,12 @@ define('Sage/Platform/Mobile/List', [
 </span>         * The list action layout definition for the list action bar.
          */
         actions: null,
+
+<span id='Sage-Platform-Mobile-ConfigurableSelectionModel-property-continuousScrolling'>        /**
+</span>         * If true, will remove the loading button and auto fetch more data when the user scrolls to the bottom of the page.
+         */
+        continuousScrolling: true,
+
 <span id='Sage-Platform-Mobile-ConfigurableSelectionModel-method-_setSelectionModelAttr'>        /**
 </span>         * Setter method for the selection model, also binds the various selection model select events
          * to the respective List event handler for each.
@@ -711,8 +719,11 @@ define('Sage/Platform/Mobile/List', [
 
             this.subscribe('/app/refresh', this._onRefresh);
 
-            if (this.enableSearch)
-            {
+            if (this.continuousScrolling) {
+                this.connect(this.domNode, 'onscroll', this.onScroll);
+            }
+
+            if (this.enableSearch) {
                 var searchWidgetCtor = lang.isString(this.searchWidgetClass)
                     ? lang.getObject(this.searchWidgetClass, false)
                     : this.searchWidgetClass;
@@ -723,14 +734,11 @@ define('Sage/Platform/Mobile/List', [
                     'onSearchExpression': lang.hitch(this, this._onSearchExpression)
                 });
                 this.searchWidget.placeAt(this.searchNode, 'replace');
-            }
-            else
-            {
+            } else {
                 this.searchWidget = null;
             }
 
             domClass.toggle(this.domNode, 'list-hide-search', this.hideSearch);
-
             this.clear();
         },
 <span id='Sage-Platform-Mobile-ConfigurableSelectionModel-method-startup'>        /**
@@ -1008,6 +1016,23 @@ define('Sage/Platform/Mobile/List', [
                 this.refreshRequired = true;
             }
         },
+        onScroll: function(evt) {
+            var pos, height, scrollTop, scrollHeight, remaining, selected;
+            pos = domGeom.position(this.domNode, true);
+
+            height = pos.h; // viewport height (what user sees)
+            scrollHeight = this.domNode.scrollHeight; // Entire container height
+            scrollTop = this.domNode.scrollTop; // How far we are scrolled down
+            remaining = scrollHeight - scrollTop; // Height we have remaining to scroll
+
+            selected = domAttr.get(this.domNode, 'selected');
+
+            if (remaining === height) {
+                if (selected === 'true' &amp;&amp; this.hasMoreData()) {
+                    this.more();
+                }
+            }
+        },
 <span id='Sage-Platform-Mobile-ConfigurableSelectionModel-method-selectEntry'>        /**
 </span>         * Handler for the select or action node data-action. Finds the nearest node with the data-key attribute and
          * toggles it in the views selection model.
@@ -1104,7 +1129,6 @@ define('Sage/Platform/Mobile/List', [
          * @private
          */
         _onSearchExpression: function(expression) {
-
             this.clear(false);
             this.queryText = '';
             this.query = expression;
@@ -1319,16 +1343,13 @@ define('Sage/Platform/Mobile/List', [
          * @return {Boolean} True if the feed has more data; False otherwise.
          */
         hasMoreData: function() {
-            if (this.feed['$startIndex'] &gt; 0 &amp;&amp; this.feed['$itemsPerPage'] &gt; 0 &amp;&amp; this.feed['$totalResults'] &gt;= 0)
-            {
+            if (this.feed &amp;&amp; this.feed['$startIndex'] &gt; 0 &amp;&amp; this.feed['$itemsPerPage'] &gt; 0 &amp;&amp; this.feed['$totalResults'] &gt;= 0) {
                 var start = this.feed['$startIndex'];
                 var count = this.feed['$itemsPerPage'];
                 var total = this.feed['$totalResults'];
 
                 return (start + count &lt;= total);
-            }
-            else
-            {
+            } else {
                 return true; // no way to determine, always assume more data
             }
         },
@@ -1528,6 +1549,16 @@ define('Sage/Platform/Mobile/List', [
             domClass.remove(this.domNode, 'list-has-more');
 
             this.set('listContent', this.loadingTemplate.apply(this));
+        },
+        search: function() {
+            if (this.searchWidget) {
+                this.searchWidget.search();
+            }
+        },
+        setSearchTerm: function(value) {
+            if (this.searchWidget) {
+                this.searchWidget.set('queryValue', value);
+            }
         }
     });
 });

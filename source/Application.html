@@ -46,7 +46,13 @@ define('Sage/Platform/Mobile/Application', [
     'dojo/_base/declare',
     'dojo/_base/lang',
     'dojo/_base/window',
-    'dojo/string'
+    'dojo/string',
+    'dojo/has',
+    'dojo/_base/sniff',
+    'dojo/dom-construct',
+    'snap',
+    'dojo/_base/sniff',
+    'dojox/mobile/sniff'
 ], function(
     json,
     array,
@@ -54,9 +60,23 @@ define('Sage/Platform/Mobile/Application', [
     declare,
     lang,
     win,
-    string
+    string,
+    has,
+    sniff,
+    domConstruct,
+    snap,
+    sniff,
+    mobileSniff
 ) {
-    
+
+    has.add('html5-file-api', function(global, document) {
+        if (global.File &amp;&amp; global.FileReader &amp;&amp; global.FileList &amp;&amp; global.Blob) {
+            return true;
+        } else {
+            return false;
+        }
+    });
+
     lang.extend(Function, {
         bindDelegate: function(scope) {
             var fn = this;
@@ -108,6 +128,11 @@ define('Sage/Platform/Mobile/Application', [
     });
     
     return declare('Sage.Platform.Mobile.Application', null, {
+<span id='Sage-Platform-Mobile-Application-property-snapper'>        /**
+</span>         * Instance of a Snap.js object (https://github.com/jakiestfu/Snap.js/)
+         */
+        snapper: null,
+
 <span id='Sage-Platform-Mobile-Application-property-_connects'>        /**
 </span>         * Array of all connections for App
          * @property {Object[]}
@@ -122,6 +147,7 @@ define('Sage/Platform/Mobile/Application', [
          * @property {Boolean}
          */
         _started: false,
+        _rootDomNode: null,
         customizations: null,
         services: null,
         modules: null,
@@ -224,8 +250,9 @@ define('Sage/Platform/Mobile/Application', [
 </span>         * Loops through views and calls their `init()` function.
          */
         initViews: function() {
-            for (var n in this.views)
+            for (var n in this.views) {
                 this.views[n].init(); // todo: change to startup
+            }
         },
 <span id='Sage-Platform-Mobile-Application-method-initToolbars'>        /**
 </span>         * Loops through (tool)bars and calls their `init()` function.
@@ -363,17 +390,52 @@ define('Sage/Platform/Mobile/Application', [
         hasService: function(name) {
             return !!this.services[name];
         },
+        _createViewContainers: function() {
+            var node = document.getElementById('viewContainer'), drawers;
+
+            if (node) {
+                this._rootDomNode = node;
+                return;
+            }
+
+            if (this._rootDomNode === null || typeof this._rootDomNode === 'undefined') {
+                this._rootDomNode = domConstruct.create('div', {
+                    'id': 'viewContainer',
+                    'class': 'viewContainer'
+                }, win.body());
+
+                drawers = domConstruct.create('div', {
+                    'class': 'drawers absolute'
+                }, win.body());
+
+                domConstruct.create('div', {
+                    'class': 'overthrow left-drawer absolute'
+                }, drawers);
+
+                domConstruct.create('div', {
+                    'class': 'overthrow right-drawer absolute'
+                }, drawers);
+
+            }
+        },
 <span id='Sage-Platform-Mobile-Application-method-registerView'>        /**
 </span>         * Registers a view with the application and renders it to HTML.
          * If the application has already been initialized, the view is immediately initialized as well.
          * @param {View} view A view instance to be registered.
+         * @param {domNode} domNode Optional. A DOM node to place the view in. 
          */
-        registerView: function(view) {
+        registerView: function(view, domNode) {
             this.views[view.id] = view;
 
-            if (this._started) view.init();
+            if (this._started) {
+                view.init();
+            }
 
-            view.placeAt(win.body(), 'first');
+            if (!domNode) {
+                this._createViewContainers();
+            }
+
+            view.placeAt(domNode || this._rootDomNode, 'first');
 
             this.onRegistered(view);
 
@@ -384,20 +446,25 @@ define('Sage/Platform/Mobile/Application', [
          * If the application has already been initialized, the toolbar is immediately initialized as well.
          * @param {String} name Unique name of the toolbar
          * @param {Toolbar} tbar Toolbar instance to register
+         * @param {domNode} domNode Optional. A DOM node to place the view in. 
          */
-        registerToolbar: function(name, tbar)
-        {
-            if (typeof name === 'object')
-            {
+        registerToolbar: function(name, tbar, domNode) {
+            if (typeof name === 'object') {
                 tbar = name;
                 name = tbar.name;
             }
 
             this.bars[name] = tbar;
 
-            if (this._started) tbar.init();
+            if (this._started) {
+                tbar.init();
+            }
 
-            tbar.placeAt(win.body(), 'last');
+            if (!domNode) {
+                this._createViewContainers();
+            }
+
+            tbar.placeAt(domNode || this._rootDomNode, 'last');
 
             return this;
         },
@@ -680,9 +747,46 @@ define('Sage/Platform/Mobile/Application', [
         },
         hasAccessTo: function(security) {
             return true;
-        }
+        },
+<span id='Sage-Platform-Mobile-Application-method-showLeftDrawer'>        /**
+</span>         * Override this function to load a view in the left drawer.
+         */
+        showLeftDrawer: function() {
+        },
+<span id='Sage-Platform-Mobile-Application-method-loadSnapper'>        /**
+</span>         * Loads Snap.js and assigns the instance to App.snapper. This method would typically be called before navigating to the initial view, so the login page does not contain the menu.
+         */
+        loadSnapper: function() {
+            // TODO: Provide a domNode param and default to viewContainer if not provided
+            var snapper, view;
+
+            if (this.snapper) {
+                return;
+            }
+
+            snapper = new snap({
+                element: document.getElementById('viewContainer'),
+                disable: 'right', // use 'none' to do both
+                addBodyClasses: true,
+                resistance: 0.1,
+                flickThreshold: 50,
+                transitionSpeed: 0.2,
+                easing: 'ease',
+                maxPosition: 266,
+                minPosition: -266,
+                tapToClose: true,
+                touchToDrag: has('android') ? false : true,
+                slideIntent: 40,
+                minDragDistance: 5 
+            });
+
+            this.snapper = snapper;
+
+            this.showLeftDrawer();
+        },
     });
 });
+
 </pre>
 </body>
 </html>
