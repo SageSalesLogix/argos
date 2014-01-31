@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">/*
+ * Copyright (c) 1997-2013, SalesLogix, NA., LLC. All rights reserved.
+ */
+
+<span id='Mobile-SalesLogix-Views-Activity-TypesList'>/**
+</span> * @class Mobile.SalesLogix.Views.Activity.TypesList
+ *
+ * @extends Sage.Platform.Mobile.List
+ * @mixins Sage.Platform.Mobile._LegacySDataListMixin
+ * @mixins Mobile.SalesLogix.Views._CardLayoutListMixin
+ *
+ * @requires Sage.Platform.Mobile.List
+ * @requires Sage.Platform.Mobile._LegacySDataListMixin
+ *
+ * @requires Mobile.SalesLogix.Views._CardLayoutListMixin
+ *
+ */
+define('Mobile/SalesLogix/Views/Activity/TypesList', [
+    'dojo/_base/declare',
+    'Sage/Platform/Mobile/List',
+    'Sage/Platform/Mobile/_LegacySDataListMixin',
+    'Mobile/SalesLogix/Views/_CardLayoutListMixin'
+], function(
+    declare,
+    List,
+    _LegacySDataListMixin,
+    _CardLayoutListMixin
+) {
+
+    return declare('Mobile.SalesLogix.Views.Activity.TypesList', [List, _LegacySDataListMixin, _CardLayoutListMixin], {
+        //Templates
+        itemIndicatorTemplate: new Simplate(['&lt;div/&gt; ']),
+        itemIconTemplate: new Simplate([
+            '&lt;div class=&quot;list-item-static-selector&quot;&gt;',
+                '{% if ($.icon) { %}',
+                '&lt;img src=&quot;{%: $.icon %}&quot; alt=&quot;icon&quot; class=&quot;icon&quot; /&gt;',
+                '{% } %}',
+            '&lt;/div&gt;'
+        ]),
+        //this us used if card layout is not mixed in
+        rowTemplate: new Simplate([
+            '&lt;li data-action=&quot;activateEntry&quot; data-key=&quot;{%= $.$key %}&quot; data-descriptor=&quot;{%: $.$descriptor %}&quot;&gt;',
+            '&lt;div class=&quot;list-item-static-selector&quot;&gt;',
+                '{% if ($.icon) { %}',
+                '&lt;img src=&quot;{%: $.icon %}&quot; alt=&quot;icon&quot; class=&quot;icon&quot; /&gt;',
+                '{% } %}',
+            '&lt;/div&gt;',
+            '&lt;div class=&quot;list-item-content&quot;&gt;{%! $$.itemTemplate %}&lt;/div&gt;',
+            '&lt;/li&gt;'
+        ]),
+        itemTemplate: new Simplate([
+            '&lt;h3&gt;{%: $.$descriptor %}&lt;/h3&gt;'
+        ]),
+
+        //Localization
+        titleText: 'Schedule...',
+        activityTypeText: {
+            'atToDo': 'To-Do',
+            'atPhoneCall': 'Phone Call',
+            'atAppointment': 'Meeting',
+            'atLiterature': 'Literature Request',
+            'atPersonal': 'Personal Activity',
+            'event': 'Event'
+        },
+        activityTypeIcons: {
+            'atToDo': 'content/images/icons/Schedule_ToDo_24x24.png',
+            'atPhoneCall': 'content/images/icons/Schedule_Call_24x24.png',
+            'atAppointment': 'content/images/icons/Schedule_Meeting_24x24.png',
+            'atLiterature': 'content/images/icons/Schedule_Literature_Request_24x24.gif',
+            'atPersonal': 'content/images/icons/Personal_24x24.png',
+            'event': 'content/images/icons/Holiday_schemes_24.png'
+        },
+
+        //View Properties
+        activityTypeOrder: [
+            'atAppointment',
+            //'atLiterature', //For [#7206791], We will enable this later.
+            'atPersonal',
+            'atPhoneCall',
+            'atToDo',
+            'event'
+        ],
+        activityColorClassByType: {
+            'atToDo': 'color-ToDo',
+            'atPhoneCall': 'color-PhoneCall',
+            'atAppointment': 'color-Meeting',
+            'atLiterature': 'color-LitRequest',
+            'atPersonal': 'color-Personal',
+            'atQuestion': 'color-Question',
+            'atNote': 'color-Note',
+            'atEMail': 'color-Email'
+        },
+        itemIndicators: [{}],
+        itemIcon:'content/images/icons/Schedule_Meeting_24x24.png',
+        expose: false,
+        enableSearch: false,
+        id: 'activity_types_list',
+        editView: 'activity_edit',
+        eventEditView: 'event_edit',
+
+        activateEntry: function(params) {
+            if (params.key) {
+                var source = this.options &amp;&amp; this.options.source,
+                    view = App.getView((params.key === 'event') ? this.eventEditView : this.editView);
+
+                if (view) {
+                    view.show({
+                            insert: true,
+                            entry: (this.options &amp;&amp; this.options.entry) || null,
+                            source: source,
+                            activityType: params.key,
+                            title: this.activityTypeText[params.key],
+                            returnTo: this.options &amp;&amp; this.options.returnTo
+                        }, {
+                            returnTo: -1
+                        });
+                }
+            }
+        },
+        refreshRequiredFor: function(options) {
+            if (this.options) {
+                return options;
+            } else {
+                return true;
+            }
+        },
+        hasMoreData: function() {
+            return false;
+        },
+        requestData: function() {
+            var list = [],
+                eventViews = [
+                    'calendar_monthlist',
+                    'calendar_weeklist',
+                    'calendar_daylist',
+                    'calendar_yearlist'
+                ];
+
+            for (var i = 0; i &lt; this.activityTypeOrder.length; i++) {
+                list.push({
+                    '$key': this.activityTypeOrder[i],
+                    '$descriptor': this.activityTypeText[this.activityTypeOrder[i]],
+                    'icon': this.activityTypeIcons[this.activityTypeOrder[i]],
+                    'type':this.activityTypeOrder[i] 
+                });
+            }
+            if (eventViews.indexOf(this.options.returnTo) === -1) {
+                list.pop(); // remove event for non event views
+            }
+
+            this.processFeed({'$resources': list});
+        },
+        init: function() {
+            this.inherited(arguments);
+        },
+        createToolLayout: function() {
+            return this.tools || (this.tools = {
+                tbar: []
+            });
+        },
+        getItemIconSource: function(entry) {
+            return this.itemIcon || this.activityTypeIcons[entry.type] || this.icon || this.selectIcon;
+        },
+        getItemColorClass: function(entry) {
+            return this.activityColorClassByType[entry.type] || this.itemColorClass;
+        }
+    });
+});
+
+</pre>
+</body>
+</html>

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">/*
+ * Copyright (c) 1997-2013, SalesLogix, NA., LLC. All rights reserved.
+ */
+define('Mobile/SalesLogix/Views/ErrorLog/Detail', [
+    'dojo/_base/declare',
+    'dojo/_base/json',
+    'dojo/string',
+    'dojo/store/Memory',
+    'Mobile/SalesLogix/Format',
+    'Sage/Platform/Mobile/ErrorManager',
+    'Sage/Platform/Mobile/Detail'
+], function(
+    declare,
+    json,
+    string,
+    Memory,
+    format,
+    ErrorManager,
+    Detail
+) {
+
+    return declare('Mobile.SalesLogix.Views.ErrorLog.Detail', [Detail], {
+        //Localization
+        titleText: 'Error Log',
+
+        detailsText: 'Details',
+        errorDateText: 'date',
+        errorDateFormatText: 'M/DD/YYYY h:mm:ss a',
+        statusTextText: 'description',
+
+        moreDetailsText: 'More Details',
+        errorText: 'error',
+
+        emailSubjectText: 'Error received in Saleslogix Mobile Client',
+        copiedSuccessText: 'Copied to clipboard',
+
+        //Templates
+        longDetailProperty: new Simplate([
+            '&lt;div class=&quot;row note-text-row&quot; data-property=&quot;{%= $.name %}&quot;&gt;',
+            '&lt;label&gt;{%: $.label %}&lt;/label&gt;',
+            '&lt;pre&gt;',
+            '{%= $.value %}',
+            '&lt;/pre&gt;',
+            '&lt;/div&gt;'
+        ]),
+        copyButtonTemplate: new Simplate([
+            '&lt;div class=&quot;copyButton button toolButton toolButton-right&quot;&gt;',
+            '&lt;object classid=&quot;clsid:d27cdb6e-ae6d-11cf-96b8-444553540000&quot; width=&quot;40&quot; height=&quot;36&quot; id=&quot;errorlog-detail-copy&quot;&gt;',
+            '&lt;param name=&quot;movie&quot; value=&quot;content/clippy.swf&quot;/&gt;',
+            '&lt;param name=&quot;allowScriptAccess&quot; value=&quot;always&quot; /&gt;',
+            '&lt;param name=&quot;quality&quot; value=&quot;high&quot; /&gt;',
+            '&lt;param name=&quot;scale&quot; value=&quot;noscale&quot; /&gt;',
+            '&lt;param name=&quot;FlashVars&quot; value=&quot;{%= $.flashVars %}&quot; /&gt;',
+            '&lt;param name=&quot;wmode&quot; value=&quot;transparent&quot; /&gt;',
+            '&lt;embed src=&quot;content/clippy.swf&quot; width=&quot;45&quot; height=&quot;36&quot; scale=&quot;noscale&quot; name=&quot;clippy&quot; quality=&quot;high&quot; allowScriptAccess=&quot;always&quot; type=&quot;application/x-shockwave-flash&quot; pluginspage=&quot;http://www.macromedia.com/go/getflashplayer&quot; FlashVars=&quot;{%= $.flashVars %}&quot; wmode=&quot;transparent&quot; /&gt;',
+            '&lt;/object&gt;',
+            '&lt;/div&gt;'
+        ]),
+
+
+        //View Properties
+        id: 'errorlog_detail',
+        sendType: null,
+
+<span id='global-property-defaultToAddress'>        /**
+</span>         * Email address to be placed in the &quot;To:&quot; field when sending a report via a mobile device
+         */
+        defaultToAddress: null,
+
+        init: function() {
+            this.inherited(arguments);
+            this.determineSendType();
+        },
+
+        createToolLayout: function() {
+            var tools = {
+                'tbar': []
+            };
+
+            if (this.sendType === 'mailto') {
+                tools.tbar.push({
+                    id: 'generateEmail',
+                    action: 'constructReport',
+                    icon: 'content/images/icons/Send_Write_email_24x24.png',
+                    title: 'Generate Email Report'
+                });
+            }
+
+            if (this.sendType === 'copy') {
+                var flashVars = this.constructFlashVars({
+                    &quot;retrieveFunction&quot;: &quot;App.views.&quot; + this.id + &quot;.constructReport&quot;,
+                    &quot;callbackFunction&quot;: &quot;App.views.&quot; + this.id + &quot;.onCopySuccess&quot;,
+                    &quot;labelVisible&quot;: &quot;0&quot;
+                });
+
+                tools.tbar.push({
+                    template: this.copyButtonTemplate,
+                    flashVars: flashVars
+                });
+            }
+
+            return this.tools || tools;
+        },
+
+<span id='global-method-determineSendType'>        /**
+</span>         * Determines the method to use for sending the error report
+         * 'mailto': Used on Mobile devices to indicate to form a mailto: url
+         * 'copy': Used on desktops to indicate a &quot;copy&quot; button should be placed on the page
+         */
+        determineSendType: function() {
+            switch (true) {
+                case (typeof window.orientation !== 'undefined'):
+                    this.sendType = 'mailto';
+                    break;
+                default:
+                    this.sendType = 'copy';
+            }
+        },
+
+        constructFlashVars: function(options) {
+            var flashVars = [];
+            for (var key in options) {
+                flashVars.push(string.substitute('${0}=${1}', [key, options[key]]));
+            }
+
+            return flashVars.join('&amp;');
+        },
+
+        onCopySuccess: function() {
+            alert(this.copiedSuccessText);
+        },
+
+        constructReport: function() {
+            var body = string.substitute('\r\n\r\n\r\n-----------------\r\n${0}',
+                [json.toJson(this.entry, true)]);
+
+            if (this.sendType === 'mailto') {
+                this.sendEmailReport(body);
+            } else {
+                return body;
+            }
+        },
+
+        sendEmailReport: function(body) {
+            var email = this.defaultToAddress || '',
+                subject = encodeURIComponent(this.emailSubjectText);
+            body = encodeURIComponent(body);
+            App.initiateEmail(email, subject, body);
+        },
+
+        requestData: function() {
+            var errorItem = ErrorManager.getError('$key', this.options.key);
+            this.processData(errorItem);
+        },
+
+        createLayout: function() {
+            return this.layout || (this.layout = [{
+                    title: this.detailsText,
+                    name: 'DetailsSection',
+                    children: [{
+                            label: this.errorDateText,
+                            name: 'Date',
+                            property: 'Date',
+                            renderer: format.date.bindDelegate(this, this.errorDateFormatText)
+                        }, {
+                            label: this.statusTextText,
+                            name: 'Description',
+                            property: 'Description'
+                        }]
+                }, {
+                    title: this.moreDetailsText,
+                    collapsed: true,
+                    name: 'MoreDetailsTextSection',
+                    children: [{
+                            label: this.errorText,
+                            name: 'Error',
+                            property: 'Error'
+                        }]
+                }]);
+        }
+    });
+});
+
+</pre>
+</body>
+</html>

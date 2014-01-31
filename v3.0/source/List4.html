@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">/*
+ * Copyright (c) 1997-2013, SalesLogix, NA., LLC. All rights reserved.
+ */
+
+<span id='Mobile-SalesLogix-Views-Attachments-List'>/**
+</span> * @class Mobile.SalesLogix.Views.Attachments.List
+ *
+ * @extends Sage.Platform.Mobile.List
+ * @mixins Sage.Platform.Mobile.List
+ * @mixins Mobile.SalesLogix.Views._RightDrawerListMixin
+ * @mixins Mobile.SalesLogix.Views._CardLayoutListMixin
+ * @mixins Sage.Platform.Mobile._LegacySDataListMixin
+ *
+ * @requires Sage.Platform.Mobile.List
+ * @requires Sage.Platform.Mobile._LegacySDataListMixin
+ * @requires Sage.Platform.Mobile.Convert
+ *
+ * @requires Mobile.SalesLogix.Format
+ * @requires Mobile.SalesLogix.Views._RightDrawerListMixin
+ * @requires Mobile.SalesLogix.Views._CardLayoutListMixin
+ *
+ * @requires moment
+ *
+ */
+define('Mobile/SalesLogix/Views/Attachment/List', [
+    'dojo/_base/declare',
+    'dojo/string',
+    'dojo/has',
+    'Mobile/SalesLogix/Format',
+    'Sage/Platform/Mobile/List',
+    'Sage/Platform/Mobile/_LegacySDataListMixin',
+    'Sage/Platform/Mobile/Convert',
+    '../_RightDrawerListMixin',
+    '../_CardLayoutListMixin',
+    'moment'
+], function(
+    declare,
+    string,
+    has,
+    format,
+    List,
+    _LegacySDataListMixin,
+    convert,
+    _RightDrawerListMixin,
+    _CardLayoutListMixin,
+    moment
+) {
+
+    return declare('Mobile.SalesLogix.Views.Attachment.List', [List, _RightDrawerListMixin, _CardLayoutListMixin, _LegacySDataListMixin], {
+        //Templates
+
+        //used when card layout is no used used.
+        rowTemplate: new Simplate([
+            '&lt;li data-action=&quot;activateEntry&quot; data-key=&quot;{%= $.$key %}&quot; data-descriptor=&quot;{%: $.$descriptor %}&quot;&gt;',
+                '&lt;button data-action=&quot;selectEntry&quot; class=&quot;list-item-selector button&quot;&gt;',
+                    '&lt;img src=&quot;{%= $$.icon || $$.selectIcon %}&quot; class=&quot;icon&quot; /&gt;',
+                '&lt;/button&gt;',
+                '&lt;div class=&quot;list-item-content&quot;&gt;{%! $$.itemTemplate %}&lt;/div&gt;',
+            '&lt;/li&gt;'
+        ]),
+        itemTemplate: new Simplate([
+           '{% if ($.dataType === &quot;R&quot;) { %}',
+               '{%! $$.fileTemplate %}',
+           '{% } else { %}',
+              '{%! $$.urlTemplate %}',
+           '{% } %}'
+        ]),
+        fileTemplate: new Simplate([
+             '&lt;h3&gt;&lt;span&gt;{%: $.description %}&amp;nbsp;&lt;/span&gt;&lt;/h3&gt;',
+             '&lt;h4&gt;&lt;span&gt;({%: $$.uploadedOnText %} {%: Mobile.SalesLogix.Format.relativeDate($.attachDate) %})&amp;nbsp;&lt;/span&gt;',
+            '&lt;span&gt;{%: Mobile.SalesLogix.Format.fileSize($.fileSize) %} &lt;/span&gt;&lt;/h4&gt;',
+            '&lt;h4&gt;&lt;span&gt;{%: Mobile.SalesLogix.Utility.getFileExtension($.fileName) %} &lt;/span&gt;&lt;/h4&gt;',
+            '{% if($.user) { %}',
+                '&lt;h4&gt;&lt;span&gt;{%: $.user.$descriptor  %}&lt;/span&gt;&lt;/h4&gt;',
+            '{% } %}'
+        ]),
+        urlTemplate: new Simplate([
+            '&lt;h3&gt;&lt;span&gt;{%: $.description %} &amp;nbsp;&lt;/span&gt;&lt;/h3&gt;',
+            '{% if ($.attachDate) { %}',
+                '&lt;h4&gt;&lt;span&gt;({%: $$.uploadedOnText %} {%: Mobile.SalesLogix.Format.relativeDate($.attachDate) %})&amp;nbsp;&lt;/span&gt;&lt;/h4&gt;',
+            '{% } %}',
+            '&lt;h4&gt;&lt;span&gt;{%: $.url %}&amp;nbsp;&lt;/span&gt;&lt;/h4&gt;',
+            '{% if($.user) { %}',
+            '&lt;h4&gt;&lt;span&gt;{%: $.user.$descriptor  %}&lt;/span&gt;&lt;/h4&gt;',
+            '{% } %}'
+        ]),
+
+        //Localization
+        titleText: 'Attachments',
+        attachmentDateFormatText: 'ddd M/D/YYYY hh:mm:ss',
+        uploadedOnText: 'Uploaded ',// Uploaded 10 days ago
+
+        //View Properties       
+        id: 'attachment_list',
+        security: null,
+        enableActions: true,
+        detailView: 'view_attachment',
+        insertView: 'attachment_Add',
+        icon: 'content/images/icons/Attachment_24.png',
+        iconurl: 'content/images/icons/Attachment_URL_24.png',
+        queryOrderBy: 'attachDate desc',
+        querySelect:  [
+            'description',
+            'user',
+            'createUser',
+            'attachDate',
+            'fileSize',
+            'fileName',
+            'url',
+            'fileExists',
+            'remoteStatus',
+            'dataType',
+            'ModifyDate'
+        ],
+        resourceKind: 'attachments',
+        contractName: 'system',
+        queryInclude: ['$descriptors'],
+
+        hashTagQueries: {
+            'url': 'url ne null',
+            'binary': 'url eq null'
+        },
+        hashTagQueriesText: {
+            'url': 'url',
+            'binary': 'binary'
+        },
+
+        createToolLayout: function() {
+            if (!has('html5-file-api')) {
+                this.insertView = null;
+            } else {
+                return this.inherited(arguments);
+            }
+        },
+        createRequest: function() {
+            var request = this.inherited(arguments);
+            request.setQueryArg('_includeFile', 'false');
+            return request;
+        },
+        formatSearchQuery: function(searchQuery) {
+            return string.substitute('upper(description) like &quot;%${0}%&quot;', [this.escapeSearchQuery(searchQuery.toUpperCase())]);
+        },
+        getLink: function(attachment) {
+            if (attachment['url']) {
+                var href = attachment['url'] || '';
+                href = (href.indexOf('http') &lt; 0) ? 'http://' + href : href;
+                return string.substitute('&lt;a href=&quot;${0}&quot; target=&quot;_blank&quot; title=&quot;${1}&quot;&gt;${2}&lt;/a&gt;', [href, attachment['url'], attachment['$descriptor']]);
+            } else {
+                if (attachment['fileExists']) {
+                    return string.substitute('&lt;a href=&quot;javascript: Sage.Utility.File.Attachment.getAttachment(\'${0}\');&quot; title=&quot;${1}&quot;&gt;${1}&lt;/a&gt;',
+                        [attachment['$key'], attachment['$descriptor']]);
+                } else {
+                    return attachment['$descriptor'];
+                }
+            }
+        },
+        getItemIconSource: function(entry) {
+              return &quot;content/images/icons/Attachment_48x48.png&quot;;
+        },
+        createIndicatorLayout: function() {
+            return this.itemIndicators || (this.itemIndicators = [{
+                id: 'touched',
+                icon: 'Touched_24x24.png',
+                label: 'Touched',
+                onApply: function(entry, parent) {
+                    this.isEnabled = parent.hasBeenTouched(entry);
+                }
+            }, {
+                id: 'attachmentIcon',
+                icon: '',
+                label: 'Activity',
+                onApply: function(entry, parent) {
+                    parent.applyActivityIndicator(entry, this);
+                }
+            }]
+            );
+        },
+        applyActivityIndicator: function(entry, indicator) {
+            var dataType = entry['dataType'];
+            indicator.isEnabled = true;
+            indicator.showIcon = true;
+            if (dataType === 'R') {
+                indicator.icon = &quot;Attachment_24.png&quot;;
+                indicator.label = &quot;file&quot;;
+                
+            } else {
+                indicator.icon = &quot;Attachment_URL_24.png&quot;;
+                indicator.label = &quot;url&quot;;
+            }
+        },
+        hasBeenTouched: function(entry) {
+            var modifiedDate, currentDate, weekAgo;
+            if (entry['modifyDate']) {
+                modifiedDate = moment(convert.toDateFromString(entry['modifyDate']));
+                currentDate = moment().endOf('day');
+                weekAgo = moment().subtract(1, 'weeks');
+
+                return modifiedDate.isAfter(weekAgo) &amp;&amp;
+                    modifiedDate.isBefore(currentDate);
+            }
+            return false;
+        }
+    });
+});
+
+</pre>
+</body>
+</html>

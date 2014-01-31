@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">/*
+ * Copyright (c) 1997-2013, SalesLogix, NA., LLC. All rights reserved.
+ */
+
+<span id='Mobile-SalesLogix-Views-RightDrawer'>/**
+</span> * @class Mobile.SalesLogix.Views.RightDrawer
+ *
+ *
+ * @extends Sage.Platform.Mobile.GroupedList
+ *
+ */
+define('Mobile/SalesLogix/Views/RightDrawer', [
+    'dojo/_base/declare',
+    'dojo/_base/array',
+    'dojo/_base/lang',
+    'dojo/store/Memory',
+    'Mobile/SalesLogix/SpeedSearchWidget',
+    'Sage/Platform/Mobile/GroupedList'
+], function(
+    declare,
+    array,
+    lang,
+    Memory,
+    SpeedSearchWidget,
+    GroupedList
+) {
+
+    return declare('Mobile.SalesLogix.Views.RightDrawer', [GroupedList],  {
+        //Templates
+        cls: ' contextualContent',
+        rowTemplate: new Simplate([
+            '&lt;li data-action=&quot;{%= $.action %}&quot;',
+            '{% if($.dataProps) { %}',
+                '{% for(var prop in $.dataProps) { %}',
+                    ' data-{%= prop %}=&quot;{%= $.dataProps[prop] %}&quot;',
+                '{% } %}',
+            '{% } %}',
+            '&gt;',
+            '&lt;div class=&quot;list-item-static-selector&quot;&gt;',
+                '{% if ($.icon) { %}',
+                '&lt;img src=&quot;{%: $.icon %}&quot; alt=&quot;icon&quot; class=&quot;icon&quot; /&gt;',
+                '{% } %}',
+            '&lt;/div&gt;',
+            '&lt;div class=&quot;list-item-content&quot;&gt;{%! $$.itemTemplate %}&lt;/div&gt;',
+            '&lt;/li&gt;'
+        ]),
+        itemTemplate: new Simplate([
+            '&lt;h3&gt;{%: $.title %}&lt;/h3&gt;'
+        ]),
+
+        //View Properties
+        id: 'right_drawer',
+        expose: false,
+        enableSearch: false,
+        customizationSet: 'right_drawer',
+        dataProps: null,
+
+        hasMoreData: function() {
+            return false;
+        },
+        getGroupForEntry: function(entry) {
+        },
+        init: function() {
+            this.inherited(arguments);
+            this.connect(App, 'onRegistered', this._onRegistered);
+        },
+        setLayout: function(layout) {
+            this.layout = layout;
+        },
+        createLayout: function() {
+            return this.layout || [];
+        },
+        createStore: function() {
+            var layout = this._createCustomizedLayout(this.createLayout()),
+                list = [],
+                store,
+                section,
+                row,
+                i, 
+                j;
+
+            for (i = 0; i &lt; layout.length; i++) {
+                section = layout[i].children;
+
+                for (j = 0; j &lt; section.length; j++) {
+                    row = section[j];
+
+                    if (row['security'] &amp;&amp; !App.hasAccessTo(row['security'])) {
+                        continue;
+                    }
+                    if (typeof this.query !== 'function' || this.query(row)) {
+                        list.push(row);
+                    }
+                }
+            }
+
+            store = new Memory({data: list});
+            return store;
+        },
+<span id='Mobile-SalesLogix-Views-RightDrawer-method-refresh'>        /**
+</span>         * Override the List refresh to also clear the view (something the beforeTransitionTo handles, but we are not using)
+         */
+        refresh: function() {
+            this.clear();
+            this.requestData();
+        },
+<span id='Mobile-SalesLogix-Views-RightDrawer-method-show'>        /**
+</span>         * Override the List show to not use RUI (this view will always be on the screen, just hidden behind the main content)
+         */
+        show: function() {
+            if (this.onShow(this) === false){
+                return;
+            }
+
+            this.refresh();
+        },
+        _onRegistered: function() {
+            this.refreshRequired = true;
+        }
+    });
+});
+
+</pre>
+</body>
+</html>

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">/*
+ * Copyright (c) 1997-2013, SalesLogix, NA., LLC. All rights reserved.
+ */
+
+<span id='Mobile-SalesLogix-Views-Configure'>/**
+</span> * @class Mobile.SalesLogix.Views.Configure
+ *
+ *
+ * @extends Sage.Platform.Mobile.List
+ *
+ */
+define('Mobile/SalesLogix/Views/Configure', [
+    'dojo/_base/declare',
+    'dojo/_base/array',
+    'dojo/_base/lang',
+    'dojo/query',
+    'dojo/string',
+    'dojo/dom-attr',
+    'dojo/dom-class',
+    'dojo/store/Memory',
+    'Sage/Platform/Mobile/List',
+    'dojo/NodeList-traverse'
+], function(
+    declare,
+    array,
+    lang,
+    query,
+    string,
+    domAttr,
+    domClass,
+    Memory,
+    List,
+    NodeList
+) {
+
+    return declare('Mobile.SalesLogix.Views.Configure', [List], {
+        //Templates
+        emptyTemplate: new Simplate(['']),
+        itemTemplate: new Simplate([
+            '&lt;h3&gt;',
+            '&lt;span&gt;{%: $.$descriptor %}&lt;/span&gt;',
+            '&lt;span data-action=&quot;moveUp&quot;&gt;&lt;/span&gt;',
+            '&lt;span data-action=&quot;moveDown&quot;&gt;&lt;/span&gt;',
+            '&lt;/h3&gt;'
+        ]),
+
+        // Localization
+        titleText: 'Configure',
+
+        //View Properties
+        id: 'configure',
+        expose: false,
+        enableSearch: false,
+        selectionOnly: true,
+        allowSelection: true,
+        autoClearSelection: false,
+
+        init: function() {
+            this.inherited(arguments);
+        },
+        createToolLayout: function() {
+            return this.tools || (this.tools = {
+                tbar: [{
+                        id: 'save',
+                        fn: this.savePreferences,
+                        scope: this
+                    }, {
+                        id: 'cancel',
+                        side: 'left',
+                        fn: ReUI.back,
+                        scope: ReUI
+                    }]
+            });
+        },
+        savePreferences: function() {
+            var visible, order, view;
+
+            App.preferences.home = App.preferences.home || {};
+            App.preferences.configure = App.preferences.configure || {};
+
+            // clear existing
+            visible = App.preferences.home.visible = [];
+            order = App.preferences.configure.order = [];
+
+            // since the selection model does not have ordering, use the DOM
+            query('li', this.domNode).forEach(function(node) {
+                var key = domAttr.get(node, 'data-key');
+                if (key) {
+                    order.push(key);
+
+                    if (domClass.contains(node, 'list-item-selected')) {
+                        visible.push(key);
+                    }
+                }
+            });
+
+            App.persistPreferences();
+
+            ReUI.back();
+            view = App.getView('left_drawer');
+            if (view) {
+                view.refresh();
+            }
+        },
+        moveUp: function(params) {
+            var node = query(params.$source),
+                row = node.parents('li');
+
+            if (row) {
+                row.insertBefore(row.prev('li'));
+            }
+        },
+        moveDown: function(params) {
+            var node = query(params.$source),
+                row = node.parents('li');
+
+            if (row) {
+                row.insertAfter(row.next('li'));
+            }
+        },
+        hasMoreData: function() {
+            return false;
+        },
+        createStore: function() {
+            var list = [],
+                lookup = {},
+                exposed = App.getExposedViews(),
+                order = lang.getObject('preferences.configure.order', false, App) || [],
+                i,
+                n,
+                view;
+
+            for (i = 0; i &lt; exposed.length; i++) {
+                lookup[exposed[i]] = true;
+            }
+
+            for (i = 0; i &lt; order.length; i++) {
+                if (lookup[order[i]]) {
+                    delete lookup[order[i]];
+                }
+            }
+
+            for (n in lookup) {
+                order.push(n);
+            }
+
+            for (i = 0; i &lt; order.length; i++) {
+                view = App.getView(order[i]);
+                if (view &amp;&amp; App.hasAccessTo(view.getSecurity()) &amp;&amp; exposed.indexOf(order[i]) &gt;= 0) {
+                    list.push({
+                        '$key': view.id,
+                        '$descriptor': view.titleText,
+                        'icon': view.icon
+                    });
+                } else {
+                    order.splice(i, 1);
+                    i -= 1;
+                }
+            }
+
+            return Memory({data: list});
+        },
+        processData: function(items) {
+            this.inherited(arguments);
+
+            var visible = (App.preferences.home &amp;&amp; App.preferences.home.visible) || [];
+
+            for (var i = 0; i &lt; visible.length; i++) {
+                var row = query((string.substitute('[data-key=&quot;${0}&quot;]', [visible[i]])), this.domNode)[0];
+
+                if (row) {
+                    this._selectionModel.toggle(visible[i], this.items[visible[i]], row);
+                }
+            }
+        }
+    });
+});
+
+</pre>
+</body>
+</html>

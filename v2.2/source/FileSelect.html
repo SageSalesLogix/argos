@@ -61,7 +61,7 @@ define('Sage/Platform/Mobile/Views/FileSelect', [
         // Localization
         titleText: 'File Select',
         addFileText: 'Click or Tap here to add a file.',
-        okText: 'Upload',
+        uploadText: 'Upload',
         cancelText: 'Cancel',
         selectFileText:'Select file', 
         loadingText: 'Uploading...',
@@ -79,7 +79,8 @@ define('Sage/Platform/Mobile/Views/FileSelect', [
          *      loadingText         The text to display while loading.
          */
         loadingTemplate: new Simplate([
-            '&lt;li class=&quot;list-loading-indicator&quot;&gt;&lt;div&gt;{%= $.loadingText %}&lt;/div&gt;&lt;/li&gt;'
+            '&lt;li class=&quot;list-loading-indicator&quot;&gt;&lt;div id=&quot;fileselect-upload-progress&quot;&gt;{%= $.loadingText %}&lt;/div&gt;&lt;/li&gt;',
+            //'&lt;/li&gt;'
         ]),
 
 <span id='Sage-Platform-Mobile-Views-FileSelect-property-widgetTemplate'>        /**
@@ -93,7 +94,7 @@ define('Sage/Platform/Mobile/Views/FileSelect', [
             '&lt;div title=&quot;{%: $.titleText %}&quot; class=&quot;panel {%= $.cls %}&quot;&gt;',
                 '&lt;div  data-dojo-attach-point=&quot;fileArea&quot; class=&quot;file-area&quot;&gt;',
                     '&lt;div class=&quot;file-wrapper&quot;&gt;',
-                        '&lt;div class=&quot;file-wrap&quot;&gt;',
+                        '&lt;div class=&quot;file-wrap&quot; data-dojo-attach-point=&quot;fileWrapper&quot;&gt;',
                             '&lt;input type=&quot;file&quot; data-dojo-attach-point=&quot;btnFileSelect&quot; size=&quot;71&quot; accept=&quot;*/*&quot;&gt;',
                         '&lt;/div&gt;',
                         '{%: $.addFileText %}',
@@ -101,8 +102,8 @@ define('Sage/Platform/Mobile/Views/FileSelect', [
                 '&lt;/div&gt;',
                 '&lt;ul class=&quot;list-content&quot;  data-dojo-attach-point=&quot;contentNode&quot;&gt;&lt;/ul&gt;',
                 '&lt;div class=&quot;buttons&quot;&gt;',
-                    '&lt;div&gt;&lt;button class=&quot;button inline&quot; data-action=&quot;okSelect&quot;&gt;&lt;span&gt;{%: $.okText %}&lt;/span&gt;&lt;/button&gt;',
-                    '&lt;button class=&quot;button inline&quot; data-action=&quot;cancelSelect&quot;&gt;&lt;span&gt;{%: $.cancelText %}&lt;/span&gt;&lt;/button&gt;&lt;div&gt;',
+                    '&lt;div&gt;&lt;button id=&quot;fileSelect-btn-upload&quot; data-dojo-attach-point=&quot;btnUploadFiles&quot; class=&quot;button inline&quot; data-action=&quot;onUploadFiles&quot;&gt;&lt;span&gt;{%: $.uploadText %}&lt;/span&gt;&lt;/button&gt;',
+                    '&lt;button id=&quot;fileSelect-btn-cancel&quot; class=&quot;button inline&quot; data-action=&quot;cancelSelect&quot;&gt;&lt;span&gt;{%: $.cancelText %}&lt;/span&gt;&lt;/button&gt;&lt;div&gt;',
                 '&lt;/div&gt;',
             '&lt;/div&gt;',
         ]),
@@ -125,17 +126,31 @@ define('Sage/Platform/Mobile/Views/FileSelect', [
         },
         postCreate: function() {
             this.inherited(arguments);
+            domClass.remove(this.domNode, 'list-loading');
+        },
+        show: function(options) {
+            var node;
+
+            this.inherited(arguments);
+            this._files = [];
+
+            // Reset the input or the onchange will not fire if the same file is uploaded multiple times.
+            // Unfortunately IE does not allow you to reset the value of a file input, so we have to clone the node and re-insert it.
+            node = this.btnFileSelect.cloneNode();
+
+            domConstruct.destroy(this.btnFileSelect);
+            this.fileWrapper.appendChild(node);
+            this.btnFileSelect = node;
+
             this.btnFileSelect.onchange = lang.hitch(this, function(e){
                 this._onSelectFile(e);
             });
 
-            domClass.remove(this.domNode, 'list-loading');
-        },
-        show: function(options) {
-            this.inherited(arguments);
-            this._files = [];
             this.contentNode.innerHTML = &quot;&quot;;
             domClass.remove(this.fileArea, 'display-none');
+            domClass.remove(this.btnUploadFiles, 'display-none');
+            domClass.add(this.btnUploadFiles, 'display-none');
+            this.onUpdateProgress('');
         },
         _browesForFiles: function(file) {
             this.btnFileSelect.click();
@@ -174,7 +189,7 @@ define('Sage/Platform/Mobile/Views/FileSelect', [
                 }
                 this._buildForm(files);
             }
-
+            domClass.remove(this.btnUploadFiles, 'display-none');
             domClass.add(this.fileArea, 'display-none');
 
         },
@@ -227,13 +242,24 @@ define('Sage/Platform/Mobile/Views/FileSelect', [
        _getDefaultDescription: function (filename) {
             return filename.replace(/\.[\w]*/, '');
         },
-        okSelect: function() {
+        onUploadFiles: function() {
             var tpl;
+            domClass.add(this.btnUploadFiles, 'display-none');
             tpl = this.loadingTemplate.apply(this);
             domClass.add(this.domNode, 'list-loading');
             domConstruct.place(tpl, this.contentNode, 'first');
         },
         cancelSelect: function() {
+        },
+        onUpdateProgress: function(msg) {
+            var n = dojo.byId('fileselect-upload-progress');
+            if (n) {
+                n.innerHTML = this.loadingText + '' + msg;
+            }
+        },
+        onUpdateFailed: function(msg) {
+            this.onUpdateProgress(msg);
+            domClass.remove(this.domNode, 'list-loading');
         }
     });
 });

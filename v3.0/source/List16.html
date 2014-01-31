@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">/*
+ * Copyright (c) 1997-2013, SalesLogix, NA., LLC. All rights reserved.
+ */
+define('Mobile/SalesLogix/Views/Owner/List', [
+    'dojo/_base/declare',
+    'dojo/string',
+    'dojo/_base/array',
+    'Sage/Platform/Mobile/List'
+], function(
+    declare,
+    string,
+    array,
+    List
+) {
+
+    return declare('Mobile.SalesLogix.Views.Owner.List', [List], {
+        //Templates
+        itemTemplate: new Simplate([
+            '&lt;h3&gt;{%: $.OwnerDescription %}&lt;/h3&gt;'
+        ]),
+
+        //Localization
+        titleText: 'Owners',
+
+        //View Properties
+        id: 'owner_list',
+        security: 'Entities/Owner/View',
+        queryOrderBy: 'OwnerDescription',
+        querySelect: [
+            'OwnerDescription',
+            'User/Enabled',
+            'User/Type',
+            'Type'
+        ],
+        queryWhere: 'Type ne &quot;Department&quot;',
+        resourceKind: 'owners',
+
+        formatSearchQuery: function(searchQuery) {
+            return string.substitute('upper(OwnerDescription) like &quot;%${0}%&quot;', [this.escapeSearchQuery(searchQuery.toUpperCase())]);
+        },
+        processData: function(items) {
+            if (items) {
+                items = array.filter(items, function(item) {
+                    return this._userEnabled(item) &amp;&amp; this._isCorrectType(item);
+                }, this);
+            }
+
+            this.inherited(arguments);
+        },
+        _userEnabled: function(item) {
+            // If User is null, it is probably a team
+            if (item.User === null || item.User.Enabled) {
+                return true;
+            }
+
+            return false;
+        },
+        _isCorrectType: function(item) {
+            // If user is null, it is probably a team
+            if (item.User === null) {
+                return true;
+            }
+
+            // Filter out WebViewer, Retired, Template and AddOn users like the user list does
+            return item.User.Type !== 3 &amp;&amp; item.User.Type !== 5 &amp;&amp; item.User.Type !== 6 &amp;&amp; item.User.Type !== 7;
+        }
+    });
+});
+
+</pre>
+</body>
+</html>

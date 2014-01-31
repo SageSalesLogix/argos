@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">/*
+ * Copyright (c) 1997-2013, SalesLogix, NA., LLC. All rights reserved.
+ */
+
+<span id='Mobile-SalesLogix-Views-_MetricListMixin'>/**
+</span> * @class Mobile.SalesLogix.Views._MetricListMixin
+ *
+ * Mixin for adding KPI widgets to list views. 
+ *
+ * @since 3.0
+ *
+ * @requires Mobile.SalesLogix.Views.MetricWidget 
+ *
+ */
+define('Mobile/SalesLogix/Views/_MetricListMixin', [
+    'dojo/_base/declare',
+    'dojo/_base/array',
+    'dojo/_base/lang',
+    'dojo/aspect',
+    './MetricWidget'
+], function(
+    declare,
+    array,
+    lang,
+    aspect,
+    MetricWidget
+) {
+    return declare('Mobile.SalesLogix.Views._MetricListMixin', null, {
+        // Metrics
+        metricNode: null,
+        metricWidgets: null,
+        configurationView: 'metric_configure',
+        entityName: '',
+
+        metricWidgetsBuilt: false,
+
+        postMixInProperties: function() {
+            this.inherited(arguments);
+            this.widgetTemplate =  new Simplate([
+                '&lt;div id=&quot;{%= $.id %}&quot; title=&quot;{%= $.titleText %}&quot; class=&quot;overthrow list {%= $.cls %}&quot; {% if ($.resourceKind) { %}data-resource-kind=&quot;{%= $.resourceKind %}&quot;{% } %}&gt;',
+                '&lt;div data-dojo-attach-point=&quot;searchNode&quot;&gt;&lt;/div&gt;',
+                '&lt;div data-dojo-attach-point=&quot;metricNode&quot; class=&quot;metric-list&quot;&gt;&lt;/div&gt;',
+                '{%! $.emptySelectionTemplate %}',
+                '&lt;ul class=&quot;list-content&quot; data-dojo-attach-point=&quot;contentNode&quot;&gt;&lt;/ul&gt;',
+                '{%! $.moreTemplate %}',
+                '{%! $.listActionTemplate %}',
+                '&lt;/div&gt;'
+            ]);
+        },
+        createMetricWidgetsLayout: function() {
+            var filtered = [],
+                prefs;
+            prefs = App.preferences &amp;&amp; App.preferences.metrics &amp;&amp; App.preferences.metrics[this.resourceKind];
+
+            if (prefs) {
+                filtered = array.filter(prefs, function(item) {
+                    return item.enabled;
+                });
+            }
+
+            return filtered;
+        },
+        postCreate: function() {
+            this.inherited(arguments);
+        },
+        destroyWidgets: function() {
+            array.forEach(this.metricWidgets, function(widget) {
+                widget.destroy();
+            }, this);
+
+            this.metricWidgetsBuilt = false;
+        },
+        requestData: function() {
+            this.inherited(arguments);
+            this.rebuildWidgets();
+        },
+        clear: function() {
+            this.inherited(arguments);
+            this.destroyWidgets();
+        },
+        rebuildWidgets: function() {
+            if (this.metricWidgetsBuilt) {
+                return;
+            }
+
+            this.destroyWidgets();
+            this.metricWidgets = [];
+
+            if (this.options &amp;&amp; this.options.simpleMode &amp;&amp; (this.options.simpleMode === true)) {
+                return;
+            }
+
+            var widgetOptions;
+            // Create metrics widgets and place them in the metricNode
+            widgetOptions = this.createMetricWidgetsLayout() || [];
+            array.forEach(widgetOptions, function(options) {
+                if (this._hasValidOptions(options)) {
+                    options.returnToId = this.id;
+                    options.parentResourceKind = this.resourceKind;
+                    options.resourceKind = this.resourceKind;
+                    options.currentSearchExpression = this.currentSearchExpression;
+                    options.queryArgs._activeFilter = this._getCurrentQuery();
+
+                    var widget = new MetricWidget(options);
+                    widget.placeAt(this.metricNode, 'last');
+                    widget.requestData();
+                    this.metricWidgets.push(widget);
+                }
+            }, this);
+
+            this.metricWidgetsBuilt = true;
+        },
+        _getCurrentQuery: function() {
+            // Get the current query from the search box, and any context query located in options.where
+            var query = this.query,
+                where = this.options &amp;&amp; this.options.where;
+            return array.filter([query, where], function(item) {
+                return !!item;
+            }).join(' and ');
+        },
+        _hasValidOptions: function(options) {
+            return options 
+                &amp;&amp; options.queryArgs 
+                &amp;&amp; options.queryArgs._filterName 
+                &amp;&amp; options.queryArgs._metricName;
+        }
+    });
+});
+</pre>
+</body>
+</html>
