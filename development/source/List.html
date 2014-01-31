@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">/*
+ * Copyright (c) 1997-2013, SalesLogix, NA., LLC. All rights reserved.
+ */
+
+<span id='Mobile-SalesLogix-Views-Account-List'>/**
+</span> * @class Mobile.SalesLogix.Views.Account.List
+ *
+ * @extends Sage.Platform.Mobile.List
+ * @requires Sage.Platform.Mobile.List
+ * @requires Sage.Platform.Mobile.Format
+ * @requires Sage.Platform.Mobile.Utility
+ * @requires Sage.Platform.Mobile.Convert
+ * @requires Sage.Platform.Mobile.RelatedViewWidget
+ *
+ * @requires Mobile.SalesLogix.Action
+ * @requires Mobile.SalesLogix.Views.History.RelatedView
+ * @requires Mobile.SalesLogix.Views._MetricListMixin
+ * @requires Mobile.SalesLogix.Views._CardLayoutListMixin
+ * @requires Mobile.SalesLogix.Views._RightDrawerListMixin
+ *
+ */
+define('Mobile/SalesLogix/Views/Account/List', [
+    'dojo/_base/declare',
+    'dojo/_base/array',
+    'dojo/string',
+    'Mobile/SalesLogix/Action',
+    'Sage/Platform/Mobile/Format',
+    'Sage/Platform/Mobile/Utility',
+    'Sage/Platform/Mobile/Convert',
+    'Mobile/SalesLogix/Views/History/RelatedView',
+    'Sage/Platform/Mobile/RelatedViewWidget',
+    'Sage/Platform/Mobile/List',
+    '../_MetricListMixin',
+    '../_CardLayoutListMixin',
+    '../_RightDrawerListMixin'
+], function(
+    declare,
+    array,
+    string,
+    action,
+    format,
+    utility,
+    Convert,
+    HistoryRelatedView,
+    RelatedViewWidget,
+    List,
+    _MetricListMixin,
+    _CardLayoutListMixin,
+    _RightDrawerListMixin
+) {
+
+    return declare('Mobile.SalesLogix.Views.Account.List', [List, _RightDrawerListMixin, _MetricListMixin, _CardLayoutListMixin], {
+        //Templates
+        itemTemplate: new Simplate([
+            '&lt;h3&gt;{%: $.AccountName %}&lt;/h3&gt;',
+            '&lt;h4&gt;{%: $.Industry %}&lt;/h4&gt;',
+            '&lt;h4&gt;',
+                '{%: $$.joinFields(&quot; | &quot;, [$.Type, $.SubType]) %}',
+            '&lt;/h4&gt;',
+            '&lt;h4&gt;{%: $.AccountManager &amp;&amp; $.AccountManager.UserInfo ? $.AccountManager.UserInfo.UserName : &quot;&quot; %} | {%: $.Owner.OwnerDescription %}&lt;/h4&gt;',
+            '&lt;h4&gt;{%: $.WebAddress %}&lt;/h4&gt;',
+            '{% if ($.MainPhone) { %}',
+                '&lt;h4&gt;',
+                    '{%: $$.phoneAbbreviationText + Sage.Platform.Mobile.Format.phone($.MainPhone) %}',
+                '&lt;/h4&gt;',
+            '{% } %}',
+            '{% if ($.Fax) { %}',
+                '&lt;h4&gt;',
+                    '{%: $$.faxAbbreviationText + Sage.Platform.Mobile.Format.phone($.Fax) %}',
+                '&lt;/h4&gt;',
+            '{% } %}'
+        ]),
+
+        joinFields: function(sep, fields) {
+            return utility.joinFields(sep, fields);
+        },
+
+        //Localization
+        titleText: 'Accounts',
+        activitiesText: 'Activities',
+        notesText: 'Notes',
+        scheduleText: 'Schedule',
+        editActionText: 'Edit',
+        callMainActionText: 'Call Main',
+        viewContactsActionText: 'Contacts',
+        addNoteActionText: 'Add Note',
+        addActivityActionText: 'Add Activity',
+        addAttachmentActionText: 'Add Attachment',
+        phoneAbbreviationText: 'Phone: ',
+        faxAbbreviationText: 'Fax: ',
+
+        //View Properties        
+        detailView: 'account_detail',
+        icon: 'content/images/icons/Company_24.png',
+        id: 'account_list',
+        security: 'Entities/Account/View',
+        insertView: 'account_edit',
+        queryOrderBy: 'AccountNameUpper',
+        insertSecurity: 'Entities/Account/Add',
+        querySelect: [
+            'AccountName',
+            'AccountManager/UserInfo/UserName',
+            'AccountManager/UserInfo/LastName',
+            'AccountManager/UserInfo/FirstName',
+            'Owner/OwnerDescription',
+            'MainPhone',
+            'WebAddress',
+            'Industry',
+            'LeadSource/Description',
+            'MainPhone',
+            'Fax',
+            'Status',
+            'SubType',
+            'Type',
+            'ModifyDate'
+        ],
+        resourceKind: 'accounts',
+        entityName: 'Account',
+        allowSelection: true,
+        enableActions: true,
+        pageSize: 10,
+        hashTagQueries: {
+            'my-accounts': function() {
+                return 'AccountManager.Id eq &quot;' + App.context.user.$key + '&quot;';
+            },
+            'active': 'Status eq &quot;Active&quot;',
+            'inactive': 'Status eq &quot;Inactive&quot;',
+            'suspect': 'Type eq &quot;Suspect&quot;',
+            'lead': 'Type eq &quot;Lead&quot;',
+            'prospect': 'Type eq &quot;Prospect&quot;',
+            'customer': 'Type eq &quot;Customer&quot;',
+            'partner': 'Type eq &quot;Partner&quot;',
+            'vendor': 'Type eq &quot;Vendor&quot;',
+            'influencer': 'Type eq &quot;Influencer&quot;',
+            'competitor': 'Type eq &quot;Competitor&quot;'
+        },
+        hashTagQueriesText: {
+            'my-accounts': 'my-accounts',
+            'active': 'active',
+            'inactive': 'inactive',
+            'suspect': 'suspect',
+            'lead': 'lead',
+            'prospect': 'prospect',
+            'customer': 'customer',
+            'partner': 'partner',
+            'vendor': 'vendor',
+            'influencer': 'influencer',
+            'competitor': 'competitor'
+        },
+        defaultSearchTerm: function() {
+            return '#' + this.hashTagQueriesText['my-accounts'];
+        },
+        createActionLayout: function() {
+            return this.actions || (this.actions = [{
+                id: 'edit',
+                icon: 'content/images/icons/edit_24.png',
+                label: this.editActionText,
+                action: 'navigateToEditView'
+            }, {
+                id: 'callMain',
+                icon: 'content/images/icons/Call_24x24.png',
+                label: this.callMainActionText,
+                enabled: action.hasProperty.bindDelegate(this, 'MainPhone'),
+                fn: action.callPhone.bindDelegate(this, 'MainPhone')
+            }, {
+                id: 'viewContacts',
+                icon: 'content/images/icons/Contacts_24x24.png',
+                label: this.viewContactsActionText,
+                fn: this.navigateToRelatedView.bindDelegate(this, 'contact_related', 'Account.id eq &quot;${0}&quot;')
+            }, {
+                id: 'addNote',
+                icon: 'content/images/icons/New_Note_24x24.png',
+                label: this.addNoteActionText,
+                fn: action.addNote.bindDelegate(this)
+            }, {
+                id: 'addActivity',
+                icon: 'content/images/icons/Schedule_ToDo_24x24.png',
+                label: this.addActivityActionText,
+                fn: action.addActivity.bindDelegate(this)
+            }, {
+                id: 'addAttachment',
+                icon: 'content/images/icons/Attachment_24.png',
+                label: this.addAttachmentActionText,
+                fn: action.addAttachment.bindDelegate(this)
+            }]
+
+            );
+        },
+        formatSearchQuery: function(searchQuery) {
+            return string.substitute('AccountNameUpper like &quot;${0}%&quot;', [this.escapeSearchQuery(searchQuery.toUpperCase())]);
+        },
+        createRelatedViewLayout: function() {
+            return this.relatedViews || (this.relatedViews = [{
+                widgetType: HistoryRelatedView,
+                id: 'account_relatedNotes',
+                autoLoad:true,
+                enabled: true,
+                relatedProperty:'AccountId',
+                where: function(entry) { return &quot;AccountId eq '&quot; + entry.$key + &quot;' and Type ne 'atDatabaseChange'&quot;; }
+            }]);
+        }
+    });
+});
+
+</pre>
+</body>
+</html>

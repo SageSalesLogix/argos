@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">/*
+ * Copyright (c) 1997-2013, SalesLogix, NA., LLC. All rights reserved.
+ */
+
+<span id='Mobile-SalesLogix-Views-Activity-MyList'>/**
+</span> * @class Mobile.SalesLogix.Views.Activity.MyList
+ *
+ * @extends Mobile.SalesLogix.Views.Activity.List
+ * @mixins Mobile.SalesLogix.Views.Activity.List
+ *
+ * @requires Sage.Platform.Mobile.List
+ * @requires Sage.Platform.Mobile.Format
+ * @requires Sage.Platform.Mobile.Utility
+ * @requires Sage.Platform.Mobile.Convert
+ * @requires Sage.Platform.Mobile.ErrorManager
+ *
+ * @requires Mobile.SalesLogix.Format
+ * @requires Mobile.SalesLogix.Environment
+ * @requires Mobile.SalesLogix.Views.Activity.List
+ * @requires Mobile.SalesLogix.Action
+ *
+ * @requires moment
+ *
+ */
+define('Mobile/SalesLogix/Views/Activity/MyList', [
+    'dojo/_base/declare',
+    'dojo/string',
+    'dojo/query',
+    'dojo/_base/connect',
+    'Sage/Platform/Mobile/List',
+    'Mobile/SalesLogix/Format',
+    'Mobile/SalesLogix/Environment',
+    'Sage/Platform/Mobile/Format',
+    'Mobile/SalesLogix/Views/Activity/List',
+    'Sage/Platform/Mobile/Utility',
+    'Sage/Platform/Mobile/Convert',
+    'Sage/Platform/Mobile/ErrorManager',
+    'moment',
+    'Mobile/SalesLogix/Action'
+], function(
+    declare,
+    string,
+    query,
+    connect,
+    List,
+    format,
+    environment,
+    platformFormat,
+    ActivityList,
+    Utility,
+    convert,
+    ErrorManager,
+    moment,
+    action
+) {
+
+    return declare('Mobile.SalesLogix.Views.Activity.MyList', [ActivityList], {
+
+        //Templates
+        //Card View 
+       itemRowContainerTemplate: new Simplate([
+           '&lt;li data-action=&quot;activateEntry&quot; data-my-activity-key=&quot;{%= $.$key %}&quot; data-key=&quot;{%= $$.getItemActionKey($) %}&quot; data-descriptor=&quot;{%: $$.getItemDescriptor($) %}&quot; data-activity-type=&quot;{%: $.Activity.Type %}&quot;  data-color-class=&quot;{%: $$.getItemColorClass($) %}&quot; &gt;',
+            '{%! $$.itemRowContentTemplate %}',
+          '&lt;/li&gt;'
+        ]),
+        //Used if Card View is not mixed in
+        rowTemplate: new Simplate([
+            '&lt;li data-action=&quot;activateEntry&quot; data-my-activity-key=&quot;{%= $.$key %}&quot; data-key=&quot;{%= $.Activity.$key %}&quot; data-descriptor=&quot;{%: $.Activity.$descriptor %}&quot; data-activity-type=&quot;{%: $.Activity.Type %}&quot;&gt;',
+            '&lt;div data-action=&quot;selectEntry&quot; class=&quot;list-item-static-selector&quot;&gt;',
+            '&lt;img src=&quot;{%= $$.activityIconByType[$.Activity.Type] || $$.icon || $$.selectIcon %}&quot; class=&quot;icon&quot; /&gt;',
+            '&lt;/div&gt;',
+            '&lt;div class=&quot;list-item-content&quot;&gt;{%! $$.itemTemplate %}&lt;/div&gt;',
+            '&lt;/li&gt;'
+        ]),
+        activityTimeTemplate: new Simplate([
+            '{%: Mobile.SalesLogix.Format.relativeDate($.Activity.StartDate, Sage.Platform.Mobile.Convert.toBoolean($.Activity.Timeless)) %}'
+        ]),
+        itemTemplate: new Simplate([
+            '&lt;h3&gt;',
+                '&lt;span class=&quot;p-description&quot;&gt;{%: $.Activity.Description %}{% if ($.Status === &quot;asUnconfirmed&quot;) { %} ({%: Mobile.SalesLogix.Format.userActivityStatus($.Status) %}) {% } %}&lt;/span&gt;',
+            '&lt;/h3&gt;',
+            '&lt;h4&gt;',
+                '&lt;strong&gt;{%! $$.activityTimeTemplate %}&lt;/strong&gt;',
+            '&lt;/h4&gt;',
+            '&lt;h4&gt;{%! $$.nameTemplate %}&lt;/h4&gt;',
+            '&lt;h4&gt;',
+                '{% if ($.Activity.PhoneNumber) { %}',
+                    '{%: Sage.Platform.Mobile.Format.phone($.Activity.PhoneNumber) %}',
+                '{% } %}',
+            '&lt;/h4&gt;'
+        ]),
+        nameTemplate: new Simplate([
+            '{% if ($.Activity.ContactName) { %}',
+            '{%: $.Activity.ContactName %} | {%: $.Activity.AccountName %}',
+            '{% } else if ($.Activity.AccountName) { %}',
+            '{%: $.Activity.AccountName %}',
+            '{% } else { %}',
+            '{%: $.Activity.LeadName %}',
+            '{% } %}'
+        ]),
+
+        //Localization
+        titleText: 'My Activities',
+        completeActivityText: 'Complete',
+        acceptActivityText: 'Accept',
+        declineActivityText: 'Decline',
+        callText: 'Call',
+        calledText: 'Called',
+        addAttachmentActionText: 'Add Attachment',
+        viewContactActionText: 'Contact',
+        viewAccountActionText: 'Account',
+        viewOpportunityActionText: 'Opportunity',
+        
+        //View Properties
+        id: 'myactivity_list',
+
+        historyEditView: 'history_edit',
+        existsRE: /^[\w]{12}$/,
+        queryWhere: function() {
+            return string.substitute('User.Id eq &quot;${0}&quot; and Status ne &quot;asDeclned&quot; and Activity.Type ne &quot;atLiterature&quot;', [App.context['user'].$key]);
+        },
+        queryOrderBy: 'Activity.StartDate desc',
+        querySelect: [
+            'Alarm',
+            'AlarmTime',
+            'Status',
+            'Activity/Description',
+            'Activity/StartDate',
+            'Activity/EndDate',
+            'Activity/Type',
+            'Activity/AccountName',
+            'Activity/AccountId',
+            'Activity/ContactId',
+            'Activity/ContactName',
+            'Activity/Leader/$key',
+            'Activity/Leader/$descriptor',
+            'Activity/LeadName',
+            'Activity/LeadId',
+            'Activity/OpportunityId',
+            'Activity/TicketId',
+            'Activity/UserId',
+            'Activity/Timeless',
+            'Activity/PhoneNumber',
+            'Activity/Recurring',
+            'Activity/Alarm',
+            'Activity/ModifyDate',
+            'Activity/Priority'
+        ],
+        resourceKind: 'userActivities',
+        allowSelection: true,
+        enableActions: true,
+        hashTagQueries: {
+            'alarm': 'Alarm eq true',
+            'status-unconfirmed': 'Status eq &quot;asUnconfirmed&quot;',
+            'status-accepted': 'Status eq &quot;asAccepted&quot;',
+            'status-declined': 'Status eq &quot;asDeclned&quot;',
+            'recurring': 'Activity.Recurring eq true',
+            'timeless': 'Activity.Timeless eq true',
+            'yesterday': function() {
+                var now, yesterdayStart, yesterdayEnd, query;
+
+                now = moment();
+
+                yesterdayStart = now.clone().subtract(1, 'days').startOf('day');
+                yesterdayEnd = yesterdayStart.clone().endOf('day');
+
+                query = string.substitute(
+                        '((Activity.Timeless eq false and Activity.StartDate between @${0}@ and @${1}@) or (Activity.Timeless eq true and Activity.StartDate between @${2}@ and @${3}@))',
+                        [
+                        convert.toIsoStringFromDate(yesterdayStart.toDate()),
+                        convert.toIsoStringFromDate(yesterdayEnd.toDate()),
+                        yesterdayStart.format('YYYY-MM-DDT00:00:00[Z]'),
+                        yesterdayEnd.format('YYYY-MM-DDT23:59:59[Z]')
+                        ]
+                );
+                return query;
+            },
+            'today': function() {
+                var now, todayStart, todayEnd, query;
+
+                now = moment();
+
+                todayStart = now.clone().startOf('day');
+                todayEnd = todayStart.clone().endOf('day');
+
+                query = string.substitute(
+                        '((Activity.Timeless eq false and Activity.StartDate between @${0}@ and @${1}@) or (Activity.Timeless eq true and Activity.StartDate between @${2}@ and @${3}@))',
+                        [
+                        convert.toIsoStringFromDate(todayStart.toDate()),
+                        convert.toIsoStringFromDate(todayEnd.toDate()),
+                        todayStart.format('YYYY-MM-DDT00:00:00[Z]'),
+                        todayEnd.format('YYYY-MM-DDT23:59:59[Z]')
+                        ]
+                );
+                return query;
+            },
+            'this-week': function() {
+                var now, weekStartDate, weekEndDate, query;
+
+                now = moment();
+
+                weekStartDate = now.clone().startOf('week');
+                weekEndDate = weekStartDate.clone().endOf('week');
+
+                query = string.substitute(
+                        '((Activity.Timeless eq false and Activity.StartDate between @${0}@ and @${1}@) or (Activity.Timeless eq true and Activity.StartDate between @${2}@ and @${3}@))',
+                        [
+                        convert.toIsoStringFromDate(weekStartDate.toDate()),
+                        convert.toIsoStringFromDate(weekEndDate.toDate()),
+                        weekStartDate.format('YYYY-MM-DDT00:00:00[Z]'),
+                        weekEndDate.format('YYYY-MM-DDT23:59:59[Z]')]
+                );
+                return query;
+            }
+        },
+        hashTagQueriesText: {
+            'alarm': 'alarm',
+            'status-unconfirmed': 'status-unconfirmed',
+            'status-accepted': 'status-accepted',
+            'status-declined': 'status-declined',
+            'recurring': 'recurring',
+            'timeless': 'timeless',
+            'today': 'today',
+            'this-week': 'this-week',
+            'yesterday': 'yesterday'
+        },
+        defaultSearchTerm: function() {
+            return '#' + this.hashTagQueriesText['this-week'];
+        },
+        createActionLayout: function() {
+            return this.actions || (this.actions = [{
+                id: 'viewAccount',
+                icon: 'content/images/icons/Company_24.png',
+                label: this.viewAccountActionText,
+                enabled: function(action, selection) {
+                    var entry = selection &amp;&amp; selection.data;
+                    if (!entry) {
+                        return false;
+                    }
+                    if (entry.Activity['AccountId']) {
+                        return true;
+                    }
+                    return false;
+                }, 
+                fn: function(action, selection) {
+                    var viewId, options, view;
+
+                    viewId = 'account_detail';
+                    options = {
+                        key: selection.data['Activity']['AccountId'],
+                        descriptor: selection.data['Activity']['AccountName']
+                    };
+
+                    view = App.getView(viewId);
+                    if (view &amp;&amp; options) {
+                        view.show(options);
+                    }
+                }
+            }, {
+                id: 'viewOpportunity',
+                icon: 'content/images/icons/opportunity_24.png',
+                label: this.viewOpportunityActionText,
+                enabled: function(action, selection) {
+                    var entry = selection &amp;&amp; selection.data;
+                    if (!entry) {
+                        return false;
+                    }
+                    if (entry.Activity['OpportunityId']) {
+                        return true;
+                    }
+                    return false;
+                }, 
+                fn: function(action, selection) {
+                    var viewId, options, view;
+
+                    viewId = 'opportunity_detail';
+                    options = {
+                        key: selection.data['Activity']['OpportunityId'],
+                        descriptor: selection.data['Activity']['OpportunityName']
+                    };
+                    view = App.getView(viewId);
+                    if (view &amp;&amp; options) {
+                        view.show(options);
+                    }
+                }
+            }, {
+                id: 'viewContact',
+                icon: 'content/images/icons/Contacts_24x24.png',
+                label: this.viewContactActionText,
+                action: 'navigateToContactOrLead',
+                enabled: this.hasContactOrLead
+            }, {
+                id: 'complete',
+                icon: 'content/images/icons/Clear_Activity_24x24.png',
+                label: this.completeActivityText,
+                enabled: function(action, selection) {
+                    var recur, entry = selection &amp;&amp; selection.data;
+                    if (!entry) {
+                        return false;
+                    }
+
+                    recur = entry.Activity.Recurring;
+
+                    return entry.Activity['Leader']['$key'] === App.context['user']['$key'] &amp;&amp; !recur;
+                },
+                fn: (function(action, selection) {
+                    var entry;
+
+                    entry = selection &amp;&amp; selection.data &amp;&amp; selection.data.Activity;
+
+                    entry['CompletedDate'] = new Date();
+                    entry['Result'] = 'Complete';
+
+                    environment.refreshActivityLists();
+                    this.completeActivity(entry);
+
+                }).bindDelegate(this)
+            }, {
+                id: 'accept',
+                icon: 'content/images/icons/OK_24.png',
+                label: this.acceptActivityText,
+                enabled: function(action, selection) {
+                    var entry = selection &amp;&amp; selection.data;
+                    if (!entry) {
+                        return false;
+                    }
+
+                    return entry.Status === 'asUnconfirmed';
+                },
+                fn: (function(action, selection) {
+                    var entry;
+
+                    entry = selection &amp;&amp; selection.data;
+                    environment.refreshActivityLists();
+                    this.confirmActivityFor(entry.Activity.$key, App.context['user']['$key']);
+
+                }).bindDelegate(this)
+            }, {
+                id: 'decline',
+                icon: 'content/images/icons/cancl_24.png',
+                label: this.declineActivityText,
+                enabled: function(action, selection) {
+                    var entry = selection &amp;&amp; selection.data;
+                    if (!entry) {
+                        return false;
+                    }
+
+                    return entry.Status === 'asUnconfirmed';
+                },
+                fn: (function(action, selection) {
+                    var entry;
+                    entry = selection &amp;&amp; selection.data;
+
+                    environment.refreshActivityLists();
+                    this.declineActivityFor(entry.Activity.$key, App.context['user']['$key']);
+                }).bindDelegate(this)
+            }, {
+                id: 'call',
+                icon: 'content/images/icons/Dial_24x24.png',
+                label: this.callText,
+                enabled: function(action, selection) {
+                    var entry;
+                    entry = selection &amp;&amp; selection.data;
+                    return entry &amp;&amp; entry.Activity &amp;&amp; entry.Activity.PhoneNumber;
+                },
+                fn: function(action, selection) {
+                    var entry, phone;
+                    entry = selection &amp;&amp; selection.data;
+                    phone = entry &amp;&amp; entry.Activity &amp;&amp; entry.Activity.PhoneNumber;
+                    if (phone) {
+                        this.recordCallToHistory(function() {
+                            App.initiateCall(phone);
+                        }.bindDelegate(this), entry);
+                    }
+                }.bindDelegate(this)
+            }, {
+                id: 'addAttachment',
+                icon: 'content/images/icons/Attachment_24.png',
+                label: this.addAttachmentActionText,
+                fn: action.addAttachment.bindDelegate(this)
+            }]
+            );
+        },
+        selectEntry: function(params, evt, node) {
+            /* Override selectEntry from the base List mixin.
+             * Grabbing a different key here, since we use entry.Activity.$key as the main data-key.
+             * TODO: Make [data-key] overrideable in the base class.
+             */
+            var row = query(node).closest('[data-my-activity-key]')[0],
+                key = row ? row.getAttribute('data-my-activity-key') : false;
+
+            if (this._selectionModel &amp;&amp; key) {
+                this._selectionModel.toggle(key, this.entries[key], row);
+            }
+
+            if (this.options.singleSelect &amp;&amp; this.options.singleSelectAction &amp;&amp; !this.enableActions) {
+                this.invokeSingleSelectAction();
+            }
+        },
+        formatSearchQuery: function(searchQuery) {
+            return string.substitute('upper(Activity.Description) like &quot;%${0}%&quot;', [this.escapeSearchQuery(searchQuery.toUpperCase())]);
+        },
+        declineActivityFor: function(activityId, userId) {
+            this._getUserNotifications(activityId, userId, false);
+        },
+        confirmActivityFor: function(activityId, userId) {
+            this._getUserNotifications(activityId, userId, true);
+        },
+        _getUserNotifications: function(activityId, userId, accept) {
+            var req;
+
+            if (activityId) {
+                activityId = activityId.substring(0, 12);
+            }
+
+            req = new Sage.SData.Client.SDataResourceCollectionRequest(this.getService());
+            req.setResourceKind('userNotifications');
+            req.setContractName('dynamic');
+            req.setQueryArg('where', string.substitute('ActivityId eq \'${0}\' and ToUser.Id eq \'${1}\'', [activityId, userId]));
+            req.setQueryArg('precedence', '0');
+            req.read({
+                success: function(userNotifications) {
+                    if (userNotifications['$resources'] &amp;&amp; userNotifications['$resources'].length &gt; 0) {
+                        if (accept) {
+                            this.acceptConfirmation(userNotifications['$resources'][0]);
+                        } else {
+                            this.declineConfirmation(userNotifications['$resources'][0]);
+                        }
+                    }
+                },
+                failure: this.onRequestFailure,
+                scope: this
+            });
+        },
+        declineConfirmation: function(notification) {
+            this._postUserNotifications(notification, 'Decline');
+        },
+        acceptConfirmation: function(notification) {
+            this._postUserNotifications(notification, 'Accept');
+        },
+        _postUserNotifications: function(notification, operation) {
+            if (!notification || typeof operation !== &quot;string&quot;) {
+                return;
+            }
+
+            var payload, request;
+
+            /*
+             * To get the payload template:
+             * http://localhost:6666/SlxClient/slxdata.ashx/slx/dynamic/-/userNotifications/$service/accept/$template?format=json
+            */
+            payload = {
+                &quot;$name&quot;: operation,
+                &quot;request&quot;: {
+                    &quot;entity&quot;: notification,
+                    &quot;UserNotificationId&quot;: notification['$key']
+                }
+            };
+
+            request = new Sage.SData.Client.SDataServiceOperationRequest(this.getService())
+                .setContractName('dynamic')
+                .setResourceKind('usernotifications')
+                .setOperationName(operation.toLowerCase());
+            request.execute(payload, {
+                success: function() {
+                    this.clear();
+                    this.refresh();
+                },
+                failure: this.onRequestFailure,
+                scope: this
+            });
+        },
+        completeActivity: function(entry) {
+            var completeActivity, request, completeActivityEntry;
+
+            completeActivityEntry = {
+                &quot;$name&quot;: &quot;ActivityComplete&quot;,
+                &quot;request&quot;: {
+                    &quot;entity&quot;: {'$key': entry['$key']},
+                    &quot;ActivityId&quot;: entry['$key'],
+                    &quot;userId&quot;: entry['Leader']['$key'],
+                    &quot;result&quot;: entry['Result'],
+                    &quot;completeDate&quot;: entry['CompletedDate']
+                }
+            };
+
+            request = new Sage.SData.Client.SDataServiceOperationRequest(this.getService())
+                .setResourceKind('activities')
+                .setContractName('system')
+                .setOperationName('Complete');
+
+            request.execute(completeActivityEntry, {
+                success: function() {
+                    connect.publish('/app/refresh', [{
+                        resourceKind: 'history'
+                    }]);
+
+                    this.clear();
+                    this.refresh();
+                },
+                failure: this.onRequestFailure,
+                scope: this
+            });
+        },
+        onRequestFailure: function(response, o) {
+            ErrorManager.addError(response, o, {}, 'failure');
+        },
+        hasAlarm: function(entry) {
+            if (entry.Activity &amp;&amp; entry.Activity.Alarm === true) {
+                return true;
+            }
+
+            return false;
+        },
+        hasBeenTouched: function(entry) {
+            var modifiedDate, currentDate, weekAgo;
+            if (entry['Activity']['ModifyDate']) {
+                modifiedDate = moment(convert.toDateFromString(entry['Activity']['ModifyDate']));
+                currentDate = moment().endOf('day');
+                weekAgo = moment().subtract(1, 'weeks');
+
+                return modifiedDate.isAfter(weekAgo) &amp;&amp;
+                    modifiedDate.isBefore(currentDate);
+            }
+            return false;
+        },
+        isImportant: function(entry) {
+            if (entry[&quot;Activity&quot;]['Priority']) {
+                if (entry[&quot;Activity&quot;]['Priority'] === 'High') {
+                    return true;
+                }
+            }           
+            return false;
+        },
+        isOverdue: function(entry) {
+            var startDate, currentDate, seconds, mins, days;
+            if (entry['Activity']['StartDate']) {
+                startDate = convert.toDateFromString(entry['Activity']['StartDate']);
+                currentDate = new Date();
+                seconds = Math.round((currentDate - startDate) / 1000);
+                mins = seconds / 60;
+                if (mins &gt;= 1) {
+                    return true;
+                }
+            }
+            return false;
+        },
+        isRecurring: function(entry) {
+            if (entry['Activity']['Recurring']) {
+                   return true;
+            }
+            return false;
+        },
+        applyActivityIndicator: function(entry, indicator) {
+            this._applyActivityIndicator(entry['Activity']['Type'], indicator);
+        },
+        getItemActionKey: function(entry) {
+            return entry.Activity.$key;
+        },
+        getItemDescriptor: function(entry) {
+            return entry.Activity.$descriptor;
+        },
+        getItemTabValue: function(entry) {
+            var value = '';
+            if ((entry['$groupTag'] === 'Today') || (entry['$groupTag'] === 'Tomorrow') || (entry['$groupTag'] === 'Yesterday')) {
+                value = format.date(entry.Activity.StartDate, this.startTimeFormatText, entry.Activity.Timeless) + &quot; &quot; + format.date(entry.Activity.StartDate, &quot;A&quot;, entry.Activity.Timeless);
+            } else {
+                value = format.date(entry.Activity.StartDate, this.startDateFormatText, entry.Activity.Timeless);
+            }
+            return value;
+        },
+        getItemColorClass: function(entry) {
+            return this.activityColorClassByType[entry.Activity.Type] || this.itemColorClass;
+        },
+        getItemIconSource: function(entry) {
+            return this.itemIcon || this.activityIconByType[entry.Activity.Type] || this.icon || this.selectIcon;
+        },
+        hasContactOrLead: function(action, selection) {
+            return (selection.data['Activity']['ContactId']) || (selection.data['Activity']['LeadId']);
+        },
+        navigateToContactOrLead: function(action, selection) {
+            var entry = selection.data[&quot;Activity&quot;];
+            var entity = this.resolveContactOrLeadEntity(entry),
+                viewId,
+                options;
+
+            switch (entity) {
+                case 'Contact':
+                    viewId = 'contact_detail';
+                    options = {
+                        key: entry['ContactId'],
+                        descriptor: entry['ContactName']
+                    };
+                    break;
+                case 'Lead':
+                    viewId = 'lead_detail';
+                    options = {
+                        key: entry['LeadId'],
+                        descriptor: entry['LeadName']
+                    };
+                    break;
+            }
+
+            var view = App.getView(viewId);
+
+            if (view &amp;&amp; options) {
+                view.show(options);
+            }
+        },
+        resolveContactOrLeadEntity: function(entry) {
+            var exists = this.existsRE;
+
+            if (entry) {
+                if (exists.test(entry['LeadId'])) {
+                    return 'Lead';
+                }
+                if (exists.test(entry['ContactId'])) {
+                    return 'Contact';
+                }
+            }
+        },
+        recordCallToHistory: function(complete, entry) {
+            var tempEntry = {
+                '$name': 'History',
+                'Type': 'atPhoneCall',
+                'ContactName': entry['Activity']['ContactName'],
+                'ContactId': entry['Activity']['ContactId'],
+                'AccountName': entry['Activity']['AccountName'],
+                'AccountId': entry['Activity']['AccountId'],
+                'Description': string.substitute(&quot;${0} ${1}&quot;, [this.calledText, (entry['Activity']['ContactName'] || '')]),
+                'UserId': App.context &amp;&amp; App.context.user['$key'],
+                'UserName': App.context &amp;&amp; App.context.user['UserName'],
+                'Duration': 15,
+                'CompletedDate': (new Date())
+            };
+
+            this.navigateToHistoryInsert('atPhoneCall', tempEntry, complete);
+        },
+
+        navigateToHistoryInsert: function(type, entry, complete) {
+            var view = App.getView(this.historyEditView);
+            if (view) {
+                environment.refreshActivityLists();
+                view.show({
+                    title: this.activityTypeText[type],
+                    template: {},
+                    entry: entry,
+                    insert: true
+                }, {
+                    complete: complete
+                });
+            }
+        }
+    });
+});
+
+</pre>
+</body>
+</html>

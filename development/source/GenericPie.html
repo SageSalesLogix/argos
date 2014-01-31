@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">/*
+ * Copyright (c) 1997-2013, SalesLogix, NA., LLC. All rights reserved.
+ */
+define('Mobile/SalesLogix/Views/Charts/GenericPie', [
+    'dojo/_base/declare',
+    'dojo/_base/lang',
+    'dojo/_base/array',
+    'dojo/dom-geometry',
+    'dojox/charting/Chart',
+    'dojox/charting/plot2d/Pie',
+    'dojox/charting/axis2d/Default',
+    'dojox/charting/widget/Legend',
+    'dojox/charting/themes/Julie',
+    'Sage/Platform/Mobile/View',
+    './_ChartMixin'
+], function(
+    declare,
+    lang,
+    array,
+    domGeo,
+    Chart,
+    PlotType,
+    Default,
+    Legend,
+    JulieTheme,
+    View,
+    _ChartMixin
+) {
+    return declare('Mobile.SalesLogix.Views.Charts.GenericPie', [View, _ChartMixin], {
+        id: 'chart_generic_pie',
+        titleText: '',
+        otherText: 'Other',
+        expose: false,
+        chart: null,
+        MAX_ITEMS: 5,
+
+        formatter: function(val) {
+            return val;
+        },
+
+        attributeMap: {
+            chartContent: {node: 'contentNode', type: 'innerHTML'}
+        },
+
+        widgetTemplate: new Simplate([
+            '&lt;div id=&quot;{%= $.id %}&quot; title=&quot;{%= $.titleText %}&quot; class=&quot;list {%= $.cls %}&quot;&gt;',
+                '&lt;div class=&quot;chart-hash&quot; data-dojo-attach-point=&quot;searchExpressionNode&quot;&gt;&lt;/div&gt;',
+                '&lt;div class=&quot;chart-content&quot; data-dojo-attach-point=&quot;contentNode&quot;&gt;&lt;/div&gt;',
+            '&lt;/div&gt;'
+        ]),
+        createChart: function (feedData) {
+            this.inherited(arguments);
+
+            var labels, box, searchExpressionHeight;
+
+            if (this.chart) {
+                this.chart.destroy(true);
+            }
+
+            this.showSearchExpression();
+            searchExpressionHeight = this.getSearchExpressionHeight();
+
+            labels = this._labels(feedData);
+            box = domGeo.getMarginBox(this.domNode);
+            box.h = box.h - searchExpressionHeight;
+
+            this.chart = new Chart(this.contentNode);
+            this.chart.setTheme(JulieTheme);
+            this.chart.addPlot('default', {
+                type: PlotType,
+                fontColor: 'black',
+                labelOffset: 50,
+                radius: box.w &gt;= box.h /* check lanscape or portrait mode */ ? 
+                    Math.floor(box.h / 2) - 10 :
+                    Math.floor(box.w / 2) - 10
+            });
+
+            this.chart.addSeries('default', labels);
+            this.chart.render();
+            this.chart.resize(box.w, box.h);
+        },
+        _labels: function(feedData) {
+            var data = [], otherY = 0, otherText;
+            array.forEach(feedData, function(item, index) {
+                if (index &lt; this.MAX_ITEMS) {
+                    data.push({
+                        y: item.value,
+                        text: item.$descriptor + ' (' + this.formatter(item.value) + ')',
+                        value: index
+                    });
+                } else {
+                    otherY = otherY + item.value;
+                    otherText = this.otherText + ' (' + this.formatter(otherY) + ')';
+                    data[this.MAX_ITEMS] = {
+                        y: otherY,
+                        text: otherText
+                    };
+                }
+            }, this);
+
+            return data;
+        }
+    });
+});
+</pre>
+</body>
+</html>

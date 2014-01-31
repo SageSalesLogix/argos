@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">/* Copyright (c) 2010, Sage Software, Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+<span id='Sage-Platform-Mobile-GroupedList'>/**
+</span> * @class Sage.Platform.Mobile.GroupedList
+ * Grouped List provides a hook for grouping rows before rendering them to the page.
+ * The grouping adds a container for the set of rows and is collapsible.
+ * Note that it constructs the page sequentially meaning the rows should be in the correct
+ * order before attempting to group.
+ * @extends Sage.Platform.Mobile.List
+ * @alternateClassName GroupedList
+ */
+define('Sage/Platform/Mobile/GroupedList', [
+    'dojo/_base/declare',
+    'dojo/_base/lang',
+    'dojo/query',
+    'dojo/string',
+    'dojo/dom-class',
+    'dojo/dom-construct',
+    'Sage/Platform/Mobile/List',
+    'Sage/Platform/Mobile/Utility'
+], function(
+    declare,
+    lang,
+    query,
+    string,
+    domClass,
+    domConstruct,
+    List,
+    Utility
+) {
+
+    return declare('Sage.Platform.Mobile.GroupedList', [List], {
+        // Localization
+<span id='Sage-Platform-Mobile-GroupedList-property-toggleCollapseText'>        /**
+</span>         * @property {String}
+         * Text used in ARIA label for collapsible button
+         */
+        toggleCollapseText: 'toggle collapse',
+
+<span id='Sage-Platform-Mobile-GroupedList-property-widgetTemplate'>        /**
+</span>         * @property {Simplate}
+         * Simplate that defines the HTML Markup. This override adds the needed styling.
+         */
+        widgetTemplate: new Simplate([
+            '&lt;div id=&quot;{%= $.id %}&quot; title=&quot;{%= $.titleText %}&quot; class=&quot;overthrow list grouped-list{%= $.cls %}&quot; {% if ($.resourceKind) { %}data-resource-kind=&quot;{%= $.resourceKind %}&quot;{% } %}&gt;',
+            '&lt;div data-dojo-attach-point=&quot;searchNode&quot;&gt;&lt;/div&gt;',
+            '{%! $.emptySelectionTemplate %}',
+            '&lt;div class=&quot;group-content&quot; data-dojo-attach-point=&quot;contentNode&quot;&gt;&lt;/div&gt;',
+            '{%! $.moreTemplate %}',
+            '{%! $.listActionTemplate %}',
+            '&lt;/div&gt;'
+        ]),
+<span id='Sage-Platform-Mobile-GroupedList-property-groupTemplate'>        /**
+</span>         * @property {Simplate}
+         * Simplate that defines the Group template that includes the header element with collapse button and the row container
+         */
+        groupTemplate: new Simplate([
+            '&lt;h2 data-action=&quot;toggleGroup&quot; class=&quot;{% if ($.collapsed) { %}collapsed{% } %}&quot;&gt;',
+            '{%: $.title %}&lt;button class=&quot;collapsed-indicator&quot; aria-label=&quot;{%: $$.toggleCollapseText %}&quot;&gt;&lt;/button&gt;',
+            '&lt;/h2&gt;',
+            '&lt;ul data-group=&quot;{%= $.tag %}&quot; class=&quot;list-content {%= $.cls %}&quot;&gt;&lt;/ul&gt;'
+        ]),
+
+<span id='Sage-Platform-Mobile-GroupedList-property-moreTemplate'>        /**
+</span>         * @property {Simplate}
+         * The template used to render the pager at the bottom of the view.  This template is not directly rendered, but is
+         * included in {@link #viewTemplate}.
+         *
+         * The default template uses the following properties:
+         *
+         *      name                description
+         *      ----------------------------------------------------------------
+         *      moreText            The text to display on the more button.
+         *
+         * The default template exposes the following actions:
+         *
+         * * more
+         */
+        moreTemplate: new Simplate([
+            '&lt;div class=&quot;list-more&quot; data-dojo-attach-point=&quot;moreNode&quot;&gt;',
+            '&lt;div class=&quot;list-remaining&quot;&gt;&lt;span data-dojo-attach-point=&quot;remainingContentNode&quot;&gt;&lt;/span&gt;&lt;/div&gt;',
+            '&lt;button class=&quot;button&quot; data-action=&quot;more&quot;&gt;',
+            '&lt;span&gt;{%= $.moreText %}&lt;/span&gt;',
+            '&lt;/button&gt;',
+            '&lt;/div&gt;'
+        ]),
+<span id='Sage-Platform-Mobile-GroupedList-property-_groupBySections'>        /**
+</span>         * @property {Object}
+         * The current group object that is compared to the next entries group object
+         * Must have a `tag` property that identifies the group.
+         * The `title` property will be placed into the `groupTemplate` for the header text.
+         */
+        _groupBySections: null,
+        _currentGroupBySection: null,
+<span id='Sage-Platform-Mobile-GroupedList-method-getGroupForEntry'>        /**
+</span>         * Function that returns a &quot;group object&quot;. The group object must have a tag property that is
+         * based off the passed entry as it will be used to compare to other entries.
+         * The title should also reflect the current entry as it will be used for the header text in the group splitter.
+         *
+         * An example for a Yellow Page type list:
+         *
+         * `entryA = {first: 'Henry', last: 'Smith', phone: '123'}`
+         * `entryB = {first: 'Mary', last: 'Sue', phone: '345'}`
+         *
+         *     groupGroupForEntry: function(entry) {
+         *         var lastInitial = entry.last.substr(0,1).toUppperCase();
+         *         return {
+         *             tag: lastInitial,
+         *             title: lastInitial
+         *         };
+         *     }
+         *
+         * @template
+         * @param {Object} entry The current entry being processed.
+         * @return {Object} Object that contains a tag and title property where tag will be used in comparisons
+         */
+        getGroupForEntry: function(entry) {
+            var sectionDef, title;
+            if (this._currentGroupBySection) {
+                sectionDef = this._currentGroupBySection.section.getSection(entry);
+                if (this._currentGroupBySection.description) {
+                    title = this._currentGroupBySection.description + ': ' + sectionDef.title;
+                } else {
+                    title =  sectionDef.title;
+                }
+                return {
+                    tag: sectionDef.key,
+                    title: title,
+                    collapsed: !!sectionDef.collapsed
+                };
+            }
+            return {
+                tag: 1,
+                title: 'Default'
+            };
+        },
+<span id='Sage-Platform-Mobile-GroupedList-method-toggleGroup'>        /**
+</span>         * Toggles the collapsible state of the clicked group
+         * @param {Object} params Object containing the event and other properties
+         */
+        toggleGroup: function(params) {
+            var node = params.$source;
+            if (node)
+                domClass.toggle(node, 'collapsed');
+        },
+<span id='Sage-Platform-Mobile-GroupedList-method-processFeed'>        /**
+</span>         * Overwrites the parent {@link List#processFeed processFeed} to introduce grouping by group tags, see {@link #getGroupForEntry getGroupForEntry}.
+         * @param {Object} feed The SData feed result
+         * @deprecated Use processData instead
+         */
+        processFeed: function(feed) {
+            var i, entry, entryGroup, rowNode, remaining, getGroupsNode;
+            getGroupsNode = Utility.memoize(lang.hitch(this, this.getGroupsNode), function(entryGroup) {
+                return entryGroup.tag;
+            });
+
+            if (!this.feed){
+                this.set('listContent', '');
+            }
+
+            this.feed = feed;
+
+            if (this.feed['$totalResults'] === 0) {
+                this.set('listContent', this.noDataTemplate.apply(this));
+            } else if (feed['$resources']) {
+                for (i = 0; i &lt; feed['$resources'].length; i++) {
+                    entry = feed['$resources'][i];
+                    entryGroup = this.getGroupForEntry(entry);
+
+                    entry[&quot;$groupTag&quot;] = entryGroup.tag;
+                    entry[&quot;$groupTitle&quot;] = entryGroup.title;
+
+                    this.entries[entry.$key] = entry;
+                    rowNode = domConstruct.toDom(this.rowTemplate.apply(entry, this));
+                    this.onApplyRowTemplate(entry, rowNode);
+
+                    domConstruct.place(rowNode, getGroupsNode(entryGroup), 'last');
+                }
+            }
+
+            // todo: add more robust handling when $totalResults does not exist, i.e., hide element completely
+            if (typeof this.feed['$totalResults'] !== 'undefined') {
+                remaining = this.feed['$totalResults'] - (this.feed['$startIndex'] + this.feed['$itemsPerPage'] - 1);
+                this.set('remainingContent', string.substitute(this.remainingText, [remaining]));
+            }
+
+            domClass.toggle(this.domNode, 'list-has-more', this.hasMoreData());
+        },
+        processData: function(items) {
+            var i, item, count = items.length, store = this.get('store'), entryGroup, rowNode, getGroupsNode;
+            getGroupsNode = Utility.memoize(lang.hitch(this, this.getGroupsNode), function(entryGroup) {
+                return entryGroup.tag;
+            });
+
+            if (count &gt; 0) {
+                for (i = 0; i &lt; count; i++) {
+                    item = this._processItem(items[i]);
+                    this.items[store.getIdentity(item)] = item;
+
+                    entryGroup = this.getGroupForEntry(item);
+
+                    item[&quot;$groupTag&quot;] = entryGroup.tag;
+                    item[&quot;$groupTitle&quot;] = entryGroup.title;
+
+                    rowNode = domConstruct.toDom(this.rowTemplate.apply(item, this));
+                    this.onApplyRowTemplate(item, rowNode);
+
+                    domConstruct.place(rowNode, getGroupsNode(entryGroup), 'last');
+                }
+            }
+        },
+        getGroupsNode: function(entryGroup) {
+            var results = query('[data-group=&quot;' + entryGroup.tag + '&quot;]', this.contentNode);
+            if (results.length &gt; 0) {
+                results = results[0];
+            } else {
+                // Does not exist, lets create it
+                results = domConstruct.toDom(this.groupTemplate.apply(entryGroup, this));
+                domConstruct.place(results, this.contentNode, 'last');
+                // re-query what we just place in (which was a doc frag)
+                results = query('[data-group=&quot;' + entryGroup.tag + '&quot;]', this.contentNode)[0];
+            }
+
+            return results;
+        },
+<span id='Sage-Platform-Mobile-GroupedList-method-startup'>        /**
+</span>         * Called on application startup to configure the search widget if present and create the list actions.
+         */
+        startup: function() {
+            this.inherited(arguments);
+            this._initGroupBySections();
+
+        },
+        _initGroupBySections:function(){
+            this._groupBySections = this.getGroupBySections();
+            this.setDefaultGroupBySection();
+            this.applyGroupByOrderBy();
+        },
+        setDefaultGroupBySection: function() {
+            var count = 0;
+            if (this._groupBySections) {
+                count = this._groupBySections.length;
+                for (var i = 0; i &lt; count; i++) {
+                    if (this._groupBySections[i].isDefault === true) {
+                        this._currentGroupBySection = this._groupBySections[i];
+                    }
+                }
+                if ((this._currentGroupBySection === null) &amp;&amp; (count &gt; 0)) {
+                    this._currentGroupBySection = this._groupBySections[0];
+                }
+            }
+            
+        },
+        getGroupBySection: function(sectionId) {
+            var groupSection = null;
+            if (this._groupBySections) {
+                for (var i = 0; i &lt; this._groupBySections.length; i++) {
+                    if (this._groupBySections[i].Id === sectionId) {
+                        groupSection = this._groupBySections[i];
+                    }
+                }
+            }
+            return groupSection;
+        },
+        setCurrentGroupBySection:function(sectionId){
+            this._currentGroupBySection = this.getGroupBySection(sectionId);
+            this.applyGroupByOrderBy(); //need to refresh view
+        },
+        getGroupBySections: function() {
+            return null;
+        },
+        applyGroupByOrderBy: function() {
+            if (this._currentGroupBySection) {
+                this.queryOrderBy = this._currentGroupBySection.section.getOrderByQuery();
+            }
+        }
+        
+    });
+});
+</pre>
+</body>
+</html>

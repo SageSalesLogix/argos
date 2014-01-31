@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">/*
+ * Copyright (c) 1997-2013, SalesLogix, NA., LLC. All rights reserved.
+ */
+
+<span id='Mobile-SalesLogix-Views-Login'>/**
+</span> * @class Mobile.SalesLogix.Views.Login
+ *
+ *
+ * @extends Sage.Platform.Mobile.Edit
+ *
+ */
+define('Mobile/SalesLogix/Views/Login', [
+    'dojo/_base/declare',
+    'Sage/Platform/Mobile/Edit'
+], function(
+    declare,
+    Edit
+) {
+
+    return declare('Mobile.SalesLogix.Views.Login', [Edit], {
+        //Templates
+        widgetTemplate: new Simplate([
+            '&lt;div id=&quot;{%= $.id %}&quot; title=&quot;{%: $.titleText %}&quot; class=&quot;panel {%= $.cls %}&quot; hideBackButton=&quot;true&quot;&gt;',
+            '&lt;p class=&quot;logo&quot;&gt;&lt;img src=&quot;content/images/logo.png&quot;&gt;&lt;/img&gt;&lt;/p&gt;',
+            '&lt;div class=&quot;panel-content&quot; data-dojo-attach-point=&quot;contentNode&quot;&gt;&lt;/div&gt;',
+            '&lt;button class=&quot;button actionButton&quot; data-action=&quot;authenticate&quot;&gt;&lt;span&gt;{%: $.logOnText %}&lt;/span&gt;&lt;/button&gt;',
+            '&lt;span class=&quot;copyright&quot;&gt;{%= $.copyrightText %}&lt;/span&gt;',
+            '&lt;span class=&quot;copyright&quot;&gt;{%= App.getVersionInfo() %}&lt;/span&gt;',
+            '&lt;/div&gt;'
+        ]),
+
+        //Localization
+        id: 'login',
+        busy: false,
+        copyrightText: '&amp;copy; 2013 SalesLogix, NA, LLC. All rights reserved.',
+        logOnText: 'Log on to Saleslogix',
+        passText: 'password',
+        rememberText: 'remember',
+        titleText: 'Log On',
+        userText: 'user name',
+        invalidUserText: 'The user name or password is invalid.',
+        missingUserText: 'The user record was not found.',
+        serverProblemText: 'A problem occured on the server.',
+        requestAbortedText: 'The request was aborted.',
+
+        createToolLayout: function() {
+            return this.tools || (this.tools = {
+                bbar: false,
+                tbar: false
+            });
+        },
+        getContext: function() {
+            return {id: this.id};
+        },
+        createLayout: function() {
+            return this.layout || (this.layout = [
+                {
+                    name: 'username',
+                    label: this.userText,
+                    type: 'text'
+                },
+                {
+                    name: 'password',
+                    label: this.passText,
+                    type: 'text',
+                    inputType: 'password'
+                },
+                {
+                    name: 'remember',
+                    label: this.rememberText,
+                    type: 'boolean'
+                }
+            ]);
+        },
+        authenticate: function() {
+            if (this.busy) {
+                return;
+            }
+
+            var credentials = this.getValues(),
+                username = credentials &amp;&amp; credentials.username;
+
+            if (username &amp;&amp; /\w+/.test(username)) {
+                this.validateCredentials(credentials);
+            }
+        },
+        validateCredentials: function(credentials) {
+            this.disable();
+
+            App.authenticateUser(credentials, {
+                success: function(result) {
+                    this.enable();
+                    App.requestUserDetails();
+                    App.navigateToInitialView();
+                },
+                failure: function(result) {
+                    this.enable();
+
+                    if (result.response) {
+                        if (result.response.status == 403) {
+                            alert(this.invalidUserText);
+                        } else {
+                            alert(this.serverProblemText);
+                        }
+                    } else {
+                        alert(this.missingUserText);
+                    }
+                },
+                aborted: function(result) {
+                    this.enable();
+
+                    alert(this.requestAbortedText);
+                },
+                scope: this
+            });
+        }
+    });
+});
+
+</pre>
+</body>
+</html>

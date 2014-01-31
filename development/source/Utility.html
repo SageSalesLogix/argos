@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">/*
+ * Copyright (c) 1997-2013, SalesLogix, NA., LLC. All rights reserved.
+ */
+
+<span id='Mobile-SalesLogix-Utility'>/**
+</span> * @class Mobile.SalesLogix.Utility
+ *
+ * Utility provides functions that are more javascript enhancers than application related code.
+ *
+ * @requires Sage.Platform.Mobile.Format
+ * @singleton
+ *
+ */
+define('Mobile/SalesLogix/Utility', [
+    'dojo/_base/lang',
+    'dojo/string',
+    'dojo/has',
+    'dojo/_base/sniff',
+    'dojox/mobile/sniff'
+], function(
+    lang,
+    string,
+    has,
+    baseSniff,
+    mobileSniff
+) {
+    return lang.setObject('Mobile.SalesLogix.Utility', {
+        base64ArrayBuffer: function (arrayBuffer) {
+            var base64    = '';
+            var encodings = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+
+            var bytes         = new Uint8Array(arrayBuffer);
+            var byteLength    = bytes.byteLength;
+            var byteRemainder = byteLength % 3;
+            var mainLength    = byteLength - byteRemainder;
+
+            var a, b, c, d;
+            var chunk;
+
+            // Main loop deals with bytes in chunks of 3
+            for (var i = 0; i &lt; mainLength; i = i + 3) {
+                // Combine the three bytes into a single integer
+                chunk = (bytes[i] &lt;&lt; 16) | (bytes[i + 1] &lt;&lt; 8) | bytes[i + 2];
+
+                // Use bitmasks to extract 6-bit segments from the triplet
+                a = (chunk &amp; 16515072) &gt;&gt; 18; // 16515072 = (2^6 - 1) &lt;&lt; 18
+                b = (chunk &amp; 258048)   &gt;&gt; 12; // 258048   = (2^6 - 1) &lt;&lt; 12
+                c = (chunk &amp; 4032)     &gt;&gt;  6; // 4032     = (2^6 - 1) &lt;&lt; 6
+                d = chunk &amp; 63;               // 63       = 2^6 - 1
+
+                // Convert the raw binary segments to the appropriate ASCII encoding
+                base64 += encodings[a] + encodings[b] + encodings[c] + encodings[d];
+            }
+
+            // Deal with the remaining bytes and padding
+            if (byteRemainder == 1) {
+                chunk = bytes[mainLength];
+
+                a = (chunk &amp; 252) &gt;&gt; 2; // 252 = (2^6 - 1) &lt;&lt; 2
+
+                // Set the 4 least significant bits to zero
+                b = (chunk &amp; 3)   &lt;&lt; 4; // 3   = 2^2 - 1
+
+                base64 += encodings[a] + encodings[b] + '==';
+            } else if (byteRemainder == 2) {
+                chunk = (bytes[mainLength] &lt;&lt; 8) | bytes[mainLength + 1];
+
+                a = (chunk &amp; 64512) &gt;&gt; 10; // 64512 = (2^6 - 1) &lt;&lt; 10
+                b = (chunk &amp; 1008)  &gt;&gt;  4; // 1008  = (2^6 - 1) &lt;&lt; 4
+
+                // Set the 2 least significant bits to zero
+                c = (chunk &amp; 15)    &lt;&lt;  2; // 15    = 2^4 - 1
+
+                base64 += encodings[a] + encodings[b] + encodings[c] + '=';
+            }
+
+            return base64;
+        },
+        getFileExtension: function(fileName) {
+            if (!fileName){
+                return '.';
+            }
+            return fileName.substr(fileName.lastIndexOf('.'));
+        },
+        getRealActivityId: function(activityId) {
+            var Id = activityId;
+            if (activityId) {
+                if (activityId.indexOf(';') &gt; 0) {
+                    Id = activityId.substring(0, 12);
+                } else {
+                    Id = activityId;
+                }
+            }
+            return Id;
+        }
+    });
+});
+
+</pre>
+</body>
+</html>

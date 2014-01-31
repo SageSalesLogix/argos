@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">/*
+ * Copyright (c) 1997-2013, SalesLogix, NA., LLC. All rights reserved.
+ */
+define('Mobile/SalesLogix/Views/Opportunity/List', [
+    'dojo/_base/declare',
+    'dojo/string',
+    'dojo/_base/array',
+    'Mobile/SalesLogix/Action',
+    'Mobile/SalesLogix/Format',
+    'Sage/Platform/Mobile/Format',
+    'Mobile/SalesLogix/Views/History/RelatedView',
+    'Sage/Platform/Mobile/List',
+    '../_MetricListMixin',
+    '../_RightDrawerListMixin',
+    '../_CardLayoutListMixin'
+], function(
+    declare,
+    string,
+    array,
+    action,
+    format,
+    platformFormat,
+    HistoryRelatedView,
+    List,
+    _MetricListMixin,
+    _RightDrawerListMixin,
+    _CardLayoutListMixin
+) {
+
+    return declare('Mobile.SalesLogix.Views.Opportunity.List', [List, _RightDrawerListMixin, _MetricListMixin, _CardLayoutListMixin], {
+        //Templates
+        rowTemplate: new Simplate([
+            '&lt;li data-action=&quot;activateEntry&quot; data-key=&quot;{%= $.$key %}&quot; data-descriptor=&quot;{%: $.$descriptor %}&quot; data-type=&quot;{%: $.Type || $$.defaultActionType %}&quot;&gt;',
+            '&lt;button data-action=&quot;selectEntry&quot; class=&quot;list-item-selector button&quot;&gt;',
+            '&lt;img src=&quot;{%= $$.statusIcons[$.Status] || $$.icon || $$.selectIcon %}&quot; class=&quot;icon&quot; /&gt;',
+            '&lt;/button&gt;',
+            '&lt;div class=&quot;list-item-content&quot;&gt;{%! $$.itemTemplate %}&lt;/div&gt;',
+            '&lt;/li&gt;'
+        ]),
+
+        //TODO: Support ExchangeRateCode with proper symbol
+        itemTemplate: new Simplate([
+            '&lt;h3&gt;{%: $.Description %}&lt;/h3&gt;',
+            '{% if ($.Account) { %}',
+                '&lt;h4&gt;',
+                    '{%: $.Account.AccountName %}',
+                '&lt;/h4&gt;',
+                '&lt;h4&gt;',
+                    '{%: $.Account.AccountManager.UserInfo.UserName %}',
+                    '{% if ($.Account &amp;&amp; $.Account.AccountManager.UserInfo.Region) { %}',
+                        ' | {%: $.Account.AccountManager.UserInfo.Region %}',
+                    '{% } %}',
+                '&lt;/h4&gt;',
+            '{% } %}',
+            '&lt;h4&gt;',
+                '{%: $.Status %}',
+                '{% if ($.Stage) { %}',
+                    ' | {%: $.Stage %}',
+                '{% } %}',
+            '&lt;/h4&gt;',
+            '{% if ($.SalesPotential) { %}',
+                '&lt;h4&gt;&lt;strong&gt;',
+                '{% if (App.hasMultiCurrency()) { %}',
+                    '{%: Mobile.SalesLogix.Format.multiCurrency($.SalesPotential * $.ExchangeRate, $.ExchangeRateCode) %}',
+                '{% } else { %}',
+                    '{%: Mobile.SalesLogix.Format.multiCurrency($.SalesPotential, App.getBaseExchangeRate().code) %}',
+                '{% } %}',
+                '&lt;/strong&gt;&lt;/h4&gt;',
+            '{% } %}',
+            '&lt;h4&gt;{%: $$.formatDate($) %}&lt;/h4&gt;'
+        ]),
+
+        //Localization
+        titleText: 'Opportunities',
+        activitiesText: 'Activities',
+        notesText: 'Notes',
+        scheduleText: 'Schedule',
+        editActionText: 'Edit',
+        viewAccountActionText: 'Account',
+        viewContactsActionText: 'Contacts',
+        viewProductsActionText: 'Products',
+        addNoteActionText: 'Add Note',
+        addActivityActionText: 'Add Activity',
+        addAttachmentActionText: 'Add Attachment',
+        actualCloseText: 'Closed ',
+        estimatedCloseText: 'Estimated close ',
+
+        hashTagQueriesText: {
+            'my-opportunities': 'my-opportunities',
+            'open': 'open',
+            'closed': 'closed',
+            'won': 'won',
+            'lost': 'lost',
+            'inactive': 'inactive',
+            'prospect': 'prospect',
+            'qualification': 'qualification',
+            'negotiation': 'negotiation',
+            'needs-analysis': 'needs-analysis',
+            'demonstration': 'demonstration',
+            'decision': 'decision'
+        },
+
+        //View Properties
+        id: 'opportunity_list',
+        security: 'Entities/Opportunity/View',
+        icon: 'content/images/icons/opportunity_24.png',
+        detailView: 'opportunity_detail',
+        insertView: 'opportunity_edit',
+        defaultSearchTerm: function() {
+            return '#' + this.hashTagQueriesText['my-opportunities'];
+        },
+        hashTagQueries: {
+            'my-opportunities': function() {
+                return 'AccountManager.Id eq &quot;' + App.context.user.$key + '&quot;';
+            },
+            'open': 'Status eq &quot;Open&quot;',
+            'won': 'Status eq &quot;Closed - Won&quot;',
+            'lost': 'Status eq &quot;Closed - Lost&quot;',
+            'inactive': 'Status eq &quot;Inactive&quot;',
+            'prospect': 'Stage eq &quot;1-Prospect&quot;',
+            'qualification': 'Stage eq &quot;2-Qualification&quot;',
+            'needs-analysis': 'Stage eq &quot;3-Needs Analysis&quot;',
+            'demonstration': 'Stage eq &quot;4-Demonstration&quot;',
+            'negotiation': 'Stage eq &quot;5-Negotiation&quot;',
+            'decision': 'Stage eq &quot;6-Decision&quot;'
+        },
+        statusIcons: {
+            'Open': 'content/images/icons/opportunity_24.png',
+            'Closed - Won': 'content/images/icons/Opportunity_Won_24.png',
+            'Closed - Lost': 'content/images/icons/Opportunity_Lost_24.png'
+        },
+        queryOrderBy: 'EstimatedClose desc',
+        querySelect: [
+            'Account/AccountName',
+            'Account/AccountManager/UserInfo/UserName',
+            'Account/AccountManager/UserInfo/Region',
+            'Description',
+            'Stage',
+            'Status',
+            'SalesPotential',
+            'ExchangeRate',
+            'ExchangeRateCode',
+            'ModifyDate',
+            'ActualClose',
+            'EstimatedClose'
+        ],
+        resourceKind: 'opportunities',
+        entityName: 'Opportunity',
+        allowSelection: true,
+        enableActions: true,
+
+        formatDate: function(entry) {
+            if (entry.Status === 'Open' &amp;&amp; entry.EstimatedClose) {
+                return this.estimatedCloseText + format.relativeDate(entry.EstimatedClose);
+            } else if (entry.ActualClose) {
+                return this.actualCloseText + format.relativeDate(entry.ActualClose);
+            }
+
+            return '';
+        },
+        createActionLayout: function() {
+            return this.actions || (this.actions = [{
+                id: 'edit',
+                icon: 'content/images/icons/edit_24.png',
+                label: this.editActionText,
+                action: 'navigateToEditView'
+            }, {
+                id: 'viewAccount',
+                icon: 'content/images/icons/Company_24.png',
+                label: this.viewAccountActionText,
+                enabled: action.hasProperty.bindDelegate(this, 'Account.$key'),
+                fn: action.navigateToEntity.bindDelegate(this, {
+                    view: 'account_detail',
+                    keyProperty: 'Account.$key',
+                    textProperty: 'Account.AccountName'
+                })
+            }, {
+                id: 'viewContacts',
+                icon: 'content/images/icons/Contacts_24x24.png',
+                label: 'Contacts',
+                fn: this.navigateToRelatedView.bindDelegate(this, 'opportunitycontact_related', 'Opportunity.Id eq &quot;${0}&quot;')
+            }, {
+                id: 'viewProducts',
+                icon: 'content/images/icons/product_24.png',
+                label: this.viewProductsActionText,
+                fn: this.navigateToRelatedView.bindDelegate(this, 'opportunityproduct_related', 'Opportunity.Id eq &quot;${0}&quot;')
+            }, {
+                id: 'addNote',
+                icon: 'content/images/icons/New_Note_24x24.png',
+                label: this.addNoteActionText,
+                fn: action.addNote.bindDelegate(this)
+            }, {
+                id: 'addActivity',
+                icon: 'content/images/icons/Schedule_ToDo_24x24.png',
+                label: this.addActivityActionText,
+                fn: action.addActivity.bindDelegate(this)
+            }, {
+                id: 'addAttachment',
+                icon: 'content/images/icons/Attachment_24.png',
+                label: this.addAttachmentActionText,
+                fn: action.addAttachment.bindDelegate(this)
+            }]
+            );
+        },
+
+        formatSearchQuery: function(searchQuery) {
+            return string.substitute('(upper(Description) like &quot;${0}%&quot; or Account.AccountNameUpper like &quot;${0}%&quot;)', [this.escapeSearchQuery(searchQuery.toUpperCase())]);
+        },
+        createRelatedViewLayout: function() {
+            return this.relatedViews || (this.relatedViews = [{
+                widgetType: HistoryRelatedView,
+                id: 'opp_relatedNotes',
+                autoLoad: true,
+                enabled: true,
+                relatedProperty: 'OpportunityId',
+                where: function(entry) { return &quot;OpportunityId eq '&quot; + entry.$key + &quot;' and Type ne 'atDatabaseChange'&quot;; }
+            }]);
+        }
+    });
+});
+
+</pre>
+</body>
+</html>
