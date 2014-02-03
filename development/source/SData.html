@@ -34,7 +34,7 @@
 </span> * @class Sage.Platform.Mobile.Store.SData
  * SData is an extension of dojo.store that is tailored to handling SData parameters, requests,
  * and pre-handling the responses.
- * @alternateClassName SData
+ *
  * @requires Sage.Platform.Mobile.Convert
  * @requires Sage.Platform.Mobile.Utility
  */
@@ -105,6 +105,9 @@ define('Sage/Platform/Mobile/Store/SData', [
         entityProperty: '$name',
         versionProperty: '$etag',
 
+<span id='Sage-Platform-Mobile-Store-SData-method-constructor'>        /**
+</span>         * @constructor
+        */
         constructor: function(props) {
             lang.mixin(this, props);
         },
@@ -323,14 +326,12 @@ define('Sage/Platform/Mobile/Store/SData', [
 
             return entry;
         },
+<span id='Sage-Platform-Mobile-Store-SData-method-get'>        /**
+</span>         * Retrieves an object by its identity
+         * @param {String} id The identity to use to lookup the object.
+         * @returns {Object} The object in the store that matches the given id.
+         */
         get: function(id, /* sdata only */ getOptions) {
-            // summary:
-            //		Retrieves an object by its identity
-            // id: Number
-            //		The identity to use to lookup the object
-            // returns: Object
-            //		The object in the store that matches the given id.
-
             var handle = {},
                 deferred = new Deferred(lang.hitch(this, this._onCancel, handle)),
                 request = this._createEntryRequest(id, getOptions || {});
@@ -347,33 +348,50 @@ define('Sage/Platform/Mobile/Store/SData', [
 
             return deferred;
         },
+<span id='Sage-Platform-Mobile-Store-SData-method-getIdentity'>        /**
+</span>         * Returns an object's identity using this.idProperty
+         * @param {Object} object The object to get the identity from
+         * @returns {String|Number}
+        */
         getIdentity: function(object) {
-            // summary:
-            //		Returns an object's identity
-            // object: Object
-            //		The object to get the identity from
-            // returns: String|Number
 
             return lang.getObject(this.idProperty, false, object);
         },
+<span id='Sage-Platform-Mobile-Store-SData-method-getLabel'>        /**
+</span>         * Returns an object's label using this.labelProperty
+         * @param {Object} object The object to get the label from
+         * @returns {String}
+        */
         getLabel: function(object) {
             return lang.getObject(this.labelProperty, false, object);
         },
+<span id='Sage-Platform-Mobile-Store-SData-method-getEntity'>        /**
+</span>         * Returns an object's entity using this.entityProperty
+         * @param {Object} object The object to get the entity from
+         * @returns {String|Object}
+        */
         getEntity: function(object) {
             return lang.getObject(this.entityProperty, false, object);
         },
+<span id='Sage-Platform-Mobile-Store-SData-method-getVersion'>        /**
+</span>         * Returns an object's version using this.versionProperty
+         * @param {Object} object The object to get the version from
+         * @returns {String}
+        */
         getVersion: function(object) {
             return lang.getObject(this.versionProperty, false, object);
         },
+<span id='Sage-Platform-Mobile-Store-SData-method-put'>        /**
+</span>         * Stores an object.
+         * @param {Object} object The object to store.
+         * @param {Object} putOptions Additional directives for storing objects.
+         * @param {String|Number} putOptions.id 
+         * @param {String|Object} putOptions.entity 
+         * @param {String} putOptions.version 
+         * @param {Boolean} putOptions.overwrite 
+         * @returns {String|Number}
+         */
         put: function(object, putOptions) {
-            // summary:
-            //		Stores an object
-            // object: Object
-            //		The object to store.
-            // directives: dojo.store.api.Store.PutDirectives?
-            //		Additional directives for storing objects.
-            // returns: Number|String
-
             putOptions = putOptions || {};
 
             var id = putOptions.id || this.getIdentity(object),
@@ -404,46 +422,33 @@ define('Sage/Platform/Mobile/Store/SData', [
         _onTransmitEntrySuccess: function(deferred, entry) {
             deferred.resolve(this.doDateConversion ? this._handleDateConversion(entry) : entry);
         },
+<span id='Sage-Platform-Mobile-Store-SData-method-add'>        /**
+</span>         * Creates an object, throws an error if the object already exists.
+         * @param {Object} object The object to store
+         * @param {Object} addOptions Additional directives for creating objects
+         * @param {Boolean} addOptions.overwrite
+         */
         add: function(object, addOptions) {
-            // summary:
-            //		Creates an object, throws an error if the object already exists
-            // object: Object
-            //		The object to store.
-            // directives: dojo.store.api.Store.PutDirectives?
-            //		Additional directives for creating objects.
-            // returns: Number|String
             addOptions = addOptions || {};
             addOptions.overwrite = false;
-
             return this.put(object, addOptions);
         },
+
+<span id='Sage-Platform-Mobile-Store-SData-method-remove'>        /**
+</span>         * Not implemented in this store.
+         */
         remove: function(id) {
-            // summary:
-            //		Deletes an object by its identity
-            // id: Number
-            //		The identity to use to delete the object
-
         },
+<span id='Sage-Platform-Mobile-Store-SData-method-query'>        /**
+</span>         * Queries the store for objects. This does not alter the store, but returns a
+         * set of data from the store.
+         *
+         * @param {String|Object|Function} query The query to use for retrieving objects from the store.
+         * @param {Object} queryOptions
+         * @returns {dojo.store.api.Store.QueryResults}
+         *
+         */
         query: function(query, queryOptions) {
-            // summary:
-            //		Queries the store for objects. This does not alter the store, but returns a
-            //		set of data from the store.
-            // query: String|Object|Function
-            //		The query to use for retrieving objects from the store.
-            // options: dojo.store.api.Store.QueryOptions
-            //		The optional arguments to apply to the resultset.
-            // returns: dojo.store.api.Store.QueryResults
-            //		The results of the query, extended with iterative methods.
-            //
-            // example:
-            //		Given the following store:
-            //
-            //	...find all items where &quot;prime&quot; is true:
-            //
-            //	|	store.query({ prime: true }).forEach(function(object){
-            //	|		// handle each object
-            //	|	});
-
             var handle = {},
                 queryDeferred = new Deferred(lang.hitch(this, this._onCancel, handle)),
                 request = this._createFeedRequest(query, queryOptions || {}),
@@ -473,25 +478,27 @@ define('Sage/Platform/Mobile/Store/SData', [
             handle.value = method.call(request, options);
             return QueryResults(queryDeferred);
         },
+<span id='Sage-Platform-Mobile-Store-SData-method-transaction'>        /**
+</span>         * Not implemented in this store.
+         */
         transaction: function() {
-            // summary:
-            //		Starts a new transaction.
-            //		Note that a store user might not call transaction() prior to using put,
-            //		delete, etc. in which case these operations effectively could be thought of
-            //		as &quot;auto-commit&quot; style actions.
-            // returns: dojo.store.api.Store.Transaction
-            //		This represents the new current transaction.
         },
+<span id='Sage-Platform-Mobile-Store-SData-method-getChildren'>        /**
+</span>         * Not implemented in this store.
+         */
         getChildren: function(parent, options){
-            // summary:
-            //		Retrieves the children of an object.
-            // parent: Object
-            //		The object to find the children of.
-            // options: dojo.store.api.Store.QueryOptions?
-            //		Additional options to apply to the retrieval of the children.
-            // returns: dojo.store.api.Store.QueryResults
-            //		A result set of the children of the parent object.
         },
+<span id='Sage-Platform-Mobile-Store-SData-method-getMetadata'>        /**
+</span>         * Returns any metadata about the object. This may include attribution,
+         * cache directives, history, or version information.
+         *
+         * @param {Object} object The object to return metadata for.
+         * @return {Object} Object containing the metadata.
+         * @return {String|Number} return.id
+         * @return {String} return.label
+         * @return {String|Object} return.entity
+         * @return {String} return.version
+         */
         getMetadata: function(object) {
             if (object)
             {
@@ -504,17 +511,10 @@ define('Sage/Platform/Mobile/Store/SData', [
             }
 
             return null;
-
-            // summary:
-            //		Returns any metadata about the object. This may include attribution,
-            //		cache directives, history, or version information.
-            // object: Object
-            //		The object to return metadata for.
-            // returns: Object
-            //		An object containing metadata.
         }
     });
 });
+
 </pre>
 </body>
 </html>
