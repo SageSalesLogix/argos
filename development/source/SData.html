@@ -59,24 +59,6 @@ define('Sage/Platform/Mobile/Store/SData', [
     convert,
     utility
 ) {
-    var parseOrderByRE = /((?:\w+)(?:\.\w+)?)(?:\s+(asc|desc))?/g,
-        parseOrderBy = function(expression) {
-            if (typeof expression !== 'string') return expression;
-
-            var match,
-                result = [];
-
-            while ((match = parseOrderByRE.exec(expression)))
-            {
-                result.push({
-                    attribute: match[1],
-                    descending: match[2] &amp;&amp; match[2].toLowerCase() == 'desc'
-                });
-            }
-
-            return result;
-        };
-
     return declare('Sage.Platform.Mobile.Store.SData', null, {
         doDateConversion: false,
 
@@ -299,9 +281,6 @@ define('Sage/Platform/Mobile/Store/SData', [
 
             deferred.reject(error);
         },
-        _onCancel: function(handle) {
-            this.store.abort(handle.value);
-        },
         _handleDateConversion: function(entry) {
             for (var prop in entry)
             {
@@ -313,27 +292,9 @@ define('Sage/Platform/Mobile/Store/SData', [
 
             return entry;
         },
-        _handleDateSerialization: function(entry) {
-            for (var prop in entry)
-            {
-                if (entry[prop] instanceof Date)
-                {
-                    entry[prop] = this.service.isJsonEnabled()
-                        ? convert.toJsonStringFromDate(entry[prop])
-                        : convert.toIsoStringFromDate(entry[prop]);
-                }
-            }
-
-            return entry;
-        },
-<span id='Sage-Platform-Mobile-Store-SData-method-get'>        /**
-</span>         * Retrieves an object by its identity
-         * @param {String} id The identity to use to lookup the object.
-         * @returns {Object} The object in the store that matches the given id.
-         */
         get: function(id, /* sdata only */ getOptions) {
             var handle = {},
-                deferred = new Deferred(lang.hitch(this, this._onCancel, handle)),
+                deferred = new Deferred(),
                 request = this._createEntryRequest(id, getOptions || {});
 
             var method = this.executeGetAs
@@ -404,7 +365,7 @@ define('Sage/Platform/Mobile/Store/SData', [
             if (version) object['$etag'] = version;
 
             var handle = {},
-                deferred = new Deferred(lang.hitch(this, this._onCancel, handle)),
+                deferred = new Deferred(),
                 request = this._createEntryRequest(id, putOptions);
 
             var method = putOptions.overwrite

@@ -28,9 +28,11 @@
  */
 define('Mobile/SalesLogix/Views/Login', [
     'dojo/_base/declare',
+    'dojo/_base/lang',
     'Sage/Platform/Mobile/Edit'
 ], function(
     declare,
+    lang,
     Edit
 ) {
 
@@ -39,7 +41,7 @@ define('Mobile/SalesLogix/Views/Login', [
         widgetTemplate: new Simplate([
             '&lt;div id=&quot;{%= $.id %}&quot; title=&quot;{%: $.titleText %}&quot; class=&quot;panel {%= $.cls %}&quot; hideBackButton=&quot;true&quot;&gt;',
             '&lt;p class=&quot;logo&quot;&gt;&lt;img src=&quot;content/images/logo.png&quot;&gt;&lt;/img&gt;&lt;/p&gt;',
-            '&lt;div class=&quot;panel-content&quot; data-dojo-attach-point=&quot;contentNode&quot;&gt;&lt;/div&gt;',
+            '&lt;div class=&quot;panel-content&quot; data-dojo-attach-event=&quot;onkeypress: _onKeyPress&quot; data-dojo-attach-point=&quot;contentNode&quot;&gt;&lt;/div&gt;',
             '&lt;button class=&quot;button actionButton&quot; data-action=&quot;authenticate&quot;&gt;&lt;span&gt;{%: $.logOnText %}&lt;/span&gt;&lt;/button&gt;',
             '&lt;span class=&quot;copyright&quot;&gt;{%= $.copyrightText %}&lt;/span&gt;',
             '&lt;span class=&quot;copyright&quot;&gt;{%= App.getVersionInfo() %}&lt;/span&gt;',
@@ -49,7 +51,7 @@ define('Mobile/SalesLogix/Views/Login', [
         //Localization
         id: 'login',
         busy: false,
-        copyrightText: '&amp;copy; 2013 SalesLogix, NA, LLC. All rights reserved.',
+        copyrightText: '&amp;copy; 2014 SalesLogix, NA, LLC. All rights reserved.',
         logOnText: 'Log on to Saleslogix',
         passText: 'password',
         rememberText: 'remember',
@@ -60,6 +62,26 @@ define('Mobile/SalesLogix/Views/Login', [
         serverProblemText: 'A problem occured on the server.',
         requestAbortedText: 'The request was aborted.',
 
+        ENTER_KEY: 13,
+
+        _onKeyPress: function(evt) {
+            if (evt.charOrCode === this.ENTER_KEY) {
+                this.authenticate();
+            }
+        },
+        onShow: function() {
+            window.setTimeout(lang.hitch(this, function() {
+                this.fields.username.inputNode.focus();
+            }), 100);
+        },
+        // Override the Views registerDefaultRoute to include the entity id in the route
+        registerDefaultRoute: function() {
+            var router = App.router;
+            router.register(['_', this.id].join(''), lang.hitch(this, this.onDefaultRoute));
+        },
+        onDefaultRoute: function(evt) {
+            this.show();
+        },
         createToolLayout: function() {
             return this.tools || (this.tools = {
                 bbar: false,

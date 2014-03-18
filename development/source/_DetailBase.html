@@ -346,10 +346,21 @@ define('Sage/Platform/Mobile/_DetailBase', [
          * @param {HTMLElement} el
          */
         invokeAction: function(name, parameters, evt, el) {
-            if (parameters &amp;&amp; /true/i.test(parameters['disableAction']))
+            if (parameters &amp;&amp; /true/i.test(parameters['disableAction'])) {
                 return;
-
+            }
             return this.inherited(arguments);
+        },
+        // Override the Views registerDefaultRoute to include the entity id in the route
+        registerDefaultRoute: function() {
+            var router = App.router;
+            router.register(['_', this.id, ';:key'].join(''), lang.hitch(this, this.onDefaultRoute));
+        },
+        onDefaultRoute: function(evt) {
+            this.show({
+                descriptor: '',
+                key: evt.params.key
+            });
         },
 <span id='Sage-Platform-Mobile-_DetailBase-method-_onRefresh'>        /**
 </span>         * Handler for the global `/app/refresh` event. Sets `refreshRequired` to true if the key matches.
@@ -359,12 +370,10 @@ define('Sage/Platform/Mobile/_DetailBase', [
         _onRefresh: function(o) {
             var descriptor = o.data &amp;&amp; o.data['$descriptor'];
 
-            if (this.options &amp;&amp; this.options.key === o.key)
-            {
+            if (this.options &amp;&amp; this.options.key === o.key) {
                 this.refreshRequired = true;
 
-                if (descriptor)
-                {
+                if (descriptor) {
                     this.options.title = descriptor;
                     this.set('title', descriptor);
                 }
@@ -376,22 +385,27 @@ define('Sage/Platform/Mobile/_DetailBase', [
          */
         toggleSection: function(params) {
             var node = dom.byId(params.$source);
-            if (node)
+            if (node) {
                 domClass.toggle(node, 'collapsed');
+            }
         },
 <span id='Sage-Platform-Mobile-_DetailBase-method-activateRelatedEntry'>        /**
 </span>         * Handler for the related entry action, navigates to the defined `data-view` passing the `data-context`.
          * @param {Object} params Collection of `data-` attributes from the source node.
          */
         activateRelatedEntry: function(params) {
-            if (params.context) this.navigateToRelatedView(params.view, parseInt(params.context, 10), params.descriptor);
+            if (params.context) {
+                this.navigateToRelatedView(params.view, parseInt(params.context, 10), params.descriptor);
+            }
         },
 <span id='Sage-Platform-Mobile-_DetailBase-method-activateRelatedList'>        /**
 </span>         * Handler for the related list action, navigates to the defined `data-view` passing the `data-context`.
          * @param {Object} params Collection of `data-` attributes from the source node.
          */
         activateRelatedList: function(params) {
-            if (params.context) this.navigateToRelatedView(params.view, parseInt(params.context, 10), params.descriptor);
+            if (params.context) {
+                this.navigateToRelatedView(params.view, parseInt(params.context, 10), params.descriptor);
+            }
         },
 <span id='Sage-Platform-Mobile-_DetailBase-method-navigateToEditView'>        /**
 </span>         * Navigates to the defined `this.editView` passing the current `this.entry` as default data.
@@ -415,10 +429,13 @@ define('Sage/Platform/Mobile/_DetailBase', [
             var options = this._navigationOptions[slot],
                 view = App.getView(id);
 
-            if (descriptor &amp;&amp; options) options['descriptor'] = descriptor;
+            if (descriptor &amp;&amp; options) {
+                options['descriptor'] = descriptor;
+            }
 
-            if (view &amp;&amp; options)
+            if (view &amp;&amp; options) {
                 view.show(options);
+            }
         },
 <span id='Sage-Platform-Mobile-_DetailBase-method-createLayout'>        /**
 </span>         * Sets and returns the Detail view layout by following a standard for section and rows:
@@ -482,8 +499,7 @@ define('Sage/Platform/Mobile/_DetailBase', [
                 if (include !== undefined &amp;&amp; !include) continue;
                 if (exclude !== undefined &amp;&amp; exclude) continue;
 
-                if (current['children'] || current['as'])
-                {
+                if (current['children'] || current['as']) {
                     if (sectionStarted)
                         sectionQueue.push(current);
                     else
@@ -492,8 +508,7 @@ define('Sage/Platform/Mobile/_DetailBase', [
                     continue;
                 }
 
-                if (!sectionStarted)
-                {
+                if (!sectionStarted) {
                     sectionStarted = true;
                     section = domConstruct.toDom(this.sectionBeginTemplate.apply(layout, this) + this.sectionEndTemplate.apply(layout, this));
                     sectionNode = section.childNodes[1];
@@ -510,22 +525,18 @@ define('Sage/Platform/Mobile/_DetailBase', [
                     rendered,
                     formatted;
 
-                if (current['template'] || current['tpl'])
-                {
+                if (current['template'] || current['tpl']) {
                     rendered = (current['template'] || current['tpl']).apply(value, this);
                     formatted = current['encode'] === true
                         ? format.encode(rendered)
                         : rendered;
                 }
-                else if (current['renderer'] &amp;&amp; typeof current['renderer'] === 'function')
-                {
+                else if (current['renderer'] &amp;&amp; typeof current['renderer'] === 'function') {
                     rendered = current['renderer'].call(this, value);
                     formatted = current['encode'] === true
                         ? format.encode(rendered)
                         : rendered;
-                }
-                else
-                {
+                } else {
                     formatted = current['encode'] !== false
                         ? format.encode(value)
                         : value;
@@ -537,38 +548,47 @@ define('Sage/Platform/Mobile/_DetailBase', [
                     raw: value
                 }, current);
 
-                if (current['descriptor'])
+                if (current['descriptor']) {
                     data['descriptor'] = typeof current['descriptor'] === 'function'
                         ? this.expandExpression(current['descriptor'], entry, value)
                         : provider(entry, current['descriptor']);
+                }
 
-                if (current['action'])
+                if (current['action']) {
                     data['action'] = this.expandExpression(current['action'], entry, value);
+                }
 
                 var hasAccess = App.hasAccessTo(current['security']);
-                if (current['security'])
+                if (current['security']) {
                     data['disabled'] = !hasAccess;
+                }
 
-                if (current['disabled'] &amp;&amp; hasAccess)
+                if (current['disabled'] &amp;&amp; hasAccess) {
                     data['disabled'] = this.expandExpression(current['disabled'], entry, value);
+                }
 
-                if (current['view'])
-                {
+                if (current['view']) {
                     var context = lang.mixin({}, current['options']);
-                    if (current['key'])
+                    if (current['key']) {
                         context['key'] = typeof current['key'] === 'function'
                             ? this.expandExpression(current['key'], entry)
                             : provider(entry, current['key']);
-                    if (current['where'])
+                    }
+                    if (current['where']) {
                         context['where'] = this.expandExpression(current['where'], entry);
-                    if (current['resourceKind'])
+                    }
+                    if (current['resourceKind']) {
                         context['resourceKind'] = this.expandExpression(current['resourceKind'], entry);
-                    if (current['resourceProperty'])
+                    }
+                    if (current['resourceProperty']) {
                         context['resourceProperty'] = this.expandExpression(current['resourceProperty'], entry);
-                    if (current['resourcePredicate'])
+                    }
+                    if (current['resourcePredicate']) {
                         context['resourcePredicate'] = this.expandExpression(current['resourcePredicate'], entry);
-                    if (current['title'])
+                    }
+                    if (current['title']) {
                         context['title'] = current['title'];
+                    }
 
                     if (current['resetSearch']) {
                         context['resetSearch'] = current['resetSearch'];
@@ -596,18 +616,17 @@ define('Sage/Platform/Mobile/_DetailBase', [
 
                 var rowNode = domConstruct.place(template.apply(data, this), sectionNode);
 
-                if(current['onCreate'])
-                    callbacks.push({row: current, node: rowNode, value: value, entry: entry});
+                if (current['onCreate']) {
+                    callbacks.push({ row: current, node: rowNode, value: value, entry: entry });
+                }
             }
 
-            for (i = 0; i &lt; callbacks.length; i++)
-            {
+            for (i = 0; i &lt; callbacks.length; i++) {
                 var item = callbacks[i];
                 item.row['onCreate'].apply(this, [item.row, item.node, item.value, item.entry]);
             }
 
-            for (i = 0; i &lt; sectionQueue.length; i++)
-            {
+            for (i = 0; i &lt; sectionQueue.length; i++) {
                 current = sectionQueue[i];
 
                 this.processLayout(current, entry);
@@ -648,6 +667,11 @@ define('Sage/Platform/Mobile/_DetailBase', [
             this.entry = this.item = this.processItem(item);
 
             if (this.item) {
+
+                if (!this.options.descriptor &amp;&amp; this.item.$descriptor) {
+                    App.setPrimaryTitle(this.item.$descriptor);
+                }
+
                 this.processLayout(this._createCustomizedLayout(this.createLayout()), this.item);
             } else {
                 this.set('detailContent', '');
@@ -670,16 +694,11 @@ define('Sage/Platform/Mobile/_DetailBase', [
             }
         },
         _onGetError: function(getOptions, error) {
-            if (error.aborted)
-            {
+            if (error.aborted) {
                 this.options = false; // force a refresh
-            }
-            else if (error.status == 404)
-            {
+            } else if (error.status == 404) {
                 domConstruct.place(this.notAvailableTemplate.apply(this), this.contentNode, 'only');
-            }
-            else
-            {
+            } else {
                 alert(string.substitute(this.requestErrorText, [error]));
             }
 
@@ -687,6 +706,7 @@ define('Sage/Platform/Mobile/_DetailBase', [
                 viewOptions: this.options,
                 serverError: error
             };
+
             ErrorManager.addError(this.requestErrorText, errorItem);
 
             domClass.remove(this.domNode, 'panel-loading');
@@ -736,9 +756,9 @@ define('Sage/Platform/Mobile/_DetailBase', [
                     if (this.options.key !== options.key) return true;
                 }
                 return false;
-            }
-            else
+            } else {
                 return this.inherited(arguments);
+            }
         },
 <span id='Sage-Platform-Mobile-_DetailBase-method-activate'>        /**
 </span>         * Extends the {@link View#activate parent implementation} to set the nav options title attribute to the descriptor
@@ -747,8 +767,9 @@ define('Sage/Platform/Mobile/_DetailBase', [
          */
         activate: function(tag, data) {
             var options = data &amp;&amp; data.options;
-            if (options &amp;&amp; options.descriptor)
+            if (options &amp;&amp; options.descriptor) {
                 options.title = options.title || options.descriptor;
+            }
 
             this.inherited(arguments);
         },
@@ -758,9 +779,9 @@ define('Sage/Platform/Mobile/_DetailBase', [
          * @param data
          */
         show: function(options) {
-            if (options &amp;&amp; options.descriptor)
+            if (options &amp;&amp; options.descriptor) {
                 options.title = options.title || options.descriptor;
-
+            }
             this.inherited(arguments);
         },
 <span id='Sage-Platform-Mobile-_DetailBase-method-getTag'>        /**
@@ -788,8 +809,7 @@ define('Sage/Platform/Mobile/_DetailBase', [
         beforeTransitionTo: function() {
             this.inherited(arguments);
 
-            if (this.refreshRequired)
-            {
+            if (this.refreshRequired) {
                 this.clear();
             }
         },
@@ -798,8 +818,7 @@ define('Sage/Platform/Mobile/_DetailBase', [
          * {@link #requestData requestData} which starts the process sequence.
          */
         refresh: function() {
-            if (this.security &amp;&amp; !App.hasAccessTo(this.expandExpression(this.security)))
-            {
+            if (this.security &amp;&amp; !App.hasAccessTo(this.expandExpression(this.security))) {
                 domConstruct.place(this.notAvailableTemplate.apply(this), this.contentNode, 'last');
                 return;
             }
