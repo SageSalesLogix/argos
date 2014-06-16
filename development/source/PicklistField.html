@@ -105,19 +105,29 @@ define('Mobile/SalesLogix/Fields/PicklistField', [
             return values.join(', ');
         },
         textRenderer: function(value) {
+            var results;
+
             if (this.singleSelect) {
-                return this.inherited(arguments);
+                if (typeof value === 'string' || typeof value === 'number') {
+                    results = value;
+                } else {
+                    results = value[this.textProperty];
+                }
+            } else {
+                results = this._handleSaleslogixMultiSelectPicklist(value);
             }
 
-            return this._handleSaleslogixMultiSelectPicklist(value);
-
+            return results;
         },
         formatValue: function(value) {
+            var results;
             if (this.singleSelect) {
-                return this.inherited(arguments);
+                results = this.inherited(arguments);
+            } else {
+                results = this._handleSaleslogixMultiSelectPicklist(value);
             }
 
-            return this._handleSaleslogixMultiSelectPicklist(value);
+            return results || value;
         },
         createSelections: function() {
             var value = this.getText(),
@@ -147,10 +157,12 @@ define('Mobile/SalesLogix/Fields/PicklistField', [
                 options.tools = {
                     tbar: [{
                             id: 'complete',
+                            cls: 'fa fa-check fa-fw fa-lg',
                             fn: this.complete,
                             scope: this
                         }, {
                             id: 'cancel',
+                            cls: 'fa fa-ban fa-fw fa-lg',
                             side: 'left',
                             fn: ReUI.back,
                             scope: ReUI

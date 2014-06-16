@@ -37,7 +37,7 @@ define('Mobile/SalesLogix/Application', [
     'dojo/_base/lang',
     'dojo/has',
     'dojo/string',
-    'dojo/text!Mobile/SalesLogix/DefaultMetrics.txt',
+    'Mobile/SalesLogix/DefaultMetrics',
     'Sage/Platform/Mobile/ErrorManager',
     'Mobile/SalesLogix/Environment',
     'Sage/Platform/Mobile/Application',
@@ -100,6 +100,7 @@ define('Mobile/SalesLogix/Application', [
             'ChangeOpportunityRate',
             'LockOpportunityRate'
         ],
+        appName: 'argos-saleslogix',
         serverVersion: {
             'major': 8,
             'minor': 0,
@@ -107,13 +108,15 @@ define('Mobile/SalesLogix/Application', [
         },
         mobileVersion: {
             'major': 3,
-            'minor': 0,
-            'revision': 3
+            'minor': 1,
+            'revision': 0
         },
         versionInfoText: 'Mobile v${0}.${1}.${2} / Saleslogix v${3} platform',
-        homeViewRoute: '_myactivity_list',
-        loginViewRoute: '_login',
+        homeViewId: 'myactivity_list',
+        loginViewId: 'login',
         init: function() {
+            var original,
+                app = this;
             if (has('ie') &amp;&amp; has('ie') &lt; 9) {
                 window.location.href = 'unsupported.html';
             }
@@ -121,6 +124,14 @@ define('Mobile/SalesLogix/Application', [
             this.inherited(arguments);
             this._loadNavigationState();
             this._loadPreferences();
+
+            original = Sage.SData.Client.SDataService.prototype.executeRequest;
+
+            Sage.SData.Client.SDataService.prototype.executeRequest = function(request, options, ajax) {
+                request.setRequestHeader('X-Application-Name', app.appName);
+                request.setRequestHeader('X-Application-Version', string.substitute('${major}.${minor}.${revision}', app.mobileVersion));
+                original.apply(this, arguments);
+            };
         },
         initConnects: function() {
             this.inherited(arguments);
@@ -130,19 +141,18 @@ define('Mobile/SalesLogix/Application', [
             }
         },
         isOnFirstView: function() {
-            var history, isOnFirstView;
-            history = this.history;
+            var history, isOnFirstView = false, length, current, previous;
+            history = ReUI.context.history;
+            length = history.length;
+            current = history[length - 1];
+            previous = history[length - 2];
 
-            if (history.length &gt; 0) {
-                if (history[0].page === 'login') {
-                    // Check if there are two entries in history,
-                    // the first would be login, the second is the initial page
-                    isOnFirstView = history.length === 2;
-                } else {
-                    // Login is not always the first entry in history,
-                    // the user can save their credentials and skip the login page entirely
-                    isOnFirstView = history.length === 1;
-                }
+            if (current &amp;&amp; current.page === 'login') {
+                isOnFirstView = true;
+            } else if (previous &amp;&amp; previous.page === 'login') {
+                isOnFirstView = true;
+            } else if (length === 1) {
+                isOnFirstView = true;
             }
 
             return isOnFirstView;
@@ -177,7 +187,7 @@ define('Mobile/SalesLogix/Application', [
         _saveNavigationState: function() {
             try {
                 if (window.localStorage) {
-                    window.localStorage.setItem('navigationState', json.stringify(this.history));
+                    window.localStorage.setItem('navigationState', json.stringify(ReUI.context.history));
                 }
             } catch(e) {
             }
@@ -374,10 +384,8 @@ define('Mobile/SalesLogix/Application', [
             window.location.reload();
         },
         logOut: function() {
-            if (window.localStorage) {
-                window.localStorage.removeItem('credentials');
-                window.localStorage.removeItem('navigationState');
-            }
+            this.removeCredentials();
+            this._clearNavigationState();
 
             var service = this.getService();
             if (service) {
@@ -388,9 +396,8 @@ define('Mobile/SalesLogix/Application', [
 
             this.reload();
         },
-        handleAuthentication: function() {
+        getCredentials: function() {
             var stored, encoded, credentials;
-
             try {
                 if (window.localStorage) {
                     stored = window.localStorage.getItem('credentials');
@@ -400,6 +407,21 @@ define('Mobile/SalesLogix/Application', [
             } catch(e) {
             }
 
+            return credentials;
+        },
+        removeCredentials: function() {
+            try {
+                if (window.localStorage) {
+                    window.localStorage.removeItem('credentials');
+                }
+            } catch(e) {
+            }
+        },
+        handleAuthentication: function() {
+            var credentials;
+
+            credentials = this.getCredentials();
+
             if (credentials) {
                 this.authenticateUser(credentials, {
                     success: function(result) {
@@ -408,6 +430,7 @@ define('Mobile/SalesLogix/Application', [
                     },
                     failure: function(result) {
                         this.navigateToLoginView();
+                        this.removeCredentials();
                     },
                     aborted: function(result) {
                         this.navigateToLoginView();
@@ -459,11 +482,29 @@ define('Mobile/SalesLogix/Application', [
                 };
             }
         },
+        getMetricsByResourceKind: function(resourceKind) {
+            var prefs,
+                results = [];
+
+            prefs = this.preferences &amp;&amp; this.preferences.metrics &amp;&amp; this.preferences.metrics;
+
+            if (prefs) {
+                prefs = array.filter(prefs, function(item) {
+                    return item.resourceKind === resourceKind;
+                });
+
+                if (prefs.length === 1) {
+                    results = prefs[0].children;
+                }
+            }
+
+            return results;
+        },
         setDefaultMetricPreferences: function() {
             var defaults;
             if (!this.preferences.metrics) {
-                defaults = json.parse(DefaultMetrics);
-                this.preferences.metrics = defaults;
+                defaults = new DefaultMetrics();
+                this.preferences.metrics = defaults.getDefinitions();
                 this.persistPreferences();
             }
         },
@@ -722,7 +763,7 @@ define('Mobile/SalesLogix/Application', [
 
                 if (cleanedHistory) {
                     ReUI.context.transitioning = true;
-                    this.history = this.history.concat(cleanedHistory.slice(0, cleanedHistory.length - 1));
+                    ReUI.context.history = ReUI.context.history.concat(cleanedHistory.slice(0, cleanedHistory.length - 1));
 
                     for (var i = 0; i &lt; cleanedHistory.length - 1; i++) {
                         window.location.hash = cleanedHistory[i].hash;
@@ -744,7 +785,25 @@ define('Mobile/SalesLogix/Application', [
             }
         },
         navigateToLoginView: function() {
-            this.router.go(this.loginViewRoute);
+            var viewId = this.loginViewId, view, split;
+            if (this._hasValidRedirect(this.redirectHash)) {
+                // Split by &quot;/redirectTo/&quot;
+                split = this.redirectHash.split(/\/redirectTo\//gi);
+                if (split.length === 2) {
+                    this.redirectHash = split[1];
+                }
+            } else {
+                this.redirectHash = '';
+            }
+
+            view = this.getView(viewId);
+            if (view) {
+                view.show();
+            }
+
+        },
+        _hasValidRedirect: function(redirect) {
+            return this.redirectHash !== '' &amp;&amp; this.redirectHash.indexOf('/redirectTo/') &gt; 0;
         },
         showLeftDrawer: function() {
             var view = this.getView('left_drawer');
@@ -759,15 +818,42 @@ define('Mobile/SalesLogix/Application', [
             }
         },
         navigateToHomeView: function() {
+            var visible, view, split, key, viewId;
             this.loadSnapper();
-            if (this.redirectHash !== '' &amp;&amp; this.redirectHash !== this.loginViewRoute) {
-                this.router.go(this.redirectHash);
-            } else {
-                this.router.go(this.homeViewRoute);
+
+            visible = this.preferences &amp;&amp; this.preferences.home &amp;&amp; this.preferences.home.visible;
+            if (visible &amp;&amp; visible.length &gt; 0) {
+                this.homeViewId = visible[0];
+            }
+
+            // Default view will be the home view, overwritten below if a redirect hash is supplied
+            view = this.getView(this.homeViewId);
+
+            if (this.redirectHash) {
+                split = this.redirectHash.split(';');
+                if (split.length &gt; 1) {
+                    viewId = split[0];
+                    key = split[1];
+                    view = this.getView(viewId);
+                    if (view) {
+                        if (key) {
+                            view.show({
+                                key: key
+                            });
+                        }
+                    }
+                }
+            }
+
+            if (view) {
+                view.show();
             }
         },
         navigateToActivityInsertView: function() {
-            this.router.go('_activity_types_list');
+            var view = this.getView('activity_types_list');
+            if (view) {
+                view.show();
+            }
         },
         initiateCall: function() {
             // shortcut for environment call
@@ -793,7 +879,6 @@ define('Mobile/SalesLogix/Application', [
         }
     });
 });
-
 </pre>
 </body>
 </html>

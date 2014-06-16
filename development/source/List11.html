@@ -66,29 +66,44 @@ define('Mobile/SalesLogix/Views/Lead/List', [
             '&lt;/h4&gt;',
             '{% if ($.WorkPhone) { %}',
                 '&lt;h4&gt;',
-                    '{%: $$.phoneAbbreviationText + Sage.Platform.Mobile.Format.phone($.WorkPhone) %}',
+                    '{%: $$.phoneAbbreviationText %} &lt;span class=&quot;href&quot; data-action=&quot;callWork&quot; data-key=&quot;{%: $.$key %}&quot;&gt;{%: Sage.Platform.Mobile.Format.phone($.WorkPhone) %}&lt;/span&gt;',
                 '&lt;/h4&gt;',
             '{% } %}',
             '{% if ($.Mobile) { %}',
                 '&lt;h4&gt;',
-                    '{%: $$.mobileAbbreviationText + Sage.Platform.Mobile.Format.phone($.Mobile) %}',
+                    '{%: $$.mobileAbbreviationText %} &lt;span class=&quot;href&quot; data-action=&quot;callMobile&quot; data-key=&quot;{%: $.$key %}&quot;&gt;{%: Sage.Platform.Mobile.Format.phone($.Mobile) %}&lt;/span&gt;',
                 '&lt;/h4&gt;',
             '{% } %}',
             '{% if ($.TollFree) { %}',
                 '&lt;h4&gt;',
-                    '{%: $$.tollFreeAbbreviationText + Sage.Platform.Mobile.Format.phone($.TollFree) %}',
+                    '{%: $$.tollFreeAbbreviationText %} {%: Sage.Platform.Mobile.Format.phone($.TollFree) %}',
                 '&lt;/h4&gt;',
             '{% } %}',
             '&lt;h4&gt;{%: $.WebAddress %}&lt;/h4&gt;',
             '{% if ($.Email) { %}',
                 '&lt;h4&gt;',
-                    '{%: $.Email %}',
+                    '&lt;span class=&quot;href&quot; data-action=&quot;sendEmail&quot; data-key=&quot;{%: $.$key %}&quot;&gt;{%: $.Email %}&lt;/span&gt;',
                 '&lt;/h4&gt;',
             '{% } %}'
         ]),
 
         joinFields: function(sep, fields) {
             return utility.joinFields(sep, fields);
+        },
+        callWork: function(params) {
+            this.invokeActionItemBy(function(action) {
+                return action.id === 'callWork';
+            }, params.key);
+        },
+        callMobile: function(params) {
+            this.invokeActionItemBy(function(action) {
+                return action.id === 'callMobile';
+            }, params.key);
+        },
+        sendEmail: function(params) {
+            this.invokeActionItemBy(function(action) {
+                return action.id === 'sendEmail';
+            }, params.key);
         },
 
         //Localization
@@ -109,9 +124,15 @@ define('Mobile/SalesLogix/Views/Lead/List', [
         mobileAbbreviationText: 'Mobile: ',
         tollFreeAbbreviationText: 'Toll Free: ',
 
-        //View Properties      
+        //View Properties
         detailView: 'lead_detail',
         icon: 'content/images/icons/Leads_24x24.png',
+        iconTemplate: new Simplate([
+            '&lt;span class=&quot;fa-stack&quot;&gt;',
+                '&lt;i class=&quot;fa fa-square-o fa-stack-2x&quot;&gt;&lt;/i&gt;',
+                '&lt;i class=&quot;fa fa-user fa-stack-1x fa-inverse&quot;&gt;&lt;/i&gt;',
+            '&lt;/span&gt;'
+        ]),
         id: 'lead_list',
         security: 'Entities/Lead/View',
         insertView: 'lead_edit',
@@ -128,12 +149,9 @@ define('Mobile/SalesLogix/Views/Lead/List', [
             'ModifyDate'
         ],
         resourceKind: 'leads',
-        entityName: 'Lead', 
+        entityName: 'Lead',
         allowSelection: true,
         enableActions: true,
-        defaultSearchTerm: function() {
-            return '#' + this.hashTagQueriesText['my-leads'];
-        },
         hashTagQueries: {
             'my-leads': function() {
                 return 'AccountManager.Id eq &quot;' + App.context.user.$key + '&quot;';

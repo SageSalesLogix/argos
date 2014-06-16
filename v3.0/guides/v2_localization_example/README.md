@@ -10,7 +10,7 @@ If you have completed the Argos Template Guide, then you already have the folder
 
 1\. Create a root folder, for this example we will be using `C:\code\mobile`.
 
-2\. In that root folder, download and extract (or git clone) [Argos-SDK](https://github.com/Sage/argos-sdk/zipball/2.0) into a new folder named `argos-sdk`.
+2\. In that root folder, download and extract (or git clone) [Argos-SDK](https://github.com/Saleslogix/argos-sdk/archive/v3.0.3.zip) into a new folder named `argos-sdk`.
 
 3\. Create another folder at the same level named 'products'.
 

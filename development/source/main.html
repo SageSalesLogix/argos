@@ -46,7 +46,7 @@
             if (typeof page.id !== 'string' || page.id.length &lt;= 0) {
                 page.id = 'reui-' + (context.counter++);
             }
-           
+
             context.hash = location.hash = formatHashForPage(page, o);
 
             if (o.trimmed !== true) {
@@ -56,12 +56,11 @@
                     tag: o.tag,
                     data: o.data
                 });
-                App.history = context.history;
             }
         }
 
         context.transitioning = false;
-  
+
         if (o.update !== false) {
             if (R.titleEl) {
                 if (page.title) {
@@ -74,24 +73,23 @@
                 }
             }
         }
-    };  
-    
-    var transition = function(from, to, o) {            
-        function complete() {            
+    };
+
+    var transition = function(from, to, o) {
+        function complete() {
             transitionComplete(to, o);
 
             domClass.remove(R.rootEl, 'transition');
 
-            context.check = window.setInterval(checkOrientationAndLocation, R.checkStateEvery);                                                               
-                
+            context.check = window.setInterval(checkOrientationAndLocation, R.checkStateEvery);
             on.emit(from, 'aftertransition', {out: true, tag: o.tag, data: o.data, bubbles: true, cancelable: true});
             on.emit(to, 'aftertransition', {out: false, tag: o.tag, data: o.data, bubbles: true, cancelable: true});
 
             if (o.complete) {
                 o.complete(from, to, o);
             }
-        }       
-        
+        }
+
         context.transitioning = true;
 
         window.clearInterval(context.check);
@@ -145,9 +143,9 @@
         var segments = options &amp;&amp; options.tag
             ? [page.id].concat(options.tag)
             : [page.id];
-        return R.hashPrefix + segments.join(';');       
+        return R.hashPrefix + segments.join(';');
     };
-    
+
     var updateOrientationDom = function(value) {
         var currentOrient = R.rootEl.getAttribute('orient');
         if (value === currentOrient) {
@@ -172,7 +170,7 @@
         // Check if screen dimensions changed. Ignore changes where only the height changes (the android keyboard will cause this)
         if (Math.abs(window.innerHeight - context.height) &gt; 5 || Math.abs(window.innerWidth - context.width) &gt; 5) {
             if (Math.abs(window.innerWidth - context.width) &gt; 5) {
-                R.setOrientation(context.height &lt; context.width ? 'landscape' : 'portrait');
+                R.setOrientation(window.innerHeight &lt; window.innerWidth ? 'landscape' : 'portrait');
             }
 
             context.height = window.innerHeight;
@@ -201,11 +199,11 @@
             page = info &amp;&amp; dom.byId(info.page);
 
             // more often than not, data will only be needed when moving to a previous view (and restoring its state).
-            
+
             if (page) {
                 R.show(page, {external: true, reverse: reverse, tag: info &amp;&amp; info.tag, data: info &amp;&amp; info.data});
             }
-        }         
+        }
     };
 
     var context = {
@@ -216,17 +214,17 @@
         width: 0,
         height: 0,
         check: 0,
-        history: [] 
+        history: []
     };
 
     var config = window.reConfig || {};
-    
+
     lang.mixin(ReUI, {
-        rootEl: false, 
-        titleEl: false,      
+        rootEl: false,
+        titleEl: false,
         pageTitleId: 'pageTitle',
         hashPrefix: '#_',
-        checkStateEvery: 250,
+        checkStateEvery: 100,
         context: context,
 
         init: function() {
@@ -236,7 +234,7 @@
 
             context.initialized = true;
 
-            R.rootEl = R.rootEl || document.body;            
+            R.rootEl = R.rootEl || document.body;
             R.titleEl = R.titleEl || dom.byId(R.pageTitleId);
 
             context.check = window.setInterval(checkOrientationAndLocation, R.checkStateEvery);
@@ -253,7 +251,7 @@
 </span>         * @deprecated
          */
         getCurrentPage: function() {
-            return App.getCurrentPage();
+            return context.page;
         },
 
 <span id='global-method-back'>        /**
@@ -271,7 +269,7 @@
                 window.clearInterval(context.check);
             }
         },
-        
+
 <span id='global-method-show'>        /**
 </span>         * Available Options:
          *   horizontal: True if the transition is horizontal, False otherwise.
@@ -301,7 +299,7 @@
             }
 
             context.transitioning = true;
-           
+
             if (o.track !== false) {
                 count = context.history.length;
                 hash = formatHashForPage(page, o);
@@ -318,13 +316,11 @@
                      //Added check if history item is just one back. 
 
                     context.history = context.history.splice(0, position + 1);
-                    App.history = context.history;
 
                     context.hash = hash;
 
                     // indicate that context.history has already been taken care of (i.e. nothing needs to be pushed).
                     o.trimmed = true;
-                    
                     // trim up the browser history
                     // if the requested hash does not equal the current location hash, trim up history.
                     // location hash will not match requested hash when show is called directly, but will match
@@ -346,7 +342,6 @@
                     if (position &gt; -1) {
                         // we fix up the history, but do not flag as trimmed, since we do want the new view to be pushed.
                         context.history = context.history.splice(0, position + 1);
-                        App.history = context.history;
 
                         context.hash = context.history[context.history.length - 1] &amp;&amp; context.history[context.history.length - 1].hash;
 
@@ -364,14 +359,13 @@
 
             on.emit(page, 'load', {bubbles: false, cancelable: true});
 
-            from = App.getCurrentPage();
+            from = context.page;
 
             if (from) {
                 on.emit(from, 'blur', {bubbles: false, cancelable: true});
             }
 
             context.page = page; // Keep for backwards compat
-            App.setCurrentPage(page);
 
             on.emit(page, 'focus', {bubbles: false, cancelable: true});
 
@@ -380,17 +374,17 @@
                     on.emit(page, 'unload', {bubbles: false, cancelable: true});
                 }
 
-                window.setTimeout(transition, 0, from, page, o);
+                window.setTimeout(transition, R.checkStateEvery, from, page, o);
             } else {
                 on.emit(page, 'beforetransition', {out: false, tag: o.tag, data: o.data, bubbles: true, cancelable: true});
 
                 D.select(page);
 
                 transitionComplete(page, o);
-                
+
                 on.emit(page, 'aftertransition', {out: false, tag: o.tag, data: o.data, bubbles: true, cancelable: true});
             }
-        }                    
+        }
     }, config);
 
     window.ReUI = ReUI;

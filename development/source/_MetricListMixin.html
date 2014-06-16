@@ -22,11 +22,11 @@
 <span id='Mobile-SalesLogix-Views-_MetricListMixin'>/**
 </span> * @class Mobile.SalesLogix.Views._MetricListMixin
  *
- * Mixin for adding KPI widgets to list views. 
+ * Mixin for adding KPI widgets to list views.
  *
  * @since 3.0
  *
- * @requires Mobile.SalesLogix.Views.MetricWidget 
+ * @requires Mobile.SalesLogix.Views.MetricWidget
  *
  */
 define('Mobile/SalesLogix/Views/_MetricListMixin', [
@@ -34,13 +34,15 @@ define('Mobile/SalesLogix/Views/_MetricListMixin', [
     'dojo/_base/array',
     'dojo/_base/lang',
     'dojo/aspect',
-    './MetricWidget'
+    './MetricWidget',
+    'Mobile/SalesLogix/GroupUtility'
 ], function(
     declare,
     array,
     lang,
     aspect,
-    MetricWidget
+    MetricWidget,
+    GroupUtility
 ) {
     return declare('Mobile.SalesLogix.Views._MetricListMixin', null, {
         // Metrics
@@ -54,23 +56,27 @@ define('Mobile/SalesLogix/Views/_MetricListMixin', [
         postMixInProperties: function() {
             this.inherited(arguments);
             this.widgetTemplate =  new Simplate([
-                '&lt;div id=&quot;{%= $.id %}&quot; title=&quot;{%= $.titleText %}&quot; class=&quot;overthrow list {%= $.cls %}&quot; {% if ($.resourceKind) { %}data-resource-kind=&quot;{%= $.resourceKind %}&quot;{% } %}&gt;',
-                '&lt;div data-dojo-attach-point=&quot;searchNode&quot;&gt;&lt;/div&gt;',
-                '&lt;div data-dojo-attach-point=&quot;metricNode&quot; class=&quot;metric-list&quot;&gt;&lt;/div&gt;',
-                '{%! $.emptySelectionTemplate %}',
-                '&lt;ul class=&quot;list-content&quot; data-dojo-attach-point=&quot;contentNode&quot;&gt;&lt;/ul&gt;',
-                '{%! $.moreTemplate %}',
-                '{%! $.listActionTemplate %}',
+                '&lt;div id=&quot;{%= $.id %}&quot; title=&quot;{%= $.titleText %}&quot; class=&quot;list {%= $.cls %}&quot; {% if ($.resourceKind) { %}data-resource-kind=&quot;{%= $.resourceKind %}&quot;{% } %}&gt;',
+                    '&lt;div data-dojo-attach-point=&quot;searchNode&quot;&gt;&lt;/div&gt;',
+                    '&lt;div class=&quot;overthrow scroller&quot; data-dojo-attach-point=&quot;scrollerNode&quot;&gt;',
+                        '&lt;div data-dojo-attach-point=&quot;groupsNode&quot; class=&quot;groups-notice&quot;&gt;&lt;/div&gt;',
+                        '&lt;div data-dojo-attach-point=&quot;metricNode&quot; class=&quot;metric-list&quot;&gt;&lt;/div&gt;',
+                        '{%! $.emptySelectionTemplate %}',
+                        '&lt;ul class=&quot;list-content&quot; data-dojo-attach-point=&quot;contentNode&quot;&gt;&lt;/ul&gt;',
+                        '{%! $.moreTemplate %}',
+                        '{%! $.listActionTemplate %}',
+                    '&lt;/div&gt;',
                 '&lt;/div&gt;'
             ]);
         },
         createMetricWidgetsLayout: function() {
             var filtered = [],
-                prefs;
-            prefs = App.preferences &amp;&amp; App.preferences.metrics &amp;&amp; App.preferences.metrics[this.resourceKind];
+                metrics = [];
 
-            if (prefs) {
-                filtered = array.filter(prefs, function(item) {
+            metrics = App.getMetricsByResourceKind(this.resourceKind);
+
+            if (metrics.length &gt; 0) {
+                filtered = array.filter(metrics, function(item) {
                     return item.enabled;
                 });
             }
@@ -113,10 +119,20 @@ define('Mobile/SalesLogix/Views/_MetricListMixin', [
             array.forEach(widgetOptions, function(options) {
                 if (this._hasValidOptions(options)) {
                     options.returnToId = this.id;
-                    options.parentResourceKind = this.resourceKind;
-                    options.resourceKind = this.resourceKind;
-                    options.currentSearchExpression = this.currentSearchExpression;
-                    options.queryArgs._activeFilter = this._getCurrentQuery();
+
+                    if (this.groupsMode) {
+                        options.queryArgs._activeFilter = '';
+                        options.request = GroupUtility.createGroupMetricRequest({
+                            groupId: this.currentGroupId,
+                            queryArgs: options.queryArgs
+                        });
+                    } else {
+                        options.request = null;
+                        options.parentResourceKind = this.resourceKind;
+                        options.resourceKind = this.resourceKind;
+                        options.currentSearchExpression = this.currentSearchExpression;
+                        options.queryArgs._activeFilter = this._getCurrentQuery();
+                    }
 
                     var widget = new MetricWidget(options);
                     widget.placeAt(this.metricNode, 'last');
@@ -136,13 +152,14 @@ define('Mobile/SalesLogix/Views/_MetricListMixin', [
             }).join(' and ');
         },
         _hasValidOptions: function(options) {
-            return options 
-                &amp;&amp; options.queryArgs 
-                &amp;&amp; options.queryArgs._filterName 
+            return options
+                &amp;&amp; options.queryArgs
+                &amp;&amp; options.queryArgs._filterName
                 &amp;&amp; options.queryArgs._metricName;
         }
     });
 });
+
 </pre>
 </body>
 </html>

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">/*
+ * Copyright (c) 1997-2014, SalesLogix, NA., LLC. All rights reserved.
+ */
+
+<span id='Mobile-SalesLogix-Views-Groups-Selector'>/**
+</span> * @class Mobile.SalesLogix.Views.Groups.Selector
+ *
+ * @extends Sage.Platform.Mobile.List
+ * @requires Sage.Platform.Mobile.List
+ *
+ */
+define('Mobile/SalesLogix/Views/Groups/Selector', [
+    'dojo/_base/declare',
+    'dojo/string',
+    'Sage/Platform/Mobile/List',
+    'Sage/Platform/Mobile/Store/SData'
+], function(
+    declare,
+    string,
+    List,
+    SDataStore
+) {
+
+    return declare('Mobile.SalesLogix.Views.Groups.Selector', [List], {
+        id: 'groups_configure',
+        expose: false,
+        enableSearch: true,
+        icon: '',
+
+        listViewId: 'groups_list',
+        family: '',
+
+        //Localization
+        titleText: 'Groups',
+
+        itemTemplate: new Simplate([
+            '&lt;h3&gt;{%: $[$$.labelProperty] %}&lt;/h3&gt;'
+        ]),
+
+        constructor: function() {
+            this.tools = { tbar: [] };
+        },
+
+        activateEntry: function(params) {
+            var key, descriptor, entry, view;
+
+            key = params.key;
+
+            if (this._selectionModel &amp;&amp; this.isNavigationDisabled()) {
+                this._selectionModel.toggle(params.key, this.entries[params.key] || params.descriptor, params.$source);
+                if (this.options.singleSelect &amp;&amp; this.options.singleSelectAction) {
+                    this.invokeSingleSelectAction();
+                }
+            }
+        },
+
+        createStore: function() {
+            if (!this.family) {
+                throw new Error('The groups selector must have a family set.');
+            }
+
+            return this.createGroupStore(this.family);
+        },
+
+        createGroupStore: function(entityName) {
+            var store = null;
+
+            if (typeof entityName === 'string' &amp;&amp; entityName !== '') {
+                store = new SDataStore({
+                    service: App.services.crm,
+                    resourceKind: 'groups',
+                    contractName: 'system',
+                    where: &quot;upper(family) eq '&quot; + entityName.toUpperCase() + &quot;'&quot;,
+                    include: ['layout', 'tableAliases'],
+                    idProperty: '$key',
+                    applicationName: 'slx',
+                    scope: this
+                });
+            }
+
+            return store;
+        },
+        formatSearchQuery: function(searchQuery) {
+            return string.substitute('name like &quot;${0}%&quot;', [this.escapeSearchQuery(searchQuery.toUpperCase())]);
+        }
+    });
+});
+
+</pre>
+</body>
+</html>

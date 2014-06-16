@@ -60,6 +60,10 @@ define('Sage/Platform/Mobile/_SDataListMixin', [
     string
 ) {
     return declare('Sage.Platform.Mobile._SDataListMixin', null, {
+<span id='Sage-Platform-Mobile-_SDataListMixin-property-request'>        /**
+</span>         * @property request Object SData request passed into the store. Optional.
+         */
+        request: null,
 
 <span id='Sage-Platform-Mobile-_SDataListMixin-cfg-resourceKind'>        /**
 </span>         * @cfg {String} resourceKind
@@ -106,8 +110,12 @@ define('Sage/Platform/Mobile/_SDataListMixin', [
          * The default resource predicate for an SData request.
          */
         resourcePredicate: null,
-        keyProperty: '$key',
-        descriptorProperty: '$descriptor',
+
+        itemsProperty: '$resources',
+        idProperty: '$key',
+        labelProperty: '$descriptor',
+        entityProperty: '$name',
+        versionProperty: '$etag',
 
 <span id='Sage-Platform-Mobile-_SDataListMixin-method-formatRelatedQuery'>        /**
 </span>         * Constructs a where expression using the provided format string and extracting the needed property from entry
@@ -132,6 +140,7 @@ define('Sage/Platform/Mobile/_SDataListMixin', [
         createStore: function() {
             return new SData({
                 service: this.getConnection(),
+                request: this.request,
                 contractName: this.contractName,
                 resourceKind: this.resourceKind,
                 resourceProperty: this.resourceProperty,
@@ -141,7 +150,11 @@ define('Sage/Platform/Mobile/_SDataListMixin', [
                 where: this.queryWhere,
                 queryArgs: this.queryArgs,
                 orderBy: this.queryOrderBy,
-                idProperty: this.keyProperty,
+                itemsProperty: this.itemsProperty,
+                idProperty: this.idProperty,
+                labelProperty: this.labelProperty,
+                entityProperty: this.entityProperty,
+                versionProperty: this.versionProperty,
                 scope: this
             });
         },
@@ -181,7 +194,7 @@ define('Sage/Platform/Mobile/_SDataListMixin', [
             total = this.total;
 
             if (start &gt; 0 &amp;&amp; count &gt; 0 &amp;&amp; total &gt;= 0) {
-                return (start + count &lt;= total);
+                return this.remaining === -1 || this.remaining &gt; 0;
             } else {
                 return true; // no way to determine, always assume more data
             }
