@@ -37,6 +37,7 @@
  * @extends Sage.Platform.Mobile.View
  * @alternateClassName _ListBase
  * @requires Sage.Platform.Mobile.ErrorManager
+ * @requires Sage.Platform.Mobile.Utility
  * @requires Sage.Platform.Mobile.SearchWidget
  */
 define('Sage/Platform/Mobile/_ListBase', [
@@ -55,6 +56,7 @@ define('Sage/Platform/Mobile/_ListBase', [
     'dojo/Deferred',
     'dojo/promise/all',
     'dojo/when',
+    'Sage/Platform/Mobile/Utility',
     'Sage/Platform/Mobile/ErrorManager',
     'Sage/Platform/Mobile/View',
     'Sage/Platform/Mobile/SearchWidget',
@@ -76,6 +78,7 @@ define('Sage/Platform/Mobile/_ListBase', [
     Deferred,
     all,
     when,
+    Utility,
     ErrorManager,
     View,
     SearchWidget,
@@ -132,7 +135,7 @@ define('Sage/Platform/Mobile/_ListBase', [
          *      loadingText         The text to display while loading.
          */
         loadingTemplate: new Simplate([
-            '&lt;li class=&quot;list-loading-indicator&quot;&gt;&lt;div&gt;{%= $.loadingText %}&lt;/div&gt;&lt;/li&gt;'
+            '&lt;li class=&quot;list-loading-indicator&quot;&gt;&lt;span class=&quot;fa fa-spinner fa-spin&quot;&gt;&lt;/span&gt;&lt;div&gt;{%= $.loadingText %}&lt;/div&gt;&lt;/li&gt;'
         ]),
 <span id='Sage-Platform-Mobile-_ListBase-property-moreTemplate'>        /**
 </span>         * @property {Simplate}
@@ -186,7 +189,11 @@ define('Sage/Platform/Mobile/_ListBase', [
         rowTemplate: new Simplate([
             '&lt;li data-action=&quot;activateEntry&quot; data-key=&quot;{%= $[$$.idProperty] %}&quot; data-descriptor=&quot;{%: $[$$.labelProperty] %}&quot;&gt;',
                 '&lt;button data-action=&quot;selectEntry&quot; class=&quot;list-item-selector button&quot;&gt;',
-                    '&lt;img src=&quot;{%= $$.icon || $$.selectIcon %}&quot; class=&quot;icon&quot; /&gt;',
+                    '{% if ($$.selectIconClass) { %}',
+                        '&lt;span class=&quot;{%= $$.selectIconClass %}&quot;&gt;&lt;/span&gt;',
+                    '{% } else if ($$.icon || $$.selectIcon) { %}',
+                        '&lt;img src=&quot;{%= $$.icon || $$.selectIcon %}&quot; class=&quot;icon&quot; /&gt;',
+                    '{% } %}',
                 '&lt;/button&gt;',
                 '&lt;div class=&quot;list-item-content&quot; data-snap-ignore=&quot;true&quot;&gt;{%! $$.itemTemplate %}&lt;/div&gt;',
                 '&lt;div id=&quot;list-item-content-related&quot;&gt;&lt;/div&gt;',
@@ -235,12 +242,19 @@ define('Sage/Platform/Mobile/_ListBase', [
          *      actionIndex         The correlating index number of the action collection
          *      title               Text used for ARIA-labeling
          *      icon                Relative path to the icon to use
+         *      cls                 CSS class to use instead of an icon
          *      id                  Unique name of action, also used for alt image text
          *      label               Text added below the icon
          */
         listActionItemTemplate: new Simplate([
             '&lt;button data-action=&quot;invokeActionItem&quot; data-id=&quot;{%= $.actionIndex %}&quot; aria-label=&quot;{%: $.title || $.id %}&quot;&gt;',
-                '&lt;img src=&quot;{%= $.icon %}&quot; alt=&quot;{%= $.id %}&quot; /&gt;',
+                '{% if ($.cls) { %}',
+                    '&lt;span class=&quot;{%= $.cls %}&quot;&gt;&lt;/span&gt;',
+                '{% } else if ($.icon) { %}',
+                    '&lt;img src=&quot;{%= $.icon %}&quot; alt=&quot;{%= $.id %}&quot; /&gt;',
+                '{% } else { %}',
+                    '&lt;span class=&quot;fa fa-level-down fa-2x&quot;&gt;&lt;/span&gt;',
+                '{% } %}',
                 '&lt;label&gt;{%: $.label %}&lt;/label&gt;',
             '&lt;/button&gt;'
         ]),
@@ -422,7 +436,14 @@ define('Sage/Platform/Mobile/_ListBase', [
 </span>         * @property {String}
          * The relative path to the checkmark or select icon for row selector
          */
-        selectIcon: 'content/images/icons/OK_24.png',
+        selectIcon: '',
+
+<span id='Sage-Platform-Mobile-_ListBase-property-selectIconClass'>        /**
+</span>         * @property {String}
+         * CSS class to use for checkmark or select icon for row selector. Overrides selectIcon.
+         */
+        selectIconClass: 'fa fa-check fa-lg',
+
 <span id='Sage-Platform-Mobile-_ListBase-property-searchWidget'>        /**
 </span>         * @property {Object}
          * The search widget instance for the view
@@ -546,7 +567,7 @@ define('Sage/Platform/Mobile/_ListBase', [
                 this.searchWidget = this.searchWidget || new searchWidgetCtor({
                     'class': 'list-search',
                     'owner': this,
-                    'onSearchExpression': lang.hitch(this, this._onSearchExpression)
+                    'onSearchExpression': this._onSearchExpression.bind(this)
                 });
                 this.searchWidget.placeAt(this.searchNode, 'replace');
             } else {
@@ -565,7 +586,7 @@ define('Sage/Platform/Mobile/_ListBase', [
             if (this.searchWidget) {
                 this.searchWidget.configure({
                     'hashTagQueries': this._createCustomizedLayout(this.createHashTagQueryLayout(), 'hashTagQueries'),
-                    'formatSearchQuery': lang.hitch(this, this.formatSearchQuery)
+                    'formatSearchQuery': this.formatSearchQuery.bind(this)
                 });
             }
 
@@ -730,13 +751,23 @@ define('Sage/Platform/Mobile/_ListBase', [
          */
         checkActionState: function() {
             var selectedItems = this.get('selectionModel').getSelections(),
-                selection = null, i, action, key;
+                selection = null, key;
 
             for (key in selectedItems) {
                 selection = selectedItems[key];
                 break;
             }
-
+            this._applyStateToActions(selection);
+           
+        },
+<span id='Sage-Platform-Mobile-_ListBase-method-_applyStateToActions'>        /**
+</span>         * Called from checkActionState method and sets the state of the actions from what was selected from the selected row, it sets the disabled state for each action
+         * item using the currently selected row as context by passing the action instance the selected row to the
+         * action items `enabled` property.
+         * @param {Object} selection 
+         */
+        _applyStateToActions: function(selection) {
+            var i, action;
             // IE10 is destroying the child notes of the actionsNode when the list view refreshes,
             // re-create the action DOM before moving on.
             if (this.actionsNode.childNodes.length === 0 &amp;&amp; this.actions.length &gt; 0) {
@@ -988,7 +1019,7 @@ define('Sage/Platform/Mobile/_ListBase', [
          * @return {String}
          */
         escapeSearchQuery: function(searchQuery) {
-            return (searchQuery || '').replace(/&quot;/g, '&quot;&quot;');
+            return Utility.escapeSearchQuery(searchQuery);
         },
 <span id='Sage-Platform-Mobile-_ListBase-method-_onSearchExpression'>        /**
 </span>         * Handler for the search widgets search.
@@ -1081,6 +1112,7 @@ define('Sage/Platform/Mobile/_ListBase', [
             var view = App.getView(this.detailView);
             if (view) {
                 view.show({
+                    descriptor: descriptor, // keep for backwards compat
                     title: descriptor,
                     key: key
                 });
@@ -1144,8 +1176,8 @@ define('Sage/Platform/Mobile/_ListBase', [
                     queryResults = store.query(queryExpression, queryOptions);
 
                 when(queryResults,
-                    lang.hitch(this, this._onQueryComplete, queryResults),
-                    lang.hitch(this, this._onQueryError, queryOptions)
+                    this._onQueryComplete.bind(this, queryResults),
+                    this._onQueryError.bind(this, queryOptions)
                 );
 
                 return queryResults;
@@ -1157,7 +1189,7 @@ define('Sage/Platform/Mobile/_ListBase', [
             try {
                 var start = this.position, scrollerNode = this.get('scroller');
 
-                when(queryResults.total, lang.hitch(this, this._onQueryTotal));
+                when(queryResults.total, this._onQueryTotal.bind(this));
 
                 /* todo: move to a more appropriate location */
                 if (this.options &amp;&amp; this.options.allowEmptySelection) {
@@ -1494,7 +1526,6 @@ define('Sage/Platform/Mobile/_ListBase', [
             this.requestedFirstPage = false;
             this.entries = {};
             this.position = 0;
-            this.query = false; // todo: rename to searchQuery
 
             if (this._onScrollHandle) {
                 this.disconnect(this._onScrollHandle);
@@ -1542,6 +1573,11 @@ define('Sage/Platform/Mobile/_ListBase', [
                     this.relatedViewManagers[relatedViewId].destroyViews();
                 }
             }
+        },
+<span id='Sage-Platform-Mobile-_ListBase-method-getListCount'>        /**
+</span>         * Returns a promise with the list's count.
+         */
+        getListCount: function(options, callback) {
         }
     });
 });

@@ -47,6 +47,7 @@ define('Sage/Platform/Mobile/_DetailBase', [
     'dojo/_base/declare',
     'dojo/_base/lang',
     'dojo/_base/Deferred',
+    'dojo/query',
     'dojo/string',
     'dojo/dom',
     'dojo/dom-class',
@@ -60,6 +61,7 @@ define('Sage/Platform/Mobile/_DetailBase', [
     declare,
     lang,
     Deferred,
+    query,
     string,
     dom,
     domClass,
@@ -116,7 +118,7 @@ define('Sage/Platform/Mobile/_DetailBase', [
          */
         loadingTemplate: new Simplate([
             '&lt;div class=&quot;panel-loading-indicator&quot;&gt;',
-            '&lt;div class=&quot;row&quot;&gt;&lt;div&gt;{%: $.loadingText %}&lt;/div&gt;&lt;/div&gt;',
+            '&lt;div class=&quot;row&quot;&gt;&lt;span class=&quot;fa fa-spinner fa-spin&quot;&gt;&lt;/span&gt;&lt;div&gt;{%: $.loadingText %}&lt;/div&gt;&lt;/div&gt;',
             '&lt;/div&gt;'
         ]),
 <span id='Sage-Platform-Mobile-_DetailBase-property-sectionBeginTemplate'>        /**
@@ -126,8 +128,9 @@ define('Sage/Platform/Mobile/_DetailBase', [
          * `$` =&gt; the view instance
          */
         sectionBeginTemplate: new Simplate([
-            '&lt;h2&gt;',
+            '&lt;h2 data-action=&quot;toggleSection&quot; class=&quot;{% if ($.collapsed || $.options.collapsed) { %}collapsed{% } %}&quot;&gt;',
             '{%: ($.title || $.options.title) %}',
+            '&lt;button class=&quot;{% if ($.collapsed) { %}{%: $$.toggleExpandClass %}{% } else { %}{%: $$.toggleCollapseClass %}{% } %}&quot; aria-label=&quot;{%: $$.toggleCollapseText %}&quot;&gt;&lt;/button&gt;',
             '&lt;/h2&gt;',
             '{% if ($.list || $.options.list) { %}',
             '&lt;ul class=&quot;{%= ($.cls || $.options.cls) %}&quot;&gt;',
@@ -156,7 +159,7 @@ define('Sage/Platform/Mobile/_DetailBase', [
          * * `$$` =&gt; view instance
          */
         propertyTemplate: new Simplate([
-            '&lt;div class=&quot;row {%= $.cls %}&quot; data-property=&quot;{%= $.property || $.name %}&quot;&gt;',
+            '&lt;div class=&quot;row{% if(!$.value) { %} no-value{% } %} {%= $.cls %}&quot; data-property=&quot;{%= $.property || $.name %}&quot;&gt;',
             '&lt;label&gt;{%: $.label %}&lt;/label&gt;',
             '&lt;span&gt;{%= $.value %}&lt;/span&gt;', // todo: create a way to allow the value to not be surrounded with a span tag
             '&lt;/div&gt;'
@@ -169,10 +172,10 @@ define('Sage/Platform/Mobile/_DetailBase', [
          * * `$$` =&gt; view instance
          */
         relatedPropertyTemplate: new Simplate([
-            '&lt;div class=&quot;row {%= $.cls %}&quot;&gt;',
+            '&lt;div class=&quot;row{% if(!$.value) { %} no-value{% } %} {%= $.cls %}&quot;&gt;',
             '&lt;label&gt;{%: $.label %}&lt;/label&gt;',
             '&lt;span&gt;',
-            '&lt;a data-action=&quot;activateRelatedEntry&quot; data-view=&quot;{%= $.view %}&quot; data-context=&quot;{%: $.context %}&quot; data-descriptor=&quot;{%: $.descriptor %}&quot;&gt;',
+            '&lt;a data-action=&quot;activateRelatedEntry&quot; data-view=&quot;{%= $.view %}&quot; data-context=&quot;{%: $.context %}&quot; data-descriptor=&quot;{%: $.descriptor || $.value %}&quot;&gt;',
             '{%= $.value %}',
             '&lt;/a&gt;',
             '&lt;/span&gt;',
@@ -190,8 +193,10 @@ define('Sage/Platform/Mobile/_DetailBase', [
                 '&lt;a data-action=&quot;activateRelatedList&quot; data-view=&quot;{%= $.view %}&quot; data-context=&quot;{%: $.context %}&quot; {% if ($.disabled) { %}data-disable-action=&quot;true&quot;{% } %} class=&quot;{% if ($.disabled) { %}disabled{% } %}&quot;&gt;',
                     '{% if ($.icon) { %}',
                         '&lt;img src=&quot;{%= $.icon %}&quot; alt=&quot;icon&quot; class=&quot;icon&quot; /&gt;',
+                    '{% } else if ($.iconClass) { %}',
+                        '&lt;div class=&quot;{%= $.iconClass %}&quot; alt=&quot;icon&quot;&gt;&lt;/div&gt;',
                     '{% } %}',
-                    '&lt;span&gt;{%: $.label %}&lt;/span&gt;',
+                    '&lt;span class=&quot;related-item-label&quot;&gt;{%: $.label %}&lt;/span&gt;',
                 '&lt;/a&gt;',
             '&lt;/li&gt;'
         ]),
@@ -223,7 +228,9 @@ define('Sage/Platform/Mobile/_DetailBase', [
             '&lt;li class=&quot;{%= $.cls %}&quot;&gt;',
             '&lt;a data-action=&quot;{%= $.action %}&quot; {% if ($.disabled) { %}data-disable-action=&quot;true&quot;{% } %} class=&quot;{% if ($.disabled) { %}disabled{% } %}&quot;&gt;',
             '{% if ($.icon) { %}',
-            '&lt;img src=&quot;{%= $.icon %}&quot; alt=&quot;icon&quot; class=&quot;icon&quot; /&gt;',
+                '&lt;img src=&quot;{%= $.icon %}&quot; alt=&quot;icon&quot; class=&quot;icon&quot; /&gt;',
+            '{% } else if ($.iconClass) { %}',
+                '&lt;div class=&quot;{%= $.iconClass %}&quot; alt=&quot;icon&quot;&gt;&lt;/div&gt;',
             '{% } %}',
             '&lt;label&gt;{%: $.label %}&lt;/label&gt;',
             '&lt;span&gt;{%= $.value %}&lt;/span&gt;',
@@ -304,6 +311,21 @@ define('Sage/Platform/Mobile/_DetailBase', [
          * Text used in the notAvailableTemplate
          */
         notAvailableText: 'The requested data is not available.',
+<span id='Sage-Platform-Mobile-_DetailBase-property-toggleCollapseText'>        /**
+</span>         * @property {String}
+         * ARIA label text for a collapsible section header
+         */
+        toggleCollapseText: 'toggle collapse',
+<span id='Sage-Platform-Mobile-_DetailBase-property-toggleCollapseClass'>        /**
+</span>         * @property {String}
+         * CSS class for the collapse button when in a expanded state
+         */
+        toggleCollapseClass: 'fa fa-chevron-down',
+<span id='Sage-Platform-Mobile-_DetailBase-property-toggleExpandClass'>        /**
+</span>         * @property {String}
+         * CSS class for the collapse button when in a collapsed state
+         */
+        toggleExpandClass: 'fa fa-chevron-right',
 <span id='Sage-Platform-Mobile-_DetailBase-cfg-editView'>        /**
 </span>         * @cfg {String}
          * The view id to be taken to when the Edit button is pressed in the toolbar
@@ -340,11 +362,27 @@ define('Sage/Platform/Mobile/_DetailBase', [
             return this.tools || (this.tools = {
                 'tbar': [{
                     id: 'edit',
-                    cls: 'fa fa-edit fa-fw fa-lg',
+                    cls: 'fa fa-pencil fa-fw fa-lg',
                     action: 'navigateToEditView',
                     security: App.getViewSecurity(this.editView, 'update')
+                }, {
+                    id: 'refresh',
+                    cls: 'fa fa-refresh fa-fw fa-lg',
+                    action: '_refreshClicked'
                 }]
             });
+        },
+        _refreshClicked: function() {
+            this.clear();
+            this.refreshRequired = true;
+            this.refresh();
+
+            this.onRefreshClicked();
+        },
+<span id='Sage-Platform-Mobile-_DetailBase-method-onRefreshClicked'>        /**
+</span>         * Called when the user clicks the refresh toolbar button.
+         */
+        onRefreshClicked: function() {
         },
 <span id='Sage-Platform-Mobile-_DetailBase-method-invokeAction'>        /**
 </span>         * Extends the {@link _ActionMixin#invokeAction mixins invokeAction} to stop if `data-disableAction` is true
@@ -358,6 +396,20 @@ define('Sage/Platform/Mobile/_DetailBase', [
                 return;
             }
             return this.inherited(arguments);
+        },
+<span id='Sage-Platform-Mobile-_DetailBase-method-toggleSection'>        /**
+</span>         * Toggles the collapsed state of the section.
+         */
+        toggleSection: function(params) {
+            var node = dom.byId(params.$source), button = null;
+            if (node) {
+                domClass.toggle(node, 'collapsed');
+                button = query('button', node)[0];
+                if (button) {
+                    domClass.toggle(button, this.toggleCollapseClass);
+                    domClass.toggle(button, this.toggleExpandClass);
+                }
+            }
         },
 <span id='Sage-Platform-Mobile-_DetailBase-method-_onRefresh'>        /**
 </span>         * Handler for the global `/app/refresh` event. Sets `refreshRequired` to true if the key matches.
@@ -618,6 +670,7 @@ define('Sage/Platform/Mobile/_DetailBase', [
                     template = current['use'];
                 } else if (current['view'] &amp;&amp; useListTemplate) {
                     template = this.relatedTemplate;
+                    current['relatedItem'] = true;
                 } else if (current['view']) {
                     template = this.relatedPropertyTemplate;
                 } else if (current['action'] &amp;&amp; useListTemplate) {
@@ -629,6 +682,14 @@ define('Sage/Platform/Mobile/_DetailBase', [
                 }
 
                 rowNode = domConstruct.place(template.apply(data, this), sectionNode);
+                if (current['relatedItem']) {
+                    try{
+                        this._processRelatedItem(data, context, rowNode);
+                    } catch (e) {
+                        //error processing related node
+                        console.error(e);
+                    }
+                }
 
                 if (current['onCreate']) {
                     callbacks.push({ row: current, node: rowNode, value: value, entry: entry });
@@ -738,8 +799,8 @@ define('Sage/Platform/Mobile/_DetailBase', [
                 getResults = store.get(getExpression, getOptions);
 
                 Deferred.when(getResults,
-                    lang.hitch(this, this._onGetComplete),
-                    lang.hitch(this, this._onGetError, getOptions)
+                    this._onGetComplete.bind(this),
+                    this._onGetError.bind(this, getOptions)
                 );
 
                 return getResults;
@@ -837,6 +898,26 @@ define('Sage/Platform/Mobile/_DetailBase', [
             this.set('detailContent', this.emptyTemplate.apply(this));
 
             this._navigationOptions = [];
+        },
+        _processRelatedItem: function(data, context, rowNode) {
+            var view = App.getView(data['view']), options = {};
+
+            if(view){
+                options.where = context ? context['where'] : '';
+                view.getListCount(options).then(function(result) {
+                    var labelNode, html;
+
+                    if (result &gt;= 0) {
+                        labelNode = query('.related-item-label', rowNode)[0];
+                        if (labelNode) {
+                            html = '&lt;span class=&quot;related-item-count&quot;&gt;(' + result + ')&lt;/span&gt;';
+                            domConstruct.place(html, labelNode, 'after');
+                        } else {
+                            console.warn('Missing the &quot;related-item-label&quot; dom node.');
+                        }
+                    }
+                });
+            }
         }
     });
 });
