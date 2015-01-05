@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">/*
+ * Copyright (c) 1997-2013, SalesLogix, NA., LLC. All rights reserved.
+ */
+
+<span id='Mobile-SalesLogix-Views-TicketActivity-List'>/**
+</span> * @class Mobile.SalesLogix.Views.TicketActivity.List
+ *
+ * @extends Sage.Platform.Mobile.List
+ *
+ * @requires Mobile.SalesLogix.Format
+ */
+define('Mobile/SalesLogix/Views/TicketActivity/List', [
+    'dojo/_base/declare',
+    'dojo/_base/array',
+    'dojo/string',
+    'dojo/dom-style',
+    'dojo/dom-geometry',
+    'dojo/query',
+    'dojo/topic',
+    'dojo/_base/lang',
+    'Mobile/SalesLogix/Format',
+    'Sage/Platform/Mobile/List'
+], function(
+    declare,
+    array,
+    string,
+    domStyle,
+    domGeom,
+    query,
+    topic,
+    lang,
+    format,
+    List
+) {
+
+    return declare('Mobile.SalesLogix.Views.TicketActivity.List', [List], {
+        //Templates
+        itemTemplate: new Simplate([
+            '&lt;h3&gt;{%: $.Ticket.TicketNumber %}&lt;/h3&gt;',
+            '&lt;h4&gt;{%: Mobile.SalesLogix.Format.date($.AssignedDate, $$.startDateFormatText) %}&lt;/h4&gt;',
+            '&lt;div class=&quot;note-text-item&quot;&gt;',
+            '&lt;div class=&quot;note-text-wrap&quot;&gt;',
+            '{%: $.ActivityDescription %}',
+            '&lt;/div&gt;',
+            '&lt;div class=&quot;note-text-more&quot;&gt;&lt;/div&gt;',
+            '&lt;/div&gt;'
+        ]),
+
+        //Localization
+        titleText: 'Ticket Activities',
+        startDateFormatText: 'MM/DD/YYYY h:mm A',
+
+        //View Properties       
+        id: 'ticketactivity_list',
+        security: 'Entities/TicketActivity/View',
+        expose: false,
+        detailView: 'ticketactivity_detail',
+        insertView: 'ticketactivity_edit',
+        queryOrderBy: 'AssignedDate asc',
+        querySelect: [
+            'ActivityDescription',
+            'ActivityTypeCode',
+            'AssignedDate',
+            'CompletedDate',
+            'ElapsedUnits',
+            'FollowUp',
+            'PublicAccessCode',
+            'Rate',
+            'RateTypeDescription/Amount',
+            'RateTypeDescription/RateTypeCode',
+            'RateTypeDescription/TypeDescription',
+            'TotalFee',
+            'TotalLabor',
+            'TotalParts',
+            'Units',
+            'Ticket/Account/AccountName',
+            'Ticket/TicketNumber',
+            'Ticket/Contact/Name',
+            'User/UserInfo/LastName',
+            'User/UserInfo/FirstName'
+        ],
+        resourceKind: 'ticketActivities',
+
+        _onResize: function() {
+            query('.note-text-item', this.contentNode).forEach(function(node) {
+                var wrapNode = query('.note-text-wrap', node)[0],
+                    moreNode = query('.note-text-more', node)[0];
+                if (domGeom.getMarginBox(node).h &lt; domGeom.getMarginBox(wrapNode).h) {
+                    domStyle.set(moreNode, 'visibility', 'visible');
+                } else {
+                    domStyle.set(moreNode, 'visibility', 'hidden');
+                }
+            });
+        },
+        processData: function() {
+            this.inherited(arguments);
+            this._onResize();
+        },
+        postCreate: function() {
+            this.inherited(arguments);
+            this.own(topic.subscribe('/app/resize', lang.hitch(this, this._onResize)));
+        },
+        formatSearchQuery: function(searchQuery) {
+            return string.substitute(
+                'ActivityDescription like &quot;${0}%&quot;',
+                [this.escapeSearchQuery(searchQuery.toUpperCase())]
+            );
+        }
+    });
+});
+
+</pre>
+</body>
+</html>

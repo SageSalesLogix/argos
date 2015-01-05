@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">define('Sage/Platform/Mobile/SelectionModel', [
+       'dojo/_base/lang',
+       'dojo/_base/declare'
+], function(
+    lang,
+    declare
+) {
+    
+<span id='Sage-Platform-Mobile-SelectionModel'>    /**
+</span>     * @class Sage.Platform.Mobile.SelectionModel
+     * SelectionModel provides a simple in-memory store for data that fires events
+     * when a item is selected (added) or deselected (removed)
+     * @alternateClassName SelectionModel
+     */
+    return declare('Sage.Platform.Mobile.SelectionModel', null, {
+<span id='Sage-Platform-Mobile-SelectionModel-property-count'>        /**
+</span>         * @property {Number}
+         * Number of selections
+         */
+        count: 0,
+<span id='Sage-Platform-Mobile-SelectionModel-property-selections'>        /**
+</span>         * @property {Object}
+         * Collection of selections where the key is the selections key
+         */
+        selections: null,
+<span id='Sage-Platform-Mobile-SelectionModel-property-clearAsDeselect'>        /**
+</span>         * @property {Boolean}
+         * Flag that determines how to clear:
+         *
+         * True: Deselect is called on every item, firing onDeselect for each and firing onClear at the end
+         *
+         * False: Collection is immediately wiped and only onClear is fired
+         *
+         */
+        clearAsDeselect: true,
+<span id='Sage-Platform-Mobile-SelectionModel-property-_fireEvents'>        /**
+</span>         * @property {Boolean}
+         * Flag that control the firing of action events: onSelect, onDeselect, onClear
+         */
+        _fireEvents: true,
+<span id='Sage-Platform-Mobile-SelectionModel-method-constructor'>        /**
+</span>         * Initializes the selections to be empty and mixes the passed object overriding any default properties.
+         * @param {Object} options The object to be mixed in.
+         */
+        constructor: function(options) {
+            this.selections = {};
+
+            lang.mixin(this, options);
+        },
+<span id='Sage-Platform-Mobile-SelectionModel-method-suspendEvents'>        /**
+</span>         * Prevents the firing of action events: onSelect, onDeselect, onClear
+         */
+        suspendEvents: function() {
+            this._fireEvents = false;
+        },
+<span id='Sage-Platform-Mobile-SelectionModel-method-resumeEvents'>        /**
+</span>         * Enables the firing of action events:  onSelect, onDeselect, onClear
+         */
+        resumeEvents: function() {
+            this._fireEvents = true;
+        },
+<span id='Sage-Platform-Mobile-SelectionModel-method-onSelect'>        /**
+</span>         * Event that happens when an item is selected/added.
+         * @param {String} key Unique identifier string
+         * @param {Object} data The item stored
+         * @param tag
+         * @param self
+         * @template
+         */
+        onSelect: function(key, data, tag, self) {
+        },
+<span id='Sage-Platform-Mobile-SelectionModel-method-onDeselect'>        /**
+</span>         * Event that happens when an item is deselected/removed.
+         * @param {String} key Unique identifier string
+         * @param {Object} data The item removed
+         * @param tag
+         * @param self
+         * @template
+         */
+        onDeselect: function(key, data, tag, self) {
+        },
+<span id='Sage-Platform-Mobile-SelectionModel-method-onClear'>        /**
+</span>         * Event that happens when the store is cleared
+         * @param self
+         */
+        onClear: function(self) {
+        },
+<span id='Sage-Platform-Mobile-SelectionModel-method-select'>        /**
+</span>         * Adds an item to the `selections` if it is not already stored.
+         * @param {String} key Unique identifier string
+         * @param {Object} data The item being selected
+         * @param tag
+         */
+        select: function(key, data, tag) {
+            if (!this.selections.hasOwnProperty(key))
+            {
+                this.selections[key] = {data: data, tag: tag};
+                this.count++;
+                if (this._fireEvents) this.onSelect(key, data, tag, this);
+            }
+        },
+<span id='Sage-Platform-Mobile-SelectionModel-method-toggle'>        /**
+</span>         * Adds an item to the `selections` if it is not already stored, if it is
+         * stored, then it deselects (removes) the item.
+         * @param {String} key Unique identifier string
+         * @param {Object} data The item being selected
+         * @param tag
+         */
+        toggle: function(key, data, tag) {
+            if (this.isSelected(key))
+                this.deselect(key);
+            else
+                this.select(key, data, tag);
+        },
+<span id='Sage-Platform-Mobile-SelectionModel-method-deselect'>        /**
+</span>         * Removes an item from the store
+         * @param {String} key Unique identifier string that was given when the item was added
+         */
+        deselect: function(key) {
+            if (this.selections.hasOwnProperty(key))
+            {
+                var selection = this.selections[key];
+
+                delete this.selections[key];
+                this.count--;
+
+                if (this._fireEvents)
+                    this.onDeselect(key, selection.data, selection.tag, this);
+            }
+        },
+<span id='Sage-Platform-Mobile-SelectionModel-method-clear'>        /**
+</span>         * Removes all items from the store
+         */
+        clear: function() {
+            if (this.clearAsDeselect)
+            {
+                for (var key in this.selections) this.deselect(key);
+            }
+            else
+            {
+                this.selections = {};
+                this.count = 0;
+            }
+
+            if (this._fireEvents) this.onClear(this);
+        },
+<span id='Sage-Platform-Mobile-SelectionModel-method-isSelected'>        /**
+</span>         * Determines if the given key is in the selections collection.
+         * @param {String} key Unique identifier string that was given when the item was added
+         * @return {Boolean} True if the item is in the store.
+         */
+        isSelected: function(key) {
+            return !!this.selections[key];
+        },
+<span id='Sage-Platform-Mobile-SelectionModel-method-getSelectionCount'>        /**
+</span>         * Returns the number of items in the store
+         * @return {Number} Current count of items
+         */
+        getSelectionCount: function() {
+            return this.count;
+        },
+<span id='Sage-Platform-Mobile-SelectionModel-method-getSelections'>        /**
+</span>         * Returns all items in the store
+         * @return {Object} The entire selection collection
+         */
+        getSelections: function() {
+            return this.selections;
+        },
+<span id='Sage-Platform-Mobile-SelectionModel-method-getSelectedKeys'>        /**
+</span>         * Returns a list of unique identifier keys used in the selection collection
+         * @return {String[]} All keys in the store
+         */
+        getSelectedKeys: function() {
+            var keys = [];
+            for (var key in this.selections)
+                if (this.selections.hasOwnProperty(key))
+                    keys.push(key);
+            return keys;
+        }
+    });
+});
+</pre>
+</body>
+</html>

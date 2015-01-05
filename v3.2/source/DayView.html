@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">/*
+ * Copyright (c) 1997-2013, SalesLogix, NA., LLC. All rights reserved.
+ */
+
+<span id='Mobile-SalesLogix-Views-Calendar-DayView'>/**
+</span> * @class Mobile.SalesLogix.Views.Calendar.DayView
+ *
+ * @extends Sage.Platform.Mobile.List
+ * @mixins Sage.Platform.Mobile.List
+ * @mixins Sage.Platform.Mobile._LegacySDataListMixin
+ *
+ * @requires Sage.Platform.Mobile.List
+ * @requires Sage.Platform.Mobile._LegacySDataListMixin
+ * @requires Sage.Platform.Mobile.Convert
+ * @requires Sage.Platform.Mobile.ErrorManager
+ *
+ * @requires moment
+ *
+ */
+define('Mobile/SalesLogix/Views/Calendar/DayView', [
+    'dojo/_base/declare',
+    'dojo/string',
+    'dojo/query',
+    'dojo/dom-class',
+    'dojo/dom-construct',
+    'Sage/Platform/Mobile/ErrorManager',
+    'Sage/Platform/Mobile/Convert',
+    'Sage/Platform/Mobile/List',
+    'Sage/Platform/Mobile/_LegacySDataListMixin',
+    'moment'
+], function(
+    declare,
+    string,
+    query,
+    domClass,
+    domConstruct,
+    ErrorManager,
+    convert,
+    List,
+    _LegacySDataListMixin,
+    moment
+) {
+
+    return declare('Mobile.SalesLogix.Views.Calendar.DayView', [List, _LegacySDataListMixin], {
+        // Localization
+        titleText: 'Calendar',
+        eventDateFormatText: 'M/D/YYYY',
+        dateHeaderFormatText: 'dddd, M/D/YYYY',
+        startTimeFormatText: 'h:mm A',
+        todayText: 'Today',
+        dayText: 'Day',
+        weekText: 'Week',
+        monthText: 'Month',
+        allDayText: 'All-Day',
+        eventHeaderText: 'Events',
+        activityHeaderText: 'Activities',
+        eventMoreText: 'View More Event(s)',
+        toggleCollapseText: 'toggle collapse',
+
+        // Templates
+        widgetTemplate: new Simplate([
+            '&lt;div id=&quot;{%= $.id %}&quot; title=&quot;{%= $.titleText %}&quot; class=&quot;overthrow list {%= $.cls %}&quot; {% if ($.resourceKind) { %}data-resource-kind=&quot;{%= $.resourceKind %}&quot;{% } %}&gt;',
+                '&lt;div data-dojo-attach-point=&quot;searchNode&quot;&gt;&lt;/div&gt;',
+                '{%! $.navigationTemplate %}',
+                '&lt;div style=&quot;clear:both&quot;&gt;&lt;/div&gt;',
+                '&lt;div class=&quot;event-content event-hidden&quot; data-dojo-attach-point=&quot;eventContainerNode&quot;&gt;',
+                '&lt;h2 data-action=&quot;toggleGroup&quot;&gt;{%= $.eventHeaderText %}&lt;button class=&quot;collapsed-indicator&quot; aria-label=&quot;{%: $$.toggleCollapseText %}&quot;&gt;&lt;/button&gt;&lt;/h2&gt;',
+                '&lt;ul class=&quot;list-content&quot; data-dojo-attach-point=&quot;eventContentNode&quot;&gt;&lt;/ul&gt;',
+                '{%! $.eventMoreTemplate %}',
+                '&lt;/div&gt;',
+                '&lt;h2&gt;{%= $.activityHeaderText %}&lt;/h2&gt;',
+                '&lt;ul class=&quot;list-content&quot; data-dojo-attach-point=&quot;contentNode&quot;&gt;&lt;/ul&gt;',
+                '{%! $.moreTemplate %}',
+            '&lt;/div&gt;'
+        ]),
+        rowTemplate: new Simplate([
+            '&lt;li data-action=&quot;activateEntry&quot; data-key=&quot;{%= $.$key %}&quot; data-descriptor=&quot;{%: $.Description %}&quot; data-activity-type=&quot;{%: $.Type %}&quot;&gt;',
+            '&lt;table class=&quot;calendar-entry-table&quot;&gt;&lt;tr&gt;',
+            '&lt;td class=&quot;entry-table-icon&quot;&gt;',
+            '&lt;button data-action=&quot;selectEntry&quot; class=&quot;list-item-selector button {%= $$.activityIconByType[$.Type] %}&quot;&gt;',
+            '&lt;/button&gt;',
+            '&lt;/td&gt;',
+            '&lt;td class=&quot;entry-table-time&quot;&gt;{%! $$.timeTemplate %}&lt;/td&gt;',
+            '&lt;td class=&quot;entry-table-description&quot;&gt;{%! $$.itemTemplate %}&lt;/td&gt;',
+            '&lt;/tr&gt;&lt;/table&gt;',
+            '&lt;/li&gt;'
+        ]),
+        eventRowTemplate: new Simplate([
+            '&lt;li data-action=&quot;activateEntry&quot; data-key=&quot;{%= $.$key %}&quot; data-descriptor=&quot;{%: $.$descriptor %}&quot; data-activity-type=&quot;Event&quot;&gt;',
+            '&lt;table class=&quot;calendar-entry-table&quot;&gt;&lt;tr&gt;',
+            '&lt;td class=&quot;entry-table-icon&quot;&gt;',
+            '&lt;button data-action=&quot;selectEntry&quot; class=&quot;list-item-selector button {%= $$.eventIcon %}&quot;&gt;',
+            '&lt;/button&gt;',
+            '&lt;/td&gt;',
+            '&lt;td class=&quot;entry-table-description&quot;&gt;{%! $$.eventItemTemplate %}&lt;/td&gt;',
+            '&lt;/tr&gt;&lt;/table&gt;',
+            '&lt;/li&gt;'
+        ]),
+        timeTemplate: new Simplate([
+            '{% if ($.Timeless) { %}',
+            '&lt;span class=&quot;p-time&quot;&gt;{%= $$.allDayText %}&lt;/span&gt;',
+            '{% } else { %}',
+            '&lt;span class=&quot;p-time&quot;&gt;{%: Mobile.SalesLogix.Format.date($.StartDate, $$.startTimeFormatText) %}&lt;/span&gt;',
+            '{% } %}'
+        ]),
+        itemTemplate: new Simplate([
+            '&lt;h3 class=&quot;p-description&quot;&gt;{%: $.Description %}&lt;/h3&gt;',
+            '&lt;h4&gt;{%= $$.nameTemplate.apply($) %}&lt;/h4&gt;'
+        ]),
+        eventItemTemplate: new Simplate([
+            '&lt;h3 class=&quot;p-description&quot;&gt;{%: $.Description %} ({%: $.Type %})&lt;/h3&gt;',
+            '&lt;h4&gt;{%! $$.eventNameTemplate %}&lt;/h4&gt;'
+        ]),
+        nameTemplate: new Simplate([
+            '{% if ($.ContactName) { %}',
+            '{%: $.ContactName %} / {%: $.AccountName %}',
+            '{% } else if ($.AccountName) { %}',
+            '{%: $.AccountName %}',
+            '{% } else { %}',
+            '{%: $.LeadName %}',
+            '{% } %}'
+        ]),
+        eventNameTemplate: new Simplate([
+            '{%: Mobile.SalesLogix.Format.date($.StartDate, $$.eventDateFormatText) %}',
+            '&amp;nbsp;-&amp;nbsp;',
+            '{%: Mobile.SalesLogix.Format.date($.EndDate, $$.eventDateFormatText) %}'
+        ]),
+        navigationTemplate: new Simplate([
+            '&lt;div class=&quot;split-buttons&quot;&gt;',
+            '&lt;button data-tool=&quot;today&quot; data-action=&quot;getToday&quot; class=&quot;button&quot;&gt;{%: $.todayText %}&lt;/button&gt;',
+            '&lt;button data-tool=&quot;selectdate&quot; data-action=&quot;selectDate&quot; class=&quot;button fa fa-calendar&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;/button&gt;',
+            '&lt;button data-tool=&quot;day&quot; class=&quot;button current&quot;&gt;{%: $.dayText %}&lt;/button&gt;',
+            '&lt;button data-tool=&quot;week&quot; data-action=&quot;navigateToWeekView&quot; class=&quot;button&quot;&gt;{%: $.weekText %}&lt;/button&gt;',
+            '&lt;button data-tool=&quot;month&quot; data-action=&quot;navigateToMonthView&quot; class=&quot;button&quot;&gt;{%: $.monthText %}&lt;/button&gt;',
+            '&lt;/div&gt;',
+            '&lt;div class=&quot;nav-bar&quot;&gt;',
+            '&lt;button data-tool=&quot;next&quot; data-action=&quot;getNextDay&quot; class=&quot;button button-next fa fa-arrow-right fa-lg&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;/button&gt;',
+            '&lt;button data-tool=&quot;prev&quot; data-action=&quot;getPrevDay&quot; class=&quot;button button-prev fa fa-arrow-left fa-lg&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;/button&gt;',
+            '&lt;h3 class=&quot;date-text&quot; data-dojo-attach-point=&quot;dateNode&quot;&gt;&lt;/h3&gt;',
+            '&lt;/div&gt;'
+        ]),
+        eventMoreTemplate: new Simplate([
+            '&lt;div class=&quot;list-more&quot; data-dojo-attach-point=&quot;eventMoreNode&quot;&gt;',
+            '&lt;button class=&quot;button&quot; data-action=&quot;activateEventMore&quot;&gt;',
+            '&lt;span data-dojo-attach-point=&quot;eventRemainingContentNode&quot;&gt;{%= $.eventMoreText %}&lt;/span&gt;',
+            '&lt;/button&gt;',
+            '&lt;/div&gt;'
+        ]),
+        attributeMap: {
+            listContent: {
+                node: 'contentNode',
+                type: 'innerHTML'
+            },
+            eventListContent: {
+                node: 'eventContentNode',
+                type: 'innerHTML'
+            },
+            dateContent: {
+                node: 'dateNode',
+                type: 'innerHTML'
+            },
+            eventRemainingContent: {
+                node: 'eventRemainingContentNode',
+                type: 'innerHTML'
+            },
+            remainingContent: {
+                node: 'remainingContentNode',
+                type: 'innerHTML'
+            }
+        },
+
+        //View Properties
+        id: 'calendar_daylist',
+        cls: 'activities-for-day',
+        iconClass: 'fa fa-calendar fa-lg',
+
+        datePickerView: 'generic_calendar',
+        monthView: 'calendar_monthlist',
+        weekView: 'calendar_weeklist',
+        activityDetailView: 'activity_detail',
+        eventDetailView: 'event_detail',
+        insertView: 'activity_types_list',
+        enableSearch: false,
+        currentDate: null,
+        contractName: 'system',
+        queryOrderBy: 'StartDate desc',
+        querySelect: [
+            'Description',
+            'StartDate',
+            'Type',
+            'AccountName',
+            'ContactName',
+            'LeadId',
+            'LeadName',
+            'UserId',
+            'Timeless',
+            'Recurring'
+        ],
+        eventFeed: null,
+        eventPageSize: 3,
+        eventQuerySelect: [
+            'StartDate',
+            'EndDate',
+            'Description',
+            'Type'
+        ],
+        activityIconByType: {
+            'atToDo': 'fa fa-list-ul',
+            'atPhoneCall': 'fa fa-phone',
+            'atAppointment': 'fa fa-calendar-o',
+            'atLiterature': 'fa fa-book',
+            'atPersonal': 'fa fa-check-square-o',
+            'atQuestion': 'fa fa-question-circle',
+            'atNote': 'fa fa-file-text-o',
+            'atEMail': 'fa fa-envelope'
+        },
+        eventIcon: 'fa fa-calendar-o',
+        resourceKind: 'activities',
+        pageSize: 1000,
+
+        continuousScrolling: false,
+
+        _onRefresh: function(o) {
+            this.inherited(arguments);
+            if (o.resourceKind === 'activities' || o.resourceKind === 'events') {
+                this.refreshRequired = true;
+            }
+        },
+        init: function() {
+            this.inherited(arguments);
+            this.currentDate = moment().startOf('day');
+        },
+        toggleGroup: function(params) {
+            var node = params.$source;
+            if (node &amp;&amp; node.parentNode) {
+                domClass.toggle(node, 'collapsed');
+                domClass.toggle(node.parentNode, 'collapsed-event');
+            }
+        },
+        refresh: function() {
+            this.clear();
+
+            this.options = this.options || {};
+            this.options['where'] = this.formatQueryForActivities();
+            this.feed = null;
+            this.eventFeed = null;
+            this.set('dateContent', this.currentDate.format(this.dateHeaderFormatText));
+
+            this.requestData();
+            this.requestEventData();
+        },
+        requestEventData: function() {
+            var request = this.createEventRequest();
+            request.read({
+                success: this.onRequestEventDataSuccess,
+                failure: this.onRequestEventDataFailure,
+                aborted: this.onRequestEventDataAborted,
+                scope: this
+            });
+        },
+        onRequestEventDataFailure: function(response, o) {
+            alert(string.substitute(this.requestErrorText, [response, o]));
+            ErrorManager.addError(response, o, this.options, 'failure');
+        },
+        onRequestEventDataAborted: function(response, o) {
+            this.options = false; // force a refresh
+        },
+        onRequestEventDataSuccess: function(feed) {
+            this.processEventFeed(feed);
+        },
+        createEventRequest: function() {
+            var eventSelect = this.eventQuerySelect,
+                eventWhere = this.getEventQuery(),
+                request = new Sage.SData.Client.SDataResourceCollectionRequest(this.getService())
+                    .setCount(this.eventPageSize)
+                    .setStartIndex(1)
+                    .setResourceKind('events')
+                    .setQueryArg(Sage.SData.Client.SDataUri.QueryArgNames.Select, this.expandExpression(eventSelect).join(','))
+                    .setQueryArg(Sage.SData.Client.SDataUri.QueryArgNames.Where, eventWhere);
+            return request;
+        },
+        getEventQuery: function() {
+            return string.substitute(
+                [
+                    'UserId eq &quot;${0}&quot; and (',
+                    '(StartDate gt @${1}@ or EndDate gt @${1}@) and ',
+                    'StartDate lt @${2}@',
+                    ')'
+                ].join(''),
+                [
+                    App.context['user'] &amp;&amp; App.context['user']['$key'],
+                    convert.toIsoStringFromDate(this.currentDate.clone().startOf('day').toDate()),
+                    convert.toIsoStringFromDate(this.currentDate.clone().endOf('day').toDate())
+                ]
+            );
+        },
+        activateEventMore: function() {
+            var view = App.getView(&quot;event_related&quot;),
+                where = this.getEventQuery();
+            if (view) {
+                view.show({&quot;where&quot;: where});
+            }
+        },
+        hideEventList: function() {
+            domClass.add(this.eventContainerNode, 'event-hidden');
+        },
+        showEventList: function() {
+            domClass.remove(this.eventContainerNode, 'event-hidden');
+        },
+        processEventFeed: function(feed) {
+            var r = feed['$resources'],
+                feedLength = r.length,
+                o = [];
+            this.eventFeed = feed;
+
+            if (feedLength === 0) {
+                this.hideEventList();
+                return false;
+            } else {
+                this.showEventList();
+            }
+
+            for (var i = 0; i &lt; feedLength; i++) {
+                var row = r[i];
+                row.isEvent = true;
+                this.entries[row.$key] = row;
+                o.push(this.eventRowTemplate.apply(row, this));
+            }
+
+            if (feed['$totalResults'] &gt; feedLength) {
+                domClass.add(this.eventContainerNode, 'list-has-more');
+                this.set('eventRemainingContent', this.eventMoreText);
+            } else {
+                domClass.remove(this.eventContainerNode, 'list-has-more');
+                this.set('eventRemainingContent', '');
+            }
+
+            this.set('eventListContent', o.join(''));
+        },
+        processFeed: function(feed) {
+            var r = feed['$resources'],
+                feedLength = r.length,
+                o = [], remaining;
+
+            this.feed = feed;
+            for (var i = 0; i &lt; feedLength; i++) {
+                var row = r[i];
+                row.isEvent = false;
+                this.entries[row.$key] = row;
+                o.push(this.rowTemplate.apply(row, this));
+            }
+
+            // If we fetched a page that has no data due to un-reliable counts,
+            // check if we fetched anything in the previous pages before assuming there is no data.
+            if (feedLength === 0 &amp;&amp; Object.keys(this.entries).length === 0) {
+                this.set('listContent', this.noDataTemplate.apply(this));
+                return false;
+            }
+
+            if (o.length &gt; 0) {
+                domConstruct.place(o.join(''), this.contentNode, 'last');
+            }
+
+            this.set('remainingContent', '');// Feed does not return reliable data, don't show remaining
+
+            domClass.toggle(this.domNode, 'list-has-more', this.hasMoreData());// This could be wrong, handle it on the next processFeed if so
+
+            if (this.options.allowEmptySelection) {
+                domClass.add(this.domNode, 'list-has-empty-opt');
+            }
+
+            this._loadPreviousSelections();
+        },
+        show: function(options) {
+            if (options) {
+                this.processShowOptions(options);
+            }
+
+            options = options || {};
+            options['where'] = this.formatQueryForActivities();
+
+            this.set('dateContent', this.currentDate.format(this.dateHeaderFormatText));
+            this.inherited(arguments, [options]);
+        },
+        processShowOptions: function(options) {
+            if (options.currentDate)
+            {
+                this.currentDate = moment(options.currentDate).startOf('day') || moment().startOf('day');
+                this.refreshRequired = true;
+            }
+        },
+        isLoading: function() {
+            return domClass.contains(this.domNode, 'list-loading');
+        },
+        getNextDay: function() {
+            if (this.isLoading()) {
+                return;
+            }
+
+            this.currentDate.add({days: 1});
+            this.refresh();
+        },
+        getToday: function() {
+            if (this.isLoading()) return;
+            if (this.currentDate == moment().startOf('day')) return;
+
+            this.currentDate = moment().startOf('day');
+            this.refresh();
+        },
+        getPrevDay: function() {
+            if (this.isLoading()) {
+                return;
+            }
+
+            this.currentDate.subtract({days: 1});
+            this.refresh();
+        },
+        formatQueryForActivities: function() {
+            var queryWhere = [
+                'UserActivities.UserId eq &quot;${0}&quot; and Type ne &quot;atLiterature&quot; and (',
+                '(Timeless eq false and StartDate between @${1}@ and @${2}@) or ',
+                '(Timeless eq true and StartDate between @${3}@ and @${4}@))'
+            ].join('');
+
+            var startDate = this.currentDate.clone().startOf('day').toDate(),
+                endDate = this.currentDate.clone().endOf('day').toDate();
+
+            return string.substitute(
+                queryWhere,
+                [App.context['user'] &amp;&amp; App.context['user']['$key'],
+                convert.toIsoStringFromDate(startDate),
+                convert.toIsoStringFromDate(endDate),
+                this.currentDate.format('YYYY-MM-DDT00:00:00[Z]'),
+                this.currentDate.format('YYYY-MM-DDT23:59:59[Z]')]
+            );
+        },
+        selectEntry: function(params) {
+            var row = query(params.$source).closest('[data-key]')[0],
+                key = row ? row.getAttribute('data-key') : false;
+
+            this.navigateToDetailView(key);
+        },
+        selectDate: function() {
+            var options = {
+                date: this.currentDate,
+                showTimePicker: false,
+                timeless: false,
+                tools: {
+                    tbar: [{
+                            id: 'complete',
+                            cls: 'fa fa-check fa-fw fa-lg',
+                            fn: this.selectDateSuccess,
+                            scope: this
+                        }, {
+                            id: 'cancel',
+                            side: 'left',
+                            cls: 'fa fa-ban fa-fw fa-lg',
+                            fn: ReUI.back,
+                            scope: ReUI
+                        }]
+                }
+            },
+                view = App.getView(this.datePickerView);
+            if (view) {
+                view.show(options);
+            }
+        },
+        selectDateSuccess: function() {
+            var view = App.getPrimaryActiveView();
+            this.currentDate = moment(view.getDateTime()).startOf('day');
+            this.refresh();
+            ReUI.back();
+        },
+        navigateToWeekView: function() {
+            var view = App.getView(this.weekView),
+                navDate = this.currentDate ? this.currentDate : moment().startOf('day'),
+                options = {currentDate: navDate.valueOf()};
+            view.show(options);
+        },
+        navigateToMonthView: function() {
+            var view = App.getView(this.monthView),
+                navDate = this.currentDate ? this.currentDate : moment().startOf('day'),
+                options = {currentDate: navDate.valueOf()};
+            view.show(options);
+        },
+        navigateToInsertView: function(el) {
+            var view = App.getView(this.insertView || this.editView);
+
+            this.options.currentDate = this.currentDate.format('YYYY-MM-DD') || Date.today();
+            if (view) {
+                view.show({
+                    negateHistory: true,
+                    returnTo: this.id,
+                    insert: true
+                });
+            }
+        },
+        navigateToDetailView: function(key, descriptor) {
+            var entry = this.entries[key],
+                detailView = (entry.isEvent) ? this.eventDetailView : this.activityDetailView,
+                view = App.getView(detailView);
+
+            descriptor = (entry.isEvent) ? descriptor : entry.Description;
+            if (view) {
+                view.show({
+                    title: descriptor,
+                    key: key
+                });
+            }
+        }
+    });
+});
+
+</pre>
+</body>
+</html>

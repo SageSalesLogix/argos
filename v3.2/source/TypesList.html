@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">/*
+ * Copyright (c) 1997-2013, SalesLogix, NA., LLC. All rights reserved.
+ */
+
+<span id='Mobile-SalesLogix-Views-Activity-TypesList'>/**
+</span> * @class Mobile.SalesLogix.Views.Activity.TypesList
+ *
+ * @extends Sage.Platform.Mobile.List
+ * @mixins Sage.Platform.Mobile._LegacySDataListMixin
+ * @mixins Mobile.SalesLogix.Views._CardLayoutListMixin
+ *
+ * @requires Sage.Platform.Mobile.List
+ * @requires Sage.Platform.Mobile._LegacySDataListMixin
+ *
+ * @requires Mobile.SalesLogix.Views._CardLayoutListMixin
+ *
+ */
+define('Mobile/SalesLogix/Views/Activity/TypesList', [
+    'dojo/_base/declare',
+    'Sage/Platform/Mobile/List',
+    'dojo/store/Memory',
+], function(
+    declare,
+    List,
+    MemoryStore
+) {
+
+    return declare('Mobile.SalesLogix.Views.Activity.TypesList', [List], {
+        //Templates
+        rowTemplate: new Simplate([
+            '&lt;li data-action=&quot;activateEntry&quot; data-key=&quot;{%= $.$key %}&quot; data-descriptor=&quot;{%: $.$descriptor %}&quot;&gt;',
+            '&lt;div class=&quot;list-item-static-selector&quot;&gt;',
+                '{% if ($.icon) { %}',
+                    '&lt;img src=&quot;{%: $.icon || &quot;&quot; %}&quot; alt=&quot;icon&quot; class=&quot;icon&quot; /&gt;',
+                '{% } else if ($.iconClass) { %}',
+                    '&lt;div class=&quot;{%= $.iconClass %}&quot;&gt;&lt;/div&gt;',
+                '{% } %}',
+            '&lt;/div&gt;',
+            '&lt;div class=&quot;list-item-content&quot;&gt;{%! $$.itemTemplate %}&lt;/div&gt;',
+            '&lt;/li&gt;'
+        ]),
+        itemTemplate: new Simplate([
+            '&lt;h3&gt;{%: $.$descriptor %}&lt;/h3&gt;'
+        ]),
+
+        //Localization
+        titleText: 'Schedule...',
+        activityTypeText: {
+            'atToDo': 'To-Do',
+            'atPhoneCall': 'Phone Call',
+            'atAppointment': 'Meeting',
+            'atLiterature': 'Literature Request',
+            'atPersonal': 'Personal Activity',
+            'event': 'Event'
+        },
+        activityTypeIcons: {
+            'atToDo': 'fa fa-list-ul',
+            'atPhoneCall': 'fa fa-phone',
+            'atAppointment': 'fa fa-calendar-o',
+            'atLiterature': 'fa fa-calendar-o',
+            'atPersonal': 'fa fa-check-square-o',
+            'event': 'fa fa-calendar-o'
+        },
+
+        //View Properties
+        activityTypeOrder: [
+            'atAppointment',
+            //'atLiterature', //For [#7206791], We will enable this later.
+            'atPersonal',
+            'atPhoneCall',
+            'atToDo',
+            'event'
+        ],
+        expose: false,
+        enableSearch: false,
+        id: 'activity_types_list',
+        editView: 'activity_edit',
+        eventEditView: 'event_edit',
+
+        activateEntry: function(params) {
+            if (params.key) {
+                var source = this.options &amp;&amp; this.options.source,
+                    view = App.getView((params.key === 'event') ? this.eventEditView : this.editView);
+
+                if (view) {
+                    view.show({
+                            insert: true,
+                            entry: (this.options &amp;&amp; this.options.entry) || null,
+                            source: source,
+                            activityType: params.key,
+                            title: this.activityTypeText[params.key],
+                            returnTo: this.options &amp;&amp; this.options.returnTo
+                        },{
+                            returnTo: -1
+                    });
+                }
+            }
+        },
+        refreshRequiredFor: function(options) {
+            if (this.options) {
+                return options;
+            } else {
+                return true;
+            }
+        },
+        hasMoreData: function() {
+            return false;
+        },
+        createStore: function() {
+            var list, i, store, eventViews;
+
+            list = [];
+            eventViews = [
+                'calendar_monthlist',
+                'calendar_weeklist',
+                'calendar_daylist',
+                'calendar_yearlist'
+            ];
+
+            for (i = 0; i &lt; this.activityTypeOrder.length; i++) {
+                list.push({
+                    '$key': this.activityTypeOrder[i],
+                    '$descriptor': this.activityTypeText[this.activityTypeOrder[i]],
+                    'iconClass': this.activityTypeIcons[this.activityTypeOrder[i]],
+                    'type':this.activityTypeOrder[i]
+                });
+            }
+
+            if (eventViews.indexOf(this.options.returnTo) === -1) {
+                list.pop(); // remove event for non event views
+            }
+
+            store = new MemoryStore({data: list});
+            return store;
+        },
+        init: function() {
+            this.inherited(arguments);
+        },
+        createToolLayout: function() {
+            return this.tools || (this.tools = {
+                tbar: []
+            });
+        }
+    });
+});
+
+</pre>
+</body>
+</html>
