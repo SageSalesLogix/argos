@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">/*
+ * See copyright file.
+ */
+
+define('argos/_RelatedViewWidgetDetailMixin', [
+    'dojo/_base/declare',
+    'dojo/_base/array',
+    'dojo/_base/lang',
+    'dojo/aspect',
+    'dojo/dom-construct',
+    'dojo/query',
+    './RelatedViewManager'
+], function(
+    declare,
+    array,
+    lang,
+    aspect,
+    domConstruct,
+    query,
+    RelatedViewManager
+) {
+    var __class = declare('argos._RelatedViewWidgetDetailMixin', null, {
+        cls: null,
+<span id='global-property-relatedContentViewsTemplate'>        /**
+</span>       * @property {Simplate}
+       * HTML that is used for detail layout items that point to imbeaded related views, displayed related view widget
+       *
+       * * `$` =&gt; detail layout row
+       * * `$$` =&gt; view instance
+       */
+        relatedContentViewsTemplate: new Simplate([
+            '&lt;li class=&quot;related-view-detail-content {%= $.cls %}&quot;&gt;',
+            '&lt;div id=&quot;related-content-views&quot;&gt;&lt;/div&gt;',
+            '&lt;/li&gt;'
+        ]),
+        contextSnapShotTemplate: new Simplate([
+            '&lt;h4&gt;{%: $[&quot;$descriptor&quot;] %}&lt;/h4&gt;'
+        ]),
+        createRowNode: function(layout, sectionNode, entry, template, data) {
+            var rowNode, docfrag;
+            if (layout['relatedView']) {
+
+                rowNode = query('#related-content-views', sectionNode)[0];
+                if (!rowNode) {
+                    rowNode = domConstruct.toDom(this.relatedContentViewsTemplate.apply(data, this));
+                    domConstruct.place(rowNode, sectionNode, 'last');
+                }
+
+                docfrag = document.createDocumentFragment();
+                docfrag.appendChild(rowNode);
+                this.onProcessRelatedViews(layout['relatedView'], rowNode, entry);
+                if (docfrag.childNodes.length &gt; 0) {
+                    domConstruct.place(docfrag, sectionNode, 'last');
+                }
+            } else {
+                rowNode = this.inherited(arguments);
+            }
+
+            return rowNode;
+        },
+<span id='global-method-getRelatedViewManager'>        /**
+</span>        * Gets the related view manager for a related view definition.
+        * If a manager is not found a new Related View Manager is created and returned.
+        * @return {Object} RelatedViewManager
+        */
+        getRelatedViewManager: function(relatedView) {
+            var relatedViewManager, options, relatedViewOptions;
+            if (!this.relatedViewManagers) {
+                this.relatedViewManagers = {};
+            }
+
+            if (this.relatedViewManagers[relatedView.id]) {
+                relatedViewManager = this.relatedViewManagers[relatedView.id];
+            } else {
+                relatedView.id = this.id + '_' + relatedView.id;
+                relatedViewOptions = {
+                };
+                lang.mixin(relatedViewOptions, relatedView);
+
+                options = {
+                    id: relatedView.id,
+                    relatedViewConfig: relatedViewOptions
+                };
+                relatedViewManager = new RelatedViewManager(options);
+                this.relatedViewManagers[relatedView.id] = relatedViewManager;
+            }
+
+            return relatedViewManager;
+        },
+        onProcessRelatedViews: function(relatedView, rowNode, entry) {
+            var relatedViewManager, i, relatedContentNode;
+            try {
+
+                if (typeof relatedView.enabled === 'undefined') {
+                    relatedView.enabled = true;
+                }
+
+                if (relatedView.enabled) {
+                    relatedViewManager = this.getRelatedViewManager(relatedView);
+                    if (relatedViewManager) {
+                        relatedViewManager.addView(entry, rowNode, this);
+                    }
+                }
+            }
+            catch (error) {
+                console.log('Error processing related view:' + error);
+            }
+        },
+<span id='global-method-destroyRelatedViewWidgets'>        /**
+</span>         *  Destroys all of the related view widgets, that was added.
+         */
+        destroyRelatedViewWidgets: function() {
+            var relatedViewId;
+            if (this.relatedViewManagers) {
+                for (relatedViewId in this.relatedViewManagers) {
+                    if (this.relatedViewManagers.hasOwnProperty(relatedViewId)) {
+                        this.relatedViewManagers[relatedViewId].destroyViews();
+                    }
+                }
+            }
+        },
+<span id='global-method-destroy'>        /**
+</span>         * Extends dijit Widget to destroy the search widget before destroying the view.
+         */
+        destroy: function() {
+            this.destroyRelatedViewWidgets();
+            this.inherited(arguments);
+        },
+        requestData: function() {
+            this.destroyRelatedViewWidgets();
+            this.inherited(arguments);
+        },
+<span id='global-method-getContextSnapShot'>        /**
+</span>        * Returns a rendered html snap shot of the entry.
+        */
+        getContextSnapShot: function(options) {
+            var snapShot, entry = this.entry;
+            if (entry) {
+                snapShot = this.contextSnapShotTemplate.apply(entry, this);
+            }
+            return snapShot;
+        }
+    });
+    return __class;
+});
+
+</pre>
+</body>
+</html>

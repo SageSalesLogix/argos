@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='crm-Views-Charts-GenericLine'>/**
+</span> * @class crm.Views.Charts.GenericLine
+ *
+ * @extends argos.View
+ * @mixins crm.Views.Charts._ChartMixin
+ *
+ * @requires argos.View
+ *
+ */
+define('crm/Views/Charts/GenericLine', [
+    'dojo/_base/declare',
+    'dojo/_base/lang',
+    'dojo/_base/array',
+    'dojo/dom-geometry',
+    'dojo/dom-attr',
+    'argos/View',
+    './_ChartMixin'
+], function(
+    declare,
+    lang,
+    array,
+    domGeo,
+    domAttr,
+    View,
+    _ChartMixin
+) {
+    var __class = declare('crm.Views.Charts.GenericLine', [View, _ChartMixin], {
+        id: 'chart_generic_line',
+        titleText: '',
+        expose: false,
+        chart: null,
+        lineColor: '#0896e9',
+        pointColor: '#0896e9',
+        fillColor: 'rgba(8,150,233, 0.2)',
+
+        chartOptions: {
+            scaleShowGridLines: false,
+            bezierCurve: true,
+            bezierCurveTension: 0.4,
+            pointDot: true,
+            pointDotRadius: 4,
+            datasetFill: true,
+            legendTemplate: '&lt;ul class=&quot;&lt;%=name.toLowerCase()%&gt;-legend&quot;&gt;&lt;% for (var i=0; i&lt;datasets.length; i++){%&gt;&lt;li&gt;&lt;span style=&quot;background-color:&lt;%=datasets[i].strokeColor%&gt;&quot;&gt;&lt;/span&gt;&lt;%if(datasets[i].label){%&gt;&lt;%=datasets[i].label%&gt;&lt;%}%&gt;&lt;/li&gt;&lt;%}%&gt;&lt;/ul&gt;'
+        },
+
+        attributeMap: {
+            chartContent: {node: 'contentNode', type: 'innerHTML'}
+        },
+
+        createChart: function(rawData) {
+            this.inherited(arguments);
+
+            var ctx, box, data, labels, seriesData;
+
+            this.showSearchExpression();
+
+
+            labels = [];
+            seriesData = array.map(rawData, function(item) {
+                labels.push(item.$descriptor);
+                return Math.round(item.value);
+            }.bind(this));
+
+            data = {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Default',
+                        strokeColor: this.lineColor,
+                        pointColor: this.pointColor,
+                        fillColor: this.fillColor,
+                        data: seriesData
+                    }
+                ]
+            };
+
+            if (this.chart) {
+                this.chart.destroy();
+            }
+
+            box = domGeo.getMarginBox(this.domNode);
+            this.contentNode.width = box.w;
+            this.contentNode.height = box.h;
+
+            ctx = this.contentNode.getContext('2d');
+
+            this.chart = new window.Chart(ctx).Line(data, this.chartOptions);
+        }
+    });
+
+    lang.setObject('Mobile.SalesLogix.Views.Charts.GenericLine', __class);
+    return __class;
+});
+</pre>
+</body>
+</html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">/*
+ * See copyright file.
+ */
+
+
+define('crm/Views/RelatedContextWidget', [
+    'dojo/_base/declare',
+    'dojo/_base/lang',
+    'dojo/aspect',
+    'dojo/dom-construct',
+    'argos/RelatedViewManager',
+    'argos/_RelatedViewWidgetBase'
+], function(
+    declare,
+    lang,
+    aspect,
+    domConstruct,
+    RelatedViewManager,
+    _RelatedViewWidgetBase
+) {
+    var rvm, __class;
+    __class = declare('crm.Views.RelatedContextWidget', [_RelatedViewWidgetBase], {
+
+        cls: 'related-context-widget',
+        contextCls: null,
+        contextWrapperTemplate: new Simplate([
+         '&lt;div class=&quot;context-snapshot {%: $$.contextCls %}&quot;&gt;&lt;/div&gt;'
+        ]),
+        onInit: function() {
+            var self = this;
+            this.onLoad();
+            if (this.owner) {
+                aspect.after(this.owner, 'show', function() {
+                    self.onRefreshView();
+                });
+            }
+        },
+        onLoad: function() {
+            var snapShot = this.getContextSnapShot();
+            if (snapShot) {
+                this.processSnapShot(snapShot);
+            }
+        },
+        getContextSnapShot: function() {
+            var ctx, snapShot;
+            if ((this.owner) &amp;&amp; (this.owner.options) &amp;&amp; (this.owner.options.fromContext)) {
+                ctx = this.owner.options.fromContext;
+                snapShot = ctx.getContextSnapShot(this.owner.options);
+            }
+            return snapShot;
+        },
+        processSnapShot: function(snapShot) {
+            var wrapper;
+            if (snapShot) {
+                wrapper = domConstruct.toDom(this.contextWrapperTemplate.apply(this));
+                domConstruct.place(snapShot, wrapper, 'last');
+                domConstruct.place(wrapper, this.containerNode, 'last');
+            }
+        },
+        onRefreshView: function() {
+            var node = domConstruct.toDom('&lt;div&gt;&lt;/div&gt;');
+            if (this.containerNode) {
+                domConstruct.place(node, this.containerNode, 'only');
+            }
+            this.onLoad();
+        }
+    });
+    rvm = new RelatedViewManager();
+    rvm.registerType('relatedContext', __class);
+    return __class;
+});
+</pre>
+</body>
+</html>
