@@ -15,397 +15,369 @@
   </script>
 </head>
 <body onload="prettyPrint(); highlight();">
-  <pre class="prettyprint lang-js">/*
- * Copyright (c) 1997-2013, SalesLogix, NA., LLC. All rights reserved.
- */
-
-<span id='crm-Views-Charts-_ChartMixin'>/**
-</span> * @class crm.Views.Charts._ChartMixin
- *
- * @mixins argos._PullToRefreshMixin
- * @requires argos._PullToRefreshMixin
- *
- * Base mixin for creating chart views.
- *
- */
-define('crm/Views/Charts/_ChartMixin', [
-    'dojo/_base/declare',
-    'dojo/_base/lang',
-    'dojo/_base/array',
-    'dojo/_base/connect',
-    'dojo/dom-geometry',
-    'dojo/dom-attr',
-    'dojo/has',
-    'dojo/sniff',
-    'argos/_PullToRefreshMixin'
-], function(
-    declare,
-    lang,
-    array,
-    connect,
-    domGeo,
-    domAttr,
-    has,
-    sniff,
-    _PullToRefreshMixin
-) {
-
-    window.Chart.defaults.global = {
-        // Boolean - Whether to animate the chart
-        animation: false,
-
-        // Number - Number of animation steps
-        animationSteps: 60,
-
-        // String - Animation easing effect
-        animationEasing: 'easeOutQuart',
+  <pre class="prettyprint lang-js">define('crm/Views/Charts/_ChartMixin', ['exports', 'module', 'dojo/_base/declare', 'dojo/_base/lang', 'dojo/_base/connect', 'dojo/dom-geometry', 'dojo/dom-attr', 'dojo/has', 'argos/_PullToRefreshMixin', 'argos/I18n'], function (exports, module, _dojo_baseDeclare, _dojo_baseLang, _dojo_baseConnect, _dojoDomGeometry, _dojoDomAttr, _dojoHas, _argos_PullToRefreshMixin, _argosI18n) {
+  function _interopRequireDefault(obj) { return obj &amp;&amp; obj.__esModule ? obj : { 'default': obj }; }
 
-        // Boolean - If we should show the scale at all
-        showScale: true,
-
-        // Boolean - If we want to override with a hard coded scale
-        scaleOverride: false,
-
-        // ** Required if scaleOverride is true **
-        // Number - The number of steps in a hard coded scale
-        scaleSteps: null,
-        // Number - The value jump in the hard coded scale
-        scaleStepWidth: null,
-        // Number - The scale starting value
-        scaleStartValue: null,
-
-        // String - Colour of the scale line
-        scaleLineColor: 'rgba(0,0,0,.1)',
-
-        // Number - Pixel width of the scale line
-        scaleLineWidth: 1,
-
-        // Boolean - Whether to show labels on the scale
-        scaleShowLabels: true,
-
-        // Interpolated JS string - can access value
-        scaleLabel: '&lt;%=value%&gt;',
-
-        // Boolean - Whether the scale should stick to integers, not floats even if drawing space is there
-        scaleIntegersOnly: true,
-
-        // Boolean - Whether the scale should start at zero, or an order of magnitude down from the lowest value
-        scaleBeginAtZero: false,
-
-        // String - Scale label font declaration for the scale label
-        scaleFontFamily: &quot;'Helvetica Neue', 'Helvetica', 'Arial', sans-serif&quot;,
-
-        // Number - Scale label font size in pixels
-        scaleFontSize: 12,
-
-        // String - Scale label font weight style
-        scaleFontStyle: 'normal',
-
-        // String - Scale label font colour
-        scaleFontColor: '#666',
-
-        // Boolean - whether or not the chart should be responsive and resize when the browser does.
-        responsive: true,
-
-        // Boolean - whether to maintain the starting aspect ratio or not when responsive, if set to false, will take up entire container
-        maintainAspectRatio: true,
-
-        // Boolean - Determines whether to draw tooltips on the canvas or not
-        showTooltips: true,
-
-        // Array - Array of string names to attach tooltip events
-        tooltipEvents: ['touchstart', 'click'],
-
-        // String - Tooltip background colour
-        tooltipFillColor: 'rgba(0,0,0,0.8)',
+  var _declare = _interopRequireDefault(_dojo_baseDeclare);
 
-        // String - Tooltip label font declaration for the scale label
-        tooltipFontFamily: &quot;'Helvetica', 'Arial', Sans-serif&quot;,
+  var _lang = _interopRequireDefault(_dojo_baseLang);
 
-        // Number - Tooltip label font size in pixels
-        tooltipFontSize: 14,
+  var _connect = _interopRequireDefault(_dojo_baseConnect);
 
-        // String - Tooltip font weight style
-        tooltipFontStyle: 'normal',
+  var _domGeo = _interopRequireDefault(_dojoDomGeometry);
 
-        // String - Tooltip label font colour
-        tooltipFontColor: '#fff',
-
-        // String - Tooltip title font declaration for the scale label
-        tooltipTitleFontFamily: &quot;'Helvetica Neue', 'Helvetica', 'Arial', sans-serif&quot;,
-
-        // Number - Tooltip title font size in pixels
-        tooltipTitleFontSize: 14,
-
-        // String - Tooltip title font weight style
-        tooltipTitleFontStyle: 'bold',
-
-        // String - Tooltip title font colour
-        tooltipTitleFontColor: '#fff',
-
-        // Number - pixel width of padding around tooltip text
-        tooltipYPadding: 6,
-
-        // Number - pixel width of padding around tooltip text
-        tooltipXPadding: 6,
-
-        // Number - Size of the caret on the tooltip
-        tooltipCaretSize: 8,
-
-        // Number - Pixel radius of the tooltip border
-        tooltipCornerRadius: 6,
-
-        // Number - Pixel offset from point x to tooltip edge
-        tooltipXOffset: 10,
-
-        // tooltipTemplate can be a function as well (not in the docs, see Chart.Core.js in their repo)
-        tooltipTemplate: function(valuesObject) {
-            // Use the formatter on the chart view, otherwise default to label: value
-            var view, results;
-            view = App.getPrimaryActiveView();
-            if (view &amp;&amp; view.formatter) {
-                results = view.formatter(valuesObject.value);
-            } else {
-                results = valuesObject.value;
-            }
-
-            return [valuesObject.label, results].join(': ');
-        },
-        // String - Template string for single tooltips
-        multiTooltipTemplate: '&lt;%= value %&gt;',
-
-        // Function - Will fire on animation progression.
-        onAnimationProgress: function() {
-        },
-
-        // Function - Will fire on animation completion.
-        onAnimationComplete: function() {
-        }
-    };
-
-    var mixinName, __class;
-
-    mixinName = 'crm.Views.Charts._ChartMixin';
-
-    __class = declare('crm.Views.Charts._ChartMixin', [_PullToRefreshMixin], {
-        _handle: null,
-        _feedData: null,
-
-<span id='crm-Views-Charts-_ChartMixin-property-RENDER_DELAY'>        /**
-</span>         * @property {Number} RENDER_DELAY
-         * Number The re-render delay in milliseconds when the user changes device orientation.
-         */
-        RENDER_DELAY: has('ios') &lt; 8 ? 500 : 1, // Work around IOS7 orientation change issues
-
-<span id='crm-Views-Charts-_ChartMixin-property-parent'>        /**
-</span>         * @property {Object} parent
-         * Reference to the metric widget that opened this view.
-        */
-        parent: null,
-
-        formatter: function(val) {
-            return val;
-        },
-
-        PAGE_SIZE: 100,
-
-<span id='crm-Views-Charts-_ChartMixin-property-loadingFont'>        /**
-</span>         * @property {String}
-         * The loading text font style
-         */
-        loadingFont: '#000',
-
-<span id='crm-Views-Charts-_ChartMixin-property-loadingText'>        /**
-</span>         * @property {String}
-         * Loading message
-         */
-        loadingText: 'loading...',
-
-<span id='crm-Views-Charts-_ChartMixin-property-widgetTemplate'>        /**
-</span>         * Overrides View widgetTemplate
-         */
-        widgetTemplate: new Simplate([
-            '&lt;div id=&quot;{%= $.id %}&quot; title=&quot;{%= $.titleText %}&quot; class=&quot;list list-hide-search {%= $.cls %}&quot;&gt;',
-                '&lt;div class=&quot;overthrow scroller&quot; data-dojo-attach-point=&quot;scrollerNode&quot;&gt;',
-                    '&lt;div class=&quot;legend&quot; data-dojo-attach-point=&quot;legendNode&quot; data-dojo-attach-event=&quot;click: onLegendClick&quot;&gt;&lt;/div&gt;',
-                    '&lt;canvas class=&quot;chart-content&quot; data-dojo-attach-point=&quot;contentNode&quot;&gt;&lt;/canvas&gt;',
-                '&lt;/div&gt;',
-            '&lt;/div&gt;'
-        ]),
-
-        postCreate: function() {
-            this.initPullToRefresh(this.scrollerNode);
-        },
-        onTransitionTo: function() {
-            this._handle = connect.subscribe('/app/setOrientation', this, function() {
-                setTimeout(function() {
-                    if (this._feedData) {
-                        this.createChart(this._feedData);
-                    }
-                }.bind(this), this.RENDER_DELAY);
-            });
-        },
-        onTransitionAway: function() {
-            connect.unsubscribe(this._handle);
-            this._feedData = null;
-            this.parent = null;
-
-            if (this.chart &amp;&amp; this.chart.destroy) {
-                this.chart.destroy();
-            }
-        },
-        _setCanvasWidth: function() {
-            var box;
-
-            box = domGeo.getMarginBox(this.domNode);
-            if (this.contentNode) {
-                this.contentNode.width = box.w;
-            }
-        },
-        _drawLoading: function() {
-            var node, context, globalConfig, offset, text, mixin, x, y;
-
-            node = this.contentNode;
-            globalConfig = window.Chart.defaults.global;
-            context = node &amp;&amp; node.getContext &amp;&amp; node.getContext('2d');
-
-            if (!context) {
-                return;
-            }
-
-            context.clearRect(0, 0, node.width, node.height);
-
-            mixin = lang.getObject(mixinName);
-            if (mixin) {
-                text = mixin.prototype.loadingText;
-            } else {
-                text = this.loadingText;
-            }
-
-            context.fillStyle = this.loadingFont;
-            context.font = globalConfig.tooltipFontSize + 'px ' + globalConfig.tooltipFontFamily;
-
-            // Center the text
-            offset = Math.floor(context.measureText(text).width / 2);
-            x = Math.floor(node.width / 2) - offset;
-            y = 20; // padding
-            context.fillText(text, x, y, node.width);
-        },
-        createChart: function(feedData) {
-            this._feedData = feedData;
-        },
-        getTag: function() {
-            return this.options &amp;&amp; this.options.returnTo;
-        },
-
-        getSearchExpression: function() {
-            return this.options &amp;&amp; this.options.currentSearchExpression;
-        },
-
-        showSearchExpression: function() {
-            var app;
-            app = this.app || window.App;
-            app.setPrimaryTitle([this.title, this.getSearchExpression()].join(': '));
-        },
-
-<span id='crm-Views-Charts-_ChartMixin-method-onLegendClick'>        /**
-</span>         * Handles click events for the legend node. Handles opening the tooltips on the chart
-         * when the item in the legend is clicked. The current legend format is as follows:
-         * @since 3.3
-         *
-         *    @example
-         *    `&lt;div class=&quot;legend&quot; data-dojo-attach-point=&quot;legendNode&quot;&gt;
-         *        &lt;ul class=&quot;doughnut-legend&quot;&gt;
-         *            &lt;li data-segment=&quot;0&quot;&gt;&lt;span style=&quot;background-color: someColor&quot;&gt;&lt;/span&gt;
-         *                Tooltip Label
-         *            &lt;/li&gt;
-         *        &lt;/ul&gt;
-         *    &lt;/div&gt;`
-         */
-        onLegendClick: function(evt) {
-            if (!evt || !evt.srcElement || evt.srcElement === this.legendNode || !this.chart) {
-                return;
-            }
-
-            var src, segment;
-            src = evt.srcElement.tagName === 'SPAN' ? evt.srcElement.parentElement : evt.srcElement;
-            segment = parseInt(src.dataset.segment, 10);
-            if (segment &gt;= 0 &amp;&amp; this.chart.showTooltip &amp;&amp; this.chart.segments) {
-                this.chart.showTooltip(this.chart.segments.slice(segment, segment + 1), false /* re-draw flag */);
-            }
-        },
-
-<span id='crm-Views-Charts-_ChartMixin-method-showLegend'>        /**
-</span>         * Render a legend from the chart into the legendNode attach point.
-         * @since 3.3
-         */
-        showLegend: function() {
-            var html;
-
-            if (!this.chart || !this.chart.generateLegend || !this.legendNode) {
-                return;
-            }
-
-            html = this.chart.generateLegend();
-            domAttr.set(this.legendNode, { innerHTML: html });
-        },
-
-<span id='crm-Views-Charts-_ChartMixin-method-getSearchExpressionHeight'>        /**
-</span>         * @deprecated 3.3
-         * Charts in 3.3 no longer use the search expression node.
-         */
-        getSearchExpressionHeight: function() {
-            var box = domGeo.getMarginBox(this.searchExpressionNode);
-            return box.h;
-        },
-
-        onPullToRefreshComplete: function() {
-            this.requestData();
-        },
-        refresh: function() {
-            this.requestData();
-        },
-        _getStoreAttr: function() {
-            return this.createStore();
-        },
-<span id='crm-Views-Charts-_ChartMixin-method-createStore'>        /**
-</span>         * Return a store that is consumed by requestData.
-         * @since 3.3
-         */
-        createStore: function() {
-            var store;
-            store = this.parent &amp;&amp; this.parent.store;
-            return store;
-        },
-
-<span id='crm-Views-Charts-_ChartMixin-method-requestData'>        /**
-</span>         * Overrides _ListBase requestData to re-render the chart on pull to refresh.
-         * @since 3.3
-         */
-        requestData: function() {
-            var store;
-            store = this.get('store');
-            if (this.chart &amp;&amp; this.chart.destroy) {
-                this.chart.destroy();
-            }
-
-            this._setCanvasWidth();
-            this._drawLoading();
-
-            if (store) {
-                store.query(null, {start: 0, count: this.PAGE_SIZE}).then(function(data) {
-                    this.createChart(data);
-                }.bind(this), function(e) {
-                    console.error(e);
-                }.bind(this));
-            }
-        }
-    });
-
-    lang.setObject('Mobile.SalesLogix.Views.Charts._ChartMixin', __class);
-    return __class;
+  var _domAttr = _interopRequireDefault(_dojoDomAttr);
+
+  var _has = _interopRequireDefault(_dojoHas);
+
+  var _PullToRefreshMixin2 = _interopRequireDefault(_argos_PullToRefreshMixin);
+
+  var _getResource = _interopRequireDefault(_argosI18n);
+
+  var resource = (0, _getResource['default'])('chartMixin');
+
+<span id='crm-Views-Charts-_ChartMixin'>  /**
+</span>   * @class crm.Views.Charts._ChartMixin
+   *
+   * @mixins argos._PullToRefreshMixin
+   * @requires argos._PullToRefreshMixin
+   *
+   * Base mixin for creating chart views.
+   *
+   */
+  _lang['default'].setObject('Chart.defaults.global', {
+    // Boolean - Whether to animate the chart
+    animation: false,
+
+    // Number - Number of animation steps
+    animationSteps: 60,
+
+    // String - Animation easing effect
+    animationEasing: 'easeOutQuart',
+
+    // Boolean - If we should show the scale at all
+    showScale: true,
+
+    // Boolean - If we want to override with a hard coded scale
+    scaleOverride: false,
+
+    // ** Required if scaleOverride is true **
+    // Number - The number of steps in a hard coded scale
+    scaleSteps: null,
+    // Number - The value jump in the hard coded scale
+    scaleStepWidth: null,
+    // Number - The scale starting value
+    scaleStartValue: null,
+
+    // String - Colour of the scale line
+    scaleLineColor: 'rgba(0,0,0,.1)',
+
+    // Number - Pixel width of the scale line
+    scaleLineWidth: 1,
+
+    // Boolean - Whether to show labels on the scale
+    scaleShowLabels: true,
+
+    // Interpolated JS string - can access value
+    scaleLabel: '&lt;%=value%&gt;',
+
+    // Boolean - Whether the scale should stick to integers, not floats even if drawing space is there
+    scaleIntegersOnly: true,
+
+    // Boolean - Whether the scale should start at zero, or an order of magnitude down from the lowest value
+    scaleBeginAtZero: false,
+
+    // String - Scale label font declaration for the scale label
+    scaleFontFamily: &quot;'Helvetica Neue', 'Helvetica', 'Arial', sans-serif&quot;,
+
+    // Number - Scale label font size in pixels
+    scaleFontSize: 12,
+
+    // String - Scale label font weight style
+    scaleFontStyle: 'normal',
+
+    // String - Scale label font colour
+    scaleFontColor: '#666',
+
+    // Boolean - whether or not the chart should be responsive and resize when the browser does.
+    responsive: true,
+
+    // Boolean - whether to maintain the starting aspect ratio or not when responsive, if set to false, will take up entire container
+    maintainAspectRatio: true,
+
+    // Boolean - Determines whether to draw tooltips on the canvas or not
+    showTooltips: true,
+
+    // Array - Array of string names to attach tooltip events
+    tooltipEvents: ['touchstart', 'click'],
+
+    // String - Tooltip background colour
+    tooltipFillColor: 'rgba(0,0,0,0.8)',
+
+    // String - Tooltip label font declaration for the scale label
+    tooltipFontFamily: &quot;'Helvetica', 'Arial', Sans-serif&quot;,
+
+    // Number - Tooltip label font size in pixels
+    tooltipFontSize: 14,
+
+    // String - Tooltip font weight style
+    tooltipFontStyle: 'normal',
+
+    // String - Tooltip label font colour
+    tooltipFontColor: '#fff',
+
+    // String - Tooltip title font declaration for the scale label
+    tooltipTitleFontFamily: &quot;'Helvetica Neue', 'Helvetica', 'Arial', sans-serif&quot;,
+
+    // Number - Tooltip title font size in pixels
+    tooltipTitleFontSize: 14,
+
+    // String - Tooltip title font weight style
+    tooltipTitleFontStyle: 'bold',
+
+    // String - Tooltip title font colour
+    tooltipTitleFontColor: '#fff',
+
+    // Number - pixel width of padding around tooltip text
+    tooltipYPadding: 6,
+
+    // Number - pixel width of padding around tooltip text
+    tooltipXPadding: 6,
+
+    // Number - Size of the caret on the tooltip
+    tooltipCaretSize: 8,
+
+    // Number - Pixel radius of the tooltip border
+    tooltipCornerRadius: 6,
+
+    // Number - Pixel offset from point x to tooltip edge
+    tooltipXOffset: 10,
+
+    // tooltipTemplate can be a function as well (not in the docs, see Chart.Core.js in their repo)
+    tooltipTemplate: function tooltipTemplate(valuesObject) {
+      // Use the formatter on the chart view, otherwise default to label: value
+      var view = App.getPrimaryActiveView();
+      var results = undefined;
+      if (view &amp;&amp; view.formatter) {
+        results = view.formatter(valuesObject.value);
+      } else {
+        results = valuesObject.value;
+      }
+
+      return [valuesObject.label, results].join(': ');
+    },
+    // String - Template string for single tooltips
+    multiTooltipTemplate: '&lt;%= value %&gt;',
+
+    // Function - Will fire on animation progression.
+    onAnimationProgress: function onAnimationProgress() {},
+
+    // Function - Will fire on animation completion.
+    onAnimationComplete: function onAnimationComplete() {}
+  });
+
+  var __class = (0, _declare['default'])('crm.Views.Charts._ChartMixin', [_PullToRefreshMixin2['default']], {
+    _handle: null,
+    _feedData: null,
+
+<span id='crm-Views-Charts-_ChartMixin-property-RENDER_DELAY'>    /**
+</span>     * @property {Number} RENDER_DELAY
+     * Number The re-render delay in milliseconds when the user changes device orientation.
+     */
+    RENDER_DELAY: (0, _has['default'])('ios') &lt; 8 ? 500 : 1, // Work around IOS7 orientation change issues
+
+<span id='crm-Views-Charts-_ChartMixin-property-parent'>    /**
+</span>     * @property {Object} parent
+     * Reference to the metric widget that opened this view.
+     */
+    parent: null,
+
+    formatter: function formatter(val) {
+      return val;
+    },
+
+    PAGE_SIZE: 100,
+
+<span id='crm-Views-Charts-_ChartMixin-property-loadingFont'>    /**
+</span>     * @property {String}
+     * The loading text font style
+     */
+    loadingFont: '#000',
+
+<span id='crm-Views-Charts-_ChartMixin-property-loadingText'>    /**
+</span>     * @property {String}
+     * Loading message
+     */
+    loadingText: 'loading...',
+
+<span id='crm-Views-Charts-_ChartMixin-property-widgetTemplate'>    /**
+</span>     * Overrides View widgetTemplate
+     */
+    widgetTemplate: new Simplate(['&lt;div id=&quot;{%= $.id %}&quot; title=&quot;{%= $.titleText %}&quot; class=&quot;list list-hide-search {%= $.cls %}&quot;&gt;', '&lt;div class=&quot;overthrow scroller&quot; data-dojo-attach-point=&quot;scrollerNode&quot;&gt;', '&lt;div class=&quot;legend&quot; data-dojo-attach-point=&quot;legendNode&quot; data-dojo-attach-event=&quot;click: onLegendClick&quot;&gt;&lt;/div&gt;', '&lt;canvas class=&quot;chart-content&quot; data-dojo-attach-point=&quot;contentNode&quot;&gt;&lt;/canvas&gt;', '&lt;/div&gt;', '&lt;/div&gt;']),
+
+    postCreate: function postCreate() {
+      this.initPullToRefresh(this.scrollerNode);
+    },
+    onTransitionTo: function onTransitionTo() {
+      this._handle = _connect['default'].subscribe('/app/setOrientation', this, function orientationChange() {
+        setTimeout((function onTimeOut() {
+          if (this._feedData) {
+            this.createChart(this._feedData);
+          }
+        }).bind(this), this.RENDER_DELAY);
+      });
+    },
+    onTransitionAway: function onTransitionAway() {
+      _connect['default'].unsubscribe(this._handle);
+      this._feedData = null;
+      this.parent = null;
+
+      if (this.chart &amp;&amp; this.chart.destroy) {
+        this.chart.destroy();
+      }
+    },
+    _setCanvasWidth: function _setCanvasWidth() {
+      var box = _domGeo['default'].getMarginBox(this.domNode);
+      if (this.contentNode) {
+        this.contentNode.width = box.w;
+      }
+    },
+    _drawLoading: function _drawLoading() {
+      var node = this.contentNode;
+      var globalConfig = window.Chart.defaults.global;
+      var context = node &amp;&amp; node.getContext &amp;&amp; node.getContext('2d');
+
+      if (!context) {
+        return;
+      }
+
+      context.clearRect(0, 0, node.width, node.height);
+
+      var text = resource.loadingText;
+
+      context.fillStyle = this.loadingFont;
+      context.font = globalConfig.tooltipFontSize + 'px ' + globalConfig.tooltipFontFamily;
+
+      // Center the text
+      var offset = Math.floor(context.measureText(text).width / 2);
+      var x = Math.floor(node.width / 2) - offset;
+      var y = 20; // padding
+      context.fillText(text, x, y, node.width);
+    },
+    createChart: function createChart(feedData) {
+      this._feedData = feedData;
+    },
+    getTag: function getTag() {
+      return this.options &amp;&amp; this.options.returnTo;
+    },
+
+    getSearchExpression: function getSearchExpression() {
+      return this.options &amp;&amp; this.options.currentSearchExpression;
+    },
+
+    showSearchExpression: function showSearchExpression() {
+      var app = this.app || window.App;
+      app.setPrimaryTitle([this.title, this.getSearchExpression()].join(': '));
+    },
+
+<span id='crm-Views-Charts-_ChartMixin-method-onLegendClick'>    /**
+</span>     * Handles click events for the legend node. Handles opening the tooltips on the chart
+     * when the item in the legend is clicked. The current legend format is as follows:
+     * @since 3.3
+     *
+     *    @example
+     *    `&lt;div class=&quot;legend&quot; data-dojo-attach-point=&quot;legendNode&quot;&gt;
+     *        &lt;ul class=&quot;doughnut-legend&quot;&gt;
+     *            &lt;li data-segment=&quot;0&quot;&gt;&lt;span style=&quot;background-color: someColor&quot;&gt;&lt;/span&gt;
+     *                Tooltip Label
+     *            &lt;/li&gt;
+     *        &lt;/ul&gt;
+     *    &lt;/div&gt;`
+     */
+    onLegendClick: function onLegendClick(evt) {
+      if (!evt || !evt.srcElement || evt.srcElement === this.legendNode || !this.chart) {
+        return;
+      }
+
+      var src = evt.srcElement.tagName === 'SPAN' ? evt.srcElement.parentElement : evt.srcElement;
+      var segment = parseInt(src.dataset.segment, 10);
+      if (segment &gt;= 0 &amp;&amp; this.chart.showTooltip &amp;&amp; this.chart.segments) {
+        this.chart.showTooltip(this.chart.segments.slice(segment, segment + 1), false /* re-draw flag */);
+      }
+    },
+
+<span id='crm-Views-Charts-_ChartMixin-method-showLegend'>    /**
+</span>     * Render a legend from the chart into the legendNode attach point.
+     * @since 3.3
+     */
+    showLegend: function showLegend() {
+      if (!this.chart || !this.chart.generateLegend || !this.legendNode) {
+        return;
+      }
+
+      var html = this.chart.generateLegend();
+      _domAttr['default'].set(this.legendNode, {
+        innerHTML: html
+      });
+    },
+
+<span id='crm-Views-Charts-_ChartMixin-method-getSearchExpressionHeight'>    /**
+</span>     * @deprecated 3.3
+     * Charts in 3.3 no longer use the search expression node.
+     */
+    getSearchExpressionHeight: function getSearchExpressionHeight() {
+      var box = _domGeo['default'].getMarginBox(this.searchExpressionNode);
+      return box.h;
+    },
+
+    onPullToRefreshComplete: function onPullToRefreshComplete() {
+      this.requestData();
+    },
+    refresh: function refresh() {
+      this.requestData();
+    },
+    _getStoreAttr: function _getStoreAttr() {
+      return this.createStore();
+    },
+<span id='crm-Views-Charts-_ChartMixin-method-createStore'>    /**
+</span>     * Return a store that is consumed by requestData.
+     * @since 3.3
+     */
+    createStore: function createStore() {
+      var store = this.parent &amp;&amp; this.parent.store;
+      return store;
+    },
+
+<span id='crm-Views-Charts-_ChartMixin-method-requestData'>    /**
+</span>     * Overrides _ListBase requestData to re-render the chart on pull to refresh.
+     * @since 3.3
+     */
+    requestData: function requestData() {
+      var store = this.get('store');
+      if (this.chart &amp;&amp; this.chart.destroy) {
+        this.chart.destroy();
+      }
+
+      this._setCanvasWidth();
+      this._drawLoading();
+
+      if (store) {
+        store.query(null, {
+          start: 0,
+          count: this.PAGE_SIZE
+        }).then((function createChartWithData(data) {
+          this.createChart(data);
+        }).bind(this), function queryError(e) {
+          console.error(e); // eslint-disable-line
+        });
+      }
+    }
+  });
+
+  _lang['default'].setObject('Mobile.SalesLogix.Views.Charts._ChartMixin', __class);
+  module.exports = __class;
 });
-
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInNyYy9WaWV3cy9DaGFydHMvX0NoYXJ0TWl4aW4uanMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7Ozs7Ozs7OztBQVNBLE1BQU0sUUFBUSxHQUFHLDZCQUFZLFlBQVksQ0FBQyxDQUFDOzs7Ozs7Ozs7OztBQVczQyxtQkFBSyxTQUFTLENBQUMsdUJBQXVCLEVBQUU7O0FBRXRDLGFBQVMsRUFBRSxLQUFLOzs7QUFHaEIsa0JBQWMsRUFBRSxFQUFFOzs7QUFHbEIsbUJBQWUsRUFBRSxjQUFjOzs7QUFHL0IsYUFBUyxFQUFFLElBQUk7OztBQUdmLGlCQUFhLEVBQUUsS0FBSzs7OztBQUlwQixjQUFVLEVBQUUsSUFBSTs7QUFFaEIsa0JBQWMsRUFBRSxJQUFJOztBQUVwQixtQkFBZSxFQUFFLElBQUk7OztBQUdyQixrQkFBYyxFQUFFLGdCQUFnQjs7O0FBR2hDLGtCQUFjLEVBQUUsQ0FBQzs7O0FBR2pCLG1CQUFlLEVBQUUsSUFBSTs7O0FBR3JCLGNBQVUsRUFBRSxZQUFZOzs7QUFHeEIscUJBQWlCLEVBQUUsSUFBSTs7O0FBR3ZCLG9CQUFnQixFQUFFLEtBQUs7OztBQUd2QixtQkFBZSxFQUFFLG9EQUFvRDs7O0FBR3JFLGlCQUFhLEVBQUUsRUFBRTs7O0FBR2pCLGtCQUFjLEVBQUUsUUFBUTs7O0FBR3hCLGtCQUFjLEVBQUUsTUFBTTs7O0FBR3RCLGNBQVUsRUFBRSxJQUFJOzs7QUFHaEIsdUJBQW1CLEVBQUUsSUFBSTs7O0FBR3pCLGdCQUFZLEVBQUUsSUFBSTs7O0FBR2xCLGlCQUFhLEVBQUUsQ0FBQyxZQUFZLEVBQUUsT0FBTyxDQUFDOzs7QUFHdEMsb0JBQWdCLEVBQUUsaUJBQWlCOzs7QUFHbkMscUJBQWlCLEVBQUUsa0NBQWtDOzs7QUFHckQsbUJBQWUsRUFBRSxFQUFFOzs7QUFHbkIsb0JBQWdCLEVBQUUsUUFBUTs7O0FBRzFCLG9CQUFnQixFQUFFLE1BQU07OztBQUd4QiwwQkFBc0IsRUFBRSxvREFBb0Q7OztBQUc1RSx3QkFBb0IsRUFBRSxFQUFFOzs7QUFHeEIseUJBQXFCLEVBQUUsTUFBTTs7O0FBRzdCLHlCQUFxQixFQUFFLE1BQU07OztBQUc3QixtQkFBZSxFQUFFLENBQUM7OztBQUdsQixtQkFBZSxFQUFFLENBQUM7OztBQUdsQixvQkFBZ0IsRUFBRSxDQUFDOzs7QUFHbkIsdUJBQW1CLEVBQUUsQ0FBQzs7O0FBR3RCLGtCQUFjLEVBQUUsRUFBRTs7O0FBR2xCLG1CQUFlLEVBQUUsU0FBUyxlQUFlLENBQUMsWUFBWSxFQUFFOztBQUV0RCxVQUFNLElBQUksR0FBRyxHQUFHLENBQUMsb0JBQW9CLEVBQUUsQ0FBQztBQUN4QyxVQUFJLE9BQU8sWUFBQSxDQUFDO0FBQ1osVUFBSSxJQUFJLElBQUksSUFBSSxDQUFDLFNBQVMsRUFBRTtBQUMxQixlQUFPLEdBQUcsSUFBSSxDQUFDLFNBQVMsQ0FBQyxZQUFZLENBQUMsS0FBSyxDQUFDLENBQUM7T0FDOUMsTUFBTTtBQUNMLGVBQU8sR0FBRyxZQUFZLENBQUMsS0FBSyxDQUFDO09BQzlCOztBQUVELGFBQU8sQ0FBQyxZQUFZLENBQUMsS0FBSyxFQUFFLE9BQU8sQ0FBQyxDQUFDLElBQUksQ0FBQyxJQUFJLENBQUMsQ0FBQztLQUNqRDs7QUFFRCx3QkFBb0IsRUFBRSxjQUFjOzs7QUFHcEMsdUJBQW1CLEVBQUUsU0FBUyxtQkFBbUIsR0FBRyxFQUFFOzs7QUFHdEQsdUJBQW1CLEVBQUUsU0FBUyxtQkFBbUIsR0FBRyxFQUFFO0dBQ3ZELENBQUMsQ0FBQzs7QUFFSCxNQUFNLE9BQU8sR0FBRyx5QkFBUSw4QkFBOEIsRUFBRSxpQ0FBcUIsRUFBRTtBQUM3RSxXQUFPLEVBQUUsSUFBSTtBQUNiLGFBQVMsRUFBRSxJQUFJOzs7Ozs7QUFNZixnQkFBWSxFQUFFLHFCQUFJLEtBQUssQ0FBQyxHQUFHLENBQUMsR0FBRyxHQUFHLEdBQUcsQ0FBQzs7Ozs7O0FBTXRDLFVBQU0sRUFBRSxJQUFJOztBQUVaLGFBQVMsRUFBRSxTQUFTLFNBQVMsQ0FBQyxHQUFHLEVBQUU7QUFDakMsYUFBTyxHQUFHLENBQUM7S0FDWjs7QUFFRCxhQUFTLEVBQUUsR0FBRzs7Ozs7O0FBTWQsZUFBVyxFQUFFLE1BQU07Ozs7OztBQU1uQixlQUFXLEVBQUUsWUFBWTs7Ozs7QUFLekIsa0JBQWMsRUFBRSxJQUFJLFFBQVEsQ0FBQyxDQUMzQiw4RkFBOEYsRUFDOUYsd0VBQXdFLEVBQ3hFLDhHQUE4RyxFQUM5Ryw4RUFBOEUsRUFDOUUsUUFBUSxFQUNSLFFBQVEsQ0FDVCxDQUFDOztBQUVGLGNBQVUsRUFBRSxTQUFTLFVBQVUsR0FBRztBQUNoQyxVQUFJLENBQUMsaUJBQWlCLENBQUMsSUFBSSxDQUFDLFlBQVksQ0FBQyxDQUFDO0tBQzNDO0FBQ0Qsa0JBQWMsRUFBRSxTQUFTLGNBQWMsR0FBRztBQUN4QyxVQUFJLENBQUMsT0FBTyxHQUFHLG9CQUFRLFNBQVMsQ0FBQyxxQkFBcUIsRUFBRSxJQUFJLEVBQUUsU0FBUyxpQkFBaUIsR0FBRztBQUN6RixrQkFBVSxDQUFDLENBQUEsU0FBUyxTQUFTLEdBQUc7QUFDOUIsY0FBSSxJQUFJLENBQUMsU0FBUyxFQUFFO0FBQ2xCLGdCQUFJLENBQUMsV0FBVyxDQUFDLElBQUksQ0FBQyxTQUFTLENBQUMsQ0FBQztXQUNsQztTQUNGLENBQUEsQ0FBQyxJQUFJLENBQUMsSUFBSSxDQUFDLEVBQUUsSUFBSSxDQUFDLFlBQVksQ0FBQyxDQUFDO09BQ2xDLENBQUMsQ0FBQztLQUNKO0FBQ0Qsb0JBQWdCLEVBQUUsU0FBUyxnQkFBZ0IsR0FBRztBQUM1QywwQkFBUSxXQUFXLENBQUMsSUFBSSxDQUFDLE9BQU8sQ0FBQyxDQUFDO0FBQ2xDLFVBQUksQ0FBQyxTQUFTLEdBQUcsSUFBSSxDQUFDO0FBQ3RCLFVBQUksQ0FBQyxNQUFNLEdBQUcsSUFBSSxDQUFDOztBQUVuQixVQUFJLElBQUksQ0FBQyxLQUFLLElBQUksSUFBSSxDQUFDLEtBQUssQ0FBQyxPQUFPLEVBQUU7QUFDcEMsWUFBSSxDQUFDLEtBQUssQ0FBQyxPQUFPLEVBQUUsQ0FBQztPQUN0QjtLQUNGO0FBQ0QsbUJBQWUsRUFBRSxTQUFTLGVBQWUsR0FBRztBQUMxQyxVQUFNLEdBQUcsR0FBRyxtQkFBTyxZQUFZLENBQUMsSUFBSSxDQUFDLE9BQU8sQ0FBQyxDQUFDO0FBQzlDLFVBQUksSUFBSSxDQUFDLFdBQVcsRUFBRTtBQUNwQixZQUFJLENBQUMsV0FBVyxDQUFDLEtBQUssR0FBRyxHQUFHLENBQUMsQ0FBQyxDQUFDO09BQ2hDO0tBQ0Y7QUFDRCxnQkFBWSxFQUFFLFNBQVMsWUFBWSxHQUFHO0FBQ3BDLFVBQU0sSUFBSSxHQUFHLElBQUksQ0FBQyxXQUFXLENBQUM7QUFDOUIsVUFBTSxZQUFZLEdBQUcsTUFBTSxDQUFDLEtBQUssQ0FBQyxRQUFRLENBQUMsTUFBTSxDQUFDO0FBQ2xELFVBQU0sT0FBTyxHQUFHLElBQUksSUFBSSxJQUFJLENBQUMsVUFBVSxJQUFJLElBQUksQ0FBQyxVQUFVLENBQUMsSUFBSSxDQUFDLENBQUM7O0FBRWpFLFVBQUksQ0FBQyxPQUFPLEVBQUU7QUFDWixlQUFPO09BQ1I7O0FBRUQsYUFBTyxDQUFDLFNBQVMsQ0FBQyxDQUFDLEVBQUUsQ0FBQyxFQUFFLElBQUksQ0FBQyxLQUFLLEVBQUUsSUFBSSxDQUFDLE1BQU0sQ0FBQyxDQUFDOztBQUVqRCxVQUFNLElBQUksR0FBRyxRQUFRLENBQUMsV0FBVyxDQUFDOztBQUVsQyxhQUFPLENBQUMsU0FBUyxHQUFHLElBQUksQ0FBQyxXQUFXLENBQUM7QUFDckMsYUFBTyxDQUFDLElBQUksR0FBRyxZQUFZLENBQUMsZUFBZSxHQUFHLEtBQUssR0FBRyxZQUFZLENBQUMsaUJBQWlCLENBQUM7OztBQUdyRixVQUFNLE1BQU0sR0FBRyxJQUFJLENBQUMsS0FBSyxDQUFDLE9BQU8sQ0FBQyxXQUFXLENBQUMsSUFBSSxDQUFDLENBQUMsS0FBSyxHQUFHLENBQUMsQ0FBQyxDQUFDO0FBQy9ELFVBQU0sQ0FBQyxHQUFHLElBQUksQ0FBQyxLQUFLLENBQUMsSUFBSSxDQUFDLEtBQUssR0FBRyxDQUFDLENBQUMsR0FBRyxNQUFNLENBQUM7QUFDOUMsVUFBTSxDQUFDLEdBQUcsRUFBRSxDQUFDO0FBQ2IsYUFBTyxDQUFDLFFBQVEsQ0FBQyxJQUFJLEVBQUUsQ0FBQyxFQUFFLENBQUMsRUFBRSxJQUFJLENBQUMsS0FBSyxDQUFDLENBQUM7S0FDMUM7QUFDRCxlQUFXLEVBQUUsU0FBUyxXQUFXLENBQUMsUUFBUSxFQUFFO0FBQzFDLFVBQUksQ0FBQyxTQUFTLEdBQUcsUUFBUSxDQUFDO0tBQzNCO0FBQ0QsVUFBTSxFQUFFLFNBQVMsTUFBTSxHQUFHO0FBQ3hCLGFBQU8sSUFBSSxDQUFDLE9BQU8sSUFBSSxJQUFJLENBQUMsT0FBTyxDQUFDLFFBQVEsQ0FBQztLQUM5Qzs7QUFFRCx1QkFBbUIsRUFBRSxTQUFTLG1CQUFtQixHQUFHO0FBQ2xELGFBQU8sSUFBSSxDQUFDLE9BQU8sSUFBSSxJQUFJLENBQUMsT0FBTyxDQUFDLHVCQUF1QixDQUFDO0tBQzdEOztBQUVELHdCQUFvQixFQUFFLFNBQVMsb0JBQW9CLEdBQUc7QUFDcEQsVUFBTSxHQUFHLEdBQUcsSUFBSSxDQUFDLEdBQUcsSUFBSSxNQUFNLENBQUMsR0FBRyxDQUFDO0FBQ25DLFNBQUcsQ0FBQyxlQUFlLENBQUMsQ0FBQyxJQUFJLENBQUMsS0FBSyxFQUFFLElBQUksQ0FBQyxtQkFBbUIsRUFBRSxDQUFDLENBQUMsSUFBSSxDQUFDLElBQUksQ0FBQyxDQUFDLENBQUM7S0FDMUU7Ozs7Ozs7Ozs7Ozs7Ozs7QUFnQkQsaUJBQWEsRUFBRSxTQUFTLGFBQWEsQ0FBQyxHQUFHLEVBQUU7QUFDekMsVUFBSSxDQUFDLEdBQUcsSUFBSSxDQUFDLEdBQUcsQ0FBQyxVQUFVLElBQUksR0FBRyxDQUFDLFVBQVUsS0FBSyxJQUFJLENBQUMsVUFBVSxJQUFJLENBQUMsSUFBSSxDQUFDLEtBQUssRUFBRTtBQUNoRixlQUFPO09BQ1I7O0FBRUQsVUFBTSxHQUFHLEdBQUcsR0FBRyxDQUFDLFVBQVUsQ0FBQyxPQUFPLEtBQUssTUFBTSxHQUFHLEdBQUcsQ0FBQyxVQUFVLENBQUMsYUFBYSxHQUFHLEdBQUcsQ0FBQyxVQUFVLENBQUM7QUFDOUYsVUFBTSxPQUFPLEdBQUcsUUFBUSxDQUFDLEdBQUcsQ0FBQyxPQUFPLENBQUMsT0FBTyxFQUFFLEVBQUUsQ0FBQyxDQUFDO0FBQ2xELFVBQUksT0FBTyxJQUFJLENBQUMsSUFBSSxJQUFJLENBQUMsS0FBSyxDQUFDLFdBQVcsSUFBSSxJQUFJLENBQUMsS0FBSyxDQUFDLFFBQVEsRUFBRTtBQUNqRSxZQUFJLENBQUMsS0FBSyxDQUFDLFdBQVcsQ0FBQyxJQUFJLENBQUMsS0FBSyxDQUFDLFFBQVEsQ0FBQyxLQUFLLENBQUMsT0FBTyxFQUFFLE9BQU8sR0FBRyxDQUFDLENBQUMsRUFBRSxLQUFLLG9CQUFxQixDQUFDO09BQ3BHO0tBQ0Y7Ozs7OztBQU1ELGNBQVUsRUFBRSxTQUFTLFVBQVUsR0FBRztBQUNoQyxVQUFJLENBQUMsSUFBSSxDQUFDLEtBQUssSUFBSSxDQUFDLElBQUksQ0FBQyxLQUFLLENBQUMsY0FBYyxJQUFJLENBQUMsSUFBSSxDQUFDLFVBQVUsRUFBRTtBQUNqRSxlQUFPO09BQ1I7O0FBRUQsVUFBTSxJQUFJLEdBQUcsSUFBSSxDQUFDLEtBQUssQ0FBQyxjQUFjLEVBQUUsQ0FBQztBQUN6QywwQkFBUSxHQUFHLENBQUMsSUFBSSxDQUFDLFVBQVUsRUFBRTtBQUMzQixpQkFBUyxFQUFFLElBQUk7T0FDaEIsQ0FBQyxDQUFDO0tBQ0o7Ozs7OztBQU1ELDZCQUF5QixFQUFFLFNBQVMseUJBQXlCLEdBQUc7QUFDOUQsVUFBTSxHQUFHLEdBQUcsbUJBQU8sWUFBWSxDQUFDLElBQUksQ0FBQyxvQkFBb0IsQ0FBQyxDQUFDO0FBQzNELGFBQU8sR0FBRyxDQUFDLENBQUMsQ0FBQztLQUNkOztBQUVELDJCQUF1QixFQUFFLFNBQVMsdUJBQXVCLEdBQUc7QUFDMUQsVUFBSSxDQUFDLFdBQVcsRUFBRSxDQUFDO0tBQ3BCO0FBQ0QsV0FBTyxFQUFFLFNBQVMsT0FBTyxHQUFHO0FBQzFCLFVBQUksQ0FBQyxXQUFXLEVBQUUsQ0FBQztLQUNwQjtBQUNELGlCQUFhLEVBQUUsU0FBUyxhQUFhLEdBQUc7QUFDdEMsYUFBTyxJQUFJLENBQUMsV0FBVyxFQUFFLENBQUM7S0FDM0I7Ozs7O0FBS0QsZUFBVyxFQUFFLFNBQVMsV0FBVyxHQUFHO0FBQ2xDLFVBQU0sS0FBSyxHQUFHLElBQUksQ0FBQyxNQUFNLElBQUksSUFBSSxDQUFDLE1BQU0sQ0FBQyxLQUFLLENBQUM7QUFDL0MsYUFBTyxLQUFLLENBQUM7S0FDZDs7Ozs7O0FBTUQsZUFBVyxFQUFFLFNBQVMsV0FBVyxHQUFHO0FBQ2xDLFVBQU0sS0FBSyxHQUFHLElBQUksQ0FBQyxHQUFHLENBQUMsT0FBTyxDQUFDLENBQUM7QUFDaEMsVUFBSSxJQUFJLENBQUMsS0FBSyxJQUFJLElBQUksQ0FBQyxLQUFLLENBQUMsT0FBTyxFQUFFO0FBQ3BDLFlBQUksQ0FBQyxLQUFLLENBQUMsT0FBTyxFQUFFLENBQUM7T0FDdEI7O0FBRUQsVUFBSSxDQUFDLGVBQWUsRUFBRSxDQUFDO0FBQ3ZCLFVBQUksQ0FBQyxZQUFZLEVBQUUsQ0FBQzs7QUFFcEIsVUFBSSxLQUFLLEVBQUU7QUFDVCxhQUFLLENBQUMsS0FBSyxDQUFDLElBQUksRUFBRTtBQUNoQixlQUFLLEVBQUUsQ0FBQztBQUNSLGVBQUssRUFBRSxJQUFJLENBQUMsU0FBUztTQUN0QixDQUFDLENBQUMsSUFBSSxDQUFDLENBQUEsU0FBUyxtQkFBbUIsQ0FBQyxJQUFJLEVBQUU7QUFDekMsY0FBSSxDQUFDLFdBQVcsQ0FBQyxJQUFJLENBQUMsQ0FBQztTQUN4QixDQUFBLENBQUMsSUFBSSxDQUFDLElBQUksQ0FBQyxFQUFFLFNBQVMsVUFBVSxDQUFDLENBQUMsRUFBRTtBQUNuQyxpQkFBTyxDQUFDLEtBQUssQ0FBQyxDQUFDLENBQUMsQ0FBQztTQUNsQixDQUFDLENBQUM7T0FDSjtLQUNGO0dBQ0YsQ0FBQyxDQUFDOztBQUVILG1CQUFLLFNBQVMsQ0FBQyw0Q0FBNEMsRUFBRSxPQUFPLENBQUMsQ0FBQzttQkFDdkQsT0FBTyIsImZpbGUiOiJzcmMvVmlld3MvQ2hhcnRzL19DaGFydE1peGluLmpzIiwic291cmNlUm9vdCI6InNyYyIsInNvdXJjZXNDb250ZW50IjpbImltcG9ydCBkZWNsYXJlIGZyb20gJ2Rvam8vX2Jhc2UvZGVjbGFyZSc7XHJcbmltcG9ydCBsYW5nIGZyb20gJ2Rvam8vX2Jhc2UvbGFuZyc7XHJcbmltcG9ydCBjb25uZWN0IGZyb20gJ2Rvam8vX2Jhc2UvY29ubmVjdCc7XHJcbmltcG9ydCBkb21HZW8gZnJvbSAnZG9qby9kb20tZ2VvbWV0cnknO1xyXG5pbXBvcnQgZG9tQXR0ciBmcm9tICdkb2pvL2RvbS1hdHRyJztcclxuaW1wb3J0IGhhcyBmcm9tICdkb2pvL2hhcyc7XHJcbmltcG9ydCBfUHVsbFRvUmVmcmVzaE1peGluIGZyb20gJ2FyZ29zL19QdWxsVG9SZWZyZXNoTWl4aW4nO1xyXG5pbXBvcnQgZ2V0UmVzb3VyY2UgZnJvbSAnYXJnb3MvSTE4bic7XHJcblxyXG5jb25zdCByZXNvdXJjZSA9IGdldFJlc291cmNlKCdjaGFydE1peGluJyk7XHJcblxyXG4vKipcclxuICogQGNsYXNzIGNybS5WaWV3cy5DaGFydHMuX0NoYXJ0TWl4aW5cclxuICpcclxuICogQG1peGlucyBhcmdvcy5fUHVsbFRvUmVmcmVzaE1peGluXHJcbiAqIEByZXF1aXJlcyBhcmdvcy5fUHVsbFRvUmVmcmVzaE1peGluXHJcbiAqXHJcbiAqIEJhc2UgbWl4aW4gZm9yIGNyZWF0aW5nIGNoYXJ0IHZpZXdzLlxyXG4gKlxyXG4gKi9cclxubGFuZy5zZXRPYmplY3QoJ0NoYXJ0LmRlZmF1bHRzLmdsb2JhbCcsIHtcclxuICAvLyBCb29sZWFuIC0gV2hldGhlciB0byBhbmltYXRlIHRoZSBjaGFydFxyXG4gIGFuaW1hdGlvbjogZmFsc2UsXHJcblxyXG4gIC8vIE51bWJlciAtIE51bWJlciBvZiBhbmltYXRpb24gc3RlcHNcclxuICBhbmltYXRpb25TdGVwczogNjAsXHJcblxyXG4gIC8vIFN0cmluZyAtIEFuaW1hdGlvbiBlYXNpbmcgZWZmZWN0XHJcbiAgYW5pbWF0aW9uRWFzaW5nOiAnZWFzZU91dFF1YXJ0JyxcclxuXHJcbiAgLy8gQm9vbGVhbiAtIElmIHdlIHNob3VsZCBzaG93IHRoZSBzY2FsZSBhdCBhbGxcclxuICBzaG93U2NhbGU6IHRydWUsXHJcblxyXG4gIC8vIEJvb2xlYW4gLSBJZiB3ZSB3YW50IHRvIG92ZXJyaWRlIHdpdGggYSBoYXJkIGNvZGVkIHNjYWxlXHJcbiAgc2NhbGVPdmVycmlkZTogZmFsc2UsXHJcblxyXG4gIC8vICoqIFJlcXVpcmVkIGlmIHNjYWxlT3ZlcnJpZGUgaXMgdHJ1ZSAqKlxyXG4gIC8vIE51bWJlciAtIFRoZSBudW1iZXIgb2Ygc3RlcHMgaW4gYSBoYXJkIGNvZGVkIHNjYWxlXHJcbiAgc2NhbGVTdGVwczogbnVsbCxcclxuICAvLyBOdW1iZXIgLSBUaGUgdmFsdWUganVtcCBpbiB0aGUgaGFyZCBjb2RlZCBzY2FsZVxyXG4gIHNjYWxlU3RlcFdpZHRoOiBudWxsLFxyXG4gIC8vIE51bWJlciAtIFRoZSBzY2FsZSBzdGFydGluZyB2YWx1ZVxyXG4gIHNjYWxlU3RhcnRWYWx1ZTogbnVsbCxcclxuXHJcbiAgLy8gU3RyaW5nIC0gQ29sb3VyIG9mIHRoZSBzY2FsZSBsaW5lXHJcbiAgc2NhbGVMaW5lQ29sb3I6ICdyZ2JhKDAsMCwwLC4xKScsXHJcblxyXG4gIC8vIE51bWJlciAtIFBpeGVsIHdpZHRoIG9mIHRoZSBzY2FsZSBsaW5lXHJcbiAgc2NhbGVMaW5lV2lkdGg6IDEsXHJcblxyXG4gIC8vIEJvb2xlYW4gLSBXaGV0aGVyIHRvIHNob3cgbGFiZWxzIG9uIHRoZSBzY2FsZVxyXG4gIHNjYWxlU2hvd0xhYmVsczogdHJ1ZSxcclxuXHJcbiAgLy8gSW50ZXJwb2xhdGVkIEpTIHN0cmluZyAtIGNhbiBhY2Nlc3MgdmFsdWVcclxuICBzY2FsZUxhYmVsOiAnPCU9dmFsdWUlPicsXHJcblxyXG4gIC8vIEJvb2xlYW4gLSBXaGV0aGVyIHRoZSBzY2FsZSBzaG91bGQgc3RpY2sgdG8gaW50ZWdlcnMsIG5vdCBmbG9hdHMgZXZlbiBpZiBkcmF3aW5nIHNwYWNlIGlzIHRoZXJlXHJcbiAgc2NhbGVJbnRlZ2Vyc09ubHk6IHRydWUsXHJcblxyXG4gIC8vIEJvb2xlYW4gLSBXaGV0aGVyIHRoZSBzY2FsZSBzaG91bGQgc3RhcnQgYXQgemVybywgb3IgYW4gb3JkZXIgb2YgbWFnbml0dWRlIGRvd24gZnJvbSB0aGUgbG93ZXN0IHZhbHVlXHJcbiAgc2NhbGVCZWdpbkF0WmVybzogZmFsc2UsXHJcblxyXG4gIC8vIFN0cmluZyAtIFNjYWxlIGxhYmVsIGZvbnQgZGVjbGFyYXRpb24gZm9yIHRoZSBzY2FsZSBsYWJlbFxyXG4gIHNjYWxlRm9udEZhbWlseTogXCInSGVsdmV0aWNhIE5ldWUnLCAnSGVsdmV0aWNhJywgJ0FyaWFsJywgc2Fucy1zZXJpZlwiLFxyXG5cclxuICAvLyBOdW1iZXIgLSBTY2FsZSBsYWJlbCBmb250IHNpemUgaW4gcGl4ZWxzXHJcbiAgc2NhbGVGb250U2l6ZTogMTIsXHJcblxyXG4gIC8vIFN0cmluZyAtIFNjYWxlIGxhYmVsIGZvbnQgd2VpZ2h0IHN0eWxlXHJcbiAgc2NhbGVGb250U3R5bGU6ICdub3JtYWwnLFxyXG5cclxuICAvLyBTdHJpbmcgLSBTY2FsZSBsYWJlbCBmb250IGNvbG91clxyXG4gIHNjYWxlRm9udENvbG9yOiAnIzY2NicsXHJcblxyXG4gIC8vIEJvb2xlYW4gLSB3aGV0aGVyIG9yIG5vdCB0aGUgY2hhcnQgc2hvdWxkIGJlIHJlc3BvbnNpdmUgYW5kIHJlc2l6ZSB3aGVuIHRoZSBicm93c2VyIGRvZXMuXHJcbiAgcmVzcG9uc2l2ZTogdHJ1ZSxcclxuXHJcbiAgLy8gQm9vbGVhbiAtIHdoZXRoZXIgdG8gbWFpbnRhaW4gdGhlIHN0YXJ0aW5nIGFzcGVjdCByYXRpbyBvciBub3Qgd2hlbiByZXNwb25zaXZlLCBpZiBzZXQgdG8gZmFsc2UsIHdpbGwgdGFrZSB1cCBlbnRpcmUgY29udGFpbmVyXHJcbiAgbWFpbnRhaW5Bc3BlY3RSYXRpbzogdHJ1ZSxcclxuXHJcbiAgLy8gQm9vbGVhbiAtIERldGVybWluZXMgd2hldGhlciB0byBkcmF3IHRvb2x0aXBzIG9uIHRoZSBjYW52YXMgb3Igbm90XHJcbiAgc2hvd1Rvb2x0aXBzOiB0cnVlLFxyXG5cclxuICAvLyBBcnJheSAtIEFycmF5IG9mIHN0cmluZyBuYW1lcyB0byBhdHRhY2ggdG9vbHRpcCBldmVudHNcclxuICB0b29sdGlwRXZlbnRzOiBbJ3RvdWNoc3RhcnQnLCAnY2xpY2snXSxcclxuXHJcbiAgLy8gU3RyaW5nIC0gVG9vbHRpcCBiYWNrZ3JvdW5kIGNvbG91clxyXG4gIHRvb2x0aXBGaWxsQ29sb3I6ICdyZ2JhKDAsMCwwLDAuOCknLFxyXG5cclxuICAvLyBTdHJpbmcgLSBUb29sdGlwIGxhYmVsIGZvbnQgZGVjbGFyYXRpb24gZm9yIHRoZSBzY2FsZSBsYWJlbFxyXG4gIHRvb2x0aXBGb250RmFtaWx5OiBcIidIZWx2ZXRpY2EnLCAnQXJpYWwnLCBTYW5zLXNlcmlmXCIsXHJcblxyXG4gIC8vIE51bWJlciAtIFRvb2x0aXAgbGFiZWwgZm9udCBzaXplIGluIHBpeGVsc1xyXG4gIHRvb2x0aXBGb250U2l6ZTogMTQsXHJcblxyXG4gIC8vIFN0cmluZyAtIFRvb2x0aXAgZm9udCB3ZWlnaHQgc3R5bGVcclxuICB0b29sdGlwRm9udFN0eWxlOiAnbm9ybWFsJyxcclxuXHJcbiAgLy8gU3RyaW5nIC0gVG9vbHRpcCBsYWJlbCBmb250IGNvbG91clxyXG4gIHRvb2x0aXBGb250Q29sb3I6ICcjZmZmJyxcclxuXHJcbiAgLy8gU3RyaW5nIC0gVG9vbHRpcCB0aXRsZSBmb250IGRlY2xhcmF0aW9uIGZvciB0aGUgc2NhbGUgbGFiZWxcclxuICB0b29sdGlwVGl0bGVGb250RmFtaWx5OiBcIidIZWx2ZXRpY2EgTmV1ZScsICdIZWx2ZXRpY2EnLCAnQXJpYWwnLCBzYW5zLXNlcmlmXCIsXHJcblxyXG4gIC8vIE51bWJlciAtIFRvb2x0aXAgdGl0bGUgZm9udCBzaXplIGluIHBpeGVsc1xyXG4gIHRvb2x0aXBUaXRsZUZvbnRTaXplOiAxNCxcclxuXHJcbiAgLy8gU3RyaW5nIC0gVG9vbHRpcCB0aXRsZSBmb250IHdlaWdodCBzdHlsZVxyXG4gIHRvb2x0aXBUaXRsZUZvbnRTdHlsZTogJ2JvbGQnLFxyXG5cclxuICAvLyBTdHJpbmcgLSBUb29sdGlwIHRpdGxlIGZvbnQgY29sb3VyXHJcbiAgdG9vbHRpcFRpdGxlRm9udENvbG9yOiAnI2ZmZicsXHJcblxyXG4gIC8vIE51bWJlciAtIHBpeGVsIHdpZHRoIG9mIHBhZGRpbmcgYXJvdW5kIHRvb2x0aXAgdGV4dFxyXG4gIHRvb2x0aXBZUGFkZGluZzogNixcclxuXHJcbiAgLy8gTnVtYmVyIC0gcGl4ZWwgd2lkdGggb2YgcGFkZGluZyBhcm91bmQgdG9vbHRpcCB0ZXh0XHJcbiAgdG9vbHRpcFhQYWRkaW5nOiA2LFxyXG5cclxuICAvLyBOdW1iZXIgLSBTaXplIG9mIHRoZSBjYXJldCBvbiB0aGUgdG9vbHRpcFxyXG4gIHRvb2x0aXBDYXJldFNpemU6IDgsXHJcblxyXG4gIC8vIE51bWJlciAtIFBpeGVsIHJhZGl1cyBvZiB0aGUgdG9vbHRpcCBib3JkZXJcclxuICB0b29sdGlwQ29ybmVyUmFkaXVzOiA2LFxyXG5cclxuICAvLyBOdW1iZXIgLSBQaXhlbCBvZmZzZXQgZnJvbSBwb2ludCB4IHRvIHRvb2x0aXAgZWRnZVxyXG4gIHRvb2x0aXBYT2Zmc2V0OiAxMCxcclxuXHJcbiAgLy8gdG9vbHRpcFRlbXBsYXRlIGNhbiBiZSBhIGZ1bmN0aW9uIGFzIHdlbGwgKG5vdCBpbiB0aGUgZG9jcywgc2VlIENoYXJ0LkNvcmUuanMgaW4gdGhlaXIgcmVwbylcclxuICB0b29sdGlwVGVtcGxhdGU6IGZ1bmN0aW9uIHRvb2x0aXBUZW1wbGF0ZSh2YWx1ZXNPYmplY3QpIHtcclxuICAgIC8vIFVzZSB0aGUgZm9ybWF0dGVyIG9uIHRoZSBjaGFydCB2aWV3LCBvdGhlcndpc2UgZGVmYXVsdCB0byBsYWJlbDogdmFsdWVcclxuICAgIGNvbnN0IHZpZXcgPSBBcHAuZ2V0UHJpbWFyeUFjdGl2ZVZpZXcoKTtcclxuICAgIGxldCByZXN1bHRzO1xyXG4gICAgaWYgKHZpZXcgJiYgdmlldy5mb3JtYXR0ZXIpIHtcclxuICAgICAgcmVzdWx0cyA9IHZpZXcuZm9ybWF0dGVyKHZhbHVlc09iamVjdC52YWx1ZSk7XHJcbiAgICB9IGVsc2Uge1xyXG4gICAgICByZXN1bHRzID0gdmFsdWVzT2JqZWN0LnZhbHVlO1xyXG4gICAgfVxyXG5cclxuICAgIHJldHVybiBbdmFsdWVzT2JqZWN0LmxhYmVsLCByZXN1bHRzXS5qb2luKCc6ICcpO1xyXG4gIH0sXHJcbiAgLy8gU3RyaW5nIC0gVGVtcGxhdGUgc3RyaW5nIGZvciBzaW5nbGUgdG9vbHRpcHNcclxuICBtdWx0aVRvb2x0aXBUZW1wbGF0ZTogJzwlPSB2YWx1ZSAlPicsXHJcblxyXG4gIC8vIEZ1bmN0aW9uIC0gV2lsbCBmaXJlIG9uIGFuaW1hdGlvbiBwcm9ncmVzc2lvbi5cclxuICBvbkFuaW1hdGlvblByb2dyZXNzOiBmdW5jdGlvbiBvbkFuaW1hdGlvblByb2dyZXNzKCkge30sXHJcblxyXG4gIC8vIEZ1bmN0aW9uIC0gV2lsbCBmaXJlIG9uIGFuaW1hdGlvbiBjb21wbGV0aW9uLlxyXG4gIG9uQW5pbWF0aW9uQ29tcGxldGU6IGZ1bmN0aW9uIG9uQW5pbWF0aW9uQ29tcGxldGUoKSB7fSxcclxufSk7XHJcblxyXG5jb25zdCBfX2NsYXNzID0gZGVjbGFyZSgnY3JtLlZpZXdzLkNoYXJ0cy5fQ2hhcnRNaXhpbicsIFtfUHVsbFRvUmVmcmVzaE1peGluXSwge1xyXG4gIF9oYW5kbGU6IG51bGwsXHJcbiAgX2ZlZWREYXRhOiBudWxsLFxyXG5cclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge051bWJlcn0gUkVOREVSX0RFTEFZXHJcbiAgICogTnVtYmVyIFRoZSByZS1yZW5kZXIgZGVsYXkgaW4gbWlsbGlzZWNvbmRzIHdoZW4gdGhlIHVzZXIgY2hhbmdlcyBkZXZpY2Ugb3JpZW50YXRpb24uXHJcbiAgICovXHJcbiAgUkVOREVSX0RFTEFZOiBoYXMoJ2lvcycpIDwgOCA/IDUwMCA6IDEsIC8vIFdvcmsgYXJvdW5kIElPUzcgb3JpZW50YXRpb24gY2hhbmdlIGlzc3Vlc1xyXG5cclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge09iamVjdH0gcGFyZW50XHJcbiAgICogUmVmZXJlbmNlIHRvIHRoZSBtZXRyaWMgd2lkZ2V0IHRoYXQgb3BlbmVkIHRoaXMgdmlldy5cclxuICAgKi9cclxuICBwYXJlbnQ6IG51bGwsXHJcblxyXG4gIGZvcm1hdHRlcjogZnVuY3Rpb24gZm9ybWF0dGVyKHZhbCkge1xyXG4gICAgcmV0dXJuIHZhbDtcclxuICB9LFxyXG5cclxuICBQQUdFX1NJWkU6IDEwMCxcclxuXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtTdHJpbmd9XHJcbiAgICogVGhlIGxvYWRpbmcgdGV4dCBmb250IHN0eWxlXHJcbiAgICovXHJcbiAgbG9hZGluZ0ZvbnQ6ICcjMDAwJyxcclxuXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtTdHJpbmd9XHJcbiAgICogTG9hZGluZyBtZXNzYWdlXHJcbiAgICovXHJcbiAgbG9hZGluZ1RleHQ6ICdsb2FkaW5nLi4uJyxcclxuXHJcbiAgLyoqXHJcbiAgICogT3ZlcnJpZGVzIFZpZXcgd2lkZ2V0VGVtcGxhdGVcclxuICAgKi9cclxuICB3aWRnZXRUZW1wbGF0ZTogbmV3IFNpbXBsYXRlKFtcclxuICAgICc8ZGl2IGlkPVwieyU9ICQuaWQgJX1cIiB0aXRsZT1cInslPSAkLnRpdGxlVGV4dCAlfVwiIGNsYXNzPVwibGlzdCBsaXN0LWhpZGUtc2VhcmNoIHslPSAkLmNscyAlfVwiPicsXHJcbiAgICAnPGRpdiBjbGFzcz1cIm92ZXJ0aHJvdyBzY3JvbGxlclwiIGRhdGEtZG9qby1hdHRhY2gtcG9pbnQ9XCJzY3JvbGxlck5vZGVcIj4nLFxyXG4gICAgJzxkaXYgY2xhc3M9XCJsZWdlbmRcIiBkYXRhLWRvam8tYXR0YWNoLXBvaW50PVwibGVnZW5kTm9kZVwiIGRhdGEtZG9qby1hdHRhY2gtZXZlbnQ9XCJjbGljazogb25MZWdlbmRDbGlja1wiPjwvZGl2PicsXHJcbiAgICAnPGNhbnZhcyBjbGFzcz1cImNoYXJ0LWNvbnRlbnRcIiBkYXRhLWRvam8tYXR0YWNoLXBvaW50PVwiY29udGVudE5vZGVcIj48L2NhbnZhcz4nLFxyXG4gICAgJzwvZGl2PicsXHJcbiAgICAnPC9kaXY+JyxcclxuICBdKSxcclxuXHJcbiAgcG9zdENyZWF0ZTogZnVuY3Rpb24gcG9zdENyZWF0ZSgpIHtcclxuICAgIHRoaXMuaW5pdFB1bGxUb1JlZnJlc2godGhpcy5zY3JvbGxlck5vZGUpO1xyXG4gIH0sXHJcbiAgb25UcmFuc2l0aW9uVG86IGZ1bmN0aW9uIG9uVHJhbnNpdGlvblRvKCkge1xyXG4gICAgdGhpcy5faGFuZGxlID0gY29ubmVjdC5zdWJzY3JpYmUoJy9hcHAvc2V0T3JpZW50YXRpb24nLCB0aGlzLCBmdW5jdGlvbiBvcmllbnRhdGlvbkNoYW5nZSgpIHtcclxuICAgICAgc2V0VGltZW91dChmdW5jdGlvbiBvblRpbWVPdXQoKSB7XHJcbiAgICAgICAgaWYgKHRoaXMuX2ZlZWREYXRhKSB7XHJcbiAgICAgICAgICB0aGlzLmNyZWF0ZUNoYXJ0KHRoaXMuX2ZlZWREYXRhKTtcclxuICAgICAgICB9XHJcbiAgICAgIH0uYmluZCh0aGlzKSwgdGhpcy5SRU5ERVJfREVMQVkpO1xyXG4gICAgfSk7XHJcbiAgfSxcclxuICBvblRyYW5zaXRpb25Bd2F5OiBmdW5jdGlvbiBvblRyYW5zaXRpb25Bd2F5KCkge1xyXG4gICAgY29ubmVjdC51bnN1YnNjcmliZSh0aGlzLl9oYW5kbGUpO1xyXG4gICAgdGhpcy5fZmVlZERhdGEgPSBudWxsO1xyXG4gICAgdGhpcy5wYXJlbnQgPSBudWxsO1xyXG5cclxuICAgIGlmICh0aGlzLmNoYXJ0ICYmIHRoaXMuY2hhcnQuZGVzdHJveSkge1xyXG4gICAgICB0aGlzLmNoYXJ0LmRlc3Ryb3koKTtcclxuICAgIH1cclxuICB9LFxyXG4gIF9zZXRDYW52YXNXaWR0aDogZnVuY3Rpb24gX3NldENhbnZhc1dpZHRoKCkge1xyXG4gICAgY29uc3QgYm94ID0gZG9tR2VvLmdldE1hcmdpbkJveCh0aGlzLmRvbU5vZGUpO1xyXG4gICAgaWYgKHRoaXMuY29udGVudE5vZGUpIHtcclxuICAgICAgdGhpcy5jb250ZW50Tm9kZS53aWR0aCA9IGJveC53O1xyXG4gICAgfVxyXG4gIH0sXHJcbiAgX2RyYXdMb2FkaW5nOiBmdW5jdGlvbiBfZHJhd0xvYWRpbmcoKSB7XHJcbiAgICBjb25zdCBub2RlID0gdGhpcy5jb250ZW50Tm9kZTtcclxuICAgIGNvbnN0IGdsb2JhbENvbmZpZyA9IHdpbmRvdy5DaGFydC5kZWZhdWx0cy5nbG9iYWw7XHJcbiAgICBjb25zdCBjb250ZXh0ID0gbm9kZSAmJiBub2RlLmdldENvbnRleHQgJiYgbm9kZS5nZXRDb250ZXh0KCcyZCcpO1xyXG5cclxuICAgIGlmICghY29udGV4dCkge1xyXG4gICAgICByZXR1cm47XHJcbiAgICB9XHJcblxyXG4gICAgY29udGV4dC5jbGVhclJlY3QoMCwgMCwgbm9kZS53aWR0aCwgbm9kZS5oZWlnaHQpO1xyXG5cclxuICAgIGNvbnN0IHRleHQgPSByZXNvdXJjZS5sb2FkaW5nVGV4dDtcclxuXHJcbiAgICBjb250ZXh0LmZpbGxTdHlsZSA9IHRoaXMubG9hZGluZ0ZvbnQ7XHJcbiAgICBjb250ZXh0LmZvbnQgPSBnbG9iYWxDb25maWcudG9vbHRpcEZvbnRTaXplICsgJ3B4ICcgKyBnbG9iYWxDb25maWcudG9vbHRpcEZvbnRGYW1pbHk7XHJcblxyXG4gICAgLy8gQ2VudGVyIHRoZSB0ZXh0XHJcbiAgICBjb25zdCBvZmZzZXQgPSBNYXRoLmZsb29yKGNvbnRleHQubWVhc3VyZVRleHQodGV4dCkud2lkdGggLyAyKTtcclxuICAgIGNvbnN0IHggPSBNYXRoLmZsb29yKG5vZGUud2lkdGggLyAyKSAtIG9mZnNldDtcclxuICAgIGNvbnN0IHkgPSAyMDsgLy8gcGFkZGluZ1xyXG4gICAgY29udGV4dC5maWxsVGV4dCh0ZXh0LCB4LCB5LCBub2RlLndpZHRoKTtcclxuICB9LFxyXG4gIGNyZWF0ZUNoYXJ0OiBmdW5jdGlvbiBjcmVhdGVDaGFydChmZWVkRGF0YSkge1xyXG4gICAgdGhpcy5fZmVlZERhdGEgPSBmZWVkRGF0YTtcclxuICB9LFxyXG4gIGdldFRhZzogZnVuY3Rpb24gZ2V0VGFnKCkge1xyXG4gICAgcmV0dXJuIHRoaXMub3B0aW9ucyAmJiB0aGlzLm9wdGlvbnMucmV0dXJuVG87XHJcbiAgfSxcclxuXHJcbiAgZ2V0U2VhcmNoRXhwcmVzc2lvbjogZnVuY3Rpb24gZ2V0U2VhcmNoRXhwcmVzc2lvbigpIHtcclxuICAgIHJldHVybiB0aGlzLm9wdGlvbnMgJiYgdGhpcy5vcHRpb25zLmN1cnJlbnRTZWFyY2hFeHByZXNzaW9uO1xyXG4gIH0sXHJcblxyXG4gIHNob3dTZWFyY2hFeHByZXNzaW9uOiBmdW5jdGlvbiBzaG93U2VhcmNoRXhwcmVzc2lvbigpIHtcclxuICAgIGNvbnN0IGFwcCA9IHRoaXMuYXBwIHx8IHdpbmRvdy5BcHA7XHJcbiAgICBhcHAuc2V0UHJpbWFyeVRpdGxlKFt0aGlzLnRpdGxlLCB0aGlzLmdldFNlYXJjaEV4cHJlc3Npb24oKV0uam9pbignOiAnKSk7XHJcbiAgfSxcclxuXHJcbiAgLyoqXHJcbiAgICogSGFuZGxlcyBjbGljayBldmVudHMgZm9yIHRoZSBsZWdlbmQgbm9kZS4gSGFuZGxlcyBvcGVuaW5nIHRoZSB0b29sdGlwcyBvbiB0aGUgY2hhcnRcclxuICAgKiB3aGVuIHRoZSBpdGVtIGluIHRoZSBsZWdlbmQgaXMgY2xpY2tlZC4gVGhlIGN1cnJlbnQgbGVnZW5kIGZvcm1hdCBpcyBhcyBmb2xsb3dzOlxyXG4gICAqIEBzaW5jZSAzLjNcclxuICAgKlxyXG4gICAqICAgIEBleGFtcGxlXHJcbiAgICogICAgYDxkaXYgY2xhc3M9XCJsZWdlbmRcIiBkYXRhLWRvam8tYXR0YWNoLXBvaW50PVwibGVnZW5kTm9kZVwiPlxyXG4gICAqICAgICAgICA8dWwgY2xhc3M9XCJkb3VnaG51dC1sZWdlbmRcIj5cclxuICAgKiAgICAgICAgICAgIDxsaSBkYXRhLXNlZ21lbnQ9XCIwXCI+PHNwYW4gc3R5bGU9XCJiYWNrZ3JvdW5kLWNvbG9yOiBzb21lQ29sb3JcIj48L3NwYW4+XHJcbiAgICogICAgICAgICAgICAgICAgVG9vbHRpcCBMYWJlbFxyXG4gICAqICAgICAgICAgICAgPC9saT5cclxuICAgKiAgICAgICAgPC91bD5cclxuICAgKiAgICA8L2Rpdj5gXHJcbiAgICovXHJcbiAgb25MZWdlbmRDbGljazogZnVuY3Rpb24gb25MZWdlbmRDbGljayhldnQpIHtcclxuICAgIGlmICghZXZ0IHx8ICFldnQuc3JjRWxlbWVudCB8fCBldnQuc3JjRWxlbWVudCA9PT0gdGhpcy5sZWdlbmROb2RlIHx8ICF0aGlzLmNoYXJ0KSB7XHJcbiAgICAgIHJldHVybjtcclxuICAgIH1cclxuXHJcbiAgICBjb25zdCBzcmMgPSBldnQuc3JjRWxlbWVudC50YWdOYW1lID09PSAnU1BBTicgPyBldnQuc3JjRWxlbWVudC5wYXJlbnRFbGVtZW50IDogZXZ0LnNyY0VsZW1lbnQ7XHJcbiAgICBjb25zdCBzZWdtZW50ID0gcGFyc2VJbnQoc3JjLmRhdGFzZXQuc2VnbWVudCwgMTApO1xyXG4gICAgaWYgKHNlZ21lbnQgPj0gMCAmJiB0aGlzLmNoYXJ0LnNob3dUb29sdGlwICYmIHRoaXMuY2hhcnQuc2VnbWVudHMpIHtcclxuICAgICAgdGhpcy5jaGFydC5zaG93VG9vbHRpcCh0aGlzLmNoYXJ0LnNlZ21lbnRzLnNsaWNlKHNlZ21lbnQsIHNlZ21lbnQgKyAxKSwgZmFsc2UgLyogcmUtZHJhdyBmbGFnICovICk7XHJcbiAgICB9XHJcbiAgfSxcclxuXHJcbiAgLyoqXHJcbiAgICogUmVuZGVyIGEgbGVnZW5kIGZyb20gdGhlIGNoYXJ0IGludG8gdGhlIGxlZ2VuZE5vZGUgYXR0YWNoIHBvaW50LlxyXG4gICAqIEBzaW5jZSAzLjNcclxuICAgKi9cclxuICBzaG93TGVnZW5kOiBmdW5jdGlvbiBzaG93TGVnZW5kKCkge1xyXG4gICAgaWYgKCF0aGlzLmNoYXJ0IHx8ICF0aGlzLmNoYXJ0LmdlbmVyYXRlTGVnZW5kIHx8ICF0aGlzLmxlZ2VuZE5vZGUpIHtcclxuICAgICAgcmV0dXJuO1xyXG4gICAgfVxyXG5cclxuICAgIGNvbnN0IGh0bWwgPSB0aGlzLmNoYXJ0LmdlbmVyYXRlTGVnZW5kKCk7XHJcbiAgICBkb21BdHRyLnNldCh0aGlzLmxlZ2VuZE5vZGUsIHtcclxuICAgICAgaW5uZXJIVE1MOiBodG1sLFxyXG4gICAgfSk7XHJcbiAgfSxcclxuXHJcbiAgLyoqXHJcbiAgICogQGRlcHJlY2F0ZWQgMy4zXHJcbiAgICogQ2hhcnRzIGluIDMuMyBubyBsb25nZXIgdXNlIHRoZSBzZWFyY2ggZXhwcmVzc2lvbiBub2RlLlxyXG4gICAqL1xyXG4gIGdldFNlYXJjaEV4cHJlc3Npb25IZWlnaHQ6IGZ1bmN0aW9uIGdldFNlYXJjaEV4cHJlc3Npb25IZWlnaHQoKSB7XHJcbiAgICBjb25zdCBib3ggPSBkb21HZW8uZ2V0TWFyZ2luQm94KHRoaXMuc2VhcmNoRXhwcmVzc2lvbk5vZGUpO1xyXG4gICAgcmV0dXJuIGJveC5oO1xyXG4gIH0sXHJcblxyXG4gIG9uUHVsbFRvUmVmcmVzaENvbXBsZXRlOiBmdW5jdGlvbiBvblB1bGxUb1JlZnJlc2hDb21wbGV0ZSgpIHtcclxuICAgIHRoaXMucmVxdWVzdERhdGEoKTtcclxuICB9LFxyXG4gIHJlZnJlc2g6IGZ1bmN0aW9uIHJlZnJlc2goKSB7XHJcbiAgICB0aGlzLnJlcXVlc3REYXRhKCk7XHJcbiAgfSxcclxuICBfZ2V0U3RvcmVBdHRyOiBmdW5jdGlvbiBfZ2V0U3RvcmVBdHRyKCkge1xyXG4gICAgcmV0dXJuIHRoaXMuY3JlYXRlU3RvcmUoKTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIFJldHVybiBhIHN0b3JlIHRoYXQgaXMgY29uc3VtZWQgYnkgcmVxdWVzdERhdGEuXHJcbiAgICogQHNpbmNlIDMuM1xyXG4gICAqL1xyXG4gIGNyZWF0ZVN0b3JlOiBmdW5jdGlvbiBjcmVhdGVTdG9yZSgpIHtcclxuICAgIGNvbnN0IHN0b3JlID0gdGhpcy5wYXJlbnQgJiYgdGhpcy5wYXJlbnQuc3RvcmU7XHJcbiAgICByZXR1cm4gc3RvcmU7XHJcbiAgfSxcclxuXHJcbiAgLyoqXHJcbiAgICogT3ZlcnJpZGVzIF9MaXN0QmFzZSByZXF1ZXN0RGF0YSB0byByZS1yZW5kZXIgdGhlIGNoYXJ0IG9uIHB1bGwgdG8gcmVmcmVzaC5cclxuICAgKiBAc2luY2UgMy4zXHJcbiAgICovXHJcbiAgcmVxdWVzdERhdGE6IGZ1bmN0aW9uIHJlcXVlc3REYXRhKCkge1xyXG4gICAgY29uc3Qgc3RvcmUgPSB0aGlzLmdldCgnc3RvcmUnKTtcclxuICAgIGlmICh0aGlzLmNoYXJ0ICYmIHRoaXMuY2hhcnQuZGVzdHJveSkge1xyXG4gICAgICB0aGlzLmNoYXJ0LmRlc3Ryb3koKTtcclxuICAgIH1cclxuXHJcbiAgICB0aGlzLl9zZXRDYW52YXNXaWR0aCgpO1xyXG4gICAgdGhpcy5fZHJhd0xvYWRpbmcoKTtcclxuXHJcbiAgICBpZiAoc3RvcmUpIHtcclxuICAgICAgc3RvcmUucXVlcnkobnVsbCwge1xyXG4gICAgICAgIHN0YXJ0OiAwLFxyXG4gICAgICAgIGNvdW50OiB0aGlzLlBBR0VfU0laRSxcclxuICAgICAgfSkudGhlbihmdW5jdGlvbiBjcmVhdGVDaGFydFdpdGhEYXRhKGRhdGEpIHtcclxuICAgICAgICB0aGlzLmNyZWF0ZUNoYXJ0KGRhdGEpO1xyXG4gICAgICB9LmJpbmQodGhpcyksIGZ1bmN0aW9uIHF1ZXJ5RXJyb3IoZSkge1xyXG4gICAgICAgIGNvbnNvbGUuZXJyb3IoZSk7IC8vIGVzbGludC1kaXNhYmxlLWxpbmVcclxuICAgICAgfSk7XHJcbiAgICB9XHJcbiAgfSxcclxufSk7XHJcblxyXG5sYW5nLnNldE9iamVjdCgnTW9iaWxlLlNhbGVzTG9naXguVmlld3MuQ2hhcnRzLl9DaGFydE1peGluJywgX19jbGFzcyk7XHJcbmV4cG9ydCBkZWZhdWx0IF9fY2xhc3M7XHJcbiJdfQ==
 </pre>
 </body>
 </html>

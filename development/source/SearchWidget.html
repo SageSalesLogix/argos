@@ -15,315 +15,323 @@
   </script>
 </head>
 <body onload="prettyPrint(); highlight();">
-  <pre class="prettyprint lang-js">/* Copyright (c) 2010, Sage Software, Inc. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+  <pre class="prettyprint lang-js">define('argos/SearchWidget', ['exports', 'module', 'dojo/_base/declare', 'dojo/_base/lang', 'dojo/_base/event', 'dojo/string', 'dojo/dom-class', 'dijit/_Widget', './_Templated', './I18n'], function (exports, module, _dojo_baseDeclare, _dojo_baseLang, _dojo_baseEvent, _dojoString, _dojoDomClass, _dijit_Widget, _Templated2, _I18n) {
+  function _interopRequireDefault(obj) { return obj &amp;&amp; obj.__esModule ? obj : { 'default': obj }; }
 
-<span id='argos-SearchWidget'>/**
-</span> * @class argos.SearchWidget
- * Search Widget is an SData-enabled search component that {@link List List} uses by default for search.
- *
- * The search widget is a dijit Widget with all the Widget aspects.
- *
- * It supports two types of shortcuts:
- *
- * 1\. `#text` - The key `text` will be replaced with the matching expression. This is a &quot;hashtag&quot;.
+  /* Copyright (c) 2010, Sage Software, Inc. All rights reserved.
+   *
+   * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   * you may not use this file except in compliance with the License.
+   * You may obtain a copy of the License at
+   *
+   *     http://www.apache.org/licenses/LICENSE-2.0
+   *
+   * Unless required by applicable law or agreed to in writing, software
+   * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   * See the License for the specific language governing permissions and
+   * limitations under the License.
+   */
 
- * 2\. `#!Name eq 'John'` - The `Name eq 'John'` will be inserted directly, avoiding {@link List#formatSearchQuery formatSearchQuery}. This is a &quot;custom expression&quot;.
- *
- * Multiple hashtags is supported as well as hashtags with additional text that gets sent through {@link List#formatSearchQuery formatSearchQuery}.
- *
- * To go through a full example, take this expression:
- * `#open #urgent Bob`
- *
- * `#open` is replaced with: `TicketStatus eq 1`
- *
- * `#urgent` is replaced with: `TicketUrgency gt 3`
- *
- * `Bob` is passed to `formatSearchQuery` which returns `TicketId eq (&quot;Bob&quot;) or TicketOwner like &quot;Bob&quot;
- *
- * The final result is &quot;anded&quot; together, resulting in this final where clause:
- * `where=(TicketStatus eq 1) and (TicketUrgency gt 3) and (TicketId eq (&quot;Bob&quot;) or TicketOwner like &quot;Bob&quot;)
- *
- * See the [Defining Hash Tags guide](#!/guides/v2_beyond_the_guide_defining_hashtags) for more information and how it supports localization.
- * @alternateClassName SearchWidget
- * @mixins argos._Templated
- */
-define('argos/SearchWidget', [
-    'dojo/_base/declare',
-    'dojo/_base/lang',
-    'dojo/_base/event',
-    'dojo/string',
-    'dojo/dom-class',
-    'dijit/_Widget',
-    './_Templated'
-], function(
-    declare,
-    lang,
-    event,
-    string,
-    domClass,
-    _Widget,
-    _Templated
-) {
-    var __class = declare('argos.SearchWidget', [_Widget, _Templated], {
-<span id='argos-SearchWidget-property-attributeMap'>        /**
-</span>         * @property {Object}
-         * Provides a setter for HTML node attributes, namely the value for search text
-         */
-        attributeMap: {
-            queryValue: { node: 'queryNode', type: 'attribute', attribute: 'value' }
-        },
+  var _declare = _interopRequireDefault(_dojo_baseDeclare);
 
-<span id='argos-SearchWidget-property-enableButtons'>        /**
-</span>         * @property {Boolean}
-         * Flag to enable the clear and search buttons.
-         */
-        enableButtons: false,
+  var _lang = _interopRequireDefault(_dojo_baseLang);
 
-<span id='argos-SearchWidget-property-widgetTemplate'>        /**
-</span>         * @property {Simplate}
-         * Simple that defines the HTML Markup
-         */
-        widgetTemplate: new Simplate([
-            '&lt;div class=&quot;search-widget&quot;&gt;',
-                '&lt;div class=&quot;table-layout&quot;&gt;',
-                    '&lt;div&gt;&lt;input type=&quot;text&quot; placeholder=&quot;{%= $.searchText %}&quot; name=&quot;query&quot; class=&quot;query&quot; autocorrect=&quot;off&quot; autocapitalize=&quot;off&quot; data-dojo-attach-point=&quot;queryNode&quot; data-dojo-attach-event=&quot;onfocus:_onFocus,onblur:_onBlur,onkeypress:_onKeyPress, onmouseup: _onMouseUp&quot; /&gt;&lt;/div&gt;',
+  var _event = _interopRequireDefault(_dojo_baseEvent);
 
-                    '{% if ($.enableButtons) { %}',
-                        '&lt;div class=&quot;hasButton&quot;&gt;&lt;button class=&quot;clear-button&quot; tabindex=&quot;-1&quot; data-dojo-attach-event=&quot;onclick: _onClearClick&quot;&gt;&lt;/button&gt;&lt;/div&gt;',
-                        '&lt;div class=&quot;hasButton&quot;&gt;&lt;button class=&quot;subHeaderButton searchButton&quot; data-dojo-attach-event=&quot;click: search&quot;&gt;{%= $.searchText %}&lt;/button&gt;&lt;/div&gt;',
-                    '{% } %}',
+  var _string = _interopRequireDefault(_dojoString);
 
-                '&lt;/div&gt;',
-            '&lt;/div&gt;'
-        ]),
+  var _domClass = _interopRequireDefault(_dojoDomClass);
 
-<span id='argos-SearchWidget-property-searchText'>        /**
-</span>         * @property {String}
-         * Text that is used when no value is in the search box - &quot;placeholder&quot; text.
-         */
-        searchText: 'Search',
+  var _Widget2 = _interopRequireDefault(_dijit_Widget);
 
-<span id='argos-SearchWidget-property-customSearchRE'>        /**
-</span>         * @property {RegExp}
-         * The regular expression used to determine if a search query is a custom search expression.  A custom search
-         * expression is not processed, and directly passed to SData.
-         */
-        customSearchRE: /^#!/,
-<span id='argos-SearchWidget-property-hashTagSearchRE'>        /**
-</span>         * @type {RegExp}
-         * The regular expression used to determine if a search query is a hash tag search.
-         */
-        hashTagSearchRE: /(?:#|;|,|\.)([^\s]+)/g,
-<span id='argos-SearchWidget-property-hashTagQueries'>        /**
-</span>         * @property {Object[]}
-         * Array of hash tag definitions
-         */
-        hashTagQueries: null,
-<span id='argos-SearchWidget-property-queryNode'>        /**
-</span>         * Dojo attach point to the search input
-         */
-        queryNode: null,
+  var _Templated3 = _interopRequireDefault(_Templated2);
 
-<span id='argos-SearchWidget-method-clear'>        /**
-</span>         * Sets search text to empty and removes active styling
-         */
-        clear: function() {
-            domClass.remove(this.domNode, 'search-active');
-            this.set('queryValue', '');
-        },
-<span id='argos-SearchWidget-method-search'>        /**
-</span>         * This function is invoked from the search button and it:
-         *
-         * * Gathers the inputted search text
-         * * Determines if its a custom expression, hash tag, or normal search
-         * * Calls the appropriate handler
-         * * Fires the {@link #onSearchExpression onSearchExpression} event which {@link List#_onSearchExpression listens to}.
-         */
-        search: function() {
-            var formattedQuery;
-            formattedQuery = this.getFormattedSearchQuery();
-            this.onSearchExpression(formattedQuery, this);
-        },
-<span id='argos-SearchWidget-method-customSearch'>        /**
-</span>         * Returns an unmodified search query which allows a user
-         * to type in their own where clause
-         * @param {String} query Value of search box
-         * @returns {String} query Unformatted query
-         */
-        customSearch: function(query) {
-            this.customSearchRE.lastIndex = 0;
-            query = query.replace(this.customSearchRE, '');
-            return query;
-        },
-<span id='argos-SearchWidget-method-hashTagSearch'>        /**
-</span>         * Returns the search query based on a hash selector
-         * Any hash tags in the search are replaced by predefined search statements
-         * Remaining text not preceded by a hash will receive
-         * that views normal search formatting
-         * @param {String} query Value of search box
-         * @returns {String} query Hash resolved query
-         */
-        hashTagSearch: function(query) {
-            var hashLayout = this.hashTagQueries || [],
-                hashQueries = [],
-                match,
-                hashTag,
-                i,
-                hashQueryExpression,
-                additionalSearch = query;
+  var _getResource = _interopRequireDefault(_I18n);
 
-            this.hashTagSearchRE.lastIndex = 0;
+  var resource = (0, _getResource['default'])('searchWidget');
 
-            while ((match = this.hashTagSearchRE.exec(query))) {
-                hashTag = match[1];
-                hashQueryExpression = null;
+<span id='argos-SearchWidget'>  /**
+</span>   * @class argos.SearchWidget
+   * Search Widget is an SData-enabled search component that {@link List List} uses by default for search.
+   *
+   * The search widget is a dijit Widget with all the Widget aspects.
+   *
+   * It supports two types of shortcuts:
+   *
+   * 1\. `#text` - The key `text` will be replaced with the matching expression. This is a &quot;hashtag&quot;.
+  
+   * 2\. `#!Name eq 'John'` - The `Name eq 'John'` will be inserted directly, avoiding {@link List#formatSearchQuery formatSearchQuery}. This is a &quot;custom expression&quot;.
+   *
+   * Multiple hashtags is supported as well as hashtags with additional text that gets sent through {@link List#formatSearchQuery formatSearchQuery}.
+   *
+   * To go through a full example, take this expression:
+   * `#open #urgent Bob`
+   *
+   * `#open` is replaced with: `TicketStatus eq 1`
+   *
+   * `#urgent` is replaced with: `TicketUrgency gt 3`
+   *
+   * `Bob` is passed to `formatSearchQuery` which returns `TicketId eq (&quot;Bob&quot;) or TicketOwner like &quot;Bob&quot;
+   *
+   * The final result is &quot;anded&quot; together, resulting in this final where clause:
+   * `where=(TicketStatus eq 1) and (TicketUrgency gt 3) and (TicketId eq (&quot;Bob&quot;) or TicketOwner like &quot;Bob&quot;)
+   *
+   * See the [Defining Hash Tags guide](#!/guides/v2_beyond_the_guide_defining_hashtags) for more information and how it supports localization.
+   * @alternateClassName SearchWidget
+   * @mixins argos._Templated
+   */
+  var __class = (0, _declare['default'])('argos.SearchWidget', [_Widget2['default'], _Templated3['default']], {
+<span id='argos-SearchWidget-property-attributeMap'>    /**
+</span>     * @property {Object}
+     * Provides a setter for HTML node attributes, namely the value for search text
+     */
+    attributeMap: {
+      queryValue: {
+        node: 'queryNode',
+        type: 'attribute',
+        attribute: 'value'
+      }
+    },
 
-                // todo: can optimize later if necessary
-                for (i = 0; i &lt; hashLayout.length &amp;&amp; !hashQueryExpression; i++) {
-                    if (hashLayout[i].tag === hashTag) {
-                        hashQueryExpression = hashLayout[i].query;
-                    }
-                }
+<span id='argos-SearchWidget-property-enableButtons'>    /**
+</span>     * @property {Boolean}
+     * Flag to enable the clear and search buttons.
+     */
+    enableButtons: false,
 
-                if (!hashQueryExpression) {
-                    continue;
-                }
+<span id='argos-SearchWidget-property-widgetTemplate'>    /**
+</span>     * @property {Simplate}
+     * Simple that defines the HTML Markup
+     */
+    widgetTemplate: new Simplate(['&lt;div class=&quot;search-widget&quot;&gt;', '&lt;div class=&quot;table-layout&quot;&gt;', '&lt;div&gt;&lt;input type=&quot;text&quot; placeholder=&quot;{%= $.searchText %}&quot; name=&quot;query&quot; class=&quot;query&quot; autocorrect=&quot;off&quot; autocapitalize=&quot;off&quot; data-dojo-attach-point=&quot;queryNode&quot; data-dojo-attach-event=&quot;onfocus:_onFocus,onblur:_onBlur,onkeypress:_onKeyPress, onmouseup: _onMouseUp&quot; /&gt;&lt;/div&gt;', '{% if ($.enableButtons) { %}', '&lt;div class=&quot;hasButton&quot;&gt;&lt;button class=&quot;clear-button&quot; tabindex=&quot;-1&quot; data-dojo-attach-event=&quot;onclick: _onClearClick&quot;&gt;&lt;/button&gt;&lt;/div&gt;', '&lt;div class=&quot;hasButton&quot;&gt;&lt;button class=&quot;subHeaderButton searchButton&quot; data-dojo-attach-event=&quot;click: search&quot;&gt;{%= $.searchText %}&lt;/button&gt;&lt;/div&gt;', '{% } %}', '&lt;/div&gt;', '&lt;/div&gt;']),
 
-                hashQueries.push(this.expandExpression(hashQueryExpression));
-                additionalSearch = additionalSearch.replace(match[0], '');
-            }
+<span id='argos-SearchWidget-property-searchText'>    /**
+</span>     * @property {String}
+     * Text that is used when no value is in the search box - &quot;placeholder&quot; text.
+     */
+    searchText: resource.searchText,
 
-            if (hashQueries.length &lt; 1) {
-                return this.formatSearchQuery(query);
-            }
+<span id='argos-SearchWidget-property-customSearchRE'>    /**
+</span>     * @property {RegExp}
+     * The regular expression used to determine if a search query is a custom search expression.  A custom search
+     * expression is not processed, and directly passed to SData.
+     */
+    customSearchRE: /^#!/,
+<span id='argos-SearchWidget-property-hashTagSearchRE'>    /**
+</span>     * @type {RegExp}
+     * The regular expression used to determine if a search query is a hash tag search.
+     */
+    hashTagSearchRE: /(?:#|;|,|\.)([^\s]+)/g,
+<span id='argos-SearchWidget-property-hashTagQueries'>    /**
+</span>     * @property {Object[]}
+     * Array of hash tag definitions
+     */
+    hashTagQueries: null,
+<span id='argos-SearchWidget-property-queryNode'>    /**
+</span>     * Dojo attach point to the search input
+     */
+    queryNode: null,
 
-            query = string.substitute('(${0})', [hashQueries.join(') and (')]);
+<span id='argos-SearchWidget-method-clear'>    /**
+</span>     * Sets search text to empty and removes active styling
+     */
+    clear: function clear() {
+      _domClass['default'].remove(this.domNode, 'search-active');
+      this.set('queryValue', '');
+    },
+<span id='argos-SearchWidget-method-search'>    /**
+</span>     * This function is invoked from the search button and it:
+     *
+     * * Gathers the inputted search text
+     * * Determines if its a custom expression, hash tag, or normal search
+     * * Calls the appropriate handler
+     * * Fires the {@link #onSearchExpression onSearchExpression} event which {@link List#_onSearchExpression listens to}.
+     */
+    search: function search() {
+      var formattedQuery = this.getFormattedSearchQuery();
+      this.onSearchExpression(formattedQuery, this);
+    },
+<span id='argos-SearchWidget-method-customSearch'>    /**
+</span>     * Returns an unmodified search query which allows a user
+     * to type in their own where clause
+     * @param {String} query Value of search box
+     * @returns {String} query Unformatted query
+     */
+    customSearch: function customSearch(queryValue) {
+      this.customSearchRE.lastIndex = 0;
+      var query = queryValue.replace(this.customSearchRE, '');
+      return query;
+    },
+<span id='argos-SearchWidget-method-hashTagSearch'>    /**
+</span>     * Returns the search query based on a hash selector
+     * Any hash tags in the search are replaced by predefined search statements
+     * Remaining text not preceded by a hash will receive
+     * that views normal search formatting
+     * @param {String} query Value of search box
+     * @returns {String} query Hash resolved query
+     */
+    hashTagSearch: function hashTagSearch(query) {
+      var hashLayout = this.hashTagQueries || [];
+      var hashQueries = [];
+      var additionalSearch = query;
 
-            additionalSearch = additionalSearch.replace(/^\s+|\s+$/g, '');
+      this.hashTagSearchRE.lastIndex = 0;
+      var newQuery = query;
+      var match = undefined;
 
-            if (additionalSearch) {
-                query += string.substitute(' and (${0})', [this.formatSearchQuery(additionalSearch)]);
-            }
+      while (match = this.hashTagSearchRE.exec(newQuery)) {
+        var hashQueryExpression = null;
+        var hashTag = match[1];
 
-            return query;
-        },
-<span id='argos-SearchWidget-method-configure'>        /**
-</span>         * Configure allows the controller List view to overwrite properties as the passed object will be mixed in.
-         * @param {Object} options Properties to be mixed into Search Widget
-         */
-        configure: function(options) {
-            // todo: for now, we simply mixin the options
-            lang.mixin(this, options);
-        },
-<span id='argos-SearchWidget-method-expandExpression'>        /**
-</span>         * Expands the passed expression if it is a function.
-         * @param {String/Function} expression Returns string directly, if function it is called and the result returned.
-         * @return {String} String expression.
-         */
-        expandExpression: function(expression) {
-            if (typeof expression === 'function') {
-                return expression.apply(this, Array.prototype.slice.call(arguments, 1));
-            } else {
-                return expression;
-            }
-        },
-<span id='argos-SearchWidget-method-_onClearClick'>        /**
-</span>         * Clears the search input text and attempts to re-open the keyboard
-         * @param {Event} evt Click event
-         */
-        _onClearClick: function(evt) {
-            event.stop(evt);
-            this.clear();
-            this.queryNode.focus();
-            this.queryNode.click();
-        },
-<span id='argos-SearchWidget-method-_onBlur'>        /**
-</span>         * Tests to see if the search input is empty and toggles the active styling
-         */
-        _onBlur: function() {
-            domClass.toggle(this.domNode, 'search-active', !!this.queryNode.value);
-        },
-<span id='argos-SearchWidget-method-_onFocus'>        /**
-</span>         * Adds the search active styling
-         */
-        _onFocus: function() {
-            domClass.add(this.domNode, 'search-active');
-        },
-        _onMouseUp: function() {
-            // Work around a chrome issue where mouseup after a focus will de-select the text
-            setTimeout(function() {
-                this.queryNode.setSelectionRange(0, 9999);
-            }.bind(this), 50);
-        },
-<span id='argos-SearchWidget-method-_onKeyPress'>        /**
-</span>         * Detects the enter/return key and fires {@link #search search}
-         * @param {Event} evt Key press event
-         */
-        _onKeyPress: function(evt) {
-            if (evt.keyCode === 13 || evt.keyCode === 10) {
-                event.stop(evt);
-                this.queryNode.blur();
-                this.search();
-            }
-        },
-<span id='argos-SearchWidget-method-onSearchExpression'>        /**
-</span>         * The event that fires when the search widget provides a search query.
-         * Listened to by the controlling {@link List#_onSearchExpression List View}
-         * @param expression
-         * @param widget
-         */
-        onSearchExpression: function(expression, widget) {
-
-        },
-<span id='argos-SearchWidget-method-getFormattedSearchQuery'>        /**
-</span>        * Gets the current search expression as a formatted query.
-        * * Gathers the inputted search text
-        * * Determines if its a custom expression, hash tag, or normal search
-        */
-        getFormattedSearchQuery: function() {
-            var searchQuery = this.getSearchExpression(),
-                formattedQuery,
-                isCustomMatch = searchQuery &amp;&amp; this.customSearchRE.test(searchQuery),
-                isHashTagMatch = searchQuery &amp;&amp; this.hashTagSearchRE.test(searchQuery);
-
-            switch (true) {
-                case isCustomMatch: formattedQuery = this.customSearch(searchQuery);
-                    break;
-                case isHashTagMatch: formattedQuery = this.hashTagSearch(searchQuery);
-                    break;
-                default: formattedQuery = this.formatSearchQuery(searchQuery);
-            }
-
-            if (lang.trim(searchQuery) === '') {
-                formattedQuery = null;
-            }
-            return formattedQuery;
-        },
-<span id='argos-SearchWidget-method-getSearchExpression'>        /**
-</span>       * Gets the current search expression.
-       * * Gathers the inputted search text
-       */
-        getSearchExpression: function() {
-            return this.queryNode.value;
+        // todo: can optimize later if necessary
+        for (var i = 0; i &lt; hashLayout.length &amp;&amp; !hashQueryExpression; i++) {
+          if (hashLayout[i].tag === hashTag) {
+            hashQueryExpression = hashLayout[i].query;
+          }
         }
-    });
 
-    lang.setObject('Sage.Platform.Mobile.SearchWidget', __class);
-    return __class;
+        if (!hashQueryExpression) {
+          continue;
+        }
+
+        hashQueries.push(this.expandExpression(hashQueryExpression));
+        additionalSearch = additionalSearch.replace(match[0], '');
+      }
+
+      if (hashQueries.length &lt; 1) {
+        return this.formatSearchQuery(query);
+      }
+
+      newQuery = _string['default'].substitute('(${0})', [hashQueries.join(') and (')]);
+
+      additionalSearch = additionalSearch.replace(/^\s+|\s+$/g, '');
+
+      if (additionalSearch) {
+        newQuery += _string['default'].substitute(' and (${0})', [this.formatSearchQuery(additionalSearch)]);
+      }
+
+      return newQuery;
+    },
+<span id='argos-SearchWidget-method-configure'>    /**
+</span>     * Configure allows the controller List view to overwrite properties as the passed object will be mixed in.
+     * @param {Object} options Properties to be mixed into Search Widget
+     */
+    configure: function configure(options) {
+      // todo: for now, we simply mixin the options
+      _lang['default'].mixin(this, options);
+    },
+<span id='argos-SearchWidget-method-expandExpression'>    /**
+</span>     * Expands the passed expression if it is a function.
+     * @param {String/Function} expression Returns string directly, if function it is called and the result returned.
+     * @return {String} String expression.
+     */
+    expandExpression: function expandExpression(expression) {
+      if (typeof expression === 'function') {
+        return expression.apply(this, Array.prototype.slice.call(arguments, 1));
+      }
+
+      return expression;
+    },
+<span id='argos-SearchWidget-method-_onClearClick'>    /**
+</span>     * Clears the search input text and attempts to re-open the keyboard
+     * @param {Event} evt Click event
+     */
+    _onClearClick: function _onClearClick(evt) {
+      _event['default'].stop(evt);
+      this.clear();
+      this.queryNode.focus();
+      this.queryNode.click();
+    },
+<span id='argos-SearchWidget-method-_onBlur'>    /**
+</span>     * Tests to see if the search input is empty and toggles the active styling
+     */
+    _onBlur: function _onBlur() {
+      _domClass['default'].toggle(this.domNode, 'search-active', !!this.queryNode.value);
+    },
+<span id='argos-SearchWidget-method-_onFocus'>    /**
+</span>     * Adds the search active styling
+     */
+    _onFocus: function _onFocus() {
+      _domClass['default'].add(this.domNode, 'search-active');
+    },
+    _onMouseUp: function _onMouseUp() {
+      // Work around a chrome issue where mouseup after a focus will de-select the text
+      setTimeout((function timeOut() {
+        this.queryNode.setSelectionRange(0, 9999);
+      }).bind(this), 50);
+    },
+<span id='argos-SearchWidget-method-_onKeyPress'>    /**
+</span>     * Detects the enter/return key and fires {@link #search search}
+     * @param {Event} evt Key press event
+     */
+    _onKeyPress: function _onKeyPress(evt) {
+      if (evt.keyCode === 13 || evt.keyCode === 10) {
+        _event['default'].stop(evt);
+        this.queryNode.blur();
+        this.search();
+      }
+    },
+<span id='argos-SearchWidget-method-onSearchExpression'>    /**
+</span>     * The event that fires when the search widget provides a search query.
+     * Listened to by the controlling {@link List#_onSearchExpression List View}
+     * @param expression
+     * @param widget
+     */
+    onSearchExpression: function onSearchExpression() /*expression, widget*/{},
+<span id='argos-SearchWidget-method-getFormattedSearchQuery'>    /**
+</span>     * Gets the current search expression as a formatted query.
+     * * Gathers the inputted search text
+     * * Determines if its a custom expression, hash tag, or normal search
+     */
+    getFormattedSearchQuery: function getFormattedSearchQuery() {
+      var searchQuery = this.getSearchExpression();
+      var isCustomMatch = searchQuery &amp;&amp; this.customSearchRE.test(searchQuery);
+      var isHashTagMatch = searchQuery &amp;&amp; this.hashTagSearchRE.test(searchQuery);
+
+      var formattedQuery = undefined;
+
+      switch (true) {
+        case isCustomMatch:
+          formattedQuery = this.customSearch(searchQuery);
+          break;
+        case isHashTagMatch:
+          formattedQuery = this.hashTagSearch(searchQuery);
+          break;
+        default:
+          formattedQuery = this.formatSearchQuery(searchQuery);
+      }
+
+      if (_lang['default'].trim(searchQuery) === '') {
+        formattedQuery = null;
+      }
+      return formattedQuery;
+    },
+<span id='argos-SearchWidget-method-getSearchExpression'>    /**
+</span>     * Gets the current search expression.
+     * * Gathers the inputted search text
+     */
+    getSearchExpression: function getSearchExpression() {
+      return this.queryNode.value;
+    },
+    disable: function disable() {
+      if (this.queryNode) {
+        this.queryNode.disabled = true;
+        _domClass['default'].add(this.domNode, 'disabled');
+      }
+    },
+    enable: function enable() {
+      if (this.queryNode) {
+        this.queryNode.disabled = false;
+        _domClass['default'].remove(this.domNode, 'disabled');
+      }
+    }
+  });
+
+  _lang['default'].setObject('Sage.Platform.Mobile.SearchWidget', __class);
+  module.exports = __class;
 });
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInNyYy9TZWFyY2hXaWRnZXQuanMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7OztBQXVCQSxNQUFNLFFBQVEsR0FBRyw2QkFBWSxjQUFjLENBQUMsQ0FBQzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7QUFnQzdDLE1BQU0sT0FBTyxHQUFHLHlCQUFRLG9CQUFvQixFQUFFLDZDQUFxQixFQUFFOzs7OztBQUtuRSxnQkFBWSxFQUFFO0FBQ1osZ0JBQVUsRUFBRTtBQUNWLFlBQUksRUFBRSxXQUFXO0FBQ2pCLFlBQUksRUFBRSxXQUFXO0FBQ2pCLGlCQUFTLEVBQUUsT0FBTztPQUNuQjtLQUNGOzs7Ozs7QUFNRCxpQkFBYSxFQUFFLEtBQUs7Ozs7OztBQU1wQixrQkFBYyxFQUFFLElBQUksUUFBUSxDQUFDLENBQzNCLDZCQUE2QixFQUM3Qiw0QkFBNEIsRUFDNUIsZ1JBQWdSLEVBQ2hSLDhCQUE4QixFQUM5QixtSUFBbUksRUFDbkksK0lBQStJLEVBQy9JLFNBQVMsRUFDVCxRQUFRLEVBQ1IsUUFBUSxDQUNULENBQUM7Ozs7OztBQU1GLGNBQVUsRUFBRSxRQUFRLENBQUMsVUFBVTs7Ozs7OztBQU8vQixrQkFBYyxFQUFFLEtBQUs7Ozs7O0FBS3JCLG1CQUFlLEVBQUUsdUJBQXVCOzs7OztBQUt4QyxrQkFBYyxFQUFFLElBQUk7Ozs7QUFJcEIsYUFBUyxFQUFFLElBQUk7Ozs7O0FBS2YsU0FBSyxFQUFFLFNBQVMsS0FBSyxHQUFHO0FBQ3RCLDJCQUFTLE1BQU0sQ0FBQyxJQUFJLENBQUMsT0FBTyxFQUFFLGVBQWUsQ0FBQyxDQUFDO0FBQy9DLFVBQUksQ0FBQyxHQUFHLENBQUMsWUFBWSxFQUFFLEVBQUUsQ0FBQyxDQUFDO0tBQzVCOzs7Ozs7Ozs7QUFTRCxVQUFNLEVBQUUsU0FBUyxNQUFNLEdBQUc7QUFDeEIsVUFBTSxjQUFjLEdBQUcsSUFBSSxDQUFDLHVCQUF1QixFQUFFLENBQUM7QUFD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QyxDQUFDO09BQ3hDO0tBQ0Y7QUFDRCxVQUFNLEVBQUUsU0FBUyxNQUFNLEdBQUc7QUFDeEIsVUFBSSxJQUFJLENBQUMsU0FBUyxFQUFFO0FBQ2xCLFlBQUksQ0FBQyxTQUFTLENBQUMsUUFBUSxHQUFHLEtBQUssQ0FBQztBQUNoQyw2QkFBUyxNQUFNLENBQUMsSUFBSSxDQUFDLE9BQU8sRUFBRSxVQUFVLENBQUMsQ0FBQztPQUMzQztLQUNGO0dBQ0YsQ0FBQyxDQUFDOztBQUVILG1CQUFLLFNBQVMsQ0FBQyxtQ0FBbUMsRUFBRSxPQUFPLENBQUMsQ0FBQzttQkFDOUMsT0FBTyIsImZpbGUiOiJzcmMvU2VhcmNoV2lkZ2V0LmpzIiwic291cmNlUm9vdCI6InNyYyIsInNvdXJjZXNDb250ZW50IjpbIi8qIENvcHlyaWdodCAoYykgMjAxMCwgU2FnZSBTb2Z0d2FyZSwgSW5jLiBBbGwgcmlnaHRzIHJlc2VydmVkLlxyXG4gKlxyXG4gKiBMaWNlbnNlZCB1bmRlciB0aGUgQXBhY2hlIExpY2Vuc2UsIFZlcnNpb24gMi4wICh0aGUgXCJMaWNlbnNlXCIpO1xyXG4gKiB5b3UgbWF5IG5vdCB1c2UgdGhpcyBmaWxlIGV4Y2VwdCBpbiBjb21wbGlhbmNlIHdpdGggdGhlIExpY2Vuc2UuXHJcbiAqIFlvdSBtYXkgb2J0YWluIGEgY29weSBvZiB0aGUgTGljZW5zZSBhdFxyXG4gKlxyXG4gKiAgICAgaHR0cDovL3d3dy5hcGFjaGUub3JnL2xpY2Vuc2VzL0xJQ0VOU0UtMi4wXHJcbiAqXHJcbiAqIFVubGVzcyByZXF1aXJlZCBieSBhcHBsaWNhYmxlIGxhdyBvciBhZ3JlZWQgdG8gaW4gd3JpdGluZywgc29mdHdhcmVcclxuICogZGlzdHJpYnV0ZWQgdW5kZXIgdGhlIExpY2Vuc2UgaXMgZGlzdHJpYnV0ZWQgb24gYW4gXCJBUyBJU1wiIEJBU0lTLFxyXG4gKiBXSVRIT1VUIFdBUlJBTlRJRVMgT1IgQ09ORElUSU9OUyBPRiBBTlkgS0lORCwgZWl0aGVyIGV4cHJlc3Mgb3IgaW1wbGllZC5cclxuICogU2VlIHRoZSBMaWNlbnNlIGZvciB0aGUgc3BlY2lmaWMgbGFuZ3VhZ2UgZ292ZXJuaW5nIHBlcm1pc3Npb25zIGFuZFxyXG4gKiBsaW1pdGF0aW9ucyB1bmRlciB0aGUgTGljZW5zZS5cclxuICovXHJcbmltcG9ydCBkZWNsYXJlIGZyb20gJ2Rvam8vX2Jhc2UvZGVjbGFyZSc7XHJcbmltcG9ydCBsYW5nIGZyb20gJ2Rvam8vX2Jhc2UvbGFuZyc7XHJcbmltcG9ydCBldmVudCBmcm9tICdkb2pvL19iYXNlL2V2ZW50JztcclxuaW1wb3J0IHN0cmluZyBmcm9tICdkb2pvL3N0cmluZyc7XHJcbmltcG9ydCBkb21DbGFzcyBmcm9tICdkb2pvL2RvbS1jbGFzcyc7XHJcbmltcG9ydCBfV2lkZ2V0IGZyb20gJ2Rpaml0L19XaWRnZXQnO1xyXG5pbXBvcnQgX1RlbXBsYXRlZCBmcm9tICcuL19UZW1wbGF0ZWQnO1xyXG5pbXBvcnQgZ2V0UmVzb3VyY2UgZnJvbSAnLi9JMThuJztcclxuXHJcbmNvbnN0IHJlc291cmNlID0gZ2V0UmVzb3VyY2UoJ3NlYXJjaFdpZGdldCcpO1xyXG5cclxuLyoqXHJcbiAqIEBjbGFzcyBhcmdvcy5TZWFyY2hXaWRnZXRcclxuICogU2VhcmNoIFdpZGdldCBpcyBhbiBTRGF0YS1lbmFibGVkIHNlYXJjaCBjb21wb25lbnQgdGhhdCB7QGxpbmsgTGlzdCBMaXN0fSB1c2VzIGJ5IGRlZmF1bHQgZm9yIHNlYXJjaC5cclxuICpcclxuICogVGhlIHNlYXJjaCB3aWRnZXQgaXMgYSBkaWppdCBXaWRnZXQgd2l0aCBhbGwgdGhlIFdpZGdldCBhc3BlY3RzLlxyXG4gKlxyXG4gKiBJdCBzdXBwb3J0cyB0d28gdHlwZXMgb2Ygc2hvcnRjdXRzOlxyXG4gKlxyXG4gKiAxXFwuIGAjdGV4dGAgLSBUaGUga2V5IGB0ZXh0YCB3aWxsIGJlIHJlcGxhY2VkIHdpdGggdGhlIG1hdGNoaW5nIGV4cHJlc3Npb24uIFRoaXMgaXMgYSBcImhhc2h0YWdcIi5cclxuXHJcbiAqIDJcXC4gYCMhTmFtZSBlcSAnSm9obidgIC0gVGhlIGBOYW1lIGVxICdKb2huJ2Agd2lsbCBiZSBpbnNlcnRlZCBkaXJlY3RseSwgYXZvaWRpbmcge0BsaW5rIExpc3QjZm9ybWF0U2VhcmNoUXVlcnkgZm9ybWF0U2VhcmNoUXVlcnl9LiBUaGlzIGlzIGEgXCJjdXN0b20gZXhwcmVzc2lvblwiLlxyXG4gKlxyXG4gKiBNdWx0aXBsZSBoYXNodGFncyBpcyBzdXBwb3J0ZWQgYXMgd2VsbCBhcyBoYXNodGFncyB3aXRoIGFkZGl0aW9uYWwgdGV4dCB0aGF0IGdldHMgc2VudCB0aHJvdWdoIHtAbGluayBMaXN0I2Zvcm1hdFNlYXJjaFF1ZXJ5IGZvcm1hdFNlYXJjaFF1ZXJ5fS5cclxuICpcclxuICogVG8gZ28gdGhyb3VnaCBhIGZ1bGwgZXhhbXBsZSwgdGFrZSB0aGlzIGV4cHJlc3Npb246XHJcbiAqIGAjb3BlbiAjdXJnZW50IEJvYmBcclxuICpcclxuICogYCNvcGVuYCBpcyByZXBsYWNlZCB3aXRoOiBgVGlja2V0U3RhdHVzIGVxIDFgXHJcbiAqXHJcbiAqIGAjdXJnZW50YCBpcyByZXBsYWNlZCB3aXRoOiBgVGlja2V0VXJnZW5jeSBndCAzYFxyXG4gKlxyXG4gKiBgQm9iYCBpcyBwYXNzZWQgdG8gYGZvcm1hdFNlYXJjaFF1ZXJ5YCB3aGljaCByZXR1cm5zIGBUaWNrZXRJZCBlcSAoXCJCb2JcIikgb3IgVGlja2V0T3duZXIgbGlrZSBcIkJvYlwiXHJcbiAqXHJcbiAqIFRoZSBmaW5hbCByZXN1bHQgaXMgXCJhbmRlZFwiIHRvZ2V0aGVyLCByZXN1bHRpbmcgaW4gdGhpcyBmaW5hbCB3aGVyZSBjbGF1c2U6XHJcbiAqIGB3aGVyZT0oVGlja2V0U3RhdHVzIGVxIDEpIGFuZCAoVGlja2V0VXJnZW5jeSBndCAzKSBhbmQgKFRpY2tldElkIGVxIChcIkJvYlwiKSBvciBUaWNrZXRPd25lciBsaWtlIFwiQm9iXCIpXHJcbiAqXHJcbiAqIFNlZSB0aGUgW0RlZmluaW5nIEhhc2ggVGFncyBndWlkZV0oIyEvZ3VpZGVzL3YyX2JleW9uZF90aGVfZ3VpZGVfZGVmaW5pbmdfaGFzaHRhZ3MpIGZvciBtb3JlIGluZm9ybWF0aW9uIGFuZCBob3cgaXQgc3VwcG9ydHMgbG9jYWxpemF0aW9uLlxyXG4gKiBAYWx0ZXJuYXRlQ2xhc3NOYW1lIFNlYXJjaFdpZGdldFxyXG4gKiBAbWl4aW5zIGFyZ29zLl9UZW1wbGF0ZWRcclxuICovXHJcbmNvbnN0IF9fY2xhc3MgPSBkZWNsYXJlKCdhcmdvcy5TZWFyY2hXaWRnZXQnLCBbX1dpZGdldCwgX1RlbXBsYXRlZF0sIHtcclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge09iamVjdH1cclxuICAgKiBQcm92aWRlcyBhIHNldHRlciBmb3IgSFRNTCBub2RlIGF0dHJpYnV0ZXMsIG5hbWVseSB0aGUgdmFsdWUgZm9yIHNlYXJjaCB0ZXh0XHJcbiAgICovXHJcbiAgYXR0cmlidXRlTWFwOiB7XHJcbiAgICBxdWVyeVZhbHVlOiB7XHJcbiAgICAgIG5vZGU6ICdxdWVyeU5vZGUnLFxyXG4gICAgICB0eXBlOiAnYXR0cmlidXRlJyxcclxuICAgICAgYXR0cmlidXRlOiAndmFsdWUnLFxyXG4gICAgfSxcclxuICB9LFxyXG5cclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge0Jvb2xlYW59XHJcbiAgICogRmxhZyB0byBlbmFibGUgdGhlIGNsZWFyIGFuZCBzZWFyY2ggYnV0dG9ucy5cclxuICAgKi9cclxuICBlbmFibGVCdXR0b25zOiBmYWxzZSxcclxuXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtTaW1wbGF0ZX1cclxuICAgKiBTaW1wbGUgdGhhdCBkZWZpbmVzIHRoZSBIVE1MIE1hcmt1cFxyXG4gICAqL1xyXG4gIHdpZGdldFRlbXBsYXRlOiBuZXcgU2ltcGxhdGUoW1xyXG4gICAgJzxkaXYgY2xhc3M9XCJzZWFyY2gtd2lkZ2V0XCI+JyxcclxuICAgICc8ZGl2IGNsYXNzPVwidGFibGUtbGF5b3V0XCI+JyxcclxuICAgICc8ZGl2PjxpbnB1dCB0eXBlPVwidGV4dFwiIHBsYWNlaG9sZGVyPVwieyU9ICQuc2VhcmNoVGV4dCAlfVwiIG5hbWU9XCJxdWVyeVwiIGNsYXNzPVwicXVlcnlcIiBhdXRvY29ycmVjdD1cIm9mZlwiIGF1dG9jYXBpdGFsaXplPVwib2ZmXCIgZGF0YS1kb2pvLWF0dGFjaC1wb2ludD1cInF1ZXJ5Tm9kZVwiIGRhdGEtZG9qby1hdHRhY2gtZXZlbnQ9XCJvbmZvY3VzOl9vbkZvY3VzLG9uYmx1cjpfb25CbHVyLG9ua2V5cHJlc3M6X29uS2V5UHJlc3MsIG9ubW91c2V1cDogX29uTW91c2VVcFwiIC8+PC9kaXY+JyxcclxuICAgICd7JSBpZiAoJC5lbmFibGVCdXR0b25zKSB7ICV9JyxcclxuICAgICc8ZGl2IGNsYXNzPVwiaGFzQnV0dG9uXCI+PGJ1dHRvbiBjbGFzcz1cImNsZWFyLWJ1dHRvblwiIHRhYmluZGV4PVwiLTFcIiBkYXRhLWRvam8tYXR0YWNoLWV2ZW50PVwib25jbGljazogX29uQ2xlYXJDbGlja1wiPjwvYnV0dG9uPjwvZGl2PicsXHJcbiAgICAnPGRpdiBjbGFzcz1cImhhc0J1dHRvblwiPjxidXR0b24gY2xhc3M9XCJzdWJIZWFkZXJCdXR0b24gc2VhcmNoQnV0dG9uXCIgZGF0YS1kb2pvLWF0dGFjaC1ldmVudD1cImNsaWNrOiBzZWFyY2hcIj57JT0gJC5zZWFyY2hUZXh0ICV9PC9idXR0b24+PC9kaXY+JyxcclxuICAgICd7JSB9ICV9JyxcclxuICAgICc8L2Rpdj4nLFxyXG4gICAgJzwvZGl2PicsXHJcbiAgXSksXHJcblxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7U3RyaW5nfVxyXG4gICAqIFRleHQgdGhhdCBpcyB1c2VkIHdoZW4gbm8gdmFsdWUgaXMgaW4gdGhlIHNlYXJjaCBib3ggLSBcInBsYWNlaG9sZGVyXCIgdGV4dC5cclxuICAgKi9cclxuICBzZWFyY2hUZXh0OiByZXNvdXJjZS5zZWFyY2hUZXh0LFxyXG5cclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge1JlZ0V4cH1cclxuICAgKiBUaGUgcmVndWxhciBleHByZXNzaW9uIHVzZWQgdG8gZGV0ZXJtaW5lIGlmIGEgc2VhcmNoIHF1ZXJ5IGlzIGEgY3VzdG9tIHNlYXJjaCBleHByZXNzaW9uLiAgQSBjdXN0b20gc2VhcmNoXHJcbiAgICogZXhwcmVzc2lvbiBpcyBub3QgcHJvY2Vzc2VkLCBhbmQgZGlyZWN0bHkgcGFzc2VkIHRvIFNEYXRhLlxyXG4gICAqL1xyXG4gIGN1c3RvbVNlYXJjaFJFOiAvXiMhLyxcclxuICAvKipcclxuICAgKiBAdHlwZSB7UmVnRXhwfVxyXG4gICAqIFRoZSByZWd1bGFyIGV4cHJlc3Npb24gdXNlZCB0byBkZXRlcm1pbmUgaWYgYSBzZWFyY2ggcXVlcnkgaXMgYSBoYXNoIHRhZyBzZWFyY2guXHJcbiAgICovXHJcbiAgaGFzaFRhZ1NlYXJjaFJFOiAvKD86I3w7fCx8XFwuKShbXlxcc10rKS9nLFxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7T2JqZWN0W119XHJcbiAgICogQXJyYXkgb2YgaGFzaCB0YWcgZGVmaW5pdGlvbnNcclxuICAgKi9cclxuICBoYXNoVGFnUXVlcmllczogbnVsbCxcclxuICAvKipcclxuICAgKiBEb2pvIGF0dGFjaCBwb2ludCB0byB0aGUgc2VhcmNoIGlucHV0XHJcbiAgICovXHJcbiAgcXVlcnlOb2RlOiBudWxsLFxyXG5cclxuICAvKipcclxuICAgKiBTZXRzIHNlYXJjaCB0ZXh0IHRvIGVtcHR5IGFuZCByZW1vdmVzIGFjdGl2ZSBzdHlsaW5nXHJcbiAgICovXHJcbiAgY2xlYXI6IGZ1bmN0aW9uIGNsZWFyKCkge1xyXG4gICAgZG9tQ2xhc3MucmVtb3ZlKHRoaXMuZG9tTm9kZSwgJ3NlYXJjaC1hY3RpdmUnKTtcclxuICAgIHRoaXMuc2V0KCdxdWVyeVZhbHVlJywgJycpO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogVGhpcyBmdW5jdGlvbiBpcyBpbnZva2VkIGZyb20gdGhlIHNlYXJjaCBidXR0b24gYW5kIGl0OlxyXG4gICAqXHJcbiAgICogKiBHYXRoZXJzIHRoZSBpbnB1dHRlZCBzZWFyY2ggdGV4dFxyXG4gICAqICogRGV0ZXJtaW5lcyBpZiBpdHMgYSBjdXN0b20gZXhwcmVzc2lvbiwgaGFzaCB0YWcsIG9yIG5vcm1hbCBzZWFyY2hcclxuICAgKiAqIENhbGxzIHRoZSBhcHByb3ByaWF0ZSBoYW5kbGVyXHJcbiAgICogKiBGaXJlcyB0aGUge0BsaW5rICNvblNlYXJjaEV4cHJlc3Npb24gb25TZWFyY2hFeHByZXNzaW9ufSBldmVudCB3aGljaCB7QGxpbmsgTGlzdCNfb25TZWFyY2hFeHByZXNzaW9uIGxpc3RlbnMgdG99LlxyXG4gICAqL1xyXG4gIHNlYXJjaDogZnVuY3Rpb24gc2VhcmNoKCkge1xyXG4gICAgY29uc3QgZm9ybWF0dGVkUXVlcnkgPSB0aGlzLmdldEZvcm1hdHRlZFNlYXJjaFF1ZXJ5KCk7XHJcbiAgICB0aGlzLm9uU2VhcmNoRXhwcmVzc2lvbihmb3JtYXR0ZWRRdWVyeSwgdGhpcyk7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBSZXR1cm5zIGFuIHVubW9kaWZpZWQgc2VhcmNoIHF1ZXJ5IHdoaWNoIGFsbG93cyBhIHVzZXJcclxuICAgKiB0byB0eXBlIGluIHRoZWlyIG93biB3aGVyZSBjbGF1c2VcclxuICAgKiBAcGFyYW0ge1N0cmluZ30gcXVlcnkgVmFsdWUgb2Ygc2VhcmNoIGJveFxyXG4gICAqIEByZXR1cm5zIHtTdHJpbmd9IHF1ZXJ5IFVuZm9ybWF0dGVkIHF1ZXJ5XHJcbiAgICovXHJcbiAgY3VzdG9tU2VhcmNoOiBmdW5jdGlvbiBjdXN0b21TZWFyY2gocXVlcnlWYWx1ZSkge1xyXG4gICAgdGhpcy5jdXN0b21TZWFyY2hSRS5sYXN0SW5kZXggPSAwO1xyXG4gICAgY29uc3QgcXVlcnkgPSBxdWVyeVZhbHVlLnJlcGxhY2UodGhpcy5jdXN0b21TZWFyY2hSRSwgJycpO1xyXG4gICAgcmV0dXJuIHF1ZXJ5O1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogUmV0dXJucyB0aGUgc2VhcmNoIHF1ZXJ5IGJhc2VkIG9uIGEgaGFzaCBzZWxlY3RvclxyXG4gICAqIEFueSBoYXNoIHRhZ3MgaW4gdGhlIHNlYXJjaCBhcmUgcmVwbGFjZWQgYnkgcHJlZGVmaW5lZCBzZWFyY2ggc3RhdGVtZW50c1xyXG4gICAqIFJlbWFpbmluZyB0ZXh0IG5vdCBwcmVjZWRlZCBieSBhIGhhc2ggd2lsbCByZWNlaXZlXHJcbiAgICogdGhhdCB2aWV3cyBub3JtYWwgc2VhcmNoIGZvcm1hdHRpbmdcclxuICAgKiBAcGFyYW0ge1N0cmluZ30gcXVlcnkgVmFsdWUgb2Ygc2VhcmNoIGJveFxyXG4gICAqIEByZXR1cm5zIHtTdHJpbmd9IHF1ZXJ5IEhhc2ggcmVzb2x2ZWQgcXVlcnlcclxuICAgKi9cclxuICBoYXNoVGFnU2VhcmNoOiBmdW5jdGlvbiBoYXNoVGFnU2VhcmNoKHF1ZXJ5KSB7XHJcbiAgICBjb25zdCBoYXNoTGF5b3V0ID0gdGhpcy5oYXNoVGFnUXVlcmllcyB8fCBbXTtcclxuICAgIGNvbnN0IGhhc2hRdWVyaWVzID0gW107XHJcbiAgICBsZXQgYWRkaXRpb25hbFNlYXJjaCA9IHF1ZXJ5O1xyXG5cclxuICAgIHRoaXMuaGFzaFRhZ1NlYXJjaFJFLmxhc3RJbmRleCA9IDA7XHJcbiAgICBsZXQgbmV3UXVlcnkgPSBxdWVyeTtcclxuICAgIGxldCBtYXRjaDtcclxuXHJcbiAgICB3aGlsZSAoKG1hdGNoID0gdGhpcy5oYXNoVGFnU2VhcmNoUkUuZXhlYyhuZXdRdWVyeSkpKSB7XHJcbiAgICAgIGxldCBoYXNoUXVlcnlFeHByZXNzaW9uID0gbnVsbDtcclxuICAgICAgY29uc3QgaGFzaFRhZyA9IG1hdGNoWzFdO1xyXG5cclxuICAgICAgLy8gdG9kbzogY2FuIG9wdGltaXplIGxhdGVyIGlmIG5lY2Vzc2FyeVxyXG4gICAgICBmb3IgKGxldCBpID0gMDsgaSA8IGhhc2hMYXlvdXQubGVuZ3RoICYmICFoYXNoUXVlcnlFeHByZXNzaW9uOyBpKyspIHtcclxuICAgICAgICBpZiAoaGFzaExheW91dFtpXS50YWcgPT09IGhhc2hUYWcpIHtcclxuICAgICAgICAgIGhhc2hRdWVyeUV4cHJlc3Npb24gPSBoYXNoTGF5b3V0W2ldLnF1ZXJ5O1xyXG4gICAgICAgIH1cclxuICAgICAgfVxyXG5cclxuICAgICAgaWYgKCFoYXNoUXVlcnlFeHByZXNzaW9uKSB7XHJcbiAgICAgICAgY29udGludWU7XHJcbiAgICAgIH1cclxuXHJcbiAgICAgIGhhc2hRdWVyaWVzLnB1c2godGhpcy5leHBhbmRFeHByZXNzaW9uKGhhc2hRdWVyeUV4cHJlc3Npb24pKTtcclxuICAgICAgYWRkaXRpb25hbFNlYXJjaCA9IGFkZGl0aW9uYWxTZWFyY2gucmVwbGFjZShtYXRjaFswXSwgJycpO1xyXG4gICAgfVxyXG5cclxuICAgIGlmIChoYXNoUXVlcmllcy5sZW5ndGggPCAxKSB7XHJcbiAgICAgIHJldHVybiB0aGlzLmZvcm1hdFNlYXJjaFF1ZXJ5KHF1ZXJ5KTtcclxuICAgIH1cclxuXHJcbiAgICBuZXdRdWVyeSA9IHN0cmluZy5zdWJzdGl0dXRlKCcoJHswfSknLCBbaGFzaFF1ZXJpZXMuam9pbignKSBhbmQgKCcpXSk7XHJcblxyXG4gICAgYWRkaXRpb25hbFNlYXJjaCA9IGFkZGl0aW9uYWxTZWFyY2gucmVwbGFjZSgvXlxccyt8XFxzKyQvZywgJycpO1xyXG5cclxuICAgIGlmIChhZGRpdGlvbmFsU2VhcmNoKSB7XHJcbiAgICAgIG5ld1F1ZXJ5ICs9IHN0cmluZy5zdWJzdGl0dXRlKCcgYW5kICgkezB9KScsIFt0aGlzLmZvcm1hdFNlYXJjaFF1ZXJ5KGFkZGl0aW9uYWxTZWFyY2gpXSk7XHJcbiAgICB9XHJcblxyXG4gICAgcmV0dXJuIG5ld1F1ZXJ5O1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogQ29uZmlndXJlIGFsbG93cyB0aGUgY29udHJvbGxlciBMaXN0IHZpZXcgdG8gb3ZlcndyaXRlIHByb3BlcnRpZXMgYXMgdGhlIHBhc3NlZCBvYmplY3Qgd2lsbCBiZSBtaXhlZCBpbi5cclxuICAgKiBAcGFyYW0ge09iamVjdH0gb3B0aW9ucyBQcm9wZXJ0aWVzIHRvIGJlIG1peGVkIGludG8gU2VhcmNoIFdpZGdldFxyXG4gICAqL1xyXG4gIGNvbmZpZ3VyZTogZnVuY3Rpb24gY29uZmlndXJlKG9wdGlvbnMpIHtcclxuICAgIC8vIHRvZG86IGZvciBub3csIHdlIHNpbXBseSBtaXhpbiB0aGUgb3B0aW9uc1xyXG4gICAgbGFuZy5taXhpbih0aGlzLCBvcHRpb25zKTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIEV4cGFuZHMgdGhlIHBhc3NlZCBleHByZXNzaW9uIGlmIGl0IGlzIGEgZnVuY3Rpb24uXHJcbiAgICogQHBhcmFtIHtTdHJpbmcvRnVuY3Rpb259IGV4cHJlc3Npb24gUmV0dXJucyBzdHJpbmcgZGlyZWN0bHksIGlmIGZ1bmN0aW9uIGl0IGlzIGNhbGxlZCBhbmQgdGhlIHJlc3VsdCByZXR1cm5lZC5cclxuICAgKiBAcmV0dXJuIHtTdHJpbmd9IFN0cmluZyBleHByZXNzaW9uLlxyXG4gICAqL1xyXG4gIGV4cGFuZEV4cHJlc3Npb246IGZ1bmN0aW9uIGV4cGFuZEV4cHJlc3Npb24oZXhwcmVzc2lvbikge1xyXG4gICAgaWYgKHR5cGVvZiBleHByZXNzaW9uID09PSAnZnVuY3Rpb24nKSB7XHJcbiAgICAgIHJldHVybiBleHByZXNzaW9uLmFwcGx5KHRoaXMsIEFycmF5LnByb3RvdHlwZS5zbGljZS5jYWxsKGFyZ3VtZW50cywgMSkpO1xyXG4gICAgfVxyXG5cclxuICAgIHJldHVybiBleHByZXNzaW9uO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogQ2xlYXJzIHRoZSBzZWFyY2ggaW5wdXQgdGV4dCBhbmQgYXR0ZW1wdHMgdG8gcmUtb3BlbiB0aGUga2V5Ym9hcmRcclxuICAgKiBAcGFyYW0ge0V2ZW50fSBldnQgQ2xpY2sgZXZlbnRcclxuICAgKi9cclxuICBfb25DbGVhckNsaWNrOiBmdW5jdGlvbiBfb25DbGVhckNsaWNrKGV2dCkge1xyXG4gICAgZXZlbnQuc3RvcChldnQpO1xyXG4gICAgdGhpcy5jbGVhcigpO1xyXG4gICAgdGhpcy5xdWVyeU5vZGUuZm9jdXMoKTtcclxuICAgIHRoaXMucXVlcnlOb2RlLmNsaWNrKCk7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBUZXN0cyB0byBzZWUgaWYgdGhlIHNlYXJjaCBpbnB1dCBpcyBlbXB0eSBhbmQgdG9nZ2xlcyB0aGUgYWN0aXZlIHN0eWxpbmdcclxuICAgKi9cclxuICBfb25CbHVyOiBmdW5jdGlvbiBfb25CbHVyKCkge1xyXG4gICAgZG9tQ2xhc3MudG9nZ2xlKHRoaXMuZG9tTm9kZSwgJ3NlYXJjaC1hY3RpdmUnLCAhIXRoaXMucXVlcnlOb2RlLnZhbHVlKTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIEFkZHMgdGhlIHNlYXJjaCBhY3RpdmUgc3R5bGluZ1xyXG4gICAqL1xyXG4gIF9vbkZvY3VzOiBmdW5jdGlvbiBfb25Gb2N1cygpIHtcclxuICAgIGRvbUNsYXNzLmFkZCh0aGlzLmRvbU5vZGUsICdzZWFyY2gtYWN0aXZlJyk7XHJcbiAgfSxcclxuICBfb25Nb3VzZVVwOiBmdW5jdGlvbiBfb25Nb3VzZVVwKCkge1xyXG4gICAgLy8gV29yayBhcm91bmQgYSBjaHJvbWUgaXNzdWUgd2hlcmUgbW91c2V1cCBhZnRlciBhIGZvY3VzIHdpbGwgZGUtc2VsZWN0IHRoZSB0ZXh0XHJcbiAgICBzZXRUaW1lb3V0KGZ1bmN0aW9uIHRpbWVPdXQoKSB7XHJcbiAgICAgIHRoaXMucXVlcnlOb2RlLnNldFNlbGVjdGlvblJhbmdlKDAsIDk5OTkpO1xyXG4gICAgfS5iaW5kKHRoaXMpLCA1MCk7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBEZXRlY3RzIHRoZSBlbnRlci9yZXR1cm4ga2V5IGFuZCBmaXJlcyB7QGxpbmsgI3NlYXJjaCBzZWFyY2h9XHJcbiAgICogQHBhcmFtIHtFdmVudH0gZXZ0IEtleSBwcmVzcyBldmVudFxyXG4gICAqL1xyXG4gIF9vbktleVByZXNzOiBmdW5jdGlvbiBfb25LZXlQcmVzcyhldnQpIHtcclxuICAgIGlmIChldnQua2V5Q29kZSA9PT0gMTMgfHwgZXZ0LmtleUNvZGUgPT09IDEwKSB7XHJcbiAgICAgIGV2ZW50LnN0b3AoZXZ0KTtcclxuICAgICAgdGhpcy5xdWVyeU5vZGUuYmx1cigpO1xyXG4gICAgICB0aGlzLnNlYXJjaCgpO1xyXG4gICAgfVxyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogVGhlIGV2ZW50IHRoYXQgZmlyZXMgd2hlbiB0aGUgc2VhcmNoIHdpZGdldCBwcm92aWRlcyBhIHNlYXJjaCBxdWVyeS5cclxuICAgKiBMaXN0ZW5lZCB0byBieSB0aGUgY29udHJvbGxpbmcge0BsaW5rIExpc3QjX29uU2VhcmNoRXhwcmVzc2lvbiBMaXN0IFZpZXd9XHJcbiAgICogQHBhcmFtIGV4cHJlc3Npb25cclxuICAgKiBAcGFyYW0gd2lkZ2V0XHJcbiAgICovXHJcbiAgb25TZWFyY2hFeHByZXNzaW9uOiBmdW5jdGlvbiBvblNlYXJjaEV4cHJlc3Npb24oLypleHByZXNzaW9uLCB3aWRnZXQqLykge1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogR2V0cyB0aGUgY3VycmVudCBzZWFyY2ggZXhwcmVzc2lvbiBhcyBhIGZvcm1hdHRlZCBxdWVyeS5cclxuICAgKiAqIEdhdGhlcnMgdGhlIGlucHV0dGVkIHNlYXJjaCB0ZXh0XHJcbiAgICogKiBEZXRlcm1pbmVzIGlmIGl0cyBhIGN1c3RvbSBleHByZXNzaW9uLCBoYXNoIHRhZywgb3Igbm9ybWFsIHNlYXJjaFxyXG4gICAqL1xyXG4gIGdldEZvcm1hdHRlZFNlYXJjaFF1ZXJ5OiBmdW5jdGlvbiBnZXRGb3JtYXR0ZWRTZWFyY2hRdWVyeSgpIHtcclxuICAgIGNvbnN0IHNlYXJjaFF1ZXJ5ID0gdGhpcy5nZXRTZWFyY2hFeHByZXNzaW9uKCk7XHJcbiAgICBjb25zdCBpc0N1c3RvbU1hdGNoID0gc2VhcmNoUXVlcnkgJiYgdGhpcy5jdXN0b21TZWFyY2hSRS50ZXN0KHNlYXJjaFF1ZXJ5KTtcclxuICAgIGNvbnN0IGlzSGFzaFRhZ01hdGNoID0gc2VhcmNoUXVlcnkgJiYgdGhpcy5oYXNoVGFnU2VhcmNoUkUudGVzdChzZWFyY2hRdWVyeSk7XHJcblxyXG4gICAgbGV0IGZvcm1hdHRlZFF1ZXJ5O1xyXG5cclxuICAgIHN3aXRjaCAodHJ1ZSkge1xyXG4gICAgICBjYXNlIGlzQ3VzdG9tTWF0Y2g6XHJcbiAgICAgICAgZm9ybWF0dGVkUXVlcnkgPSB0aGlzLmN1c3RvbVNlYXJjaChzZWFyY2hRdWVyeSk7XHJcbiAgICAgICAgYnJlYWs7XHJcbiAgICAgIGNhc2UgaXNIYXNoVGFnTWF0Y2g6XHJcbiAgICAgICAgZm9ybWF0dGVkUXVlcnkgPSB0aGlzLmhhc2hUYWdTZWFyY2goc2VhcmNoUXVlcnkpO1xyXG4gICAgICAgIGJyZWFrO1xyXG4gICAgICBkZWZhdWx0OlxyXG4gICAgICAgIGZvcm1hdHRlZFF1ZXJ5ID0gdGhpcy5mb3JtYXRTZWFyY2hRdWVyeShzZWFyY2hRdWVyeSk7XHJcbiAgICB9XHJcblxyXG4gICAgaWYgKGxhbmcudHJpbShzZWFyY2hRdWVyeSkgPT09ICcnKSB7XHJcbiAgICAgIGZvcm1hdHRlZFF1ZXJ5ID0gbnVsbDtcclxuICAgIH1cclxuICAgIHJldHVybiBmb3JtYXR0ZWRRdWVyeTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIEdldHMgdGhlIGN1cnJlbnQgc2VhcmNoIGV4cHJlc3Npb24uXHJcbiAgICogKiBHYXRoZXJzIHRoZSBpbnB1dHRlZCBzZWFyY2ggdGV4dFxyXG4gICAqL1xyXG4gIGdldFNlYXJjaEV4cHJlc3Npb246IGZ1bmN0aW9uIGdldFNlYXJjaEV4cHJlc3Npb24oKSB7XHJcbiAgICByZXR1cm4gdGhpcy5xdWVyeU5vZGUudmFsdWU7XHJcbiAgfSxcclxuICBkaXNhYmxlOiBmdW5jdGlvbiBkaXNhYmxlKCkge1xyXG4gICAgaWYgKHRoaXMucXVlcnlOb2RlKSB7XHJcbiAgICAgIHRoaXMucXVlcnlOb2RlLmRpc2FibGVkID0gdHJ1ZTtcclxuICAgICAgZG9tQ2xhc3MuYWRkKHRoaXMuZG9tTm9kZSwgJ2Rpc2FibGVkJyk7XHJcbiAgICB9XHJcbiAgfSxcclxuICBlbmFibGU6IGZ1bmN0aW9uIGVuYWJsZSgpIHtcclxuICAgIGlmICh0aGlzLnF1ZXJ5Tm9kZSkge1xyXG4gICAgICB0aGlzLnF1ZXJ5Tm9kZS5kaXNhYmxlZCA9IGZhbHNlO1xyXG4gICAgICBkb21DbGFzcy5yZW1vdmUodGhpcy5kb21Ob2RlLCAnZGlzYWJsZWQnKTtcclxuICAgIH1cclxuICB9LFxyXG59KTtcclxuXHJcbmxhbmcuc2V0T2JqZWN0KCdTYWdlLlBsYXRmb3JtLk1vYmlsZS5TZWFyY2hXaWRnZXQnLCBfX2NsYXNzKTtcclxuZXhwb3J0IGRlZmF1bHQgX19jbGFzcztcclxuIl19
 </pre>
 </body>
 </html>

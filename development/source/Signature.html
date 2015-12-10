@@ -15,423 +15,387 @@
   </script>
 </head>
 <body onload="prettyPrint(); highlight();">
-  <pre class="prettyprint lang-js">/* Copyright (c) 2010, Sage Software, Inc. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+  <pre class="prettyprint lang-js">define('argos/Views/Signature', ['exports', 'module', 'dojo/_base/declare', 'dojo/_base/lang', 'dojo/_base/json', 'dojo/query', 'dojo/dom-geometry', 'dojo/window', '../Format', '../View', '../I18n'], function (exports, module, _dojo_baseDeclare, _dojo_baseLang, _dojo_baseJson, _dojoQuery, _dojoDomGeometry, _dojoWindow, _Format, _View, _I18n) {
+  function _interopRequireDefault(obj) { return obj &amp;&amp; obj.__esModule ? obj : { 'default': obj }; }
 
-<span id='argos-Views-Signature'>/**
-</span> * @class argos.Views.Signature
- * Signature View is a view tailored to present an HTML5 canvas that has signature-recording capabilities.
- *
- * It goes hand-in-hand with {@link SignatureField SignatureField}
- *
- * @alternateClassName SignatureView
- * @extends argos.View
- * @requires argos.Format
- */
-define('argos/Views/Signature', [
-    'dojo/_base/declare',
-    'dojo/_base/lang',
-    'dojo/_base/json',
-    'dojo/query',
-    'dojo/dom-geometry',
-    'dojo/window',
-    '../Format',
-    '../View'
-], function(
-    declare,
-    lang,
-    json,
-    query,
-    domGeom,
-    win,
-    format,
-    View
-) {
+  /* Copyright (c) 2010, Sage Software, Inc. All rights reserved.
+   *
+   * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   * you may not use this file except in compliance with the License.
+   * You may obtain a copy of the License at
+   *
+   *     http://www.apache.org/licenses/LICENSE-2.0
+   *
+   * Unless required by applicable law or agreed to in writing, software
+   * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   * See the License for the specific language governing permissions and
+   * limitations under the License.
+   */
 
-    var __class = declare('argos.Views.Signature', [View], {
-        // Localization
-<span id='argos-Views-Signature-property-titleText'>        /**
-</span>         * @property {String}
-         * Text shown in the top toolbar header
-         */
-        titleText: 'Signature',
-<span id='argos-Views-Signature-property-clearCanvasText'>        /**
-</span>         * @property {String}
-         * Text shown in the clear button
-         */
-        clearCanvasText: 'Erase',
-<span id='argos-Views-Signature-property-undoText'>        /**
-</span>         * @property {String}
-         * Text shown in the undo button
-         */
-        undoText: 'Undo',
+  var _declare = _interopRequireDefault(_dojo_baseDeclare);
 
-        //Templates
-<span id='argos-Views-Signature-property-widgetTemplate'>        /**
-</span>         * @property {Simplate}
-         * Simplate that defines the HTML Markup
-         *
-         * * `$` =&gt; Signature view instance
-         *
-         */
-        widgetTemplate: new Simplate([
-            '&lt;div id=&quot;{%= $.id %}&quot; title=&quot;{%: $.titleText %}&quot; class=&quot;panel {%= $.cls %}&quot;&gt;',
-                '{%! $.canvasTemplate %}',
-                '&lt;div class=&quot;buttons&quot;&gt;',
-                    '&lt;button class=&quot;button&quot; data-action=&quot;_undo&quot;&gt;&lt;span&gt;{%: $.undoText %}&lt;/span&gt;&lt;/button&gt;',
-                    '&lt;button class=&quot;button&quot; data-action=&quot;clearValue&quot;&gt;&lt;span&gt;{%: $.clearCanvasText %}&lt;/span&gt;&lt;/button&gt;',
-                '&lt;/div&gt;',
-            '&lt;div&gt;'
-        ]),
-<span id='argos-Views-Signature-property-canvasTemplate'>        /**
-</span>         * @property {Simplate}
-         * Simplate that defines the canvas with a set width and height
-         */
-        canvasTemplate: new Simplate([
-            '&lt;canvas data-dojo-attach-point=&quot;signatureNode&quot; width=&quot;{%: $.canvasNodeWidth %}&quot; height=&quot;{%: $.canvasNodeHeight %}&quot; data-dojo-attach-event=&quot;onmousedown:_penDown,onmousemove:_penMove,onmouseup:_penUp,ontouchstart:_penDown,ontouchmove:_penMove,ontouchend:_penUp&quot;&gt;&lt;/canvas&gt;'
-        ]),
-<span id='argos-Views-Signature-property-signatureNode'>        /**
-</span>         * @property {HTMLElement}
-         * The dojo-attach-point for the canvas element
-         */
-        signatureNode: null,
+  var _lang = _interopRequireDefault(_dojo_baseLang);
 
-        //View Properties
-<span id='argos-Views-Signature-property-id'>        /**
-</span>         * @property {String}
-         * The unique view id
-         */
-        id: 'signature_edit',
-<span id='argos-Views-Signature-property-expose'>        /**
-</span>         * @property {Boolean}
-         * Flag that may be used to control if the view is shown in configurable lists
-         */
-        expose: false,
-<span id='argos-Views-Signature-property-signature'>        /**
-</span>         * @property {Number[][]}
-         * Stores series of x,y coordinates in the format of: `[[0,0],[1,5]]`
-         */
-        signature: [],
-<span id='argos-Views-Signature-property-trace'>        /**
-</span>         * @property {Number[][]}
-         * Collection of the touchmove positions
-         */
-        trace: [],
-<span id='argos-Views-Signature-property-lastpos'>        /**
-</span>         * @property {Object}
-         * Stores where the last drawn point was
-         */
-        lastpos: {x:-1, y:-1},
-<span id='argos-Views-Signature-cfg-config'>        /**
-</span>         * @cfg {Object}
-         * Stores the passed options for: `scale`, `lineWidth`, `penColor` and `drawColor`.
-         */
-        config: {
-            scale: 1,
-            lineWidth: 3,
-            penColor: 'blue',
-            drawColor: 'red'
-        },
-<span id='argos-Views-Signature-property-isPenDown'>        /**
-</span>         * @property {Boolean}
-         * Flag for determining if the pen is in &quot;down&quot; state.
-         */
-        isPenDown: false,
-<span id='argos-Views-Signature-property-context'>        /**
-</span>         * @property {Object}
-         * The stored 2d context of the canvas node
-         */
-        context: null,
-<span id='argos-Views-Signature-property-buffer'>        /**
-</span>         * @property {Number[][]}
-         * Used to temporarily store the signature
-         */
-        buffer: [],
-<span id='argos-Views-Signature-cfg-canvasNodeWidth'>        /**
-</span>         * @cfg {Number}
-         * Starting default width of canvas, will be re-sized when the view is shown.
-         */
-        canvasNodeWidth: 360,
-<span id='argos-Views-Signature-cfg-canvasNodeHeight'>        /**
-</span>         * @cfg {Number}
-         * Starting default height of canvas, will be re-sized when the view is shown.
-         */
-        canvasNodeHeight: 120,
+  var _json = _interopRequireDefault(_dojo_baseJson);
 
-<span id='argos-Views-Signature-method-show'>        /**
-</span>         * Extends parent implementation to store the options to `this.config`, subscribe to the
-         * `/app/resize` event and immediately call resize so the canvas is scaled.
-         * @param options
-         */
-        show: function(options) {
-            this.inherited(arguments);
+  var _query = _interopRequireDefault(_dojoQuery);
 
-            if (options &amp;&amp; options.lineWidth) {
-                this.config.lineWidth = options.lineWidth;
-            }
+  var _domGeom = _interopRequireDefault(_dojoDomGeometry);
 
-            if (options &amp;&amp; options.penColor) {
-                this.config.penColor  = options.penColor;
-            }
+  var _win = _interopRequireDefault(_dojoWindow);
 
-            if (options &amp;&amp; options.drawColor) {
-                this.config.drawColor = options.drawColor;
-            }
+  var _format = _interopRequireDefault(_Format);
 
-            this.signature = (options &amp;&amp; options.signature) ? options.signature : [];
+  var _View2 = _interopRequireDefault(_View);
 
-            this._sizeCanvas();
-            this.context = this.signatureNode.getContext('2d');
+  var _getResource = _interopRequireDefault(_I18n);
 
-            this.subscribe('/app/resize', this.onResize);
+  var resource = (0, _getResource['default'])('signature');
 
-            this.redraw(this.signature, this.signatureNode, this.config);
-        },
-<span id='argos-Views-Signature-method-getValues'>        /**
-</span>         * Returns the optimized signature array as a JSON string
-         * @return {String}
-         */
-        getValues: function() {
-            return json.toJson(this.optimizeSignature());
-        },
-<span id='argos-Views-Signature-method-setValue'>        /**
-</span>         * Sets the current value and draws it.
-         * @param {String} val JSON-stringified Number[][] of x-y coordinates
-         * @param initial Unused.
-         */
-        setValue: function(val, initial) {
-            this.signature = val ? json.fromJson(val) : [];
-            this.redraw(this.signature, this.signatureNode, this.config);
-        },
-<span id='argos-Views-Signature-method-clearValue'>        /**
-</span>         * Clears the value and saves the buffer
-         */
-        clearValue: function() {
-            this.buffer = this.signature;
-            this.setValue('', true);
-        },
-<span id='argos-Views-Signature-method-_getCoords'>        /**
-</span>         * Returns pointer pixel coordinates [x,y] relative to canvas object
-         * @param {Event} e
-         * @return Number[]
-         */
-        _getCoords: function(e) {
-            var offset = domGeom.position(this.signatureNode, false);
-            return e.touches
-                ? [
-                    e.touches[0].pageX - offset.x,
-                    e.touches[0].pageY - offset.y
-                  ]
-                : [
-                    e.clientX - offset.x,
-                    e.clientY - offset.y
-                  ]
-                ;
-        },
-<span id='argos-Views-Signature-method-_penDown'>        /**
-</span>         * Handler for `ontouchstart`, records the starting point and sets the state to down
-         * @param {Event} e
-         */
-        _penDown: function(e) {
-            this.isPenDown = true;
-            this.lastpos = this._getCoords(e);
-            this.context.lineWidth = this.config.lineWidth;
-            this.context.strokeStyle = this.config.drawColor;
-            e.preventDefault();
-        },
-<span id='argos-Views-Signature-method-_penMove'>        /**
-</span>         * Handler for `ontouchmove`, draws the lines between the last postition and current position
-         * @param {Event} e
-         */
-        _penMove: function(e) {
-            if (!this.isPenDown) {
-                return;
-            }
+<span id='argos-Views-Signature'>  /**
+</span>   * @class argos.Views.Signature
+   * Signature View is a view tailored to present an HTML5 canvas that has signature-recording capabilities.
+   *
+   * It goes hand-in-hand with {@link SignatureField SignatureField}
+   *
+   * @alternateClassName SignatureView
+   * @extends argos.View
+   * @requires argos.Format
+   */
+  var __class = (0, _declare['default'])('argos.Views.Signature', [_View2['default']], {
+    // Localization
+<span id='argos-Views-Signature-property-titleText'>    /**
+</span>     * @property {String}
+     * Text shown in the top toolbar header
+     */
+    titleText: resource.titleText,
+<span id='argos-Views-Signature-property-clearCanvasText'>    /**
+</span>     * @property {String}
+     * Text shown in the clear button
+     */
+    clearCanvasText: resource.clearCanvasText,
+<span id='argos-Views-Signature-property-undoText'>    /**
+</span>     * @property {String}
+     * Text shown in the undo button
+     */
+    undoText: resource.undoText,
 
-            this.pos = this._getCoords(e);
-            e.preventDefault();
-            this.context.beginPath();
-            this.context.moveTo(this.lastpos[0], this.lastpos[1]);
-            this.context.lineTo(this.pos[0], this.pos[1]);
-            this.context.closePath();
-            this.context.stroke();
-            e.preventDefault();
-            this.lastpos = this.pos;
-            this.trace.push(this.pos);
-        },
-<span id='argos-Views-Signature-method-_penUp'>        /**
-</span>         * Handler for `ontouchend`, saves the final signature and redraws the canvas
-         * @param e
-         */
-        _penUp: function(e) {
-            e.preventDefault();
-            this.isPenDown = false;
-            if (this.trace.length) {
-                this.signature.push(this.trace);
-            }
+    // Templates
+<span id='argos-Views-Signature-property-widgetTemplate'>    /**
+</span>     * @property {Simplate}
+     * Simplate that defines the HTML Markup
+     *
+     * * `$` =&gt; Signature view instance
+     *
+     */
+    widgetTemplate: new Simplate(['&lt;div id=&quot;{%= $.id %}&quot; title=&quot;{%: $.titleText %}&quot; class=&quot;panel {%= $.cls %}&quot;&gt;', '{%! $.canvasTemplate %}', '&lt;div class=&quot;buttons&quot;&gt;', '&lt;button class=&quot;button&quot; data-action=&quot;_undo&quot;&gt;&lt;span&gt;{%: $.undoText %}&lt;/span&gt;&lt;/button&gt;', '&lt;button class=&quot;button&quot; data-action=&quot;clearValue&quot;&gt;&lt;span&gt;{%: $.clearCanvasText %}&lt;/span&gt;&lt;/button&gt;', '&lt;/div&gt;', '&lt;div&gt;']),
+<span id='argos-Views-Signature-property-canvasTemplate'>    /**
+</span>     * @property {Simplate}
+     * Simplate that defines the canvas with a set width and height
+     */
+    canvasTemplate: new Simplate(['&lt;canvas data-dojo-attach-point=&quot;signatureNode&quot; width=&quot;{%: $.canvasNodeWidth %}&quot; height=&quot;{%: $.canvasNodeHeight %}&quot; data-dojo-attach-event=&quot;onmousedown:_penDown,onmousemove:_penMove,onmouseup:_penUp,ontouchstart:_penDown,ontouchmove:_penMove,ontouchend:_penUp&quot;&gt;&lt;/canvas&gt;']),
+<span id='argos-Views-Signature-property-signatureNode'>    /**
+</span>     * @property {HTMLElement}
+     * The dojo-attach-point for the canvas element
+     */
+    signatureNode: null,
 
-            this.trace = [];
-            this.context.strokeStyle = this.config.penColor;
-            this.redraw(this.signature, this.signatureNode, this.config);
-        },
-<span id='argos-Views-Signature-method-_undo'>        /**
-</span>         * Undoes the last pen down-to-pen up line by using the buffer
-         */
-        _undo: function() {
-            if (this.signature.length) {
-                this.buffer = this.signature.pop();
-                if (!this.signature.length) {
-                    this.buffer = [this.buffer];
-                }
+    // View Properties
+<span id='argos-Views-Signature-property-id'>    /**
+</span>     * @property {String}
+     * The unique view id
+     */
+    id: 'signature_edit',
+<span id='argos-Views-Signature-property-expose'>    /**
+</span>     * @property {Boolean}
+     * Flag that may be used to control if the view is shown in configurable lists
+     */
+    expose: false,
+<span id='argos-Views-Signature-property-signature'>    /**
+</span>     * @property {Number[][]}
+     * Stores series of x,y coordinates in the format of: `[[0,0],[1,5]]`
+     */
+    signature: [],
+<span id='argos-Views-Signature-property-trace'>    /**
+</span>     * @property {Number[][]}
+     * Collection of the touchmove positions
+     */
+    trace: [],
+<span id='argos-Views-Signature-property-lastpos'>    /**
+</span>     * @property {Object}
+     * Stores where the last drawn point was
+     */
+    lastpos: {
+      x: -1,
+      y: -1
+    },
+<span id='argos-Views-Signature-cfg-config'>    /**
+</span>     * @cfg {Object}
+     * Stores the passed options for: `scale`, `lineWidth`, `penColor` and `drawColor`.
+     */
+    config: {
+      scale: 1,
+      lineWidth: 3,
+      penColor: 'blue',
+      drawColor: 'red'
+    },
+<span id='argos-Views-Signature-property-isPenDown'>    /**
+</span>     * @property {Boolean}
+     * Flag for determining if the pen is in &quot;down&quot; state.
+     */
+    isPenDown: false,
+<span id='argos-Views-Signature-property-context'>    /**
+</span>     * @property {Object}
+     * The stored 2d context of the canvas node
+     */
+    context: null,
+<span id='argos-Views-Signature-property-buffer'>    /**
+</span>     * @property {Number[][]}
+     * Used to temporarily store the signature
+     */
+    buffer: [],
+<span id='argos-Views-Signature-cfg-canvasNodeWidth'>    /**
+</span>     * @cfg {Number}
+     * Starting default width of canvas, will be re-sized when the view is shown.
+     */
+    canvasNodeWidth: 360,
+<span id='argos-Views-Signature-cfg-canvasNodeHeight'>    /**
+</span>     * @cfg {Number}
+     * Starting default height of canvas, will be re-sized when the view is shown.
+     */
+    canvasNodeHeight: 120,
 
-            } else if (this.buffer.length) {
-                this.signature = this.buffer;
-            }
-            this.redraw(this.signature, this.signatureNode, this.config);
-        },
-<span id='argos-Views-Signature-method-_sizeCanvas'>        /**
-</span>         * Sets the canvas width/height based on the size of the window/screen
-         */
-        _sizeCanvas: function() {
-            this.canvasNodeWidth  = Math.floor(win.getBox().w * 0.92);
+<span id='argos-Views-Signature-method-show'>    /**
+</span>     * Extends parent implementation to store the options to `this.config`, subscribe to the
+     * `/app/resize` event and immediately call resize so the canvas is scaled.
+     * @param options
+     */
+    show: function show(options) {
+      this.inherited(arguments);
 
-            this.canvasNodeHeight = Math.min(
-                Math.floor(this.canvasNodeWidth * 0.5),
-                win.getBox().h - query('.toolbar')[0].offsetHeight
-            );
+      if (options &amp;&amp; options.lineWidth) {
+        this.config.lineWidth = options.lineWidth;
+      }
 
-            this.signatureNode.width  = this.canvasNodeWidth;
-            this.signatureNode.height = this.canvasNodeHeight;
-        },
-<span id='argos-Views-Signature-method-onResize'>        /**
-</span>         * Calls {@link #_sizeCanvas _sizeCanvas} to size the canvas itself then it also scales the
-         * drawn signature accordingly to the ratio.
-         * @param e
-         */
-        onResize: function(e) {
-            var newScale,
-                oldWidth  = this.canvasNodeWidth,
-                oldHeight = this.canvasNodeHeight;
-            this._sizeCanvas();
+      if (options &amp;&amp; options.penColor) {
+        this.config.penColor = options.penColor;
+      }
 
-            newScale = Math.min(
-                this.canvasNodeWidth  / oldWidth,
-                this.canvasNodeHeight / oldHeight
-            );
+      if (options &amp;&amp; options.drawColor) {
+        this.config.drawColor = options.drawColor;
+      }
 
-            this.signature = this.rescale(newScale);
-            this.redraw(this.signature, this.signatureNode, this.config);
-        },
-<span id='argos-Views-Signature-method-redraw'>        /**
-</span>         * Calls {@link format#canvasDraw format.canvasDraw} which clears and draws the vectors
-         * @param {Number[][]} vector The x-y coordinates of the points
-         * @param {HTMLElement} canvas Canvas to be drawn to
-         * @param {Object} options Options to be passed to canvasDraw
-         */
-        redraw: function(vector, canvas, options) {
-            format.canvasDraw(vector, canvas, options);
-        },
-<span id='argos-Views-Signature-method-rescale'>        /**
-</span>         * Loops through the vector points in the signature and applies the given scale ratio
-         * @param {Number} scale Ratio in which to multiply the vector point
-         * @return {Number[][]} Rescaled signature array
-         */
-        rescale: function(scale) {
-            var rescaled,
-                j,
-                i;
+      this.signature = options &amp;&amp; options.signature ? options.signature : [];
 
-            rescaled = [];
-            for (i = 0; i &lt; this.signature.length; i++) {
-                rescaled.push([]);
-                for (j = 0; j &lt; this.signature[i].length; j++) {
-                    rescaled[i].push([
-                        this.signature[i][j][0] * scale,
-                        this.signature[i][j][1] * scale
-                    ]);
-                }
-            }
-            return rescaled;
-        },
-<span id='argos-Views-Signature-method-optimizeSignature'>        /**
-</span>         * Loops the signature calling optimize on each pen down-to-pen up segment
-         * @return {Number[][]} Optimized signature
-         */
-        optimizeSignature: function() {
-            var optimized, i;
+      this._sizeCanvas();
+      this.context = this.signatureNode.getContext('2d');
 
-            optimized = [];
+      this.subscribe('/app/resize', this.onResize);
 
-            for (i = 0; i &lt; this.signature.length; i++) {
-                optimized.push(this.optimize(this.signature[i]));
-            }
+      this.redraw(this.signature, this.signatureNode, this.config);
+    },
+<span id='argos-Views-Signature-method-getValues'>    /**
+</span>     * Returns the optimized signature array as a JSON string
+     * @return {String}
+     */
+    getValues: function getValues() {
+      return _json['default'].toJson(this.optimizeSignature());
+    },
+<span id='argos-Views-Signature-method-setValue'>    /**
+</span>     * Sets the current value and draws it.
+     * @param {String} val JSON-stringified Number[][] of x-y coordinates
+     * @param initial Unused.
+     */
+    setValue: function setValue(val /*, initial*/) {
+      this.signature = val ? _json['default'].fromJson(val) : [];
+      this.redraw(this.signature, this.signatureNode, this.config);
+    },
+<span id='argos-Views-Signature-method-clearValue'>    /**
+</span>     * Clears the value and saves the buffer
+     */
+    clearValue: function clearValue() {
+      this.buffer = this.signature;
+      this.setValue('', true);
+    },
+<span id='argos-Views-Signature-method-_getCoords'>    /**
+</span>     * Returns pointer pixel coordinates [x,y] relative to canvas object
+     * @param {Event} e
+     * @return Number[]
+     */
+    _getCoords: function _getCoords(e) {
+      var offset = _domGeom['default'].position(this.signatureNode, false);
+      return e.touches ? [e.touches[0].pageX - offset.x, e.touches[0].pageY - offset.y] : [e.clientX - offset.x, e.clientY - offset.y];
+    },
+<span id='argos-Views-Signature-method-_penDown'>    /**
+</span>     * Handler for `ontouchstart`, records the starting point and sets the state to down
+     * @param {Event} e
+     */
+    _penDown: function _penDown(e) {
+      this.isPenDown = true;
+      this.lastpos = this._getCoords(e);
+      this.context.lineWidth = this.config.lineWidth;
+      this.context.strokeStyle = this.config.drawColor;
+      e.preventDefault();
+    },
+<span id='argos-Views-Signature-method-_penMove'>    /**
+</span>     * Handler for `ontouchmove`, draws the lines between the last postition and current position
+     * @param {Event} e
+     */
+    _penMove: function _penMove(e) {
+      if (!this.isPenDown) {
+        return;
+      }
 
-            return optimized;
-        },
-<span id='argos-Views-Signature-method-optimize'>        /**
-</span>         * Attempts to remove points by comparing the x/y variation between the two and
-         * removing points within a certain threshold.
-         * @param {Number[]} vector Array of x,y coordinates to optimize
-         * @return {Number[]} Optimized array
-         */
-        optimize: function(vector) {
-            if (vector.length &lt; 2) {
-                return vector;
-            }
+      this.pos = this._getCoords(e);
+      e.preventDefault();
+      this.context.beginPath();
+      this.context.moveTo(this.lastpos[0], this.lastpos[1]);
+      this.context.lineTo(this.pos[0], this.pos[1]);
+      this.context.closePath();
+      this.context.stroke();
+      e.preventDefault();
+      this.lastpos = this.pos;
+      this.trace.push(this.pos);
+    },
+<span id='argos-Views-Signature-method-_penUp'>    /**
+</span>     * Handler for `ontouchend`, saves the final signature and redraws the canvas
+     * @param e
+     */
+    _penUp: function _penUp(e) {
+      e.preventDefault();
+      this.isPenDown = false;
+      if (this.trace.length) {
+        this.signature.push(this.trace);
+      }
 
-            var result = [],
-                minA = 0.95,
-                maxL = 15.0, // 15.0, 10.0 works well
-                rootP = vector[0],
-                lastP = vector[1],
-                rootV = [lastP[0] - rootP[0], lastP[1] - rootP[1]],
-                rootL = Math.sqrt(rootV[0] * rootV[0] + rootV[1] * rootV[1]),
-                currentP,
-                currentV,
-                currentL,
-                i,
-                dotProduct;
-
-            for (i = 2; i &lt; vector.length; i++) {
-                currentP = vector[i];
-                currentV = [currentP[0] - rootP[0], currentP[1] - rootP[1]];
-                currentL = Math.sqrt(currentV[0] * currentV[0] + currentV[1] * currentV[1]);
-                dotProduct = (rootV[0] * currentV[0] + rootV[1] * currentV[1]) / (rootL * currentL);
-
-                if (dotProduct &lt; minA || currentL &gt; maxL) {
-                    result.push(rootP);
-
-                    rootP = lastP;
-                    lastP = currentP;
-                    rootV = [lastP[0] - rootP[0], lastP[1] - rootP[1]];
-                    rootL = Math.sqrt(rootV[0] * rootV[0] + rootV[1] * rootV[1]);
-                } else {
-                    lastP = currentP;
-                }
-
-            }
-
-            result.push(lastP);
-
-            return result;
+      this.trace = [];
+      this.context.strokeStyle = this.config.penColor;
+      this.redraw(this.signature, this.signatureNode, this.config);
+    },
+<span id='argos-Views-Signature-method-_undo'>    /**
+</span>     * Undoes the last pen down-to-pen up line by using the buffer
+     */
+    _undo: function _undo() {
+      if (this.signature.length) {
+        this.buffer = this.signature.pop();
+        if (!this.signature.length) {
+          this.buffer = [this.buffer];
         }
-    });
+      } else if (this.buffer.length) {
+        this.signature = this.buffer;
+      }
+      this.redraw(this.signature, this.signatureNode, this.config);
+    },
+<span id='argos-Views-Signature-method-_sizeCanvas'>    /**
+</span>     * Sets the canvas width/height based on the size of the window/screen
+     */
+    _sizeCanvas: function _sizeCanvas() {
+      this.canvasNodeWidth = Math.floor(_win['default'].getBox().w * 0.92);
 
-    lang.setObject('Sage.Platform.Mobile.Views.Signature', __class);
-    return __class;
+      this.canvasNodeHeight = Math.min(Math.floor(this.canvasNodeWidth * 0.5), _win['default'].getBox().h - (0, _query['default'])('.toolbar')[0].offsetHeight);
+
+      this.signatureNode.width = this.canvasNodeWidth;
+      this.signatureNode.height = this.canvasNodeHeight;
+    },
+<span id='argos-Views-Signature-method-onResize'>    /**
+</span>     * Calls {@link #_sizeCanvas _sizeCanvas} to size the canvas itself then it also scales the
+     * drawn signature accordingly to the ratio.
+     * @param e
+     */
+    onResize: function onResize() /*e*/{
+      var oldWidth = this.canvasNodeWidth;
+      var oldHeight = this.canvasNodeHeight;
+      this._sizeCanvas();
+
+      var newScale = Math.min(this.canvasNodeWidth / oldWidth, this.canvasNodeHeight / oldHeight);
+
+      this.signature = this.rescale(newScale);
+      this.redraw(this.signature, this.signatureNode, this.config);
+    },
+<span id='argos-Views-Signature-method-redraw'>    /**
+</span>     * Calls {@link format#canvasDraw format.canvasDraw} which clears and draws the vectors
+     * @param {Number[][]} vector The x-y coordinates of the points
+     * @param {HTMLElement} canvas Canvas to be drawn to
+     * @param {Object} options Options to be passed to canvasDraw
+     */
+    redraw: function redraw(vector, canvas, options) {
+      _format['default'].canvasDraw(vector, canvas, options);
+    },
+<span id='argos-Views-Signature-method-rescale'>    /**
+</span>     * Loops through the vector points in the signature and applies the given scale ratio
+     * @param {Number} scale Ratio in which to multiply the vector point
+     * @return {Number[][]} Rescaled signature array
+     */
+    rescale: function rescale(scale) {
+      var rescaled = [];
+      for (var i = 0; i &lt; this.signature.length; i++) {
+        rescaled.push([]);
+        for (var j = 0; j &lt; this.signature[i].length; j++) {
+          rescaled[i].push([this.signature[i][j][0] * scale, this.signature[i][j][1] * scale]);
+        }
+      }
+      return rescaled;
+    },
+<span id='argos-Views-Signature-method-optimizeSignature'>    /**
+</span>     * Loops the signature calling optimize on each pen down-to-pen up segment
+     * @return {Number[][]} Optimized signature
+     */
+    optimizeSignature: function optimizeSignature() {
+      var optimized = [];
+
+      for (var i = 0; i &lt; this.signature.length; i++) {
+        optimized.push(this.optimize(this.signature[i]));
+      }
+
+      return optimized;
+    },
+<span id='argos-Views-Signature-method-optimize'>    /**
+</span>     * Attempts to remove points by comparing the x/y variation between the two and
+     * removing points within a certain threshold.
+     * @param {Number[]} vector Array of x,y coordinates to optimize
+     * @return {Number[]} Optimized array
+     */
+    optimize: function optimize(vector) {
+      if (vector.length &lt; 2) {
+        return vector;
+      }
+
+      var result = [];
+      var minA = 0.95;
+      var maxL = 15.0; // 15.0, 10.0 works well
+      var rootP = vector[0];
+      var lastP = vector[1];
+      var rootV = [lastP[0] - rootP[0], lastP[1] - rootP[1]];
+      var rootL = Math.sqrt(rootV[0] * rootV[0] + rootV[1] * rootV[1]);
+
+      for (var i = 2; i &lt; vector.length; i++) {
+        var currentP = vector[i];
+        var currentV = [currentP[0] - rootP[0], currentP[1] - rootP[1]];
+        var currentL = Math.sqrt(currentV[0] * currentV[0] + currentV[1] * currentV[1]);
+        var dotProduct = (rootV[0] * currentV[0] + rootV[1] * currentV[1]) / (rootL * currentL);
+
+        if (dotProduct &lt; minA || currentL &gt; maxL) {
+          result.push(rootP);
+          rootP = lastP;
+          lastP = currentP;
+          rootV = [lastP[0] - rootP[0], lastP[1] - rootP[1]];
+          rootL = Math.sqrt(rootV[0] * rootV[0] + rootV[1] * rootV[1]);
+        } else {
+          lastP = currentP;
+        }
+      }
+
+      result.push(lastP);
+
+      return result;
+    }
+  });
+
+  _lang['default'].setObject('Sage.Platform.Mobile.Views.Signature', __class);
+  module.exports = __class;
 });
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInNyYy9WaWV3cy9TaWduYXR1cmUuanMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7O0FBd0JBLE1BQU0sUUFBUSxHQUFHLDZCQUFZLFdBQVcsQ0FBQyxDQUFDOzs7Ozs7Ozs7Ozs7QUFZMUMsTUFBTSxPQUFPLEdBQUcseUJBQVEsdUJBQXVCLEVBQUUsbUJBQU0sRUFBRTs7Ozs7O0FBTXZELGFBQVMsRUFBRSxRQUFRLENBQUMsU0FBUzs7Ozs7QUFLN0IsbUJBQWUsRUFBRSxRQUFRLENBQUMsZUFBZTs7Ozs7QUFLekMsWUFBUSxFQUFFLFFBQVEsQ0FBQyxRQUFROzs7Ozs7Ozs7O0FBVTNCLGtCQUFjLEVBQUUsSUFBSSxRQUFRLENBQUMsQ0FDM0IsOEVBQThFLEVBQzlFLHlCQUF5QixFQUN6Qix1QkFBdUIsRUFDdkIsb0ZBQW9GLEVBQ3BGLGdHQUFnRyxFQUNoRyxRQUFRLEVBQ1IsT0FBTyxDQUNSLENBQUM7Ozs7O0FBS0Ysa0JBQWMsRUFBRSxJQUFJLFFBQVEsQ0FBQyxDQUMzQiwrUUFBK1EsQ0FDaFIsQ0FBQzs7Ozs7QUFLRixpQkFBYSxFQUFFLElBQUk7Ozs7Ozs7QUFPbkIsTUFBRSxFQUFFLGdCQUFnQjs7Ozs7QUFLcEIsVUFBTSxFQUFFLEtBQUs7Ozs7O0FBS2IsYUFBUyxFQUFFLEVBQUU7Ozs7O0FBS2IsU0FBSyxFQUFFLEVBQUU7Ozs7O0FBS1QsV0FBTyxFQUFFO0FBQ1AsT0FBQyxFQUFFLENBQUMsQ0FBQztBQUNMLE9BQUMsRUFBRSxDQUFDLENBQUM7S0FDTjs7Ozs7QUFLRCxVQUFNLEVBQUU7QUFDTixXQUFLLEVBQUUsQ0FBQztBQUNSLGVBQVMsRUFBRSxDQUFDO0FBQ1osY0FBUSxFQUFFLE1BQU07QUFDaEIsZUFBUyxFQUFFLEtBQUs7S0FDakI7Ozs7O0FBS0QsYUFBUyxFQUFFLEtBQUs7Ozs7O0FBS2hCLFdBQU8sRUFBRSxJQUFJOzs7OztBQUtiLFVBQU0sRUFBRSxFQUFFOzs7OztB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QU0sVUFBVSxHQUFHLENBQUMsS0FBSyxDQUFDLENBQUMsQ0FBQyxHQUFHLFFBQVEsQ0FBQyxDQUFDLENBQUMsR0FBRyxLQUFLLENBQUMsQ0FBQyxDQUFDLEdBQUcsUUFBUSxDQUFDLENBQUMsQ0FBQyxDQUFBLElBQUssS0FBSyxHQUFHLFFBQVEsQ0FBQSxBQUFDLENBQUM7O0FBRTFGLFlBQUksVUFBVSxHQUFHLElBQUksSUFBSSxRQUFRLEdBQUcsSUFBSSxFQUFFO0FBQ3hDLGdCQUFNLENBQUMsSUFBSSxDQUFDLEtBQUssQ0FBQyxDQUFDO0FBQ25CLGVBQUssR0FBRyxLQUFLLENBQUM7QUFDZCxlQUFLLEdBQUcsUUFBUSxDQUFDO0FBQ2pCLGVBQUssR0FBRyxDQUFDLEtBQUssQ0FBQyxDQUFDLENBQUMsR0FBRyxLQUFLLENBQUMsQ0FBQyxDQUFDLEVBQUUsS0FBSyxDQUFDLENBQUMsQ0FBQyxHQUFHLEtBQUssQ0FBQyxDQUFDLENBQUMsQ0FBQyxDQUFDO0FBQ25ELGVBQUssR0FBRyxJQUFJLENBQUMsSUFBSSxDQUFDLEtBQUssQ0FBQyxDQUFDLENBQUMsR0FBRyxLQUFLLENBQUMsQ0FBQyxDQUFDLEdBQUcsS0FBSyxDQUFDLENBQUMsQ0FBQyxHQUFHLEtBQUssQ0FBQyxDQUFDLENBQUMsQ0FBQyxDQUFDO1NBQzlELE1BQU07QUFDTCxlQUFLLEdBQUcsUUFBUSxDQUFDO1NBQ2xCO09BQ0Y7O0FBRUQsWUFBTSxDQUFDLElBQUksQ0FBQyxLQUFLLENBQUMsQ0FBQzs7QUFFbkIsYUFBTyxNQUFNLENBQUM7S0FDZjtHQUNGLENBQUMsQ0FBQzs7QUFFSCxtQkFBSyxTQUFTLENBQUMsc0NBQXNDLEVBQUUsT0FBTyxDQUFDLENBQUM7bUJBQ2pELE9BQU8iLCJmaWxlIjoic3JjL1ZpZXdzL1NpZ25hdHVyZS5qcyIsInNvdXJjZVJvb3QiOiJzcmMiLCJzb3VyY2VzQ29udGVudCI6WyIvKiBDb3B5cmlnaHQgKGMpIDIwMTAsIFNhZ2UgU29mdHdhcmUsIEluYy4gQWxsIHJpZ2h0cyByZXNlcnZlZC5cclxuICpcclxuICogTGljZW5zZWQgdW5kZXIgdGhlIEFwYWNoZSBMaWNlbnNlLCBWZXJzaW9uIDIuMCAodGhlIFwiTGljZW5zZVwiKTtcclxuICogeW91IG1heSBub3QgdXNlIHRoaXMgZmlsZSBleGNlcHQgaW4gY29tcGxpYW5jZSB3aXRoIHRoZSBMaWNlbnNlLlxyXG4gKiBZb3UgbWF5IG9idGFpbiBhIGNvcHkgb2YgdGhlIExpY2Vuc2UgYXRcclxuICpcclxuICogICAgIGh0dHA6Ly93d3cuYXBhY2hlLm9yZy9saWNlbnNlcy9MSUNFTlNFLTIuMFxyXG4gKlxyXG4gKiBVbmxlc3MgcmVxdWlyZWQgYnkgYXBwbGljYWJsZSBsYXcgb3IgYWdyZWVkIHRvIGluIHdyaXRpbmcsIHNvZnR3YXJlXHJcbiAqIGRpc3RyaWJ1dGVkIHVuZGVyIHRoZSBMaWNlbnNlIGlzIGRpc3RyaWJ1dGVkIG9uIGFuIFwiQVMgSVNcIiBCQVNJUyxcclxuICogV0lUSE9VVCBXQVJSQU5USUVTIE9SIENPTkRJVElPTlMgT0YgQU5ZIEtJTkQsIGVpdGhlciBleHByZXNzIG9yIGltcGxpZWQuXHJcbiAqIFNlZSB0aGUgTGljZW5zZSBmb3IgdGhlIHNwZWNpZmljIGxhbmd1YWdlIGdvdmVybmluZyBwZXJtaXNzaW9ucyBhbmRcclxuICogbGltaXRhdGlvbnMgdW5kZXIgdGhlIExpY2Vuc2UuXHJcbiAqL1xyXG5pbXBvcnQgZGVjbGFyZSBmcm9tICdkb2pvL19iYXNlL2RlY2xhcmUnO1xyXG5pbXBvcnQgbGFuZyBmcm9tICdkb2pvL19iYXNlL2xhbmcnO1xyXG5pbXBvcnQganNvbiBmcm9tICdkb2pvL19iYXNlL2pzb24nO1xyXG5pbXBvcnQgcXVlcnkgZnJvbSAnZG9qby9xdWVyeSc7XHJcbmltcG9ydCBkb21HZW9tIGZyb20gJ2Rvam8vZG9tLWdlb21ldHJ5JztcclxuaW1wb3J0IHdpbiBmcm9tICdkb2pvL3dpbmRvdyc7XHJcbmltcG9ydCBmb3JtYXQgZnJvbSAnLi4vRm9ybWF0JztcclxuaW1wb3J0IFZpZXcgZnJvbSAnLi4vVmlldyc7XHJcbmltcG9ydCBnZXRSZXNvdXJjZSBmcm9tICcuLi9JMThuJztcclxuXHJcbmNvbnN0IHJlc291cmNlID0gZ2V0UmVzb3VyY2UoJ3NpZ25hdHVyZScpO1xyXG5cclxuLyoqXHJcbiAqIEBjbGFzcyBhcmdvcy5WaWV3cy5TaWduYXR1cmVcclxuICogU2lnbmF0dXJlIFZpZXcgaXMgYSB2aWV3IHRhaWxvcmVkIHRvIHByZXNlbnQgYW4gSFRNTDUgY2FudmFzIHRoYXQgaGFzIHNpZ25hdHVyZS1yZWNvcmRpbmcgY2FwYWJpbGl0aWVzLlxyXG4gKlxyXG4gKiBJdCBnb2VzIGhhbmQtaW4taGFuZCB3aXRoIHtAbGluayBTaWduYXR1cmVGaWVsZCBTaWduYXR1cmVGaWVsZH1cclxuICpcclxuICogQGFsdGVybmF0ZUNsYXNzTmFtZSBTaWduYXR1cmVWaWV3XHJcbiAqIEBleHRlbmRzIGFyZ29zLlZpZXdcclxuICogQHJlcXVpcmVzIGFyZ29zLkZvcm1hdFxyXG4gKi9cclxuY29uc3QgX19jbGFzcyA9IGRlY2xhcmUoJ2FyZ29zLlZpZXdzLlNpZ25hdHVyZScsIFtWaWV3XSwge1xyXG4gIC8vIExvY2FsaXphdGlvblxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7U3RyaW5nfVxyXG4gICAqIFRleHQgc2hvd24gaW4gdGhlIHRvcCB0b29sYmFyIGhlYWRlclxyXG4gICAqL1xyXG4gIHRpdGxlVGV4dDogcmVzb3VyY2UudGl0bGVUZXh0LFxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7U3RyaW5nfVxyXG4gICAqIFRleHQgc2hvd24gaW4gdGhlIGNsZWFyIGJ1dHRvblxyXG4gICAqL1xyXG4gIGNsZWFyQ2FudmFzVGV4dDogcmVzb3VyY2UuY2xlYXJDYW52YXNUZXh0LFxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7U3RyaW5nfVxyXG4gICAqIFRleHQgc2hvd24gaW4gdGhlIHVuZG8gYnV0dG9uXHJcbiAgICovXHJcbiAgdW5kb1RleHQ6IHJlc291cmNlLnVuZG9UZXh0LFxyXG5cclxuICAvLyBUZW1wbGF0ZXNcclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge1NpbXBsYXRlfVxyXG4gICAqIFNpbXBsYXRlIHRoYXQgZGVmaW5lcyB0aGUgSFRNTCBNYXJrdXBcclxuICAgKlxyXG4gICAqICogYCRgID0+IFNpZ25hdHVyZSB2aWV3IGluc3RhbmNlXHJcbiAgICpcclxuICAgKi9cclxuICB3aWRnZXRUZW1wbGF0ZTogbmV3IFNpbXBsYXRlKFtcclxuICAgICc8ZGl2IGlkPVwieyU9ICQuaWQgJX1cIiB0aXRsZT1cInslOiAkLnRpdGxlVGV4dCAlfVwiIGNsYXNzPVwicGFuZWwgeyU9ICQuY2xzICV9XCI+JyxcclxuICAgICd7JSEgJC5jYW52YXNUZW1wbGF0ZSAlfScsXHJcbiAgICAnPGRpdiBjbGFzcz1cImJ1dHRvbnNcIj4nLFxyXG4gICAgJzxidXR0b24gY2xhc3M9XCJidXR0b25cIiBkYXRhLWFjdGlvbj1cIl91bmRvXCI+PHNwYW4+eyU6ICQudW5kb1RleHQgJX08L3NwYW4+PC9idXR0b24+JyxcclxuICAgICc8YnV0dG9uIGNsYXNzPVwiYnV0dG9uXCIgZGF0YS1hY3Rpb249XCJjbGVhclZhbHVlXCI+PHNwYW4+eyU6ICQuY2xlYXJDYW52YXNUZXh0ICV9PC9zcGFuPjwvYnV0dG9uPicsXHJcbiAgICAnPC9kaXY+JyxcclxuICAgICc8ZGl2PicsXHJcbiAgXSksXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtTaW1wbGF0ZX1cclxuICAgKiBTaW1wbGF0ZSB0aGF0IGRlZmluZXMgdGhlIGNhbnZhcyB3aXRoIGEgc2V0IHdpZHRoIGFuZCBoZWlnaHRcclxuICAgKi9cclxuICBjYW52YXNUZW1wbGF0ZTogbmV3IFNpbXBsYXRlKFtcclxuICAgICc8Y2FudmFzIGRhdGEtZG9qby1hdHRhY2gtcG9pbnQ9XCJzaWduYXR1cmVOb2RlXCIgd2lkdGg9XCJ7JTogJC5jYW52YXNOb2RlV2lkdGggJX1cIiBoZWlnaHQ9XCJ7JTogJC5jYW52YXNOb2RlSGVpZ2h0ICV9XCIgZGF0YS1kb2pvLWF0dGFjaC1ldmVudD1cIm9ubW91c2Vkb3duOl9wZW5Eb3duLG9ubW91c2Vtb3ZlOl9wZW5Nb3ZlLG9ubW91c2V1cDpfcGVuVXAsb250b3VjaHN0YXJ0Ol9wZW5Eb3duLG9udG91Y2htb3ZlOl9wZW5Nb3ZlLG9udG91Y2hlbmQ6X3BlblVwXCI+PC9jYW52YXM+JyxcclxuICBdKSxcclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge0hUTUxFbGVtZW50fVxyXG4gICAqIFRoZSBkb2pvLWF0dGFjaC1wb2ludCBmb3IgdGhlIGNhbnZhcyBlbGVtZW50XHJcbiAgICovXHJcbiAgc2lnbmF0dXJlTm9kZTogbnVsbCxcclxuXHJcbiAgLy8gVmlldyBQcm9wZXJ0aWVzXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtTdHJpbmd9XHJcbiAgICogVGhlIHVuaXF1ZSB2aWV3IGlkXHJcbiAgICovXHJcbiAgaWQ6ICdzaWduYXR1cmVfZWRpdCcsXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtCb29sZWFufVxyXG4gICAqIEZsYWcgdGhhdCBtYXkgYmUgdXNlZCB0byBjb250cm9sIGlmIHRoZSB2aWV3IGlzIHNob3duIGluIGNvbmZpZ3VyYWJsZSBsaXN0c1xyXG4gICAqL1xyXG4gIGV4cG9zZTogZmFsc2UsXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtOdW1iZXJbXVtdfVxyXG4gICAqIFN0b3JlcyBzZXJpZXMgb2YgeCx5IGNvb3JkaW5hdGVzIGluIHRoZSBmb3JtYXQgb2Y6IGBbWzAsMF0sWzEsNV1dYFxyXG4gICAqL1xyXG4gIHNpZ25hdHVyZTogW10sXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtOdW1iZXJbXVtdfVxyXG4gICAqIENvbGxlY3Rpb24gb2YgdGhlIHRvdWNobW92ZSBwb3NpdGlvbnNcclxuICAgKi9cclxuICB0cmFjZTogW10sXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtPYmplY3R9XHJcbiAgICogU3RvcmVzIHdoZXJlIHRoZSBsYXN0IGRyYXduIHBvaW50IHdhc1xyXG4gICAqL1xyXG4gIGxhc3Rwb3M6IHtcclxuICAgIHg6IC0xLFxyXG4gICAgeTogLTEsXHJcbiAgfSxcclxuICAvKipcclxuICAgKiBAY2ZnIHtPYmplY3R9XHJcbiAgICogU3RvcmVzIHRoZSBwYXNzZWQgb3B0aW9ucyBmb3I6IGBzY2FsZWAsIGBsaW5lV2lkdGhgLCBgcGVuQ29sb3JgIGFuZCBgZHJhd0NvbG9yYC5cclxuICAgKi9cclxuICBjb25maWc6IHtcclxuICAgIHNjYWxlOiAxLFxyXG4gICAgbGluZVdpZHRoOiAzLFxyXG4gICAgcGVuQ29sb3I6ICdibHVlJyxcclxuICAgIGRyYXdDb2xvcjogJ3JlZCcsXHJcbiAgfSxcclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge0Jvb2xlYW59XHJcbiAgICogRmxhZyBmb3IgZGV0ZXJtaW5pbmcgaWYgdGhlIHBlbiBpcyBpbiBcImRvd25cIiBzdGF0ZS5cclxuICAgKi9cclxuICBpc1BlbkRvd246IGZhbHNlLFxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7T2JqZWN0fVxyXG4gICAqIFRoZSBzdG9yZWQgMmQgY29udGV4dCBvZiB0aGUgY2FudmFzIG5vZGVcclxuICAgKi9cclxuICBjb250ZXh0OiBudWxsLFxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7TnVtYmVyW11bXX1cclxuICAgKiBVc2VkIHRvIHRlbXBvcmFyaWx5IHN0b3JlIHRoZSBzaWduYXR1cmVcclxuICAgKi9cclxuICBidWZmZXI6IFtdLFxyXG4gIC8qKlxyXG4gICAqIEBjZmcge051bWJlcn1cclxuICAgKiBTdGFydGluZyBkZWZhdWx0IHdpZHRoIG9mIGNhbnZhcywgd2lsbCBiZSByZS1zaXplZCB3aGVuIHRoZSB2aWV3IGlzIHNob3duLlxyXG4gICAqL1xyXG4gIGNhbnZhc05vZGVXaWR0aDogMzYwLFxyXG4gIC8qKlxyXG4gICAqIEBjZmcge051bWJlcn1cclxuICAgKiBTdGFydGluZyBkZWZhdWx0IGhlaWdodCBvZiBjYW52YXMsIHdpbGwgYmUgcmUtc2l6ZWQgd2hlbiB0aGUgdmlldyBpcyBzaG93bi5cclxuICAgKi9cclxuICBjYW52YXNOb2RlSGVpZ2h0OiAxMjAsXHJcblxyXG4gIC8qKlxyXG4gICAqIEV4dGVuZHMgcGFyZW50IGltcGxlbWVudGF0aW9uIHRvIHN0b3JlIHRoZSBvcHRpb25zIHRvIGB0aGlzLmNvbmZpZ2AsIHN1YnNjcmliZSB0byB0aGVcclxuICAgKiBgL2FwcC9yZXNpemVgIGV2ZW50IGFuZCBpbW1lZGlhdGVseSBjYWxsIHJlc2l6ZSBzbyB0aGUgY2FudmFzIGlzIHNjYWxlZC5cclxuICAgKiBAcGFyYW0gb3B0aW9uc1xyXG4gICAqL1xyXG4gIHNob3c6IGZ1bmN0aW9uIHNob3cob3B0aW9ucykge1xyXG4gICAgdGhpcy5pbmhlcml0ZWQoYXJndW1lbnRzKTtcclxuXHJcbiAgICBpZiAob3B0aW9ucyAmJiBvcHRpb25zLmxpbmVXaWR0aCkge1xyXG4gICAgICB0aGlzLmNvbmZpZy5saW5lV2lkdGggPSBvcHRpb25zLmxpbmVXaWR0aDtcclxuICAgIH1cclxuXHJcbiAgICBpZiAob3B0aW9ucyAmJiBvcHRpb25zLnBlbkNvbG9yKSB7XHJcbiAgICAgIHRoaXMuY29uZmlnLnBlbkNvbG9yID0gb3B0aW9ucy5wZW5Db2xvcjtcclxuICAgIH1cclxuXHJcbiAgICBpZiAob3B0aW9ucyAmJiBvcHRpb25zLmRyYXdDb2xvcikge1xyXG4gICAgICB0aGlzLmNvbmZpZy5kcmF3Q29sb3IgPSBvcHRpb25zLmRyYXdDb2xvcjtcclxuICAgIH1cclxuXHJcbiAgICB0aGlzLnNpZ25hdHVyZSA9IChvcHRpb25zICYmIG9wdGlvbnMuc2lnbmF0dXJlKSA/IG9wdGlvbnMuc2lnbmF0dXJlIDogW107XHJcblxyXG4gICAgdGhpcy5fc2l6ZUNhbnZhcygpO1xyXG4gICAgdGhpcy5jb250ZXh0ID0gdGhpcy5zaWduYXR1cmVOb2RlLmdldENvbnRleHQoJzJkJyk7XHJcblxyXG4gICAgdGhpcy5zdWJzY3JpYmUoJy9hcHAvcmVzaXplJywgdGhpcy5vblJlc2l6ZSk7XHJcblxyXG4gICAgdGhpcy5yZWRyYXcodGhpcy5zaWduYXR1cmUsIHRoaXMuc2lnbmF0dXJlTm9kZSwgdGhpcy5jb25maWcpO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogUmV0dXJucyB0aGUgb3B0aW1pemVkIHNpZ25hdHVyZSBhcnJheSBhcyBhIEpTT04gc3RyaW5nXHJcbiAgICogQHJldHVybiB7U3RyaW5nfVxyXG4gICAqL1xyXG4gIGdldFZhbHVlczogZnVuY3Rpb24gZ2V0VmFsdWVzKCkge1xyXG4gICAgcmV0dXJuIGpzb24udG9Kc29uKHRoaXMub3B0aW1pemVTaWduYXR1cmUoKSk7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBTZXRzIHRoZSBjdXJyZW50IHZhbHVlIGFuZCBkcmF3cyBpdC5cclxuICAgKiBAcGFyYW0ge1N0cmluZ30gdmFsIEpTT04tc3RyaW5naWZpZWQgTnVtYmVyW11bXSBvZiB4LXkgY29vcmRpbmF0ZXNcclxuICAgKiBAcGFyYW0gaW5pdGlhbCBVbnVzZWQuXHJcbiAgICovXHJcbiAgc2V0VmFsdWU6IGZ1bmN0aW9uIHNldFZhbHVlKHZhbC8qLCBpbml0aWFsKi8pIHtcclxuICAgIHRoaXMuc2lnbmF0dXJlID0gdmFsID8ganNvbi5mcm9tSnNvbih2YWwpIDogW107XHJcbiAgICB0aGlzLnJlZHJhdyh0aGlzLnNpZ25hdHVyZSwgdGhpcy5zaWduYXR1cmVOb2RlLCB0aGlzLmNvbmZpZyk7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBDbGVhcnMgdGhlIHZhbHVlIGFuZCBzYXZlcyB0aGUgYnVmZmVyXHJcbiAgICovXHJcbiAgY2xlYXJWYWx1ZTogZnVuY3Rpb24gY2xlYXJWYWx1ZSgpIHtcclxuICAgIHRoaXMuYnVmZmVyID0gdGhpcy5zaWduYXR1cmU7XHJcbiAgICB0aGlzLnNldFZhbHVlKCcnLCB0cnVlKTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIFJldHVybnMgcG9pbnRlciBwaXhlbCBjb29yZGluYXRlcyBbeCx5XSByZWxhdGl2ZSB0byBjYW52YXMgb2JqZWN0XHJcbiAgICogQHBhcmFtIHtFdmVudH0gZVxyXG4gICAqIEByZXR1cm4gTnVtYmVyW11cclxuICAgKi9cclxuICBfZ2V0Q29vcmRzOiBmdW5jdGlvbiBfZ2V0Q29vcmRzKGUpIHtcclxuICAgIGNvbnN0IG9mZnNldCA9IGRvbUdlb20ucG9zaXRpb24odGhpcy5zaWduYXR1cmVOb2RlLCBmYWxzZSk7XHJcbiAgICByZXR1cm4gZS50b3VjaGVzID8gW1xyXG4gICAgICBlLnRvdWNoZXNbMF0ucGFnZVggLSBvZmZzZXQueCxcclxuICAgICAgZS50b3VjaGVzWzBdLnBhZ2VZIC0gb2Zmc2V0LnksXHJcbiAgICBdIDogW1xyXG4gICAgICBlLmNsaWVudFggLSBvZmZzZXQueCxcclxuICAgICAgZS5jbGllbnRZIC0gb2Zmc2V0LnksXHJcbiAgICBdO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogSGFuZGxlciBmb3IgYG9udG91Y2hzdGFydGAsIHJlY29yZHMgdGhlIHN0YXJ0aW5nIHBvaW50IGFuZCBzZXRzIHRoZSBzdGF0ZSB0byBkb3duXHJcbiAgICogQHBhcmFtIHtFdmVudH0gZVxyXG4gICAqL1xyXG4gIF9wZW5Eb3duOiBmdW5jdGlvbiBfcGVuRG93bihlKSB7XHJcbiAgICB0aGlzLmlzUGVuRG93biA9IHRydWU7XHJcbiAgICB0aGlzLmxhc3Rwb3MgPSB0aGlzLl9nZXRDb29yZHMoZSk7XHJcbiAgICB0aGlzLmNvbnRleHQubGluZVdpZHRoID0gdGhpcy5jb25maWcubGluZVdpZHRoO1xyXG4gICAgdGhpcy5jb250ZXh0LnN0cm9rZVN0eWxlID0gdGhpcy5jb25maWcuZHJhd0NvbG9yO1xyXG4gICAgZS5wcmV2ZW50RGVmYXVsdCgpO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogSGFuZGxlciBmb3IgYG9udG91Y2htb3ZlYCwgZHJhd3MgdGhlIGxpbmVzIGJldHdlZW4gdGhlIGxhc3QgcG9zdGl0aW9uIGFuZCBjdXJyZW50IHBvc2l0aW9uXHJcbiAgICogQHBhcmFtIHtFdmVudH0gZVxyXG4gICAqL1xyXG4gIF9wZW5Nb3ZlOiBmdW5jdGlvbiBfcGVuTW92ZShlKSB7XHJcbiAgICBpZiAoIXRoaXMuaXNQZW5Eb3duKSB7XHJcbiAgICAgIHJldHVybjtcclxuICAgIH1cclxuXHJcbiAgICB0aGlzLnBvcyA9IHRoaXMuX2dldENvb3JkcyhlKTtcclxuICAgIGUucHJldmVudERlZmF1bHQoKTtcclxuICAgIHRoaXMuY29udGV4dC5iZWdpblBhdGgoKTtcclxuICAgIHRoaXMuY29udGV4dC5tb3ZlVG8odGhpcy5sYXN0cG9zWzBdLCB0aGlzLmxhc3Rwb3NbMV0pO1xyXG4gICAgdGhpcy5jb250ZXh0LmxpbmVUbyh0aGlzLnBvc1swXSwgdGhpcy5wb3NbMV0pO1xyXG4gICAgdGhpcy5jb250ZXh0LmNsb3NlUGF0aCgpO1xyXG4gICAgdGhpcy5jb250ZXh0LnN0cm9rZSgpO1xyXG4gICAgZS5wcmV2ZW50RGVmYXVsdCgpO1xyXG4gICAgdGhpcy5sYXN0cG9zID0gdGhpcy5wb3M7XHJcbiAgICB0aGlzLnRyYWNlLnB1c2godGhpcy5wb3MpO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogSGFuZGxlciBmb3IgYG9udG91Y2hlbmRgLCBzYXZlcyB0aGUgZmluYWwgc2lnbmF0dXJlIGFuZCByZWRyYXdzIHRoZSBjYW52YXNcclxuICAgKiBAcGFyYW0gZVxyXG4gICAqL1xyXG4gIF9wZW5VcDogZnVuY3Rpb24gX3BlblVwKGUpIHtcclxuICAgIGUucHJldmVudERlZmF1bHQoKTtcclxuICAgIHRoaXMuaXNQZW5Eb3duID0gZmFsc2U7XHJcbiAgICBpZiAodGhpcy50cmFjZS5sZW5ndGgpIHtcclxuICAgICAgdGhpcy5zaWduYXR1cmUucHVzaCh0aGlzLnRyYWNlKTtcclxuICAgIH1cclxuXHJcbiAgICB0aGlzLnRyYWNlID0gW107XHJcbiAgICB0aGlzLmNvbnRleHQuc3Ryb2tlU3R5bGUgPSB0aGlzLmNvbmZpZy5wZW5Db2xvcjtcclxuICAgIHRoaXMucmVkcmF3KHRoaXMuc2lnbmF0dXJlLCB0aGlzLnNpZ25hdHVyZU5vZGUsIHRoaXMuY29uZmlnKTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIFVuZG9lcyB0aGUgbGFzdCBwZW4gZG93bi10by1wZW4gdXAgbGluZSBieSB1c2luZyB0aGUgYnVmZmVyXHJcbiAgICovXHJcbiAgX3VuZG86IGZ1bmN0aW9uIF91bmRvKCkge1xyXG4gICAgaWYgKHRoaXMuc2lnbmF0dXJlLmxlbmd0aCkge1xyXG4gICAgICB0aGlzLmJ1ZmZlciA9IHRoaXMuc2lnbmF0dXJlLnBvcCgpO1xyXG4gICAgICBpZiAoIXRoaXMuc2lnbmF0dXJlLmxlbmd0aCkge1xyXG4gICAgICAgIHRoaXMuYnVmZmVyID0gW3RoaXMuYnVmZmVyXTtcclxuICAgICAgfVxyXG4gICAgfSBlbHNlIGlmICh0aGlzLmJ1ZmZlci5sZW5ndGgpIHtcclxuICAgICAgdGhpcy5zaWduYXR1cmUgPSB0aGlzLmJ1ZmZlcjtcclxuICAgIH1cclxuICAgIHRoaXMucmVkcmF3KHRoaXMuc2lnbmF0dXJlLCB0aGlzLnNpZ25hdHVyZU5vZGUsIHRoaXMuY29uZmlnKTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIFNldHMgdGhlIGNhbnZhcyB3aWR0aC9oZWlnaHQgYmFzZWQgb24gdGhlIHNpemUgb2YgdGhlIHdpbmRvdy9zY3JlZW5cclxuICAgKi9cclxuICBfc2l6ZUNhbnZhczogZnVuY3Rpb24gX3NpemVDYW52YXMoKSB7XHJcbiAgICB0aGlzLmNhbnZhc05vZGVXaWR0aCA9IE1hdGguZmxvb3Iod2luLmdldEJveCgpLncgKiAwLjkyKTtcclxuXHJcbiAgICB0aGlzLmNhbnZhc05vZGVIZWlnaHQgPSBNYXRoLm1pbihcclxuICAgICAgTWF0aC5mbG9vcih0aGlzLmNhbnZhc05vZGVXaWR0aCAqIDAuNSksXHJcbiAgICAgIHdpbi5nZXRCb3goKS5oIC0gcXVlcnkoJy50b29sYmFyJylbMF0ub2Zmc2V0SGVpZ2h0XHJcbiAgICApO1xyXG5cclxuICAgIHRoaXMuc2lnbmF0dXJlTm9kZS53aWR0aCA9IHRoaXMuY2FudmFzTm9kZVdpZHRoO1xyXG4gICAgdGhpcy5zaWduYXR1cmVOb2RlLmhlaWdodCA9IHRoaXMuY2FudmFzTm9kZUhlaWdodDtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIENhbGxzIHtAbGluayAjX3NpemVDYW52YXMgX3NpemVDYW52YXN9IHRvIHNpemUgdGhlIGNhbnZhcyBpdHNlbGYgdGhlbiBpdCBhbHNvIHNjYWxlcyB0aGVcclxuICAgKiBkcmF3biBzaWduYXR1cmUgYWNjb3JkaW5nbHkgdG8gdGhlIHJhdGlvLlxyXG4gICAqIEBwYXJhbSBlXHJcbiAgICovXHJcbiAgb25SZXNpemU6IGZ1bmN0aW9uIG9uUmVzaXplKC8qZSovKSB7XHJcbiAgICBjb25zdCBvbGRXaWR0aCA9IHRoaXMuY2FudmFzTm9kZVdpZHRoO1xyXG4gICAgY29uc3Qgb2xkSGVpZ2h0ID0gdGhpcy5jYW52YXNOb2RlSGVpZ2h0O1xyXG4gICAgdGhpcy5fc2l6ZUNhbnZhcygpO1xyXG5cclxuICAgIGNvbnN0IG5ld1NjYWxlID0gTWF0aC5taW4oXHJcbiAgICAgIHRoaXMuY2FudmFzTm9kZVdpZHRoIC8gb2xkV2lkdGgsXHJcbiAgICAgIHRoaXMuY2FudmFzTm9kZUhlaWdodCAvIG9sZEhlaWdodFxyXG4gICAgKTtcclxuXHJcbiAgICB0aGlzLnNpZ25hdHVyZSA9IHRoaXMucmVzY2FsZShuZXdTY2FsZSk7XHJcbiAgICB0aGlzLnJlZHJhdyh0aGlzLnNpZ25hdHVyZSwgdGhpcy5zaWduYXR1cmVOb2RlLCB0aGlzLmNvbmZpZyk7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBDYWxscyB7QGxpbmsgZm9ybWF0I2NhbnZhc0RyYXcgZm9ybWF0LmNhbnZhc0RyYXd9IHdoaWNoIGNsZWFycyBhbmQgZHJhd3MgdGhlIHZlY3RvcnNcclxuICAgKiBAcGFyYW0ge051bWJlcltdW119IHZlY3RvciBUaGUgeC15IGNvb3JkaW5hdGVzIG9mIHRoZSBwb2ludHNcclxuICAgKiBAcGFyYW0ge0hUTUxFbGVtZW50fSBjYW52YXMgQ2FudmFzIHRvIGJlIGRyYXduIHRvXHJcbiAgICogQHBhcmFtIHtPYmplY3R9IG9wdGlvbnMgT3B0aW9ucyB0byBiZSBwYXNzZWQgdG8gY2FudmFzRHJhd1xyXG4gICAqL1xyXG4gIHJlZHJhdzogZnVuY3Rpb24gcmVkcmF3KHZlY3RvciwgY2FudmFzLCBvcHRpb25zKSB7XHJcbiAgICBmb3JtYXQuY2FudmFzRHJhdyh2ZWN0b3IsIGNhbnZhcywgb3B0aW9ucyk7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBMb29wcyB0aHJvdWdoIHRoZSB2ZWN0b3IgcG9pbnRzIGluIHRoZSBzaWduYXR1cmUgYW5kIGFwcGxpZXMgdGhlIGdpdmVuIHNjYWxlIHJhdGlvXHJcbiAgICogQHBhcmFtIHtOdW1iZXJ9IHNjYWxlIFJhdGlvIGluIHdoaWNoIHRvIG11bHRpcGx5IHRoZSB2ZWN0b3IgcG9pbnRcclxuICAgKiBAcmV0dXJuIHtOdW1iZXJbXVtdfSBSZXNjYWxlZCBzaWduYXR1cmUgYXJyYXlcclxuICAgKi9cclxuICByZXNjYWxlOiBmdW5jdGlvbiByZXNjYWxlKHNjYWxlKSB7XHJcbiAgICBjb25zdCByZXNjYWxlZCA9IFtdO1xyXG4gICAgZm9yIChsZXQgaSA9IDA7IGkgPCB0aGlzLnNpZ25hdHVyZS5sZW5ndGg7IGkrKykge1xyXG4gICAgICByZXNjYWxlZC5wdXNoKFtdKTtcclxuICAgICAgZm9yIChsZXQgaiA9IDA7IGogPCB0aGlzLnNpZ25hdHVyZVtpXS5sZW5ndGg7IGorKykge1xyXG4gICAgICAgIHJlc2NhbGVkW2ldLnB1c2goW1xyXG4gICAgICAgICAgdGhpcy5zaWduYXR1cmVbaV1bal1bMF0gKiBzY2FsZSxcclxuICAgICAgICAgIHRoaXMuc2lnbmF0dXJlW2ldW2pdWzFdICogc2NhbGUsXHJcbiAgICAgICAgXSk7XHJcbiAgICAgIH1cclxuICAgIH1cclxuICAgIHJldHVybiByZXNjYWxlZDtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIExvb3BzIHRoZSBzaWduYXR1cmUgY2FsbGluZyBvcHRpbWl6ZSBvbiBlYWNoIHBlbiBkb3duLXRvLXBlbiB1cCBzZWdtZW50XHJcbiAgICogQHJldHVybiB7TnVtYmVyW11bXX0gT3B0aW1pemVkIHNpZ25hdHVyZVxyXG4gICAqL1xyXG4gIG9wdGltaXplU2lnbmF0dXJlOiBmdW5jdGlvbiBvcHRpbWl6ZVNpZ25hdHVyZSgpIHtcclxuICAgIGNvbnN0IG9wdGltaXplZCA9IFtdO1xyXG5cclxuICAgIGZvciAobGV0IGkgPSAwOyBpIDwgdGhpcy5zaWduYXR1cmUubGVuZ3RoOyBpKyspIHtcclxuICAgICAgb3B0aW1pemVkLnB1c2godGhpcy5vcHRpbWl6ZSh0aGlzLnNpZ25hdHVyZVtpXSkpO1xyXG4gICAgfVxyXG5cclxuICAgIHJldHVybiBvcHRpbWl6ZWQ7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBBdHRlbXB0cyB0byByZW1vdmUgcG9pbnRzIGJ5IGNvbXBhcmluZyB0aGUgeC95IHZhcmlhdGlvbiBiZXR3ZWVuIHRoZSB0d28gYW5kXHJcbiAgICogcmVtb3ZpbmcgcG9pbnRzIHdpdGhpbiBhIGNlcnRhaW4gdGhyZXNob2xkLlxyXG4gICAqIEBwYXJhbSB7TnVtYmVyW119IHZlY3RvciBBcnJheSBvZiB4LHkgY29vcmRpbmF0ZXMgdG8gb3B0aW1pemVcclxuICAgKiBAcmV0dXJuIHtOdW1iZXJbXX0gT3B0aW1pemVkIGFycmF5XHJcbiAgICovXHJcbiAgb3B0aW1pemU6IGZ1bmN0aW9uIG9wdGltaXplKHZlY3Rvcikge1xyXG4gICAgaWYgKHZlY3Rvci5sZW5ndGggPCAyKSB7XHJcbiAgICAgIHJldHVybiB2ZWN0b3I7XHJcbiAgICB9XHJcblxyXG4gICAgY29uc3QgcmVzdWx0ID0gW107XHJcbiAgICBjb25zdCBtaW5BID0gMC45NTtcclxuICAgIGNvbnN0IG1heEwgPSAxNS4wOyAvLyAxNS4wLCAxMC4wIHdvcmtzIHdlbGxcclxuICAgIGxldCByb290UCA9IHZlY3RvclswXTtcclxuICAgIGxldCBsYXN0UCA9IHZlY3RvclsxXTtcclxuICAgIGxldCByb290ViA9IFtsYXN0UFswXSAtIHJvb3RQWzBdLCBsYXN0UFsxXSAtIHJvb3RQWzFdXTtcclxuICAgIGxldCByb290TCA9IE1hdGguc3FydChyb290VlswXSAqIHJvb3RWWzBdICsgcm9vdFZbMV0gKiByb290VlsxXSk7XHJcblxyXG4gICAgZm9yIChsZXQgaSA9IDI7IGkgPCB2ZWN0b3IubGVuZ3RoOyBpKyspIHtcclxuICAgICAgY29uc3QgY3VycmVudFAgPSB2ZWN0b3JbaV07XHJcbiAgICAgIGNvbnN0IGN1cnJlbnRWID0gW2N1cnJlbnRQWzBdIC0gcm9vdFBbMF0sIGN1cnJlbnRQWzFdIC0gcm9vdFBbMV1dO1xyXG4gICAgICBjb25zdCBjdXJyZW50TCA9IE1hdGguc3FydChjdXJyZW50VlswXSAqIGN1cnJlbnRWWzBdICsgY3VycmVudFZbMV0gKiBjdXJyZW50VlsxXSk7XHJcbiAgICAgIGNvbnN0IGRvdFByb2R1Y3QgPSAocm9vdFZbMF0gKiBjdXJyZW50VlswXSArIHJvb3RWWzFdICogY3VycmVudFZbMV0pIC8gKHJvb3RMICogY3VycmVudEwpO1xyXG5cclxuICAgICAgaWYgKGRvdFByb2R1Y3QgPCBtaW5BIHx8IGN1cnJlbnRMID4gbWF4TCkge1xyXG4gICAgICAgIHJlc3VsdC5wdXNoKHJvb3RQKTtcclxuICAgICAgICByb290UCA9IGxhc3RQO1xyXG4gICAgICAgIGxhc3RQID0gY3VycmVudFA7XHJcbiAgICAgICAgcm9vdFYgPSBbbGFzdFBbMF0gLSByb290UFswXSwgbGFzdFBbMV0gLSByb290UFsxXV07XHJcbiAgICAgICAgcm9vdEwgPSBNYXRoLnNxcnQocm9vdFZbMF0gKiByb290VlswXSArIHJvb3RWWzFdICogcm9vdFZbMV0pO1xyXG4gICAgICB9IGVsc2Uge1xyXG4gICAgICAgIGxhc3RQID0gY3VycmVudFA7XHJcbiAgICAgIH1cclxuICAgIH1cclxuXHJcbiAgICByZXN1bHQucHVzaChsYXN0UCk7XHJcblxyXG4gICAgcmV0dXJuIHJlc3VsdDtcclxuICB9LFxyXG59KTtcclxuXHJcbmxhbmcuc2V0T2JqZWN0KCdTYWdlLlBsYXRmb3JtLk1vYmlsZS5WaWV3cy5TaWduYXR1cmUnLCBfX2NsYXNzKTtcclxuZXhwb3J0IGRlZmF1bHQgX19jbGFzcztcclxuIl19
 </pre>
 </body>
 </html>

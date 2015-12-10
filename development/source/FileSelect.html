@@ -15,302 +15,254 @@
   </script>
 </head>
 <body onload="prettyPrint(); highlight();">
-  <pre class="prettyprint lang-js">/* Copyright (c) 2010, Sage Software, Inc. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+  <pre class="prettyprint lang-js">define('argos/Views/FileSelect', ['exports', 'module', 'dojo/_base/declare', 'dojo/_base/lang', 'dojo/has', 'dojo/dom-construct', 'dojo/dom-class', 'dojo/dom', '../I18n', '../View', '../Fields/TextField'], function (exports, module, _dojo_baseDeclare, _dojo_baseLang, _dojoHas, _dojoDomConstruct, _dojoDomClass, _dojoDom, _I18n, _View, _FieldsTextField) {
+  function _interopRequireDefault(obj) { return obj &amp;&amp; obj.__esModule ? obj : { 'default': obj }; }
 
-<span id='argos-Views-FileSelect'>/**
-</span> * @class argos.Views.FileSelect
- * File Select View is a view for selection files capabilities.
- *
- * @alternateClassName FileSelect
- * @extends argos.View
- */
-define('argos/Views/FileSelect', [
-    'dojo/_base/declare',
-    'dojo/_base/lang',
-    'dojo/window',
-    'dojo/has',
-    'dojo/dom-construct',
-    'dojo/dom-attr',
-    'dojo/dom-class',
-    'dojo/dom',
-    '../Fields/TextField',
-    '../View'
-], function(
-    declare,
-    lang,
-    win,
-    has,
-    domConstruct,
-    domAttr,
-    domClass,
-    dom,
-    TextField,
-    View
-) {
+  /* Copyright (c) 2010, Sage Software, Inc. All rights reserved.
+   *
+   * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   * you may not use this file except in compliance with the License.
+   * You may obtain a copy of the License at
+   *
+   *     http://www.apache.org/licenses/LICENSE-2.0
+   *
+   * Unless required by applicable law or agreed to in writing, software
+   * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   * See the License for the specific language governing permissions and
+   * limitations under the License.
+   */
 
-    var __class = declare('argos.Views.FileSelect', [View], {
-        // Localization
-        titleText: 'File Select',
-        addFileText: 'Click or Tap here to add a file.',
-        uploadText: 'Upload',
-        cancelText: 'Cancel',
-        selectFileText:'Select file',
-        loadingText: 'Uploading...',
-        descriptionText: 'description',
-        bytesText: 'bytes',
-        notSupportedText: 'Adding attachments is not supported by your device.',
+  var _declare = _interopRequireDefault(_dojo_baseDeclare);
 
-<span id='argos-Views-FileSelect-property-loadingTemplate'>        /**
-</span>         * @property {Simplate}
-         * The template used to render the loading message when the view is requesting more data.
-         *
-         * The default template uses the following properties:
-         *
-         *      name                description
-         *      ----------------------------------------------------------------
-         *      loadingText         The text to display while loading.
-         */
-        loadingTemplate: new Simplate([
-            '&lt;li class=&quot;list-loading-indicator&quot;&gt;&lt;div id=&quot;fileselect-upload-progress&quot;&gt;{%= $.loadingText %}&lt;/div&gt;&lt;/li&gt;'
-            //'&lt;/li&gt;'
-        ]),
+  var _lang = _interopRequireDefault(_dojo_baseLang);
 
-<span id='argos-Views-FileSelect-property-notSupportedTemplate'>        /**
-</span>         * @property {Simplate}
-         * The template that displays when HTML5 file api is not supported.
-         */
-        notSupportedTemplate: new Simplate([
-            '&lt;h2&gt;{%= $$.notSupportedText %}&lt;/h2&gt;'
-        ]),
+  var _has = _interopRequireDefault(_dojoHas);
 
-<span id='argos-Views-FileSelect-property-widgetTemplate'>        /**
-</span>         * @property {Simplate}
-         * Simplate that defines the HTML Markup
-         *
-         * * `$` =&gt; File Select view instance
-         *
-         */
-        widgetTemplate: new Simplate([
-            '&lt;div title=&quot;{%: $.titleText %}&quot; class=&quot;panel {%= $.cls %}&quot;&gt;',
-                '&lt;div  data-dojo-attach-point=&quot;fileArea&quot; class=&quot;file-area&quot;&gt;',
-                    '&lt;div class=&quot;file-wrapper&quot;&gt;',
-                        '&lt;div class=&quot;file-wrap&quot; data-dojo-attach-point=&quot;fileWrapper&quot;&gt;',
-                            '&lt;input type=&quot;file&quot; data-dojo-attach-point=&quot;btnFileSelect&quot; size=&quot;71&quot; accept=&quot;*/*&quot;&gt;',
-                        '&lt;/div&gt;',
-                        '{%: $.addFileText %}',
-                    '&lt;/div&gt;',
-                '&lt;/div&gt;',
-                '&lt;ul class=&quot;list-content&quot;  data-dojo-attach-point=&quot;contentNode&quot;&gt;&lt;/ul&gt;',
-                '&lt;div class=&quot;buttons&quot;&gt;',
-                    '&lt;div&gt;&lt;button id=&quot;fileSelect-btn-upload&quot; data-dojo-attach-point=&quot;btnUploadFiles&quot; class=&quot;button inline&quot; data-action=&quot;onUploadFiles&quot;&gt;&lt;span&gt;{%: $.uploadText %}&lt;/span&gt;&lt;/button&gt;',
-                    '&lt;button id=&quot;fileSelect-btn-cancel&quot; class=&quot;button inline&quot; data-action=&quot;cancelSelect&quot;&gt;&lt;span&gt;{%: $.cancelText %}&lt;/span&gt;&lt;/button&gt;&lt;div&gt;',
-                '&lt;/div&gt;',
-            '&lt;/div&gt;'
-        ]),
-<span id='argos-Views-FileSelect-property-fileTemplate'>        /**
-</span>         * @property {Simplate} fileTemplate
-         */
-        fileTemplate: new Simplate([
-            '&lt;li class=&quot;row {%= $.cls %}&quot; data-property=&quot;{%= $.property || $.name %}&quot;&gt;',
-               '&lt;div class=&quot;file-name&quot;&gt;{%: $.fileName %}&lt;/div&gt;',
-               '&lt;div class=&quot;file-label&quot;&gt;&lt;label&gt;{%: $$.descriptionText %}&lt;/label&gt;&lt;/div&gt;',
-               '&lt;div class=&quot;file-text&quot;&gt;',
-                   '&lt;input id=&quot;{%=  $.name %}&quot; type=&quot;text&quot; value=&quot;{%=  $.description %}&quot;&gt;',
-               '&lt;/div&gt;',
-            '&lt;/li&gt;'
-        ]),
+  var _domConstruct = _interopRequireDefault(_dojoDomConstruct);
 
-        signatureNode: null,
-        id: 'fileSelect_edit',
-        btnFileSelect: null,
-        _files:null,
-        _formParts: [],
+  var _domClass = _interopRequireDefault(_dojoDomClass);
 
-<span id='argos-Views-FileSelect-method-constructor'>        /**
-</span>         * @constructor
-         */
-        constructor: function() {
-        },
-        postCreate: function() {
-            this.inherited(arguments);
-            domClass.remove(this.domNode, 'list-loading');
-        },
-<span id='argos-Views-FileSelect-method-show'>        /**
-</span>         * Extends the @{link Sage.Platlform.Mobile.View} show to clear out the onchange event of the file input.
-         * The onchange event will only fire once per file, so we must re-insert the dom node and re-attach the event.
-         * @extends show
-         */
-        show: function(options) {
-            var node;
+  var _dom = _interopRequireDefault(_dojoDom);
 
-            this.inherited(arguments);
+  var _getResource = _interopRequireDefault(_I18n);
 
-            if (!has('html5-file-api')) {
-                domConstruct.place(this.notSupportedTemplate.apply({}, this), this.domNode, 'only');
-                return;
-            }
+  var _View2 = _interopRequireDefault(_View);
 
-            this._files = [];
+  var resource = (0, _getResource['default'])('fileSelect');
 
-            // Reset the input or the onchange will not fire if the same file is uploaded multiple times.
-            // Unfortunately IE does not allow you to reset the value of a file input, so we have to clone the node and re-insert it.
-            node = this.btnFileSelect.cloneNode();
+<span id='argos-Views-FileSelect'>  /**
+</span>   * @class argos.Views.FileSelect
+   * File Select View is a view for selection files capabilities.
+   *
+   * @alternateClassName FileSelect
+   * @extends argos.View
+   */
+  var __class = (0, _declare['default'])('argos.Views.FileSelect', [_View2['default']], {
+    // Localization
+    titleText: resource.titleText,
+    addFileText: resource.addFileText,
+    uploadText: resource.uploadText,
+    cancelText: resource.cancelText,
+    selectFileText: resource.selectFileText,
+    loadingText: resource.loadingText,
+    descriptionText: resource.descriptionText,
+    bytesText: resource.bytesText,
+    notSupportedText: resource.notSupportedText,
 
-            domConstruct.destroy(this.btnFileSelect);
-            this.fileWrapper.appendChild(node);
-            this.btnFileSelect = node;
+<span id='argos-Views-FileSelect-property-loadingTemplate'>    /**
+</span>     * @property {Simplate}
+     * The template used to render the loading message when the view is requesting more data.
+     *
+     * The default template uses the following properties:
+     *
+     *      name                description
+     *      ----------------------------------------------------------------
+     *      loadingText         The text to display while loading.
+     */
+    loadingTemplate: new Simplate(['&lt;li class=&quot;list-loading-indicator&quot;&gt;&lt;div id=&quot;fileselect-upload-progress&quot;&gt;{%= $.loadingText %}&lt;/div&gt;&lt;/li&gt;']),
 
-            this.btnFileSelect.onchange = function(e) {
-                this._onSelectFile(e);
-            }.bind(this);
+<span id='argos-Views-FileSelect-property-notSupportedTemplate'>    /**
+</span>     * @property {Simplate}
+     * The template that displays when HTML5 file api is not supported.
+     */
+    notSupportedTemplate: new Simplate(['&lt;h2&gt;{%= $$.notSupportedText %}&lt;/h2&gt;']),
 
-            this.contentNode.innerHTML = '';
-            domClass.remove(this.fileArea, 'display-none');
-            domClass.remove(this.btnUploadFiles, 'display-none');
-            this.onUpdateProgress('');
-        },
-        _browesForFiles: function(file) {
-            this.btnFileSelect.click();
-        },
-        removeFile: function(fileId) {
-        },
-<span id='argos-Views-FileSelect-method-getFileItems'>        /**
-</span>         * Returns an array of objects with the properties of: file, fileName, and description.
-         * @returns {Array}
-         */
-        getFileItems: function() {
-            var fileItems, files, description, i;
-            fileItems = [];
-            files = this._files;
-            description = '';
-            for (i = 0; i &lt; files.length; i++) {
-                description = this._getFileDescription(i);
-                fileItems.push({
-                    file: files[i],
-                    fileName: files[i].name,
-                    description: description
-                });
-            }
-            return fileItems;
-        },
-        _getFileDescription: function(fileIndex) {
-            var n, desc;
-            n = dom.byId('File_' + fileIndex);
-            if (n) {
-                desc = n.value;
-            }
-            return desc;
-        },
-        _onSelectFile: function(e) {
-            var files, i;
+<span id='argos-Views-FileSelect-property-widgetTemplate'>    /**
+</span>     * @property {Simplate}
+     * Simplate that defines the HTML Markup
+     *
+     * * `$` =&gt; File Select view instance
+     *
+     */
+    widgetTemplate: new Simplate(['&lt;div title=&quot;{%: $.titleText %}&quot; class=&quot;panel {%= $.cls %}&quot;&gt;', '&lt;div  data-dojo-attach-point=&quot;fileArea&quot; class=&quot;file-area&quot;&gt;', '&lt;div class=&quot;file-wrapper&quot;&gt;', '&lt;div class=&quot;file-wrap&quot; data-dojo-attach-point=&quot;fileWrapper&quot;&gt;', '&lt;input type=&quot;file&quot; data-dojo-attach-point=&quot;btnFileSelect&quot; size=&quot;71&quot; accept=&quot;*/*&quot;&gt;', '&lt;/div&gt;', '{%: $.addFileText %}', '&lt;/div&gt;', '&lt;/div&gt;', '&lt;ul class=&quot;list-content&quot;  data-dojo-attach-point=&quot;contentNode&quot;&gt;&lt;/ul&gt;', '&lt;div class=&quot;buttons&quot;&gt;', '&lt;div&gt;&lt;button id=&quot;fileSelect-btn-upload&quot; data-dojo-attach-point=&quot;btnUploadFiles&quot; class=&quot;button inline&quot; data-action=&quot;onUploadFiles&quot;&gt;&lt;span&gt;{%: $.uploadText %}&lt;/span&gt;&lt;/button&gt;', '&lt;button id=&quot;fileSelect-btn-cancel&quot; class=&quot;button inline&quot; data-action=&quot;cancelSelect&quot;&gt;&lt;span&gt;{%: $.cancelText %}&lt;/span&gt;&lt;/button&gt;&lt;div&gt;', '&lt;/div&gt;', '&lt;/div&gt;']),
+<span id='argos-Views-FileSelect-property-fileTemplate'>    /**
+</span>     * @property {Simplate} fileTemplate
+     */
+    fileTemplate: new Simplate(['&lt;li class=&quot;row {%= $.cls %}&quot; data-property=&quot;{%= $.property || $.name %}&quot;&gt;', '&lt;div class=&quot;file-name&quot;&gt;{%: $.fileName %}&lt;/div&gt;', '&lt;div class=&quot;file-label&quot;&gt;&lt;label&gt;{%: $$.descriptionText %}&lt;/label&gt;&lt;/div&gt;', '&lt;div class=&quot;file-text&quot;&gt;', '&lt;input id=&quot;{%=  $.name %}&quot; type=&quot;text&quot; value=&quot;{%=  $.description %}&quot;&gt;', '&lt;/div&gt;', '&lt;/li&gt;']),
 
-            files = this.btnFileSelect.files;
-            if (files &amp;&amp; files.length &gt; 0) {
-                for (i = 0; i &lt; files.length; i++) {
-                    this._files.push(files[i]);
-                }
-                this._buildForm(files);
-            }
-            domClass.remove(this.btnUploadFiles, 'display-none');
-            domClass.add(this.fileArea, 'display-none');
+    signatureNode: null,
+    id: 'fileSelect_edit',
+    btnFileSelect: null,
+    _files: null,
+    _formParts: [],
 
-        },
-        _addFile: function(file, index) {
-            var filelength, data, rowNode;
+<span id='argos-Views-FileSelect-method-constructor'>    /**
+</span>     * @constructor
+     */
+    constructor: function constructor() {},
+    postCreate: function postCreate() {
+      this.inherited(arguments);
+      _domClass['default'].remove(this.domNode, 'list-loading');
+    },
+<span id='argos-Views-FileSelect-method-show'>    /**
+</span>     * Extends the @{link Sage.Platlform.Mobile.View} show to clear out the onchange event of the file input.
+     * The onchange event will only fire once per file, so we must re-insert the dom node and re-attach the event.
+     * @extends show
+     */
+    show: function show() /*options*/{
+      this.inherited(arguments);
 
-            filelength = this._getFileLength(file);
-            data = {
-                name: 'File_' + index,
-                fileName: file.name + '  (' + filelength + ')',
-                description: this._getDefaultDescription(file.name)
-            };
-            rowNode = domConstruct.place(this.fileTemplate.apply(data, this), this.contentNode, 'last');
-        },
-        _getFileLength: function(file) {
-            var filelength;
+      if (!(0, _has['default'])('html5-file-api')) {
+        _domConstruct['default'].place(this.notSupportedTemplate.apply({}, this), this.domNode, 'only');
+        return;
+      }
 
-            filelength = 0;
-            if (file.size === 0) {
-                filelength = 0;
-            }
-            else {
-                filelength = file.size || file.blob.length;
-            }
-            if (filelength === 0) {
-                filelength += '0 ' + this.bytesTextBytes;
-            }
-            else {
-                if (filelength) {
-                    if (filelength &gt; 1024) {
-                        if (filelength &gt; 1048576) {
-                            filelength = Math.round(filelength / 1048576) + ' MB';
-                        } else {
-                            filelength = Math.round(filelength / 1024) + ' KB';
-                        }
-                    } else {
-                        filelength += ' ' + this.bytesTextBytesBytes;
-                    }
-                }
-            }
-            return filelength;
-        },
-        _buildForm: function(files) {
-            var file, i;
-            for (i = 0; i &lt; files.length; i++) {
-                file = files[i];
-                this._addFile(file, i);
-            }
-        },
-        _getDefaultDescription: function(filename) {
-            return filename.replace(/\.[\w]*/, '');
-        },
-<span id='argos-Views-FileSelect-method-onUploadFiles'>        /**
-</span>         * Handles the display when the user clicks upload.
-         */
-        onUploadFiles: function() {
-            var tpl;
-            domClass.add(this.btnUploadFiles, 'display-none');
-            tpl = this.loadingTemplate.apply(this);
-            domClass.add(this.domNode, 'list-loading');
-            domConstruct.place(tpl, this.contentNode, 'first');
-        },
-        cancelSelect: function() {
-        },
-<span id='argos-Views-FileSelect-method-onUpdateProgress'>        /**
-</span>         * Handles the display when progress events are recieved.
-         */
-        onUpdateProgress: function(msg) {
-            var n = dom.byId('fileselect-upload-progress');
-            if (n) {
-                n.innerHTML = this.loadingText + ' ' + msg;
-            }
-        },
-<span id='argos-Views-FileSelect-method-onUpdateFailed'>        /**
-</span>         * Handles the display when the upload fails.
-         */
-        onUpdateFailed: function(msg) {
-            this.onUpdateProgress(msg);
-            domClass.remove(this.domNode, 'list-loading');
+      this._files = [];
+
+      // Reset the input or the onchange will not fire if the same file is uploaded multiple times.
+      // Unfortunately IE does not allow you to reset the value of a file input, so we have to clone the node and re-insert it.
+      var node = this.btnFileSelect.cloneNode();
+
+      _domConstruct['default'].destroy(this.btnFileSelect);
+      this.fileWrapper.appendChild(node);
+      this.btnFileSelect = node;
+
+      this.btnFileSelect.onchange = (function onchange(e) {
+        this._onSelectFile(e);
+      }).bind(this);
+
+      this.contentNode.innerHTML = '';
+      _domClass['default'].remove(this.fileArea, 'display-none');
+      _domClass['default'].remove(this.btnUploadFiles, 'display-none');
+      this.onUpdateProgress('');
+    },
+    _browesForFiles: function _browesForFiles() /*file*/{
+      this.btnFileSelect.click();
+    },
+    removeFile: function removeFile() /*fileId*/{},
+<span id='argos-Views-FileSelect-method-getFileItems'>    /**
+</span>     * Returns an array of objects with the properties of: file, fileName, and description.
+     * @returns {Array}
+     */
+    getFileItems: function getFileItems() {
+      var fileItems = [];
+      var files = this._files;
+      var description = '';
+      for (var i = 0; i &lt; files.length; i++) {
+        description = this._getFileDescription(i);
+        fileItems.push({
+          file: files[i],
+          fileName: files[i].name,
+          description: description
+        });
+      }
+      return fileItems;
+    },
+    _getFileDescription: function _getFileDescription(fileIndex) {
+      var n = _dom['default'].byId('File_' + fileIndex);
+      var desc = undefined;
+
+      if (n) {
+        desc = n.value;
+      }
+      return desc;
+    },
+    _onSelectFile: function _onSelectFile() {
+      var files = this.btnFileSelect.files;
+      if (files &amp;&amp; files.length &gt; 0) {
+        for (var i = 0; i &lt; files.length; i++) {
+          this._files.push(files[i]);
         }
-    });
+        this._buildForm(files);
+      }
+      _domClass['default'].remove(this.btnUploadFiles, 'display-none');
+      _domClass['default'].add(this.fileArea, 'display-none');
+    },
+    _addFile: function _addFile(file, index) {
+      var filelength = this._getFileLength(file);
+      var data = {
+        name: 'File_' + index,
+        fileName: file.name + '  (' + filelength + ')',
+        description: this._getDefaultDescription(file.name)
+      };
+      _domConstruct['default'].place(this.fileTemplate.apply(data, this), this.contentNode, 'last');
+    },
+    _getFileLength: function _getFileLength(file) {
+      var filelength = 0;
+      if (file.size === 0) {
+        filelength = 0;
+      } else {
+        filelength = file.size || file.blob.length;
+      }
+      if (filelength === 0) {
+        filelength += '0 ' + this.bytesTextBytes;
+      } else {
+        if (filelength) {
+          if (filelength &gt; 1024) {
+            if (filelength &gt; 1048576) {
+              filelength = Math.round(filelength / 1048576) + ' MB';
+            } else {
+              filelength = Math.round(filelength / 1024) + ' KB';
+            }
+          } else {
+            filelength += ' ' + this.bytesTextBytesBytes;
+          }
+        }
+      }
+      return filelength;
+    },
+    _buildForm: function _buildForm(files) {
+      for (var i = 0; i &lt; files.length; i++) {
+        var file = files[i];
+        this._addFile(file, i);
+      }
+    },
+    _getDefaultDescription: function _getDefaultDescription(filename) {
+      return filename.replace(/\.[\w]*/, '');
+    },
+<span id='argos-Views-FileSelect-method-onUploadFiles'>    /**
+</span>     * Handles the display when the user clicks upload.
+     */
+    onUploadFiles: function onUploadFiles() {
+      _domClass['default'].add(this.btnUploadFiles, 'display-none');
+      var tpl = this.loadingTemplate.apply(this);
+      _domClass['default'].add(this.domNode, 'list-loading');
+      _domConstruct['default'].place(tpl, this.contentNode, 'first');
+    },
+    cancelSelect: function cancelSelect() {},
+<span id='argos-Views-FileSelect-method-onUpdateProgress'>    /**
+</span>     * Handles the display when progress events are recieved.
+     */
+    onUpdateProgress: function onUpdateProgress(msg) {
+      var n = _dom['default'].byId('fileselect-upload-progress');
+      if (n) {
+        n.innerHTML = this.loadingText + ' ' + msg;
+      }
+    },
+<span id='argos-Views-FileSelect-method-onUpdateFailed'>    /**
+</span>     * Handles the display when the upload fails.
+     */
+    onUpdateFailed: function onUpdateFailed(msg) {
+      this.onUpdateProgress(msg);
+      _domClass['default'].remove(this.domNode, 'list-loading');
+    }
+  });
 
-    lang.setObject('Sage.Platform.Mobile.Views.FileSelect', __class);
-    return __class;
+  _lang['default'].setObject('Sage.Platform.Mobile.Views.FileSelect', __class);
+  module.exports = __class;
 });
-
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInNyYy9WaWV3cy9GaWxlU2VsZWN0LmpzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiI7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7QUF3QkEsTUFBTSxRQUFRLEdBQUcsNkJBQVksWUFBWSxDQUFDLENBQUM7Ozs7Ozs7OztBQVMzQyxNQUFNLE9BQU8sR0FBRyx5QkFBUSx3QkFBd0IsRUFBRSxtQkFBTSxFQUFFOztBQUV4RCxhQUFTLEVBQUUsUUFBUSxDQUFDLFNBQVM7QUFDN0IsZUFBVyxFQUFFLFFBQVEsQ0FBQyxXQUFXO0FBQ2pDLGNBQVUsRUFBRSxRQUFRLENBQUMsVUFBVTtBQUMvQixjQUFVLEVBQUUsUUFBUSxDQUFDLFVBQVU7QUFDL0Isa0JBQWMsRUFBRSxRQUFRLENBQUMsY0FBYztBQUN2QyxlQUFXLEVBQUUsUUFBUSxDQUFDLFdBQVc7QUFDakMsbUJBQWUsRUFBRSxRQUFRLENBQUMsZUFBZTtBQUN6QyxhQUFTLEVBQUUsUUFBUSxDQUFDLFNBQVM7QUFDN0Isb0JBQWdCLEVBQUUsUUFBUSxDQUFDLGdCQUFnQjs7Ozs7Ozs7Ozs7O0FBWTNDLG1CQUFlLEVBQUUsSUFBSSxRQUFRLENBQUMsQ0FDNUIseUdBQXlHLENBQzFHLENBQUM7Ozs7OztBQU1GLHdCQUFvQixFQUFFLElBQUksUUFBUSxDQUFDLENBQ2pDLHFDQUFxQyxDQUN0QyxDQUFDOzs7Ozs7Ozs7QUFTRixrQkFBYyxFQUFFLElBQUksUUFBUSxDQUFDLENBQzNCLDZEQUE2RCxFQUM3RCw0REFBNEQsRUFDNUQsNEJBQTRCLEVBQzVCLDhEQUE4RCxFQUM5RCxtRkFBbUYsRUFDbkYsUUFBUSxFQUNSLHNCQUFzQixFQUN0QixRQUFRLEVBQ1IsUUFBUSxFQUNSLHNFQUFzRSxFQUN0RSx1QkFBdUIsRUFDdkIsNktBQTZLLEVBQzdLLG9JQUFvSSxFQUNwSSxRQUFRLEVBQ1IsUUFBUSxDQUNULENBQUM7Ozs7QUFJRixnQkFBWSxFQUFFLElBQUksUUFBUSxDQUFDLENBQ3pCLDJFQUEyRSxF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Q0YsQ0FBQyxDQUFDOztBQUVILG1CQUFLLFNBQVMsQ0FBQyx1Q0FBdUMsRUFBRSxPQUFPLENBQUMsQ0FBQzttQkFDbEQsT0FBTyIsImZpbGUiOiJzcmMvVmlld3MvRmlsZVNlbGVjdC5qcyIsInNvdXJjZVJvb3QiOiJzcmMiLCJzb3VyY2VzQ29udGVudCI6WyIvKiBDb3B5cmlnaHQgKGMpIDIwMTAsIFNhZ2UgU29mdHdhcmUsIEluYy4gQWxsIHJpZ2h0cyByZXNlcnZlZC5cclxuICpcclxuICogTGljZW5zZWQgdW5kZXIgdGhlIEFwYWNoZSBMaWNlbnNlLCBWZXJzaW9uIDIuMCAodGhlIFwiTGljZW5zZVwiKTtcclxuICogeW91IG1heSBub3QgdXNlIHRoaXMgZmlsZSBleGNlcHQgaW4gY29tcGxpYW5jZSB3aXRoIHRoZSBMaWNlbnNlLlxyXG4gKiBZb3UgbWF5IG9idGFpbiBhIGNvcHkgb2YgdGhlIExpY2Vuc2UgYXRcclxuICpcclxuICogICAgIGh0dHA6Ly93d3cuYXBhY2hlLm9yZy9saWNlbnNlcy9MSUNFTlNFLTIuMFxyXG4gKlxyXG4gKiBVbmxlc3MgcmVxdWlyZWQgYnkgYXBwbGljYWJsZSBsYXcgb3IgYWdyZWVkIHRvIGluIHdyaXRpbmcsIHNvZnR3YXJlXHJcbiAqIGRpc3RyaWJ1dGVkIHVuZGVyIHRoZSBMaWNlbnNlIGlzIGRpc3RyaWJ1dGVkIG9uIGFuIFwiQVMgSVNcIiBCQVNJUyxcclxuICogV0lUSE9VVCBXQVJSQU5USUVTIE9SIENPTkRJVElPTlMgT0YgQU5ZIEtJTkQsIGVpdGhlciBleHByZXNzIG9yIGltcGxpZWQuXHJcbiAqIFNlZSB0aGUgTGljZW5zZSBmb3IgdGhlIHNwZWNpZmljIGxhbmd1YWdlIGdvdmVybmluZyBwZXJtaXNzaW9ucyBhbmRcclxuICogbGltaXRhdGlvbnMgdW5kZXIgdGhlIExpY2Vuc2UuXHJcbiAqL1xyXG5pbXBvcnQgZGVjbGFyZSBmcm9tICdkb2pvL19iYXNlL2RlY2xhcmUnO1xyXG5pbXBvcnQgbGFuZyBmcm9tICdkb2pvL19iYXNlL2xhbmcnO1xyXG5pbXBvcnQgaGFzIGZyb20gJ2Rvam8vaGFzJztcclxuaW1wb3J0IGRvbUNvbnN0cnVjdCBmcm9tICdkb2pvL2RvbS1jb25zdHJ1Y3QnO1xyXG5pbXBvcnQgZG9tQ2xhc3MgZnJvbSAnZG9qby9kb20tY2xhc3MnO1xyXG5pbXBvcnQgZG9tIGZyb20gJ2Rvam8vZG9tJztcclxuaW1wb3J0IGdldFJlc291cmNlIGZyb20gJy4uL0kxOG4nO1xyXG5pbXBvcnQgVmlldyBmcm9tICcuLi9WaWV3JztcclxuaW1wb3J0ICcuLi9GaWVsZHMvVGV4dEZpZWxkJztcclxuXHJcbmNvbnN0IHJlc291cmNlID0gZ2V0UmVzb3VyY2UoJ2ZpbGVTZWxlY3QnKTtcclxuXHJcbi8qKlxyXG4gKiBAY2xhc3MgYXJnb3MuVmlld3MuRmlsZVNlbGVjdFxyXG4gKiBGaWxlIFNlbGVjdCBWaWV3IGlzIGEgdmlldyBmb3Igc2VsZWN0aW9uIGZpbGVzIGNhcGFiaWxpdGllcy5cclxuICpcclxuICogQGFsdGVybmF0ZUNsYXNzTmFtZSBGaWxlU2VsZWN0XHJcbiAqIEBleHRlbmRzIGFyZ29zLlZpZXdcclxuICovXHJcbmNvbnN0IF9fY2xhc3MgPSBkZWNsYXJlKCdhcmdvcy5WaWV3cy5GaWxlU2VsZWN0JywgW1ZpZXddLCB7XHJcbiAgLy8gTG9jYWxpemF0aW9uXHJcbiAgdGl0bGVUZXh0OiByZXNvdXJjZS50aXRsZVRleHQsXHJcbiAgYWRkRmlsZVRleHQ6IHJlc291cmNlLmFkZEZpbGVUZXh0LFxyXG4gIHVwbG9hZFRleHQ6IHJlc291cmNlLnVwbG9hZFRleHQsXHJcbiAgY2FuY2VsVGV4dDogcmVzb3VyY2UuY2FuY2VsVGV4dCxcclxuICBzZWxlY3RGaWxlVGV4dDogcmVzb3VyY2Uuc2VsZWN0RmlsZVRleHQsXHJcbiAgbG9hZGluZ1RleHQ6IHJlc291cmNlLmxvYWRpbmdUZXh0LFxyXG4gIGRlc2NyaXB0aW9uVGV4dDogcmVzb3VyY2UuZGVzY3JpcHRpb25UZXh0LFxyXG4gIGJ5dGVzVGV4dDogcmVzb3VyY2UuYnl0ZXNUZXh0LFxyXG4gIG5vdFN1cHBvcnRlZFRleHQ6IHJlc291cmNlLm5vdFN1cHBvcnRlZFRleHQsXHJcblxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7U2ltcGxhdGV9XHJcbiAgICogVGhlIHRlbXBsYXRlIHVzZWQgdG8gcmVuZGVyIHRoZSBsb2FkaW5nIG1lc3NhZ2Ugd2hlbiB0aGUgdmlldyBpcyByZXF1ZXN0aW5nIG1vcmUgZGF0YS5cclxuICAgKlxyXG4gICAqIFRoZSBkZWZhdWx0IHRlbXBsYXRlIHVzZXMgdGhlIGZvbGxvd2luZyBwcm9wZXJ0aWVzOlxyXG4gICAqXHJcbiAgICogICAgICBuYW1lICAgICAgICAgICAgICAgIGRlc2NyaXB0aW9uXHJcbiAgICogICAgICAtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tXHJcbiAgICogICAgICBsb2FkaW5nVGV4dCAgICAgICAgIFRoZSB0ZXh0IHRvIGRpc3BsYXkgd2hpbGUgbG9hZGluZy5cclxuICAgKi9cclxuICBsb2FkaW5nVGVtcGxhdGU6IG5ldyBTaW1wbGF0ZShbXHJcbiAgICAnPGxpIGNsYXNzPVwibGlzdC1sb2FkaW5nLWluZGljYXRvclwiPjxkaXYgaWQ9XCJmaWxlc2VsZWN0LXVwbG9hZC1wcm9ncmVzc1wiPnslPSAkLmxvYWRpbmdUZXh0ICV9PC9kaXY+PC9saT4nLFxyXG4gIF0pLFxyXG5cclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge1NpbXBsYXRlfVxyXG4gICAqIFRoZSB0ZW1wbGF0ZSB0aGF0IGRpc3BsYXlzIHdoZW4gSFRNTDUgZmlsZSBhcGkgaXMgbm90IHN1cHBvcnRlZC5cclxuICAgKi9cclxuICBub3RTdXBwb3J0ZWRUZW1wbGF0ZTogbmV3IFNpbXBsYXRlKFtcclxuICAgICc8aDI+eyU9ICQkLm5vdFN1cHBvcnRlZFRleHQgJX08L2gyPicsXHJcbiAgXSksXHJcblxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7U2ltcGxhdGV9XHJcbiAgICogU2ltcGxhdGUgdGhhdCBkZWZpbmVzIHRoZSBIVE1MIE1hcmt1cFxyXG4gICAqXHJcbiAgICogKiBgJGAgPT4gRmlsZSBTZWxlY3QgdmlldyBpbnN0YW5jZVxyXG4gICAqXHJcbiAgICovXHJcbiAgd2lkZ2V0VGVtcGxhdGU6IG5ldyBTaW1wbGF0ZShbXHJcbiAgICAnPGRpdiB0aXRsZT1cInslOiAkLnRpdGxlVGV4dCAlfVwiIGNsYXNzPVwicGFuZWwgeyU9ICQuY2xzICV9XCI+JyxcclxuICAgICc8ZGl2ICBkYXRhLWRvam8tYXR0YWNoLXBvaW50PVwiZmlsZUFyZWFcIiBjbGFzcz1cImZpbGUtYXJlYVwiPicsXHJcbiAgICAnPGRpdiBjbGFzcz1cImZpbGUtd3JhcHBlclwiPicsXHJcbiAgICAnPGRpdiBjbGFzcz1cImZpbGUtd3JhcFwiIGRhdGEtZG9qby1hdHRhY2gtcG9pbnQ9XCJmaWxlV3JhcHBlclwiPicsXHJcbiAgICAnPGlucHV0IHR5cGU9XCJmaWxlXCIgZGF0YS1kb2pvLWF0dGFjaC1wb2ludD1cImJ0bkZpbGVTZWxlY3RcIiBzaXplPVwiNzFcIiBhY2NlcHQ9XCIqLypcIj4nLFxyXG4gICAgJzwvZGl2PicsXHJcbiAgICAneyU6ICQuYWRkRmlsZVRleHQgJX0nLFxyXG4gICAgJzwvZGl2PicsXHJcbiAgICAnPC9kaXY+JyxcclxuICAgICc8dWwgY2xhc3M9XCJsaXN0LWNvbnRlbnRcIiAgZGF0YS1kb2pvLWF0dGFjaC1wb2ludD1cImNvbnRlbnROb2RlXCI+PC91bD4nLFxyXG4gICAgJzxkaXYgY2xhc3M9XCJidXR0b25zXCI+JyxcclxuICAgICc8ZGl2PjxidXR0b24gaWQ9XCJmaWxlU2VsZWN0LWJ0bi11cGxvYWRcIiBkYXRhLWRvam8tYXR0YWNoLXBvaW50PVwiYnRuVXBsb2FkRmlsZXNcIiBjbGFzcz1cImJ1dHRvbiBpbmxpbmVcIiBkYXRhLWFjdGlvbj1cIm9uVXBsb2FkRmlsZXNcIj48c3Bhbj57JTogJC51cGxvYWRUZXh0ICV9PC9zcGFuPjwvYnV0dG9uPicsXHJcbiAgICAnPGJ1dHRvbiBpZD1cImZpbGVTZWxlY3QtYnRuLWNhbmNlbFwiIGNsYXNzPVwiYnV0dG9uIGlubGluZVwiIGRhdGEtYWN0aW9uPVwiY2FuY2VsU2VsZWN0XCI+PHNwYW4+eyU6ICQuY2FuY2VsVGV4dCAlfTwvc3Bhbj48L2J1dHRvbj48ZGl2PicsXHJcbiAgICAnPC9kaXY+JyxcclxuICAgICc8L2Rpdj4nLFxyXG4gIF0pLFxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7U2ltcGxhdGV9IGZpbGVUZW1wbGF0ZVxyXG4gICAqL1xyXG4gIGZpbGVUZW1wbGF0ZTogbmV3IFNpbXBsYXRlKFtcclxuICAgICc8bGkgY2xhc3M9XCJyb3cgeyU9ICQuY2xzICV9XCIgZGF0YS1wcm9wZXJ0eT1cInslPSAkLnByb3BlcnR5IHx8ICQubmFtZSAlfVwiPicsXHJcbiAgICAnPGRpdiBjbGFzcz1cImZpbGUtbmFtZVwiPnslOiAkLmZpbGVOYW1lICV9PC9kaXY+JyxcclxuICAgICc8ZGl2IGNsYXNzPVwiZmlsZS1sYWJlbFwiPjxsYWJlbD57JTogJCQuZGVzY3JpcHRpb25UZXh0ICV9PC9sYWJlbD48L2Rpdj4nLFxyXG4gICAgJzxkaXYgY2xhc3M9XCJmaWxlLXRleHRcIj4nLFxyXG4gICAgJzxpbnB1dCBpZD1cInslPSAgJC5uYW1lICV9XCIgdHlwZT1cInRleHRcIiB2YWx1ZT1cInslPSAgJC5kZXNjcmlwdGlvbiAlfVwiPicsXHJcbiAgICAnPC9kaXY+JyxcclxuICAgICc8L2xpPicsXHJcbiAgXSksXHJcblxyXG4gIHNpZ25hdHVyZU5vZGU6IG51bGwsXHJcbiAgaWQ6ICdmaWxlU2VsZWN0X2VkaXQnLFxyXG4gIGJ0bkZpbGVTZWxlY3Q6IG51bGwsXHJcbiAgX2ZpbGVzOiBudWxsLFxyXG4gIF9mb3JtUGFydHM6IFtdLFxyXG5cclxuICAvKipcclxuICAgKiBAY29uc3RydWN0b3JcclxuICAgKi9cclxuICBjb25zdHJ1Y3RvcjogZnVuY3Rpb24gY29uc3RydWN0b3IoKSB7fSxcclxuICBwb3N0Q3JlYXRlOiBmdW5jdGlvbiBwb3N0Q3JlYXRlKCkge1xyXG4gICAgdGhpcy5pbmhlcml0ZWQoYXJndW1lbnRzKTtcclxuICAgIGRvbUNsYXNzLnJlbW92ZSh0aGlzLmRvbU5vZGUsICdsaXN0LWxvYWRpbmcnKTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIEV4dGVuZHMgdGhlIEB7bGluayBTYWdlLlBsYXRsZm9ybS5Nb2JpbGUuVmlld30gc2hvdyB0byBjbGVhciBvdXQgdGhlIG9uY2hhbmdlIGV2ZW50IG9mIHRoZSBmaWxlIGlucHV0LlxyXG4gICAqIFRoZSBvbmNoYW5nZSBldmVudCB3aWxsIG9ubHkgZmlyZSBvbmNlIHBlciBmaWxlLCBzbyB3ZSBtdXN0IHJlLWluc2VydCB0aGUgZG9tIG5vZGUgYW5kIHJlLWF0dGFjaCB0aGUgZXZlbnQuXHJcbiAgICogQGV4dGVuZHMgc2hvd1xyXG4gICAqL1xyXG4gIHNob3c6IGZ1bmN0aW9uIHNob3coLypvcHRpb25zKi8pIHtcclxuICAgIHRoaXMuaW5oZXJpdGVkKGFyZ3VtZW50cyk7XHJcblxyXG4gICAgaWYgKCFoYXMoJ2h0bWw1LWZpbGUtYXBpJykpIHtcclxuICAgICAgZG9tQ29uc3RydWN0LnBsYWNlKHRoaXMubm90U3VwcG9ydGVkVGVtcGxhdGUuYXBwbHkoe30sIHRoaXMpLCB0aGlzLmRvbU5vZGUsICdvbmx5Jyk7XHJcbiAgICAgIHJldHVybjtcclxuICAgIH1cclxuXHJcbiAgICB0aGlzLl9maWxlcyA9IFtdO1xyXG5cclxuICAgIC8vIFJlc2V0IHRoZSBpbnB1dCBvciB0aGUgb25jaGFuZ2Ugd2lsbCBub3QgZmlyZSBpZiB0aGUgc2FtZSBmaWxlIGlzIHVwbG9hZGVkIG11bHRpcGxlIHRpbWVzLlxyXG4gICAgLy8gVW5mb3J0dW5hdGVseSBJRSBkb2VzIG5vdCBhbGxvdyB5b3UgdG8gcmVzZXQgdGhlIHZhbHVlIG9mIGEgZmlsZSBpbnB1dCwgc28gd2UgaGF2ZSB0byBjbG9uZSB0aGUgbm9kZSBhbmQgcmUtaW5zZXJ0IGl0LlxyXG4gICAgY29uc3Qgbm9kZSA9IHRoaXMuYnRuRmlsZVNlbGVjdC5jbG9uZU5vZGUoKTtcclxuXHJcbiAgICBkb21Db25zdHJ1Y3QuZGVzdHJveSh0aGlzLmJ0bkZpbGVTZWxlY3QpO1xyXG4gICAgdGhpcy5maWxlV3JhcHBlci5hcHBlbmRDaGlsZChub2RlKTtcclxuICAgIHRoaXMuYnRuRmlsZVNlbGVjdCA9IG5vZGU7XHJcblxyXG4gICAgdGhpcy5idG5GaWxlU2VsZWN0Lm9uY2hhbmdlID0gZnVuY3Rpb24gb25jaGFuZ2UoZSkge1xyXG4gICAgICB0aGlzLl9vblNlbGVjdEZpbGUoZSk7XHJcbiAgICB9LmJpbmQodGhpcyk7XHJcblxyXG4gICAgdGhpcy5jb250ZW50Tm9kZS5pbm5lckhUTUwgPSAnJztcclxuICAgIGRvbUNsYXNzLnJlbW92ZSh0aGlzLmZpbGVBcmVhLCAnZGlzcGxheS1ub25lJyk7XHJcbiAgICBkb21DbGFzcy5yZW1vdmUodGhpcy5idG5VcGxvYWRGaWxlcywgJ2Rpc3BsYXktbm9uZScpO1xyXG4gICAgdGhpcy5vblVwZGF0ZVByb2dyZXNzKCcnKTtcclxuICB9LFxyXG4gIF9icm93ZXNGb3JGaWxlczogZnVuY3Rpb24gX2Jyb3dlc0ZvckZpbGVzKC8qZmlsZSovKSB7XHJcbiAgICB0aGlzLmJ0bkZpbGVTZWxlY3QuY2xpY2soKTtcclxuICB9LFxyXG4gIHJlbW92ZUZpbGU6IGZ1bmN0aW9uIHJlbW92ZUZpbGUoLypmaWxlSWQqLykge30sXHJcbiAgLyoqXHJcbiAgICogUmV0dXJucyBhbiBhcnJheSBvZiBvYmplY3RzIHdpdGggdGhlIHByb3BlcnRpZXMgb2Y6IGZpbGUsIGZpbGVOYW1lLCBhbmQgZGVzY3JpcHRpb24uXHJcbiAgICogQHJldHVybnMge0FycmF5fVxyXG4gICAqL1xyXG4gIGdldEZpbGVJdGVtczogZnVuY3Rpb24gZ2V0RmlsZUl0ZW1zKCkge1xyXG4gICAgY29uc3QgZmlsZUl0ZW1zID0gW107XHJcbiAgICBjb25zdCBmaWxlcyA9IHRoaXMuX2ZpbGVzO1xyXG4gICAgbGV0IGRlc2NyaXB0aW9uID0gJyc7XHJcbiAgICBmb3IgKGxldCBpID0gMDsgaSA8IGZpbGVzLmxlbmd0aDsgaSsrKSB7XHJcbiAgICAgIGRlc2NyaXB0aW9uID0gdGhpcy5fZ2V0RmlsZURlc2NyaXB0aW9uKGkpO1xyXG4gICAgICBmaWxlSXRlbXMucHVzaCh7XHJcbiAgICAgICAgZmlsZTogZmlsZXNbaV0sXHJcbiAgICAgICAgZmlsZU5hbWU6IGZpbGVzW2ldLm5hbWUsXHJcbiAgICAgICAgZGVzY3JpcHRpb246IGRlc2NyaXB0aW9uLFxyXG4gICAgICB9KTtcclxuICAgIH1cclxuICAgIHJldHVybiBmaWxlSXRlbXM7XHJcbiAgfSxcclxuICBfZ2V0RmlsZURlc2NyaXB0aW9uOiBmdW5jdGlvbiBfZ2V0RmlsZURlc2NyaXB0aW9uKGZpbGVJbmRleCkge1xyXG4gICAgY29uc3QgbiA9IGRvbS5ieUlkKCdGaWxlXycgKyBmaWxlSW5kZXgpO1xyXG4gICAgbGV0IGRlc2M7XHJcblxyXG4gICAgaWYgKG4pIHtcclxuICAgICAgZGVzYyA9IG4udmFsdWU7XHJcbiAgICB9XHJcbiAgICByZXR1cm4gZGVzYztcclxuICB9LFxyXG4gIF9vblNlbGVjdEZpbGU6IGZ1bmN0aW9uIF9vblNlbGVjdEZpbGUoKSB7XHJcbiAgICBjb25zdCBmaWxlcyA9IHRoaXMuYnRuRmlsZVNlbGVjdC5maWxlcztcclxuICAgIGlmIChmaWxlcyAmJiBmaWxlcy5sZW5ndGggPiAwKSB7XHJcbiAgICAgIGZvciAobGV0IGkgPSAwOyBpIDwgZmlsZXMubGVuZ3RoOyBpKyspIHtcclxuICAgICAgICB0aGlzLl9maWxlcy5wdXNoKGZpbGVzW2ldKTtcclxuICAgICAgfVxyXG4gICAgICB0aGlzLl9idWlsZEZvcm0oZmlsZXMpO1xyXG4gICAgfVxyXG4gICAgZG9tQ2xhc3MucmVtb3ZlKHRoaXMuYnRuVXBsb2FkRmlsZXMsICdkaXNwbGF5LW5vbmUnKTtcclxuICAgIGRvbUNsYXNzLmFkZCh0aGlzLmZpbGVBcmVhLCAnZGlzcGxheS1ub25lJyk7XHJcbiAgfSxcclxuICBfYWRkRmlsZTogZnVuY3Rpb24gX2FkZEZpbGUoZmlsZSwgaW5kZXgpIHtcclxuICAgIGNvbnN0IGZpbGVsZW5ndGggPSB0aGlzLl9nZXRGaWxlTGVuZ3RoKGZpbGUpO1xyXG4gICAgY29uc3QgZGF0YSA9IHtcclxuICAgICAgbmFtZTogJ0ZpbGVfJyArIGluZGV4LFxyXG4gICAgICBmaWxlTmFtZTogZmlsZS5uYW1lICsgJyAgKCcgKyBmaWxlbGVuZ3RoICsgJyknLFxyXG4gICAgICBkZXNjcmlwdGlvbjogdGhpcy5fZ2V0RGVmYXVsdERlc2NyaXB0aW9uKGZpbGUubmFtZSksXHJcbiAgICB9O1xyXG4gICAgZG9tQ29uc3RydWN0LnBsYWNlKHRoaXMuZmlsZVRlbXBsYXRlLmFwcGx5KGRhdGEsIHRoaXMpLCB0aGlzLmNvbnRlbnROb2RlLCAnbGFzdCcpO1xyXG4gIH0sXHJcbiAgX2dldEZpbGVMZW5ndGg6IGZ1bmN0aW9uIF9nZXRGaWxlTGVuZ3RoKGZpbGUpIHtcclxuICAgIGxldCBmaWxlbGVuZ3RoID0gMDtcclxuICAgIGlmIChmaWxlLnNpemUgPT09IDApIHtcclxuICAgICAgZmlsZWxlbmd0aCA9IDA7XHJcbiAgICB9IGVsc2Uge1xyXG4gICAgICBmaWxlbGVuZ3RoID0gZmlsZS5zaXplIHx8IGZpbGUuYmxvYi5sZW5ndGg7XHJcbiAgICB9XHJcbiAgICBpZiAoZmlsZWxlbmd0aCA9PT0gMCkge1xyXG4gICAgICBmaWxlbGVuZ3RoICs9ICcwICcgKyB0aGlzLmJ5dGVzVGV4dEJ5dGVzO1xyXG4gICAgfSBlbHNlIHtcclxuICAgICAgaWYgKGZpbGVsZW5ndGgpIHtcclxuICAgICAgICBpZiAoZmlsZWxlbmd0aCA+IDEwMjQpIHtcclxuICAgICAgICAgIGlmIChmaWxlbGVuZ3RoID4gMTA0ODU3Nikge1xyXG4gICAgICAgICAgICBmaWxlbGVuZ3RoID0gTWF0aC5yb3VuZChmaWxlbGVuZ3RoIC8gMTA0ODU3NikgKyAnIE1CJztcclxuICAgICAgICAgIH0gZWxzZSB7XHJcbiAgICAgICAgICAgIGZpbGVsZW5ndGggPSBNYXRoLnJvdW5kKGZpbGVsZW5ndGggLyAxMDI0KSArICcgS0InO1xyXG4gICAgICAgICAgfVxyXG4gICAgICAgIH0gZWxzZSB7XHJcbiAgICAgICAgICBmaWxlbGVuZ3RoICs9ICcgJyArIHRoaXMuYnl0ZXNUZXh0Qnl0ZXNCeXRlcztcclxuICAgICAgICB9XHJcbiAgICAgIH1cclxuICAgIH1cclxuICAgIHJldHVybiBmaWxlbGVuZ3RoO1xyXG4gIH0sXHJcbiAgX2J1aWxkRm9ybTogZnVuY3Rpb24gX2J1aWxkRm9ybShmaWxlcykge1xyXG4gICAgZm9yIChsZXQgaSA9IDA7IGkgPCBmaWxlcy5sZW5ndGg7IGkrKykge1xyXG4gICAgICBjb25zdCBmaWxlID0gZmlsZXNbaV07XHJcbiAgICAgIHRoaXMuX2FkZEZpbGUoZmlsZSwgaSk7XHJcbiAgICB9XHJcbiAgfSxcclxuICBfZ2V0RGVmYXVsdERlc2NyaXB0aW9uOiBmdW5jdGlvbiBfZ2V0RGVmYXVsdERlc2NyaXB0aW9uKGZpbGVuYW1lKSB7XHJcbiAgICByZXR1cm4gZmlsZW5hbWUucmVwbGFjZSgvXFwuW1xcd10qLywgJycpO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogSGFuZGxlcyB0aGUgZGlzcGxheSB3aGVuIHRoZSB1c2VyIGNsaWNrcyB1cGxvYWQuXHJcbiAgICovXHJcbiAgb25VcGxvYWRGaWxlczogZnVuY3Rpb24gb25VcGxvYWRGaWxlcygpIHtcclxuICAgIGRvbUNsYXNzLmFkZCh0aGlzLmJ0blVwbG9hZEZpbGVzLCAnZGlzcGxheS1ub25lJyk7XHJcbiAgICBjb25zdCB0cGwgPSB0aGlzLmxvYWRpbmdUZW1wbGF0ZS5hcHBseSh0aGlzKTtcclxuICAgIGRvbUNsYXNzLmFkZCh0aGlzLmRvbU5vZGUsICdsaXN0LWxvYWRpbmcnKTtcclxuICAgIGRvbUNvbnN0cnVjdC5wbGFjZSh0cGwsIHRoaXMuY29udGVudE5vZGUsICdmaXJzdCcpO1xyXG4gIH0sXHJcbiAgY2FuY2VsU2VsZWN0OiBmdW5jdGlvbiBjYW5jZWxTZWxlY3QoKSB7fSxcclxuICAvKipcclxuICAgKiBIYW5kbGVzIHRoZSBkaXNwbGF5IHdoZW4gcHJvZ3Jlc3MgZXZlbnRzIGFyZSByZWNpZXZlZC5cclxuICAgKi9cclxuICBvblVwZGF0ZVByb2dyZXNzOiBmdW5jdGlvbiBvblVwZGF0ZVByb2dyZXNzKG1zZykge1xyXG4gICAgY29uc3QgbiA9IGRvbS5ieUlkKCdmaWxlc2VsZWN0LXVwbG9hZC1wcm9ncmVzcycpO1xyXG4gICAgaWYgKG4pIHtcclxuICAgICAgbi5pbm5lckhUTUwgPSB0aGlzLmxvYWRpbmdUZXh0ICsgJyAnICsgbXNnO1xyXG4gICAgfVxyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogSGFuZGxlcyB0aGUgZGlzcGxheSB3aGVuIHRoZSB1cGxvYWQgZmFpbHMuXHJcbiAgICovXHJcbiAgb25VcGRhdGVGYWlsZWQ6IGZ1bmN0aW9uIG9uVXBkYXRlRmFpbGVkKG1zZykge1xyXG4gICAgdGhpcy5vblVwZGF0ZVByb2dyZXNzKG1zZyk7XHJcbiAgICBkb21DbGFzcy5yZW1vdmUodGhpcy5kb21Ob2RlLCAnbGlzdC1sb2FkaW5nJyk7XHJcbiAgfSxcclxufSk7XHJcblxyXG5sYW5nLnNldE9iamVjdCgnU2FnZS5QbGF0Zm9ybS5Nb2JpbGUuVmlld3MuRmlsZVNlbGVjdCcsIF9fY2xhc3MpO1xyXG5leHBvcnQgZGVmYXVsdCBfX2NsYXNzO1xyXG4iXX0=
 </pre>
 </body>
 </html>

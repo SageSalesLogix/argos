@@ -15,292 +15,260 @@
   </script>
 </head>
 <body onload="prettyPrint(); highlight();">
-  <pre class="prettyprint lang-js">/*
- * Copyright (c) 1997-2013, SalesLogix, NA., LLC. All rights reserved.
- */
+  <pre class="prettyprint lang-js">define('crm/Views/History/Detail', ['exports', 'module', 'dojo/_base/declare', 'dojo/string', 'dojo/_base/lang', 'dojo/query', 'dojo/dom-class', '../../Format', 'argos/ErrorManager', '../../Template', 'argos/Detail', 'argos/I18n'], function (exports, module, _dojo_baseDeclare, _dojoString, _dojo_baseLang, _dojoQuery, _dojoDomClass, _Format, _argosErrorManager, _Template, _argosDetail, _argosI18n) {
+  function _interopRequireDefault(obj) { return obj &amp;&amp; obj.__esModule ? obj : { 'default': obj }; }
 
-<span id='crm-Views-History-Detail'>/**
-</span> * @class crm.Views.History.Detail
- *
- * @extends argos.Detail
- *
- * @requires argos.ErrorManager
- *
- * @requires crm.Format
- * @requires crm.Template
- */
-define('crm/Views/History/Detail', [
-    'dojo/_base/declare',
-    'dojo/string',
-    'dojo/_base/lang',
-    'dojo/query',
-    'dojo/dom-class',
-    '../../Format',
-    'argos/ErrorManager',
-    '../../Template',
-    'argos/Detail'
-], function(
-    declare,
-    string,
-    lang,
-    query,
-    domClass,
-    format,
-    ErrorManager,
-    template,
-    Detail
-) {
+  var _declare = _interopRequireDefault(_dojo_baseDeclare);
 
-    var __class = declare('crm.Views.History.Detail', [Detail], {
-        //Templates
-        createUserTemplate: template.nameLF,
+  var _string = _interopRequireDefault(_dojoString);
 
-        //Localization
-        categoryText: 'category',
-        completedText: 'completed',
-        durationText: 'duration',
-        leaderText: 'leader',
-        longNotesText: 'notes',
-        notesText: 'Notes',
-        priorityText: 'priority',
-        regardingText: 'regarding',
-        completedByText: 'completed by',
-        scheduledText: 'scheduled',
-        timelessText: 'timeless',
-        companyText: 'company',
-        leadText: 'lead',
-        titleText: 'History',
-        accountText: 'account',
-        contactText: 'contact',
-        opportunityText: 'opportunity',
-        ticketNumberText: 'ticket',
-        moreDetailsText: 'More Details',
-        relatedItemsText: 'Related Items',
-        relatedAttachmentText: 'Attachments',
-        relatedAttachmentTitleText: 'History Attachments',
-        modifiedText: 'modified',
-        typeText: 'type',
-        activityTypeText: {
-            'atToDo': 'To-Do',
-            'atPhoneCall': 'Phone Call',
-            'atAppointment': 'Meeting',
-            'atLiterature': 'Literature Request',
-            'atPersonal': 'Personal Activity',
-            'atQuestion': 'Question',
-            'atEMail': 'E-mail'
-        },
-        //View Properties
-        id: 'history_detail',
-        existsRE: /^[\w]{12}$/,
-        editView: 'history_edit',
-        dateFormatText: 'M/D/YYYY h:mm:ss A',
-        resourceKind: 'history',
-        security: null, //'Entities/History/View',
-        querySelect: [
-            'AccountId',
-            'AccountName',
-            'Category',
-            'ModifyDate',
-            'CompletedDate',
-            'ContactId',
-            'ContactName',
-            'CompletedUser',
-            'Description',
-            'Duration',
-            'Notes',
-            'LongNotes',
-            'OpportunityId',
-            'OpportunityName',
-            'Priority',
-            'StartDate',
-            'TicketId',
-            'TicketNumber',
-            'LeadId',
-            'LeadName',
-            'Timeless',
-            'Type',
-            'UserName',
-            'UserId'
-        ],
+  var _lang = _interopRequireDefault(_dojo_baseLang);
 
-        formatActivityType: function(val) {
-            return this.activityTypeText[val] || val;
-        },
-        isHistoryForLead: function(entry) {
-            return this.existsRE.test(entry &amp;&amp; entry['LeadId']);
-        },
-        isHistoryForActivity: function(entry) {
-            return this.existsRE.test(entry &amp;&amp; entry['ActivityId']);
-        },
-        isHistoryOfType: function(entry, type) {
-            return entry &amp;&amp; (entry['Type'] === type);
-        },
-        provideText: function(entry) {
-            return entry &amp;&amp; (entry['LongNotes'] || entry['Notes']);
-        },
-        requestCompletedUser: function(entry) {
-            var request, completedUser;
-            completedUser = entry['CompletedUser'];
+  var _query = _interopRequireDefault(_dojoQuery);
 
-            if (completedUser) {
-                request = new Sage.SData.Client.SDataSingleResourceRequest(this.getService())
-                    .setResourceKind('users')
-                    .setResourceSelector(string.substitute(&quot;'${0}'&quot;, [completedUser]))
-                    .setQueryArg('select', [
-                        'UserInfo/FirstName',
-                        'UserInfo/LastName'
-                    ].join(','));
+  var _domClass = _interopRequireDefault(_dojoDomClass);
 
-                request.allowCacheUse = true;
+  var _format = _interopRequireDefault(_Format);
 
-                return request;
-            }
-        },
-        requestCodeData: function(row, node, value, entry) {
-            var request = this.requestCompletedUser(entry);
-            if (request) {
-                request.read({
-                    success: lang.hitch(this, this.onRequestCodeDataSuccess, row, node, value, entry),
-                    failure: this.onRequestCodeDataFailure,
-                    scope: this
-                });
-            } else {
-                this.onCodeDataNull();
-            }
-        },
-        onRequestCodeDataSuccess: function(row, node, value, entry, data) {
-            var codeText = entry[row.property];
-            this.setNodeText(node, this.createUserTemplate.apply(data.UserInfo));
-            this.entry[row.name] = codeText;
-        },
-        onRequestCodeDataFailure: function(response, o) {
-            var rowNode = query('[data-property=&quot;CompletedUser&quot;]');
-            if (rowNode) {
-                this.setNodeText(rowNode[0], this.entry['UserName']);
-            }
+  var _ErrorManager = _interopRequireDefault(_argosErrorManager);
 
-            ErrorManager.addError(response, o, this.options, 'failure');
-        },
-        onCodeDataNull: function() {
-            var rowNode = query('[data-property=&quot;CompletedUser&quot;]');
-            if (rowNode) {
-                this.setNodeText(rowNode[0], '');
-            }
-        },
-        setNodeText: function(node, value) {
-            domClass.remove(node, 'content-loading');
+  var _template = _interopRequireDefault(_Template);
 
-            query('span', node).text(value);
-        },
-        createLayout: function() {
-            return this.layout || (this.layout = [{
-                    title: this.notesText,
-                    name: 'NotesSection',
-                    children: [{
-                        name: 'LongNotes',
-                        property: 'LongNotes',
-                        encode: false,
-                        label: this.longNotesText,
-                        provider: this.provideText.bindDelegate(this),
-                        use: template.noteDetailProperty
-                    }]
-                }, {
-                    title: this.detailsText,
-                    name: 'DetailsSection',
-                    children: [{
-                            name: 'StartDate',
-                            property: 'StartDate',
-                            label: this.scheduledText,
-                            renderer: format.date.bindDelegate(this, this.dateFormatText),
-                            exclude: this.isHistoryOfType.bindDelegate(this, 'atNote')
-                        }, {
-                            name: 'CompletedDate',
-                            property: 'CompletedDate',
-                            label: this.completedText,
-                            renderer: format.date.bindDelegate(this, this.dateFormatText),
-                            exclude: this.isHistoryOfType.bindDelegate(this, 'atNote')
-                        }, {
-                            name: 'ModifyDate',
-                            property: 'ModifyDate',
-                            label: this.modifiedText,
-                            renderer: format.date.bindDelegate(this, this.dateFormatText),
-                            include: this.isHistoryOfType.bindDelegate(this, 'atNote')
-                        }, {
-                            name: 'Description',
-                            property: 'Description',
-                            label: this.regardingText
-                        }, {
-                            name: 'CompletedUser',
-                            property: 'CompletedUser',
-                            label: this.completedByText,
-                            value: this.loadingText,
-                            cls: 'content-loading',
-                            onCreate: this.requestCodeData.bindDelegate(this)
-                        }, {
-                            name: 'AccountName',
-                            property: 'AccountName',
-                            exclude: this.isHistoryForLead,
-                            label: this.accountText,
-                            view: 'account_detail',
-                            key: 'AccountId',
-                            descriptor: 'AccountName'
-                        }, {
-                            name: 'ContactName',
-                            property: 'ContactName',
-                            exclude: this.isHistoryForLead,
-                            label: this.contactText,
-                            view: 'contact_detail',
-                            key: 'ContactId',
-                            descriptor: 'ContactName'
-                        }, {
-                            name: 'OpportunityName',
-                            property: 'OpportunityName',
-                            exclude: this.isHistoryForLead,
-                            label: this.opportunityText,
-                            view: 'opportunity_detail',
-                            key: 'OpportunityId',
-                            descriptor: 'OpportunityName'
-                        }, {
-                            name: 'TicketNumber',
-                            property: 'TicketNumber',
-                            exclude: this.isHistoryForLead,
-                            label: this.ticketNumberText,
-                            view: 'ticket_detail',
-                            key: 'TicketId',
-                            descriptor: 'TicketNumber'
-                        }, {
-                            name: 'LeadName',
-                            property: 'LeadName',
-                            include: this.isHistoryForLead,
-                            label: this.leadText,
-                            view: 'lead_detail',
-                            key: 'LeadId',
-                            descriptor: 'LeadName'
-                        }, {
-                            name: 'AccountName',
-                            property: 'AccountName',
-                            include: this.isHistoryForLead,
-                            label: this.companyText
-                        }]
-                }, {
-                    title: this.relatedItemsText,
-                    list: true,
-                    name: 'RelatedItemsSection',
-                    children: [{
-                        name: 'AttachmentRelated',
-                        label: this.relatedAttachmentText,
-                        where: this.formatRelatedQuery.bindDelegate(this, 'historyId eq &quot;${0}&quot;'),// must be lower case because of feed
-                        view: 'history_attachment_related',
-                        title:  this.relatedAttachmentTitleText
-                    }]
-                }]);
-        }
-    });
+  var _Detail = _interopRequireDefault(_argosDetail);
 
-    lang.setObject('Mobile.SalesLogix.Views.History.Detail', __class);
-    return __class;
+  var _getResource = _interopRequireDefault(_argosI18n);
+
+  var resource = (0, _getResource['default'])('historyDetail');
+
+<span id='crm-Views-History-Detail'>  /**
+</span>   * @class crm.Views.History.Detail
+   *
+   * @extends argos.Detail
+   *
+   * @requires argos.ErrorManager
+   *
+   * @requires crm.Format
+   * @requires crm.Template
+   */
+  var __class = (0, _declare['default'])('crm.Views.History.Detail', [_Detail['default']], {
+    // Templates
+    createUserTemplate: _template['default'].nameLF,
+
+    // Localization
+    categoryText: resource.categoryText,
+    completedText: resource.completedText,
+    durationText: resource.durationText,
+    leaderText: resource.leaderText,
+    longNotesText: resource.longNotesText,
+    notesText: resource.notesText,
+    priorityText: resource.priorityText,
+    regardingText: resource.regardingText,
+    completedByText: resource.completedByText,
+    scheduledText: resource.scheduledText,
+    timelessText: resource.timelessText,
+    companyText: resource.companyText,
+    leadText: resource.leadText,
+    titleText: resource.titleText,
+    accountText: resource.accountText,
+    contactText: resource.contactText,
+    opportunityText: resource.opportunityText,
+    ticketNumberText: resource.ticketNumberText,
+    moreDetailsText: resource.moreDetailsText,
+    relatedItemsText: resource.relatedItemsText,
+    relatedAttachmentText: resource.relatedAttachmentText,
+    relatedAttachmentTitleText: resource.relatedAttachmentTitleText,
+    modifiedText: resource.modifiedText,
+    typeText: resource.typeText,
+    entityText: resource.entityText,
+    activityTypeText: {
+      'atToDo': resource.toDo,
+      'atPhoneCall': resource.phoneCall,
+      'atAppointment': resource.meeting,
+      'atLiterature': resource.literature,
+      'atPersonal': resource.personal,
+      'atQuestion': resource.question,
+      'atEMail': resource.email
+    },
+    // View Properties
+    id: 'history_detail',
+    existsRE: /^[\w]{12}$/,
+    editView: 'history_edit',
+    dateFormatText: 'M/D/YYYY h:mm:ss A',
+    resourceKind: 'history',
+    security: null, // 'Entities/History/View',
+    querySelect: ['AccountId', 'AccountName', 'Category', 'ModifyDate', 'CompletedDate', 'ContactId', 'ContactName', 'CompletedUser', 'Description', 'Duration', 'Notes', 'LongNotes', 'OpportunityId', 'OpportunityName', 'Priority', 'StartDate', 'TicketId', 'TicketNumber', 'LeadId', 'LeadName', 'Timeless', 'Type', 'UserName', 'UserId'],
+
+    formatActivityType: function formatActivityType(val) {
+      return this.activityTypeText[val] || val;
+    },
+    isHistoryForLead: function isHistoryForLead(entry) {
+      return this.existsRE.test(entry &amp;&amp; entry.LeadId);
+    },
+    isHistoryForActivity: function isHistoryForActivity(entry) {
+      return this.existsRE.test(entry &amp;&amp; entry.ActivityId);
+    },
+    isHistoryOfType: function isHistoryOfType(entry, type) {
+      return entry &amp;&amp; entry.Type === type;
+    },
+    provideText: function provideText(entry) {
+      return entry &amp;&amp; (entry.LongNotes || entry.Notes);
+    },
+    requestCompletedUser: function requestCompletedUser(entry) {
+      var completedUser = entry.CompletedUser;
+
+      if (completedUser) {
+        var request = new Sage.SData.Client.SDataSingleResourceRequest(this.getService()).setResourceKind('users').setResourceSelector(_string['default'].substitute(&quot;'${0}'&quot;, [completedUser])).setQueryArg('select', ['UserInfo/FirstName', 'UserInfo/LastName'].join(','));
+
+        request.allowCacheUse = true;
+
+        return request;
+      }
+    },
+    requestCodeData: function requestCodeData(row, node, value, entry) {
+      var request = this.requestCompletedUser(entry);
+      if (request) {
+        request.read({
+          success: _lang['default'].hitch(this, this.onRequestCodeDataSuccess, row, node, value, entry),
+          failure: this.onRequestCodeDataFailure,
+          scope: this
+        });
+      } else {
+        this.onCodeDataNull();
+      }
+    },
+    onRequestCodeDataSuccess: function onRequestCodeDataSuccess(row, node, value, entry, data) {
+      var codeText = entry[row.property];
+      this.setNodeText(node, this.createUserTemplate.apply(data.UserInfo));
+      this.entry[row.name] = codeText;
+    },
+    onRequestCodeDataFailure: function onRequestCodeDataFailure(response, o) {
+      var rowNode = (0, _query['default'])('[data-property=&quot;CompletedUser&quot;]');
+      if (rowNode) {
+        this.setNodeText(rowNode[0], this.entry.UserName);
+      }
+
+      _ErrorManager['default'].addError(response, o, this.options, 'failure');
+    },
+    onCodeDataNull: function onCodeDataNull() {
+      var rowNode = (0, _query['default'])('[data-property=&quot;CompletedUser&quot;]');
+      if (rowNode) {
+        this.setNodeText(rowNode[0], '');
+      }
+    },
+    setNodeText: function setNodeText(node, value) {
+      _domClass['default'].remove(node, 'content-loading');
+
+      (0, _query['default'])('span', node).text(value);
+    },
+    createLayout: function createLayout() {
+      return this.layout || (this.layout = [{
+        title: this.notesText,
+        name: 'NotesSection',
+        children: [{
+          name: 'LongNotes',
+          property: 'LongNotes',
+          encode: false,
+          label: this.longNotesText,
+          provider: this.provideText.bindDelegate(this),
+          use: _template['default'].noteDetailProperty
+        }]
+      }, {
+        title: this.detailsText,
+        name: 'DetailsSection',
+        children: [{
+          name: 'StartDate',
+          property: 'StartDate',
+          label: this.scheduledText,
+          renderer: _format['default'].date.bindDelegate(this, this.dateFormatText),
+          exclude: this.isHistoryOfType.bindDelegate(this, 'atNote')
+        }, {
+          name: 'CompletedDate',
+          property: 'CompletedDate',
+          label: this.completedText,
+          renderer: _format['default'].date.bindDelegate(this, this.dateFormatText),
+          exclude: this.isHistoryOfType.bindDelegate(this, 'atNote')
+        }, {
+          name: 'ModifyDate',
+          property: 'ModifyDate',
+          label: this.modifiedText,
+          renderer: _format['default'].date.bindDelegate(this, this.dateFormatText),
+          include: this.isHistoryOfType.bindDelegate(this, 'atNote')
+        }, {
+          name: 'Description',
+          property: 'Description',
+          label: this.regardingText
+        }, {
+          name: 'CompletedUser',
+          property: 'CompletedUser',
+          label: this.completedByText,
+          value: this.loadingText,
+          cls: 'content-loading',
+          onCreate: this.requestCodeData.bindDelegate(this)
+        }, {
+          name: 'AccountName',
+          property: 'AccountName',
+          exclude: this.isHistoryForLead.bind(this),
+          label: this.accountText,
+          view: 'account_detail',
+          key: 'AccountId',
+          descriptor: 'AccountName'
+        }, {
+          name: 'ContactName',
+          property: 'ContactName',
+          exclude: this.isHistoryForLead.bind(this),
+          label: this.contactText,
+          view: 'contact_detail',
+          key: 'ContactId',
+          descriptor: 'ContactName'
+        }, {
+          name: 'OpportunityName',
+          property: 'OpportunityName',
+          exclude: this.isHistoryForLead.bind(this),
+          label: this.opportunityText,
+          view: 'opportunity_detail',
+          key: 'OpportunityId',
+          descriptor: 'OpportunityName'
+        }, {
+          name: 'TicketNumber',
+          property: 'TicketNumber',
+          exclude: this.isHistoryForLead.bind(this),
+          label: this.ticketNumberText,
+          view: 'ticket_detail',
+          key: 'TicketId',
+          descriptor: 'TicketNumber'
+        }, {
+          name: 'LeadName',
+          property: 'LeadName',
+          include: this.isHistoryForLead.bind(this),
+          label: this.leadText,
+          view: 'lead_detail',
+          key: 'LeadId',
+          descriptor: 'LeadName'
+        }, {
+          name: 'AccountName',
+          property: 'AccountName',
+          include: this.isHistoryForLead.bind(this),
+          label: this.companyText
+        }]
+      }, {
+        title: this.relatedItemsText,
+        list: true,
+        name: 'RelatedItemsSection',
+        children: [{
+          name: 'AttachmentRelated',
+          label: this.relatedAttachmentText,
+          where: this.formatRelatedQuery.bindDelegate(this, 'historyId eq &quot;${0}&quot;'), // must be lower case because of feed
+          view: 'history_attachment_related',
+          title: this.relatedAttachmentTitleText
+        }]
+      }]);
+    }
+  });
+
+  _lang['default'].setObject('Mobile.SalesLogix.Views.History.Detail', __class);
+  module.exports = __class;
 });
-
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInNyYy9WaWV3cy9IaXN0b3J5L0RldGFpbC5qcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7OztBQVdBLE1BQU0sUUFBUSxHQUFHLDZCQUFZLGVBQWUsQ0FBQyxDQUFDOzs7Ozs7Ozs7Ozs7QUFZOUMsTUFBTSxPQUFPLEdBQUcseUJBQVEsMEJBQTBCLEVBQUUsb0JBQVEsRUFBRTs7QUFFNUQsc0JBQWtCLEVBQUUscUJBQVMsTUFBTTs7O0FBR25DLGdCQUFZLEVBQUUsUUFBUSxDQUFDLFlBQVk7QUFDbkMsaUJBQWEsRUFBRSxRQUFRLENBQUMsYUFBYTtBQUNyQyxnQkFBWSxFQUFFLFFBQVEsQ0FBQyxZQUFZO0FBQ25DLGNBQVUsRUFBRSxRQUFRLENBQUMsVUFBVTtBQUMvQixpQkFBYSxFQUFFLFFBQVEsQ0FBQyxhQUFhO0FBQ3JDLGFBQVMsRUFBRSxRQUFRLENBQUMsU0FBUztBQUM3QixnQkFBWSxFQUFFLFFBQVEsQ0FBQyxZQUFZO0FBQ25DLGlCQUFhLEVBQUUsUUFBUSxDQUFDLGFBQWE7QUFDckMsbUJBQWUsRUFBRSxRQUFRLENBQUMsZUFBZTtBQUN6QyxpQkFBYSxFQUFFLFFBQVEsQ0FBQyxhQUFhO0FBQ3JDLGdCQUFZLEVBQUUsUUFBUSxDQUFDLFlBQVk7QUFDbkMsZUFBVyxFQUFFLFFBQVEsQ0FBQyxXQUFXO0FBQ2pDLFlBQVEsRUFBRSxRQUFRLENBQUMsUUFBUTtBQUMzQixhQUFTLEVBQUUsUUFBUSxDQUFDLFNBQVM7QUFDN0IsZUFBVyxFQUFFLFFBQVEsQ0FBQyxXQUFXO0FBQ2pDLGVBQVcsRUFBRSxRQUFRLENBQUMsV0FBVztBQUNqQyxtQkFBZSxFQUFFLFFBQVEsQ0FBQyxlQUFlO0FBQ3pDLG9CQUFnQixFQUFFLFFBQVEsQ0FBQyxnQkFBZ0I7QUFDM0MsbUJBQWUsRUFBRSxRQUFRLENBQUMsZUFBZTtBQUN6QyxvQkFBZ0IsRUFBRSxRQUFRLENBQUMsZ0JBQWdCO0FBQzNDLHlCQUFxQixFQUFFLFFBQVEsQ0FB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QUFJLEVBQUUsVUFBVTtBQUNoQixrQkFBUSxFQUFFLFVBQVU7QUFDcEIsaUJBQU8sRUFBRSxJQUFJLENBQUMsZ0JBQWdCLENBQUMsSUFBSSxDQUFDLElBQUksQ0FBQztBQUN6QyxlQUFLLEVBQUUsSUFBSSxDQUFDLFFBQVE7QUFDcEIsY0FBSSxFQUFFLGFBQWE7QUFDbkIsYUFBRyxFQUFFLFFBQVE7QUFDYixvQkFBVSxFQUFFLFVBQVU7U0FDdkIsRUFBRTtBQUNELGNBQUksRUFBRSxhQUFhO0FBQ25CLGtCQUFRLEVBQUUsYUFBYTtBQUN2QixpQkFBTyxFQUFFLElBQUksQ0FBQyxnQkFBZ0IsQ0FBQyxJQUFJLENBQUMsSUFBSSxDQUFDO0FBQ3pDLGVBQUssRUFBRSxJQUFJLENBQUMsV0FBVztTQUN4QixDQUFDO09BQ0gsRUFBRTtBQUNELGFBQUssRUFBRSxJQUFJLENBQUMsZ0JBQWdCO0FBQzVCLFlBQUksRUFBRSxJQUFJO0FBQ1YsWUFBSSxFQUFFLHFCQUFxQjtBQUMzQixnQkFBUSxFQUFFLENBQUM7QUFDVCxjQUFJLEVBQUUsbUJBQW1CO0FBQ3pCLGVBQUssRUFBRSxJQUFJLENBQUMscUJBQXFCO0FBQ2pDLGVBQUssRUFBRSxJQUFJLENBQUMsa0JBQWtCLENBQUMsWUFBWSxDQUFDLElBQUksRUFBRSxxQkFBcUIsQ0FBQztBQUN4RSxjQUFJLEVBQUUsNEJBQTRCO0FBQ2xDLGVBQUssRUFBRSxJQUFJLENBQUMsMEJBQTBCO1NBQ3ZDLENBQUM7T0FDSCxDQUFDLENBQUEsQUFBQyxDQUFDO0tBQ0w7R0FDRixDQUFDLENBQUM7O0FBRUgsbUJBQUssU0FBUyxDQUFDLHdDQUF3QyxFQUFFLE9BQU8sQ0FBQyxDQUFDO21CQUNuRCxPQUFPIiwiZmlsZSI6InNyYy9WaWV3cy9IaXN0b3J5L0RldGFpbC5qcyIsInNvdXJjZVJvb3QiOiJzcmMiLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgZGVjbGFyZSBmcm9tICdkb2pvL19iYXNlL2RlY2xhcmUnO1xyXG5pbXBvcnQgc3RyaW5nIGZyb20gJ2Rvam8vc3RyaW5nJztcclxuaW1wb3J0IGxhbmcgZnJvbSAnZG9qby9fYmFzZS9sYW5nJztcclxuaW1wb3J0IHF1ZXJ5IGZyb20gJ2Rvam8vcXVlcnknO1xyXG5pbXBvcnQgZG9tQ2xhc3MgZnJvbSAnZG9qby9kb20tY2xhc3MnO1xyXG5pbXBvcnQgZm9ybWF0IGZyb20gJy4uLy4uL0Zvcm1hdCc7XHJcbmltcG9ydCBFcnJvck1hbmFnZXIgZnJvbSAnYXJnb3MvRXJyb3JNYW5hZ2VyJztcclxuaW1wb3J0IHRlbXBsYXRlIGZyb20gJy4uLy4uL1RlbXBsYXRlJztcclxuaW1wb3J0IERldGFpbCBmcm9tICdhcmdvcy9EZXRhaWwnO1xyXG5pbXBvcnQgZ2V0UmVzb3VyY2UgZnJvbSAnYXJnb3MvSTE4bic7XHJcblxyXG5jb25zdCByZXNvdXJjZSA9IGdldFJlc291cmNlKCdoaXN0b3J5RGV0YWlsJyk7XHJcblxyXG4vKipcclxuICogQGNsYXNzIGNybS5WaWV3cy5IaXN0b3J5LkRldGFpbFxyXG4gKlxyXG4gKiBAZXh0ZW5kcyBhcmdvcy5EZXRhaWxcclxuICpcclxuICogQHJlcXVpcmVzIGFyZ29zLkVycm9yTWFuYWdlclxyXG4gKlxyXG4gKiBAcmVxdWlyZXMgY3JtLkZvcm1hdFxyXG4gKiBAcmVxdWlyZXMgY3JtLlRlbXBsYXRlXHJcbiAqL1xyXG5jb25zdCBfX2NsYXNzID0gZGVjbGFyZSgnY3JtLlZpZXdzLkhpc3RvcnkuRGV0YWlsJywgW0RldGFpbF0sIHtcclxuICAvLyBUZW1wbGF0ZXNcclxuICBjcmVhdGVVc2VyVGVtcGxhdGU6IHRlbXBsYXRlLm5hbWVMRixcclxuXHJcbiAgLy8gTG9jYWxpemF0aW9uXHJcbiAgY2F0ZWdvcnlUZXh0OiByZXNvdXJjZS5jYXRlZ29yeVRleHQsXHJcbiAgY29tcGxldGVkVGV4dDogcmVzb3VyY2UuY29tcGxldGVkVGV4dCxcclxuICBkdXJhdGlvblRleHQ6IHJlc291cmNlLmR1cmF0aW9uVGV4dCxcclxuICBsZWFkZXJUZXh0OiByZXNvdXJjZS5sZWFkZXJUZXh0LFxyXG4gIGxvbmdOb3Rlc1RleHQ6IHJlc291cmNlLmxvbmdOb3Rlc1RleHQsXHJcbiAgbm90ZXNUZXh0OiByZXNvdXJjZS5ub3Rlc1RleHQsXHJcbiAgcHJpb3JpdHlUZXh0OiByZXNvdXJjZS5wcmlvcml0eVRleHQsXHJcbiAgcmVnYXJkaW5nVGV4dDogcmVzb3VyY2UucmVnYXJkaW5nVGV4dCxcclxuICBjb21wbGV0ZWRCeVRleHQ6IHJlc291cmNlLmNvbXBsZXRlZEJ5VGV4dCxcclxuICBzY2hlZHVsZWRUZXh0OiByZXNvdXJjZS5zY2hlZHVsZWRUZXh0LFxyXG4gIHRpbWVsZXNzVGV4dDogcmVzb3VyY2UudGltZWxlc3NUZXh0LFxyXG4gIGNvbXBhbnlUZXh0OiByZXNvdXJjZS5jb21wYW55VGV4dCxcclxuICBsZWFkVGV4dDogcmVzb3VyY2UubGVhZFRleHQsXHJcbiAgdGl0bGVUZXh0OiByZXNvdXJjZS50aXRsZVRleHQsXHJcbiAgYWNjb3VudFRleHQ6IHJlc291cmNlLmFjY291bnRUZXh0LFxyXG4gIGNvbnRhY3RUZXh0OiByZXNvdXJjZS5jb250YWN0VGV4dCxcclxuICBvcHBvcnR1bml0eVRleHQ6IHJlc291cmNlLm9wcG9ydHVuaXR5VGV4dCxcclxuICB0aWNrZXROdW1iZXJUZXh0OiByZXNvdXJjZS50aWNrZXROdW1iZXJUZXh0LFxyXG4gIG1vcmVEZXRhaWxzVGV4dDogcmVzb3VyY2UubW9yZURldGFpbHNUZXh0LFxyXG4gIHJlbGF0ZWRJdGVtc1RleHQ6IHJlc291cmNlLnJlbGF0ZWRJdGVtc1RleHQsXHJcbiAgcmVsYXRlZEF0dGFjaG1lbnRUZXh0OiByZXNvdXJjZS5yZWxhdGVkQXR0YWNobWVudFRleHQsXHJcbiAgcmVsYXRlZEF0dGFjaG1lbnRUaXRsZVRleHQ6IHJlc291cmNlLnJlbGF0ZWRBdHRhY2htZW50VGl0bGVUZXh0LFxyXG4gIG1vZGlmaWVkVGV4dDogcmVzb3VyY2UubW9kaWZpZWRUZXh0LFxyXG4gIHR5cGVUZXh0OiByZXNvdXJjZS50eXBlVGV4dCxcclxuICBlbnRpdHlUZXh0OiByZXNvdXJjZS5lbnRpdHlUZXh0LFxyXG4gIGFjdGl2aXR5VHlwZVRleHQ6IHtcclxuICAgICdhdFRvRG8nOiByZXNvdXJjZS50b0RvLFxyXG4gICAgJ2F0UGhvbmVDYWxsJzogcmVzb3VyY2UucGhvbmVDYWxsLFxyXG4gICAgJ2F0QXBwb2ludG1lbnQnOiByZXNvdXJjZS5tZWV0aW5nLFxyXG4gICAgJ2F0TGl0ZXJhdHVyZSc6IHJlc291cmNlLmxpdGVyYXR1cmUsXHJcbiAgICAnYXRQZXJzb25hbCc6IHJlc291cmNlLnBlcnNvbmFsLFxyXG4gICAgJ2F0UXVlc3Rpb24nOiByZXNvdXJjZS5xdWVzdGlvbixcclxuICAgICdhdEVNYWlsJzogcmVzb3VyY2UuZW1haWwsXHJcbiAgfSxcclxuICAvLyBWaWV3IFByb3BlcnRpZXNcclxuICBpZDogJ2hpc3RvcnlfZGV0YWlsJyxcclxuICBleGlzdHNSRTogL15bXFx3XXsxMn0kLyxcclxuICBlZGl0VmlldzogJ2hpc3RvcnlfZWRpdCcsXHJcbiAgZGF0ZUZvcm1hdFRleHQ6ICdNL0QvWVlZWSBoOm1tOnNzIEEnLFxyXG4gIHJlc291cmNlS2luZDogJ2hpc3RvcnknLFxyXG4gIHNlY3VyaXR5OiBudWxsLCAvLyAnRW50aXRpZXMvSGlzdG9yeS9WaWV3JyxcclxuICBxdWVyeVNlbGVjdDogW1xyXG4gICAgJ0FjY291bnRJZCcsXHJcbiAgICAnQWNjb3VudE5hbWUnLFxyXG4gICAgJ0NhdGVnb3J5JyxcclxuICAgICdNb2RpZnlEYXRlJyxcclxuICAgICdDb21wbGV0ZWREYXRlJyxcclxuICAgICdDb250YWN0SWQnLFxyXG4gICAgJ0NvbnRhY3ROYW1lJyxcclxuICAgICdDb21wbGV0ZWRVc2VyJyxcclxuICAgICdEZXNjcmlwdGlvbicsXHJcbiAgICAnRHVyYXRpb24nLFxyXG4gICAgJ05vdGVzJyxcclxuICAgICdMb25nTm90ZXMnLFxyXG4gICAgJ09wcG9ydHVuaXR5SWQnLFxyXG4gICAgJ09wcG9ydHVuaXR5TmFtZScsXHJcbiAgICAnUHJpb3JpdHknLFxyXG4gICAgJ1N0YXJ0RGF0ZScsXHJcbiAgICAnVGlja2V0SWQnLFxyXG4gICAgJ1RpY2tldE51bWJlcicsXHJcbiAgICAnTGVhZElkJyxcclxuICAgICdMZWFkTmFtZScsXHJcbiAgICAnVGltZWxlc3MnLFxyXG4gICAgJ1R5cGUnLFxyXG4gICAgJ1VzZXJOYW1lJyxcclxuICAgICdVc2VySWQnLFxyXG4gIF0sXHJcblxyXG4gIGZvcm1hdEFjdGl2aXR5VHlwZTogZnVuY3Rpb24gZm9ybWF0QWN0aXZpdHlUeXBlKHZhbCkge1xyXG4gICAgcmV0dXJuIHRoaXMuYWN0aXZpdHlUeXBlVGV4dFt2YWxdIHx8IHZhbDtcclxuICB9LFxyXG4gIGlzSGlzdG9yeUZvckxlYWQ6IGZ1bmN0aW9uIGlzSGlzdG9yeUZvckxlYWQoZW50cnkpIHtcclxuICAgIHJldHVybiB0aGlzLmV4aXN0c1JFLnRlc3QoZW50cnkgJiYgZW50cnkuTGVhZElkKTtcclxuICB9LFxyXG4gIGlzSGlzdG9yeUZvckFjdGl2aXR5OiBmdW5jdGlvbiBpc0hpc3RvcnlGb3JBY3Rpdml0eShlbnRyeSkge1xyXG4gICAgcmV0dXJuIHRoaXMuZXhpc3RzUkUudGVzdChlbnRyeSAmJiBlbnRyeS5BY3Rpdml0eUlkKTtcclxuICB9LFxyXG4gIGlzSGlzdG9yeU9mVHlwZTogZnVuY3Rpb24gaXNIaXN0b3J5T2ZUeXBlKGVudHJ5LCB0eXBlKSB7XHJcbiAgICByZXR1cm4gZW50cnkgJiYgKGVudHJ5LlR5cGUgPT09IHR5cGUpO1xyXG4gIH0sXHJcbiAgcHJvdmlkZVRleHQ6IGZ1bmN0aW9uIHByb3ZpZGVUZXh0KGVudHJ5KSB7XHJcbiAgICByZXR1cm4gZW50cnkgJiYgKGVudHJ5LkxvbmdOb3RlcyB8fCBlbnRyeS5Ob3Rlcyk7XHJcbiAgfSxcclxuICByZXF1ZXN0Q29tcGxldGVkVXNlcjogZnVuY3Rpb24gcmVxdWVzdENvbXBsZXRlZFVzZXIoZW50cnkpIHtcclxuICAgIGNvbnN0IGNvbXBsZXRlZFVzZXIgPSBlbnRyeS5Db21wbGV0ZWRVc2VyO1xyXG5cclxuICAgIGlmIChjb21wbGV0ZWRVc2VyKSB7XHJcbiAgICAgIGNvbnN0IHJlcXVlc3QgPSBuZXcgU2FnZS5TRGF0YS5DbGllbnQuU0RhdGFTaW5nbGVSZXNvdXJjZVJlcXVlc3QodGhpcy5nZXRTZXJ2aWNlKCkpXHJcbiAgICAgICAgLnNldFJlc291cmNlS2luZCgndXNlcnMnKVxyXG4gICAgICAgIC5zZXRSZXNvdXJjZVNlbGVjdG9yKHN0cmluZy5zdWJzdGl0dXRlKFwiJyR7MH0nXCIsIFtjb21wbGV0ZWRVc2VyXSkpXHJcbiAgICAgICAgLnNldFF1ZXJ5QXJnKCdzZWxlY3QnLCBbXHJcbiAgICAgICAgICAnVXNlckluZm8vRmlyc3ROYW1lJyxcclxuICAgICAgICAgICdVc2VySW5mby9MYXN0TmFtZScsXHJcbiAgICAgICAgXS5qb2luKCcsJykpO1xyXG5cclxuICAgICAgcmVxdWVzdC5hbGxvd0NhY2hlVXNlID0gdHJ1ZTtcclxuXHJcbiAgICAgIHJldHVybiByZXF1ZXN0O1xyXG4gICAgfVxyXG4gIH0sXHJcbiAgcmVxdWVzdENvZGVEYXRhOiBmdW5jdGlvbiByZXF1ZXN0Q29kZURhdGEocm93LCBub2RlLCB2YWx1ZSwgZW50cnkpIHtcclxuICAgIGNvbnN0IHJlcXVlc3QgPSB0aGlzLnJlcXVlc3RDb21wbGV0ZWRVc2VyKGVudHJ5KTtcclxuICAgIGlmIChyZXF1ZXN0KSB7XHJcbiAgICAgIHJlcXVlc3QucmVhZCh7XHJcbiAgICAgICAgc3VjY2VzczogbGFuZy5oaXRjaCh0aGlzLCB0aGlzLm9uUmVxdWVzdENvZGVEYXRhU3VjY2Vzcywgcm93LCBub2RlLCB2YWx1ZSwgZW50cnkpLFxyXG4gICAgICAgIGZhaWx1cmU6IHRoaXMub25SZXF1ZXN0Q29kZURhdGFGYWlsdXJlLFxyXG4gICAgICAgIHNjb3BlOiB0aGlzLFxyXG4gICAgICB9KTtcclxuICAgIH0gZWxzZSB7XHJcbiAgICAgIHRoaXMub25Db2RlRGF0YU51bGwoKTtcclxuICAgIH1cclxuICB9LFxyXG4gIG9uUmVxdWVzdENvZGVEYXRhU3VjY2VzczogZnVuY3Rpb24gb25SZXF1ZXN0Q29kZURhdGFTdWNjZXNzKHJvdywgbm9kZSwgdmFsdWUsIGVudHJ5LCBkYXRhKSB7XHJcbiAgICBjb25zdCBjb2RlVGV4dCA9IGVudHJ5W3Jvdy5wcm9wZXJ0eV07XHJcbiAgICB0aGlzLnNldE5vZGVUZXh0KG5vZGUsIHRoaXMuY3JlYXRlVXNlclRlbXBsYXRlLmFwcGx5KGRhdGEuVXNlckluZm8pKTtcclxuICAgIHRoaXMuZW50cnlbcm93Lm5hbWVdID0gY29kZVRleHQ7XHJcbiAgfSxcclxuICBvblJlcXVlc3RDb2RlRGF0YUZhaWx1cmU6IGZ1bmN0aW9uIG9uUmVxdWVzdENvZGVEYXRhRmFpbHVyZShyZXNwb25zZSwgbykge1xyXG4gICAgY29uc3Qgcm93Tm9kZSA9IHF1ZXJ5KCdbZGF0YS1wcm9wZXJ0eT1cIkNvbXBsZXRlZFVzZXJcIl0nKTtcclxuICAgIGlmIChyb3dOb2RlKSB7XHJcbiAgICAgIHRoaXMuc2V0Tm9kZVRleHQocm93Tm9kZVswXSwgdGhpcy5lbnRyeS5Vc2VyTmFtZSk7XHJcbiAgICB9XHJcblxyXG4gICAgRXJyb3JNYW5hZ2VyLmFkZEVycm9yKHJlc3BvbnNlLCBvLCB0aGlzLm9wdGlvbnMsICdmYWlsdXJlJyk7XHJcbiAgfSxcclxuICBvbkNvZGVEYXRhTnVsbDogZnVuY3Rpb24gb25Db2RlRGF0YU51bGwoKSB7XHJcbiAgICBjb25zdCByb3dOb2RlID0gcXVlcnkoJ1tkYXRhLXByb3BlcnR5PVwiQ29tcGxldGVkVXNlclwiXScpO1xyXG4gICAgaWYgKHJvd05vZGUpIHtcclxuICAgICAgdGhpcy5zZXROb2RlVGV4dChyb3dOb2RlWzBdLCAnJyk7XHJcbiAgICB9XHJcbiAgfSxcclxuICBzZXROb2RlVGV4dDogZnVuY3Rpb24gc2V0Tm9kZVRleHQobm9kZSwgdmFsdWUpIHtcclxuICAgIGRvbUNsYXNzLnJlbW92ZShub2RlLCAnY29udGVudC1sb2FkaW5nJyk7XHJcblxyXG4gICAgcXVlcnkoJ3NwYW4nLCBub2RlKS50ZXh0KHZhbHVlKTtcclxuICB9LFxyXG4gIGNyZWF0ZUxheW91dDogZnVuY3Rpb24gY3JlYXRlTGF5b3V0KCkge1xyXG4gICAgcmV0dXJuIHRoaXMubGF5b3V0IHx8ICh0aGlzLmxheW91dCA9IFt7XHJcbiAgICAgIHRpdGxlOiB0aGlzLm5vdGVzVGV4dCxcclxuICAgICAgbmFtZTogJ05vdGVzU2VjdGlvbicsXHJcbiAgICAgIGNoaWxkcmVuOiBbe1xyXG4gICAgICAgIG5hbWU6ICdMb25nTm90ZXMnLFxyXG4gICAgICAgIHByb3BlcnR5OiAnTG9uZ05vdGVzJyxcclxuICAgICAgICBlbmNvZGU6IGZhbHNlLFxyXG4gICAgICAgIGxhYmVsOiB0aGlzLmxvbmdOb3Rlc1RleHQsXHJcbiAgICAgICAgcHJvdmlkZXI6IHRoaXMucHJvdmlkZVRleHQuYmluZERlbGVnYXRlKHRoaXMpLFxyXG4gICAgICAgIHVzZTogdGVtcGxhdGUubm90ZURldGFpbFByb3BlcnR5LFxyXG4gICAgICB9XSxcclxuICAgIH0sIHtcclxuICAgICAgdGl0bGU6IHRoaXMuZGV0YWlsc1RleHQsXHJcbiAgICAgIG5hbWU6ICdEZXRhaWxzU2VjdGlvbicsXHJcbiAgICAgIGNoaWxkcmVuOiBbe1xyXG4gICAgICAgIG5hbWU6ICdTdGFydERhdGUnLFxyXG4gICAgICAgIHByb3BlcnR5OiAnU3RhcnREYXRlJyxcclxuICAgICAgICBsYWJlbDogdGhpcy5zY2hlZHVsZWRUZXh0LFxyXG4gICAgICAgIHJlbmRlcmVyOiBmb3JtYXQuZGF0ZS5iaW5kRGVsZWdhdGUodGhpcywgdGhpcy5kYXRlRm9ybWF0VGV4dCksXHJcbiAgICAgICAgZXhjbHVkZTogdGhpcy5pc0hpc3RvcnlPZlR5cGUuYmluZERlbGVnYXRlKHRoaXMsICdhdE5vdGUnKSxcclxuICAgICAgfSwge1xyXG4gICAgICAgIG5hbWU6ICdDb21wbGV0ZWREYXRlJyxcclxuICAgICAgICBwcm9wZXJ0eTogJ0NvbXBsZXRlZERhdGUnLFxyXG4gICAgICAgIGxhYmVsOiB0aGlzLmNvbXBsZXRlZFRleHQsXHJcbiAgICAgICAgcmVuZGVyZXI6IGZvcm1hdC5kYXRlLmJpbmREZWxlZ2F0ZSh0aGlzLCB0aGlzLmRhdGVGb3JtYXRUZXh0KSxcclxuICAgICAgICBleGNsdWRlOiB0aGlzLmlzSGlzdG9yeU9mVHlwZS5iaW5kRGVsZWdhdGUodGhpcywgJ2F0Tm90ZScpLFxyXG4gICAgICB9LCB7XHJcbiAgICAgICAgbmFtZTogJ01vZGlmeURhdGUnLFxyXG4gICAgICAgIHByb3BlcnR5OiAnTW9kaWZ5RGF0ZScsXHJcbiAgICAgICAgbGFiZWw6IHRoaXMubW9kaWZpZWRUZXh0LFxyXG4gICAgICAgIHJlbmRlcmVyOiBmb3JtYXQuZGF0ZS5iaW5kRGVsZWdhdGUodGhpcywgdGhpcy5kYXRlRm9ybWF0VGV4dCksXHJcbiAgICAgICAgaW5jbHVkZTogdGhpcy5pc0hpc3RvcnlPZlR5cGUuYmluZERlbGVnYXRlKHRoaXMsICdhdE5vdGUnKSxcclxuICAgICAgfSwge1xyXG4gICAgICAgIG5hbWU6ICdEZXNjcmlwdGlvbicsXHJcbiAgICAgICAgcHJvcGVydHk6ICdEZXNjcmlwdGlvbicsXHJcbiAgICAgICAgbGFiZWw6IHRoaXMucmVnYXJkaW5nVGV4dCxcclxuICAgICAgfSwge1xyXG4gICAgICAgIG5hbWU6ICdDb21wbGV0ZWRVc2VyJyxcclxuICAgICAgICBwcm9wZXJ0eTogJ0NvbXBsZXRlZFVzZXInLFxyXG4gICAgICAgIGxhYmVsOiB0aGlzLmNvbXBsZXRlZEJ5VGV4dCxcclxuICAgICAgICB2YWx1ZTogdGhpcy5sb2FkaW5nVGV4dCxcclxuICAgICAgICBjbHM6ICdjb250ZW50LWxvYWRpbmcnLFxyXG4gICAgICAgIG9uQ3JlYXRlOiB0aGlzLnJlcXVlc3RDb2RlRGF0YS5iaW5kRGVsZWdhdGUodGhpcyksXHJcbiAgICAgIH0sIHtcclxuICAgICAgICBuYW1lOiAnQWNjb3VudE5hbWUnLFxyXG4gICAgICAgIHByb3BlcnR5OiAnQWNjb3VudE5hbWUnLFxyXG4gICAgICAgIGV4Y2x1ZGU6IHRoaXMuaXNIaXN0b3J5Rm9yTGVhZC5iaW5kKHRoaXMpLFxyXG4gICAgICAgIGxhYmVsOiB0aGlzLmFjY291bnRUZXh0LFxyXG4gICAgICAgIHZpZXc6ICdhY2NvdW50X2RldGFpbCcsXHJcbiAgICAgICAga2V5OiAnQWNjb3VudElkJyxcclxuICAgICAgICBkZXNjcmlwdG9yOiAnQWNjb3VudE5hbWUnLFxyXG4gICAgICB9LCB7XHJcbiAgICAgICAgbmFtZTogJ0NvbnRhY3ROYW1lJyxcclxuICAgICAgICBwcm9wZXJ0eTogJ0NvbnRhY3ROYW1lJyxcclxuICAgICAgICBleGNsdWRlOiB0aGlzLmlzSGlzdG9yeUZvckxlYWQuYmluZCh0aGlzKSxcclxuICAgICAgICBsYWJlbDogdGhpcy5jb250YWN0VGV4dCxcclxuICAgICAgICB2aWV3OiAnY29udGFjdF9kZXRhaWwnLFxyXG4gICAgICAgIGtleTogJ0NvbnRhY3RJZCcsXHJcbiAgICAgICAgZGVzY3JpcHRvcjogJ0NvbnRhY3ROYW1lJyxcclxuICAgICAgfSwge1xyXG4gICAgICAgIG5hbWU6ICdPcHBvcnR1bml0eU5hbWUnLFxyXG4gICAgICAgIHByb3BlcnR5OiAnT3Bwb3J0dW5pdHlOYW1lJyxcclxuICAgICAgICBleGNsdWRlOiB0aGlzLmlzSGlzdG9yeUZvckxlYWQuYmluZCh0aGlzKSxcclxuICAgICAgICBsYWJlbDogdGhpcy5vcHBvcnR1bml0eVRleHQsXHJcbiAgICAgICAgdmlldzogJ29wcG9ydHVuaXR5X2RldGFpbCcsXHJcbiAgICAgICAga2V5OiAnT3Bwb3J0dW5pdHlJZCcsXHJcbiAgICAgICAgZGVzY3JpcHRvcjogJ09wcG9ydHVuaXR5TmFtZScsXHJcbiAgICAgIH0sIHtcclxuICAgICAgICBuYW1lOiAnVGlja2V0TnVtYmVyJyxcclxuICAgICAgICBwcm9wZXJ0eTogJ1RpY2tldE51bWJlcicsXHJcbiAgICAgICAgZXhjbHVkZTogdGhpcy5pc0hpc3RvcnlGb3JMZWFkLmJpbmQodGhpcyksXHJcbiAgICAgICAgbGFiZWw6IHRoaXMudGlja2V0TnVtYmVyVGV4dCxcclxuICAgICAgICB2aWV3OiAndGlja2V0X2RldGFpbCcsXHJcbiAgICAgICAga2V5OiAnVGlja2V0SWQnLFxyXG4gICAgICAgIGRlc2NyaXB0b3I6ICdUaWNrZXROdW1iZXInLFxyXG4gICAgICB9LCB7XHJcbiAgICAgICAgbmFtZTogJ0xlYWROYW1lJyxcclxuICAgICAgICBwcm9wZXJ0eTogJ0xlYWROYW1lJyxcclxuICAgICAgICBpbmNsdWRlOiB0aGlzLmlzSGlzdG9yeUZvckxlYWQuYmluZCh0aGlzKSxcclxuICAgICAgICBsYWJlbDogdGhpcy5sZWFkVGV4dCxcclxuICAgICAgICB2aWV3OiAnbGVhZF9kZXRhaWwnLFxyXG4gICAgICAgIGtleTogJ0xlYWRJZCcsXHJcbiAgICAgICAgZGVzY3JpcHRvcjogJ0xlYWROYW1lJyxcclxuICAgICAgfSwge1xyXG4gICAgICAgIG5hbWU6ICdBY2NvdW50TmFtZScsXHJcbiAgICAgICAgcHJvcGVydHk6ICdBY2NvdW50TmFtZScsXHJcbiAgICAgICAgaW5jbHVkZTogdGhpcy5pc0hpc3RvcnlGb3JMZWFkLmJpbmQodGhpcyksXHJcbiAgICAgICAgbGFiZWw6IHRoaXMuY29tcGFueVRleHQsXHJcbiAgICAgIH1dLFxyXG4gICAgfSwge1xyXG4gICAgICB0aXRsZTogdGhpcy5yZWxhdGVkSXRlbXNUZXh0LFxyXG4gICAgICBsaXN0OiB0cnVlLFxyXG4gICAgICBuYW1lOiAnUmVsYXRlZEl0ZW1zU2VjdGlvbicsXHJcbiAgICAgIGNoaWxkcmVuOiBbe1xyXG4gICAgICAgIG5hbWU6ICdBdHRhY2htZW50UmVsYXRlZCcsXHJcbiAgICAgICAgbGFiZWw6IHRoaXMucmVsYXRlZEF0dGFjaG1lbnRUZXh0LFxyXG4gICAgICAgIHdoZXJlOiB0aGlzLmZvcm1hdFJlbGF0ZWRRdWVyeS5iaW5kRGVsZWdhdGUodGhpcywgJ2hpc3RvcnlJZCBlcSBcIiR7MH1cIicpLCAvLyBtdXN0IGJlIGxvd2VyIGNhc2UgYmVjYXVzZSBvZiBmZWVkXHJcbiAgICAgICAgdmlldzogJ2hpc3RvcnlfYXR0YWNobWVudF9yZWxhdGVkJyxcclxuICAgICAgICB0aXRsZTogdGhpcy5yZWxhdGVkQXR0YWNobWVudFRpdGxlVGV4dCxcclxuICAgICAgfV0sXHJcbiAgICB9XSk7XHJcbiAgfSxcclxufSk7XHJcblxyXG5sYW5nLnNldE9iamVjdCgnTW9iaWxlLlNhbGVzTG9naXguVmlld3MuSGlzdG9yeS5EZXRhaWwnLCBfX2NsYXNzKTtcclxuZXhwb3J0IGRlZmF1bHQgX19jbGFzcztcclxuIl19
 </pre>
 </body>
 </html>

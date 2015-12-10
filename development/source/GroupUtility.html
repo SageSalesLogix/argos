@@ -15,455 +15,443 @@
   </script>
 </head>
 <body onload="prettyPrint(); highlight();">
-  <pre class="prettyprint lang-js">/*
- * Copyright (c) 1997-2014, SalesLogix, NA., LLC. All rights reserved.
- */
+  <pre class="prettyprint lang-js">define('crm/GroupUtility', ['exports', 'module', 'dojo/_base/lang', 'dojo/_base/array', './Format', 'argos/Format', 'argos/I18n'], function (exports, module, _dojo_baseLang, _dojo_baseArray, _Format, _argosFormat, _argosI18n) {
+  function _interopRequireDefault(obj) { return obj &amp;&amp; obj.__esModule ? obj : { 'default': obj }; }
 
-<span id='crm-GroupUtility'>/**
-</span> * @class crm.GroupUtility
- *
- * Saleslogix group based utils
- *
- * @singleton
- *
- */
-define('crm/GroupUtility', [
-    'dojo/_base/lang',
-    'dojo/_base/array',
-    './Format',
-    'argos/Format',
-    'moment'
-], function(
-    lang,
-    array,
-    format,
-    sdkFormat,
-    moment
-) {
-    var _createGroupRequest,
-        __class;
+  var _lang = _interopRequireDefault(_dojo_baseLang);
 
-    _createGroupRequest = function(options) {
-        var request, defaultOptions, arg;
+  var _array = _interopRequireDefault(_dojo_baseArray);
 
-        defaultOptions = {
-            connection: App.getService(false),
-            groupId: '',
-            resourceKind: 'groups',
-            contractName: 'system',
-            queryName: 'execute',
-            queryArgs: null
-        };
+  var _format = _interopRequireDefault(_Format);
 
-        options = lang.mixin(defaultOptions, options);
+  var _sdkFormat = _interopRequireDefault(_argosFormat);
 
-        request = new Sage.SData.Client.SDataNamedQueryRequest(options.connection);
-        request.setQueryName(options.queryName);
-        request.setResourceKind(options.resourceKind);
-        request.setContractName(options.contractName);
-        request.getUri().setCollectionPredicate(&quot;'&quot; + options.groupId + &quot;'&quot;);
+  var _getResource = _interopRequireDefault(_argosI18n);
 
-        for (arg in options.queryArgs) {
-            if (options.queryArgs.hasOwnProperty(arg)) {
-                request.setQueryArg(arg, options.queryArgs[arg]);
-            }
-        }
+  var resource = (0, _getResource['default'])('groupUtility');
 
-        return request;
+  function _createGroupRequest(o) {
+    var defaultOptions = {
+      connection: App.getService(false),
+      groupId: '',
+      resourceKind: 'groups',
+      contractName: 'system',
+      queryName: 'execute',
+      queryArgs: null
     };
 
-    __class = lang.setObject('crm.GroupUtility', {
-        groupDateFormatText: 'M/D/YYYY h:mm:ss a',
-<span id='crm-GroupUtility-method-createGroupRequest'>        /**
-</span>         * Returns an SDataNamedQueryRequest setup for groups
-         * @param {Object} options Options for creating the request
-         * @param {String} options.groupId The id of the group the request should execute on
-         * @param {Object} [options.queryArgs] Additional query arguments to set on the request
-         * @param {Object} [options.connection] SData connection. Defaults to use App.getService(false)
-         *
-         */
-        createGroupRequest: function(options) {
-            var defaults = {
-                queryName: 'execute'
+    var options = _lang['default'].mixin(defaultOptions, o);
+
+    var request = new Sage.SData.Client.SDataNamedQueryRequest(options.connection);
+    request.setQueryName(options.queryName);
+    request.setResourceKind(options.resourceKind);
+    request.setContractName(options.contractName);
+    request.getUri().setCollectionPredicate(&quot;'&quot; + options.groupId + &quot;'&quot;);
+
+    for (var arg in options.queryArgs) {
+      if (options.queryArgs.hasOwnProperty(arg)) {
+        request.setQueryArg(arg, options.queryArgs[arg]);
+      }
+    }
+
+    return request;
+  }
+
+<span id='crm-GroupUtility'>  /**
+</span>   * @class crm.GroupUtility
+   *
+   * Saleslogix group based utils
+   *
+   * @singleton
+   *
+   */
+  var __class = _lang['default'].setObject('crm.GroupUtility', {
+    groupDateFormatText: resource.groupDateFormatText,
+<span id='crm-GroupUtility-method-createGroupRequest'>    /**
+</span>     * Returns an SDataNamedQueryRequest setup for groups
+     * @param {Object} options Options for creating the request
+     * @param {String} options.groupId The id of the group the request should execute on
+     * @param {Object} [options.queryArgs] Additional query arguments to set on the request
+     * @param {Object} [options.connection] SData connection. Defaults to use App.getService(false)
+     *
+     */
+    createGroupRequest: function createGroupRequest(options) {
+      var defaults = {
+        queryName: 'execute'
+      };
+
+      return _createGroupRequest(_lang['default'].mixin(defaults, options));
+    },
+
+<span id='crm-GroupUtility-method-createGroupMetricRequest'>    /**
+</span>     * Returns an SDataNamedQueryRequest setup for group metrics
+     * @param {Object} options Options for creating the request
+     * @param {String} options.groupId The id of the group the request should execute on
+     * @param {Object} [options.queryArgs] Additional query arguments to set on the request
+     * @param {Object} [options.connection] SData connection. Defaults to use App.getService(false)
+     *
+     */
+    createGroupMetricRequest: function createGroupMetricRequest(options) {
+      var defaults = {
+        queryName: 'executeMetric'
+      };
+
+      return _createGroupRequest(_lang['default'].mixin(defaults, options));
+    },
+<span id='crm-GroupUtility-property-groupFilters'>    /**
+</span>     * Array of functions that will filter out group layout
+     */
+    groupFilters: [function groupFilter(layoutItem) {
+      return layoutItem.visible;
+    }],
+    groupFormatters: [{
+      name: 'None',
+      test: function testNone(layoutItem) {
+        return layoutItem.format === 'None';
+      },
+      formatter: function formatNone(value) {
+        return value;
+      }
+    }, {
+      name: 'Phone',
+      test: function testPhone(layoutItem) {
+        return layoutItem.format === 'Phone';
+      },
+      formatter: function formatPhone(value) {
+        return _format['default'].phone(value);
+      }
+    }, {
+      name: 'Fixed',
+      options: {
+        clss: 'group-fixed'
+      },
+      test: function testFixed(layoutItem) {
+        return layoutItem.format === 'Fixed';
+      },
+      formatter: function formatFixed(value) {
+        return _format['default'].fixedLocale(value, 2);
+      }
+    }, {
+      name: 'Percent',
+      options: {
+        clss: 'group-percent'
+      },
+      test: function testPercent(layoutItem) {
+        return layoutItem.format === 'Percent';
+      },
+      formatter: function formatPercent(value) {
+        return _format['default'].percent(value, 0);
+      }
+    }, {
+      name: 'Integer',
+      test: function testInteger(layoutItem) {
+        return layoutItem.format === 'Integer';
+      },
+      formatter: function formatInteger(value) {
+        return _format['default'].fixedLocale(value, 0);
+      }
+    }, {
+      name: 'Currency',
+      test: function testCurrency(layoutItem) {
+        return layoutItem.format === 'Currency';
+      },
+      options: {
+        clss: 'group-currency'
+      },
+      formatter: function formatCurrency(value) {
+        return _format['default'].currency(value);
+      }
+    }, {
+      name: 'DateTime',
+      options: {
+        useRelative: true
+      },
+      test: function testDate(layoutItem) {
+        return layoutItem.format === 'DateTime';
+      },
+      formatter: function formatDate(value, formatString, formatOptions) {
+        if (typeof value === 'string') {
+          var dateValue = moment(value);
+          if (dateValue.isValid()) {
+            if (formatOptions &amp;&amp; formatOptions.useRelative) {
+              return _format['default'].relativeDate(dateValue);
+            }
+
+            return dateValue.format(formatString);
+          }
+        }
+
+        return value;
+      }
+    }, {
+      name: 'Boolean',
+      test: function testBoolean(layoutItem) {
+        return layoutItem.format === 'Boolean';
+      },
+      formatter: function formatBoolean(value) {
+        var truthy = ['T', 't', 'Y', '1', '+'];
+
+        return _array['default'].indexOf(truthy, value) === -1 ? _sdkFormat['default'].noText : _sdkFormat['default'].yesText;
+      }
+    }],
+    transformDateFormatString: function transformDateFormatString(gf, defaultFormat) {
+      var groupFormat = gf;
+      if (groupFormat) {
+        groupFormat = groupFormat.replace('MM', 'M');
+        groupFormat = groupFormat.replace('mm', 'M');
+        groupFormat = groupFormat.replace('m', 'M');
+        groupFormat = groupFormat.replace('DD', 'D');
+        groupFormat = groupFormat.replace('dd', 'D');
+        groupFormat = groupFormat.replace('d', 'D');
+        groupFormat = groupFormat.replace('yyyy', 'YYYY');
+        groupFormat = groupFormat.replace('yy', 'YYYY');
+        return groupFormat;
+      }
+      return defaultFormat;
+    },
+    formatTypeByField: {
+      'DateTime': {
+        name: 'DateTime'
+      },
+      'Date': {
+        name: 'DateTime'
+      },
+      'Time': {
+        name: 'DateTime'
+      },
+      'Boolean': {
+        name: 'Boolean'
+      },
+      'BCD': {
+        name: 'Currency'
+      },
+      'Fixed': {
+        name: 'Fixed'
+      },
+      'Float': {
+        name: 'Fixed'
+      },
+      'Integer': {
+        name: 'Integer'
+      },
+      'Smallint': {
+        name: 'Integer'
+      },
+      'Largeint': {
+        name: 'Integer'
+      }
+    },
+    getFormatterByLayout: function getFormatterByLayout(layoutItem) {
+      var _this = this;
+
+      var results = undefined;
+      if (layoutItem.format &amp;&amp; layoutItem.format !== 'None') {
+        results = _array['default'].filter(this.groupFormatters, function filter(formatter) {
+          return formatter.name === layoutItem.format;
+        });
+        if (results.length === 0) {
+          results = _array['default'].filter(this.groupFormatters, function filter(formatter) {
+            return formatter.name === 'None';
+          });
+        }
+      } else {
+        (function () {
+          var fieldFormatType = _this.formatTypeByField[layoutItem.fieldType];
+          if (!fieldFormatType) {
+            fieldFormatType = {
+              name: 'None',
+              formatString: ''
             };
+          }
+          results = _array['default'].filter(_this.groupFormatters, function filter(formatter) {
+            return formatter.name === fieldFormatType.name;
+          });
+        })();
+      }
+      // this means there are no formatters defined.
+      if (results.length === 0) {
+        results.push({
+          name: 'NoFormat',
+          formatString: '',
+          formatter: function noFormatter(value) {
+            return value;
+          }
+        });
+      }
 
-            return _createGroupRequest(lang.mixin(defaults, options));
-        },
+      var fieldFormatter = {
+        name: results[0].name,
+        options: results[0].options,
+        formatter: results[0].formatter.bind(this)
+      };
 
-<span id='crm-GroupUtility-method-createGroupMetricRequest'>        /**
-</span>         * Returns an SDataNamedQueryRequest setup for group metrics
-         * @param {Object} options Options for creating the request
-         * @param {String} options.groupId The id of the group the request should execute on
-         * @param {Object} [options.queryArgs] Additional query arguments to set on the request
-         * @param {Object} [options.connection] SData connection. Defaults to use App.getService(false)
-         *
-         */
-        createGroupMetricRequest: function(options) {
-            var defaults = {
-                queryName: 'executeMetric'
-            };
+      if (fieldFormatter.name === 'DateTime') {
+        fieldFormatter.formatString = this.transformDateFormatString(layoutItem.formatString, this.groupDateFormatText);
+      } else {
+        fieldFormatter.formatString = layoutItem.formatString;
+      }
+      return fieldFormatter;
+    },
+    getLayout: function getLayout(group) {
+      var i = 0;
+      var layout = _array['default'].filter(group.layout, function filterLayout(item) {
+        item.index = i++;
+        return _array['default'].every(this.groupFilters, function every(filter) {
+          return filter(item);
+        });
+      }, this);
+      return layout;
+    },
+    getColumnNames: function getColumnNames(layout) {
+      var extraSelectColumns = [];
+      var columns = _array['default'].map(layout, function mapLayout(item) {
+        if (item.format === 'PickList Item') {
+          extraSelectColumns.push(item.alias + 'TEXT');
+        }
 
-            return _createGroupRequest(lang.mixin(defaults, options));
-        },
-<span id='crm-GroupUtility-property-groupFilters'>        /**
-</span>         * Array of functions that will filter out group layout
-         */
-        groupFilters: [
-            function(layoutItem) {
-                return layoutItem.visible;
-            }
-        ],
-        groupFormatters: [
-            {
-                name: 'None',
-                test: function(layoutItem) {
-                    return layoutItem.format === 'None';
-                },
-                formatter: function(value) {
-                    return value;
-                }
-            },
-            {
-                name: 'Phone',
-                test: function(layoutItem) {
-                    return layoutItem.format === 'Phone';
-                },
-                formatter: function(value) {
-                    return format.phone(value);
-                }
-            },
-            {
-                name: 'Fixed',
-                options: {
-                    clss: 'group-fixed'
-                },
-                test: function(layoutItem) {
-                    return layoutItem.format === 'Fixed';
-                },
-                formatter: function(value) {
-                    return format.fixedLocale(value, 2);
-                }
-            },
-            {
-                name: 'Percent',
-                options: {
-                    clss: 'group-percent'
-                },
-                test: function(layoutItem) {
-                    return layoutItem.format === 'Percent';
-                },
-                formatter: function(value) {
-                    return format.percent(value, 0);
-                }
-            },
-            {
-                name: 'Integer',
-                test: function(layoutItem) {
-                    return layoutItem.format === 'Integer';
-                },
-                formatter: function(value) {
-                    return format.fixedLocale(value, 0);
-                }
-            },
-            {
-                name: 'Currency',
-                test: function(layoutItem) {
-                    return layoutItem.format === 'Currency';
-                },
-                options: {
-                    clss: 'group-currency'
-                },
-                formatter: function(value) {
-                    return format.currency(value);
-                }
-            },
-            {
-                name: 'DateTime',
-                options: {
-                    useRelative: true
-                },
-                test: function(layoutItem) {
-                    return layoutItem.format === 'DateTime';
-                },
-                formatter: function(value, formatString, formatOptions) {
-                    var dateValue;
+        if (item.format === 'User' || item.format === 'Owner') {
+          extraSelectColumns.push(item.alias + 'NAME');
+        }
 
-                    if (typeof value === 'string') {
-                        dateValue = moment(value);
-                        if (dateValue.isValid()) {
-                            if (formatOptions &amp;&amp; formatOptions.useRelative) {
-                                return format.relativeDate(dateValue);
-                            }
+        return item.alias;
+      });
+      return columns.concat(extraSelectColumns);
+    },
+    setDefaultGroupPreference: function setDefaultGroupPreference(entityName, groupName) {
+      App.preferences['default-group-' + entityName] = groupName;
+      App.persistPreferences();
+    },
+    getDefaultGroupPreference: function getDefaultGroupPreference(entityName) {
+      var defaultGroupName = App.preferences['default-group-' + entityName];
+      if (!defaultGroupName) {
+        defaultGroupName = this.getDefaultGroupUserPreference(entityName);
+      }
+      return defaultGroupName;
+    },
+    getDefaultGroupUserPreference: function getDefaultGroupUserPreference(entityName) {
+      var defaultGroupName = App.context.userOptions['DefaultGroup:' + entityName.toUpperCase()];
+      if (defaultGroupName) {
+        defaultGroupName = defaultGroupName.split(':')[1];
+      }
+      return defaultGroupName;
+    },
+    getDefaultGroup: function getDefaultGroup(entityName) {
+      var groupList = App.preferences['groups-' + entityName];
+      var defaultGroup = null;
+      var defaultGroupName = null;
 
-                            return dateValue.format(formatString);
-                        }
-                    }
+      defaultGroupName = this.getDefaultGroupPreference(entityName);
 
-                    return value;
-                }
-            },
-            {
-                name: 'Boolean',
-                test: function(layoutItem) {
-                    return layoutItem.format === 'Boolean';
-                },
-                formatter: function(value) {
-                    var truthy = [
-                        'T',
-                        't',
-                        'Y',
-                        '1',
-                        '+'
-                    ];
+      if (groupList &amp;&amp; groupList.length &gt; 0) {
+        _array['default'].forEach(groupList, function forEach(group) {
+          if (group.name === defaultGroupName) {
+            defaultGroup = group;
+          }
+        });
 
-                    return array.indexOf(truthy, value) === -1 ? sdkFormat.noText : sdkFormat.yesText;
-                }
-            }
-        ],
-        transformDateFormatString: function(groupFormat, defaultFormat) {
-            if (groupFormat) {
-                groupFormat = groupFormat.replace('MM', 'M');
-                groupFormat = groupFormat.replace('mm', 'M');
-                groupFormat = groupFormat.replace('m', 'M');
-                groupFormat = groupFormat.replace('DD', 'D');
-                groupFormat = groupFormat.replace('dd', 'D');
-                groupFormat = groupFormat.replace('d', 'D');
-                groupFormat = groupFormat.replace('yyyy', 'YYYY');
-                groupFormat = groupFormat.replace('yy', 'YYYY');
-                return groupFormat;
-            }
-            return defaultFormat;
-        },
-        formatTypeByField: {
-            'DateTime': { name: 'DateTime'},
-            'Date': { name: 'DateTime'},
-            'Time': { name: 'DateTime'},
-            'Boolean': {name:'Boolean'},
-            'BCD': { name: 'Currency'},
-            'Fixed': { name: 'Fixed' },
-            'Float': { name: 'Fixed' },
-            'Integer': { name: 'Integer' },
-            'Smallint': { name: 'Integer' },
-            'Largeint': { name: 'Integer' }
-        },
-        getFormatterByLayout: function(layoutItem) {
-            var fieldFormatter, fieldFormatType, results;
-
-            if (layoutItem.format &amp;&amp; layoutItem.format !== 'None') {
-                results = array.filter(this.groupFormatters, function(formatter) {
-                    return (formatter.name === layoutItem.format);
-                });
-                if (results.length === 0) {
-                    results = array.filter(this.groupFormatters, function(formatter) {
-                        return (formatter.name === 'None');
-                    });
-                }
-            }
-            else {
-                fieldFormatType = this.formatTypeByField[layoutItem.fieldType];
-                if (!fieldFormatType) {
-                    fieldFormatType = { name: 'None', formatString: '' };
-                }
-                results = array.filter(this.groupFormatters, function(formatter) {
-                    return (formatter.name === fieldFormatType.name);
-                });
-            }
-            //this means there are no formatters defined.
-            if (results.length === 0) {
-                results.push({
-                    name: 'NoFormat',
-                    formatString: '',
-                    formatter: function(value) {
-                        return value;
-                    }
-                });
-            }
-
-            fieldFormatter = {
-                name: results[0]['name'],
-                options: results[0]['options'],
-                formatter: results[0]['formatter'].bind(this)
-            };
-
-            if (fieldFormatter.name === 'DateTime') {
-                fieldFormatter.formatString = this.transformDateFormatString(layoutItem.formatString, this.groupDateFormatText);
-            } else {
-                fieldFormatter.formatString = layoutItem.formatString;
-            }
-            return fieldFormatter;
-        },
-        getLayout: function(group) {
-            var layout,
-                i;
-
-            i = 0;
-            layout = array.filter(group.layout, function(item) {
-                item.index = i++;
-                return array.every(this.groupFilters, function(filter) {
-                    return filter(item);
-                }, this);
-            }, this);
-            return layout;
-        },
-        getColumnNames: function(layout) {
-            var columns, extraSelectColumns;
-            extraSelectColumns = [];
-            columns = array.map(layout, function(layout) {
-                if (layout.format === 'PickList Item') {
-                    extraSelectColumns.push(layout.alias + 'TEXT');
-                }
-
-                if (layout.format === 'User' || layout.format === 'Owner') {
-                    extraSelectColumns.push(layout.alias + 'NAME');
-                }
-
-                return layout.alias;
-            });
-            return columns.concat(extraSelectColumns);
-        },
-        setDefaultGroupPreference: function(entityName, groupName) {
-            App.preferences['default-group-' + entityName] = groupName;
-            App.persistPreferences();
-        },
-        getDefaultGroupPreference: function(entityName) {
-            var defaultGroupName =  App.preferences['default-group-' + entityName];
-            if (!defaultGroupName) {
-                defaultGroupName = this.getDefaultGroupUserPreference(entityName);
-            }
-            return defaultGroupName;
-        },
-        getDefaultGroupUserPreference: function(entityName) {
-            var defaultGroupName = App.context.userOptions['DefaultGroup:' + entityName.toUpperCase()];
-            if (defaultGroupName) {
-                defaultGroupName = defaultGroupName.split(':')[1];
-            }
-            return defaultGroupName;
-        },
-        getDefaultGroup: function(entityName) {
-            var groupList,
-                defaultGroup,
-                defaultGroupName;
-
-            groupList = App.preferences['groups-' + entityName];
-            defaultGroup = null;
-            defaultGroupName = null;
-
-            defaultGroupName = this.getDefaultGroupPreference(entityName);
-
-            if (groupList &amp;&amp; groupList.length &gt; 0) {
-                array.forEach(groupList, function(group) {
-                    if (group.name === defaultGroupName) {
-                        defaultGroup = group;
-                    }
-                });
-
-                if (!defaultGroup) {
-                    defaultGroup = groupList[0];
-                }
-                return defaultGroup;
-            }
-        },
-        addToGroupPreferences: function(items, entityName, overwrite) {
-            var found, groupList;
-            groupList = this.getGroupPreferences(entityName);
-            if (!overwrite &amp;&amp; groupList &amp;&amp; groupList.length &gt; 0) {
-                if (items &amp;&amp; items.length &gt; 0) {
-                    array.forEach(items, function(item) {
-                        found = -1;
-                        array.forEach(groupList, function(group, i) {
-                            if (group.$key === item.$key) {
-                                found = i;
-                            }
-                        });
-
-                        if (found &gt; -1) {
-                            groupList[found] = item;
-                        } else {
-                            groupList.push(item);
-                        }
-                    });
-                }
-            } else {
-                groupList = items;
-            }
-
-            App.preferences['groups-' + entityName] = groupList;
-            App.persistPreferences();
-        },
-        removeGroupPreferences: function(itemKey, entityName) {
-            var found, groupList;
+        if (!defaultGroup) {
+          defaultGroup = groupList[0];
+        }
+        return defaultGroup;
+      }
+    },
+    addToGroupPreferences: function addToGroupPreferences(items, entityName, overwrite) {
+      var found = undefined;
+      var groupList = this.getGroupPreferences(entityName);
+      if (!overwrite &amp;&amp; groupList &amp;&amp; groupList.length &gt; 0) {
+        if (items &amp;&amp; items.length &gt; 0) {
+          _array['default'].forEach(items, function forEachItem(item) {
             found = -1;
-            groupList = this.getGroupPreferences(entityName);
-            if (groupList &amp;&amp; groupList.length &gt; 0) {
-                array.forEach(groupList, function(group, i) {
-                    if (group.$key === itemKey) {
-                        found = i;
-                    }
-                });
-            }
+            _array['default'].forEach(groupList, function forEachList(group, i) {
+              if (group.$key === item.$key) {
+                found = i;
+              }
+            });
 
             if (found &gt; -1) {
-                groupList.splice(found, 1);
-                App.preferences['groups-' + entityName] = groupList;
-                App.persistPreferences();
+              groupList[found] = item;
+            } else {
+              groupList.push(item);
             }
-        },
-        getGroupPreferences: function(entityName) {
-            var groupList = App.preferences['groups-' + entityName];
-            return groupList;
-        },
-        groupFieldNames: [
-            {
-                name: 'PickList',
-                test: function(layoutItem) {
-                    return layoutItem.format === 'PickList Item';
-                },
-                fieldName: function(layoutItem) {
-                    return layoutItem.alias.toUpperCase() + 'TEXT';
-                }
-            },
-            {
-                name: 'OwnerOrUser',
-                test: function(layoutItem) {
-                    return layoutItem.format === 'Owner' || layoutItem.format === 'User';
-                },
-                fieldName: function(layoutItem) {
-                    return layoutItem.alias.toUpperCase() + 'NAME';
-                }
-            }
-        ],
-        getFieldNameByLayout: function(layoutItem) {
-            // Determines what field/property name should be used in the feed for a layout item.
-            // This is usually just the layout item's alias in upper case, however there are some exceptions:
-            // Picklist layout items need to select the alias + 'TEXT',
-            // Owner and user items need to select the alias + 'NAME'
-            var results = array.filter(this.groupFieldNames, function(name) {
-                return name.test(layoutItem);
-            });
-
-            if (results.length === 0) {
-                results.push({
-                    fieldName: function(layoutItem) {
-                    return layoutItem.alias.toUpperCase();
-                }});
-            }
-
-            return results[0].fieldName(layoutItem);
-        },
-        getSelectedGroupLayoutTemplate: function(entityName) {
-            return App.preferences['groups-selected-template-name' + entityName];
-        },
-        setSelectedGroupLayoutTemplate: function(entityName, name) {
-
-            App.preferences['groups-selected-template-name' + entityName] = name;
-            App.persistPreferences();
+          });
         }
-    });
+      } else {
+        groupList = items;
+      }
 
-    lang.setObject('Mobile.SalesLogix.GroupUtility', __class);
-    return __class;
+      App.preferences['groups-' + entityName] = groupList;
+      App.persistPreferences();
+    },
+    removeGroupPreferences: function removeGroupPreferences(itemKey, entityName) {
+      var found = -1;
+      var groupList = this.getGroupPreferences(entityName);
+      if (groupList &amp;&amp; groupList.length &gt; 0) {
+        _array['default'].forEach(groupList, function forEach(group, i) {
+          if (group.$key === itemKey) {
+            found = i;
+          }
+        });
+      }
+
+      if (found &gt; -1) {
+        groupList.splice(found, 1);
+        App.preferences['groups-' + entityName] = groupList;
+        App.persistPreferences();
+      }
+    },
+    getGroupPreferences: function getGroupPreferences(entityName) {
+      var groupList = App.preferences['groups-' + entityName];
+      return groupList;
+    },
+    groupFieldNames: [{
+      name: 'PickList',
+      test: function testPickList(layoutItem) {
+        return layoutItem.format === 'PickList Item';
+      },
+      fieldName: function pickListFieldName(layoutItem) {
+        return layoutItem.alias.toUpperCase() + 'TEXT';
+      }
+    }, {
+      name: 'OwnerOrUser',
+      test: function testOwnerOrUser(layoutItem) {
+        return layoutItem.format === 'Owner' || layoutItem.format === 'User';
+      },
+      fieldName: function ownerOrUserFieldName(layoutItem) {
+        return layoutItem.alias.toUpperCase() + 'NAME';
+      }
+    }],
+    getFieldNameByLayout: function getFieldNameByLayout(layoutItem) {
+      // Determines what field/property name should be used in the feed for a layout item.
+      // This is usually just the layout item's alias in upper case, however there are some exceptions:
+      // Picklist layout items need to select the alias + 'TEXT',
+      // Owner and user items need to select the alias + 'NAME'
+      var results = _array['default'].filter(this.groupFieldNames, function filterFields(name) {
+        return name.test(layoutItem);
+      });
+
+      if (results.length === 0) {
+        results.push({
+          fieldName: function fieldName(item) {
+            return item.alias.toUpperCase();
+          }
+        });
+      }
+
+      return results[0].fieldName(layoutItem);
+    },
+    getSelectedGroupLayoutTemplate: function getSelectedGroupLayoutTemplate(entityName) {
+      return App.preferences['groups-selected-template-name' + entityName];
+    },
+    setSelectedGroupLayoutTemplate: function setSelectedGroupLayoutTemplate(entityName, name) {
+      App.preferences['groups-selected-template-name' + entityName] = name;
+      App.persistPreferences();
+    }
+  });
+
+  _lang['default'].setObject('Mobile.SalesLogix.GroupUtility', __class);
+  module.exports = __class;
 });
-
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInNyYy9Hcm91cFV0aWxpdHkuanMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7OztBQU1BLE1BQU0sUUFBUSxHQUFHLDZCQUFZLGNBQWMsQ0FBQyxDQUFDOztBQUU3QyxXQUFTLG1CQUFtQixDQUFDLENBQUMsRUFBRTtBQUM5QixRQUFNLGNBQWMsR0FBRztBQUNyQixnQkFBVSxFQUFFLEdBQUcsQ0FBQyxVQUFVLENBQUMsS0FBSyxDQUFDO0FBQ2pDLGFBQU8sRUFBRSxFQUFFO0FBQ1gsa0JBQVksRUFBRSxRQUFRO0FBQ3RCLGtCQUFZLEVBQUUsUUFBUTtBQUN0QixlQUFTLEVBQUUsU0FBUztBQUNwQixlQUFTLEVBQUUsSUFBSTtLQUNoQixDQUFDOztBQUVGLFFBQU0sT0FBTyxHQUFHLGlCQUFLLEtBQUssQ0FBQyxjQUFjLEVBQUUsQ0FBQyxDQUFDLENBQUM7O0FBRTlDLFFBQU0sT0FBTyxHQUFHLElBQUksSUFBSSxDQUFDLEtBQUssQ0FBQyxNQUFNLENBQUMsc0JBQXNCLENBQUMsT0FBTyxDQUFDLFVBQVUsQ0FBQyxDQUFDO0FBQ2pGLFdBQU8sQ0FBQyxZQUFZLENBQUMsT0FBTyxDQUFDLFNBQVMsQ0FBQyxDQUFDO0FBQ3hDLFdBQU8sQ0FBQyxlQUFlLENBQUMsT0FBTyxDQUFDLFlBQVksQ0FBQyxDQUFDO0FBQzlDLFdBQU8sQ0FBQyxlQUFlLENBQUMsT0FBTyxDQUFDLFlBQVksQ0FBQyxDQUFDO0FBQzlDLFdBQU8sQ0FBQyxNQUFNLEVBQUUsQ0FBQyxzQkFBc0IsQ0FBQyxHQUFHLEdBQUcsT0FBTyxDQUFDLE9BQU8sR0FBRyxHQUFHLENBQUMsQ0FBQzs7QUFFckUsU0FBSyxJQUFNLEdBQUcsSUFBSSxPQUFPLENBQUMsU0FBUyxFQUFFO0FBQ25DLFVBQUksT0FBTyxDQUFDLFNBQVMsQ0FBQyxjQUFjLENBQUMsR0FBRyxDQUFDLEVBQUU7QUFDekMsZUFBTyxDQUFDLFdBQVcsQ0FBQyxHQUFHLEVBQUUsT0FBTyxDQUFDLFNBQVMsQ0FBQyxHQUFHLENBQUMsQ0FBQyxDQUFDO09BQ2xEO0tBQ0Y7O0FBRUQsV0FBTyxPQUFPLENBQUM7R0FDaEI7Ozs7Ozs7Ozs7QUFVRCxNQUFNLE9BQU8sR0FBRyxpQkFBSyxTQUFTLENBQUMsa0JBQWtCLEVBQUU7QUFDakQsdUJBQW1CLEVBQUUsUUFBUSxDQUFDLG1CQUFtQjs7Ozs7Ozs7O0FBU2pELHNCQUFrQixFQUFFLFNBQVMsa0JBQWtCLENBQUMsT0FBTyxFQUFFO0FBQ3ZELFVBQU0sUUFBUSxHQUFHO0FBQ2YsaUJBQVMsRUFBRSxTQUFTO09BQ3JCLENBQUM7O0FBRUYsYUFBTyxtQkFBbUIsQ0FBQyxpQkFBSyxLQUFLLENBQUMsUUFBUSxFQUFFLE9BQU8sQ0FBQyxDQUFDLENBQUM7S0FDM0Q7Ozs7Ozs7Ozs7QUFVRCw0QkFBd0IsRUFBRSxTQUFTLHdCQUF3QixDQUFDLE9BQU8sRUFBRTtBQUNuRSxVQUFNLFFBQVEsR0FBRztBQUNmLGlCQUFTLEVBQUUsZUFBZTtPQUMzQixDQUFDOztBQUVGLGFBQU8sbUJBQW1CLENBQUMsaUJBQUssS0FBSyxDQUFDLFFBQVEsRUFBRSxPQUFPLENBQUMsQ0FBQyxDQUFDO0tBQzNEOzs7O0FBSUQsZ0JBQVksRUFBRSxDQUNaLFNBQVMsV0FBVyxDQUFDLFVBQVUsRUFBRTtBQUMvQixhQUFPLFVBQVUsQ0FBQyxPQUFPLENBQUM7S0FDM0IsQ0FDRjtBQUNELG1CQUFlLEVBQUUsQ0FBQztBQUNoQixVQUFJLEVBQUUsTUFBTTtBQUNaLFVBQUksRUFBRSxTQUFTLFFBQVEsQ0FBQyxVQUFVLEVBQUU7QUFDbEMsZUFBTyxVQUFVLENBQUMsTUFBTSxLQUFLLE1BQU0sQ0FBQztPQUNyQztBQUNELGVBQVMsRUFBRSxTQUFTLFVBQVUsQ0FBQyxLQUFLLEVBQUU7QUFDcEMsZUFBTyxLQUFLLENBQUM7T0FDZDtLQUNGLEVBQUU7QUFDRCxVQUFJLEVBQUUsT0FBTztBQUNiLFVBQUksRUFBRSxTQUFTLFNBQVMsQ0FBQyxVQUFVLEVBQUU7QUFDbkMsZUFBTyxVQUFVLENBQUMsTUFBTSxLQUFLLE9BQU8sQ0FBQztPQUN0QztBQUNELGVBQVMsRUFBRSxTQUFTLFdBQVcsQ0FBQyxLQUFLLEVBQUU7QUFDckMsZUFBTyxtQkFBTyxLQUFLLENBQUMsS0FBSyxDQUFDLENBQUM7T0FDNUI7S0FDRixFQUFFO0FBQ0QsVUFBSSxFQUFFLE9BQU87QUFDYixhQUFPLEVBQUU7QUFDUCxZQUFJLEVBQUUsYUFBYTtPQUNwQjtBQUNELFVBQUksRUFBRSxTQUFTLFNBQVMsQ0FBQyxVQUFVLEVBQUU7QUFDbkMsZUFBTyxVQUFVLENBQUMsTUFBTSxLQUFLLE9BQU8sQ0FBQztPQUN0QztBQUNELGVBQVMsRUFBRSxTQUFTLFdBQVcsQ0FBQyxLQUFLLEVBQUU7QUFDckMsZUFBTyxtQkFBTyxXQUFXLENBQUMsS0FBSyxFQUFFLENBQUMsQ0FBQyxDQUFDO09BQ3JDO0tBQ0YsRUFBRTtBQUNELFVBQUksRUFBRSxTQUFTO0FBQ2YsYUFBTyxFQUFFO0FBQ1AsWUFBSSxFQUFFLGVBQWU7T0FDdEI7QUFDRCxVQUFJLEVBQUUsU0FBUyxXQUFXLENBQUMsVUFBVSxFQUFFO0FBQ3JDLGVBQU8sVUFBVSxDQUFDLE1BQU0sS0FBSyxTQUFTLENBQUM7T0FDeEM7QUFDRCxlQUFTLEVBQUUsU0FBUyxhQUFhLENBQUMsS0FBSyxFQUFFO0FBQ3ZDLGVBQU8sbUJBQU8sT0FBTyxDQUFDLEtBQUssRUFBRSxDQUFDLENBQUMsQ0FBQztPQUNqQztLQUNGLEVBQUU7QUFDRCxVQUFJLEVBQUUsU0FBUztBQUNmLFVBQUksRUFBRSxTQUFTLFdBQVcsQ0FBQyxVQUFVLEVBQUU7QUFDckMsZUFBTyxVQUFVLENBQUMsTUFBTSxLQUFLLFNBQVMsQ0FBQztPQUN4QztBQUNELGVBQVMsRUFBRSxTQUFTLGFBQWEsQ0FBQyxLQUFLLEVBQUU7QUFDdkMsZUFBTyxtQkFBTyxXQUFXLENBQUMsS0FBSyxFQUFFLENBQUMsQ0FBQyxDQUFDO09BQ3JDO0tBQ0YsRUFBRTtBQUNELFVBQUksRUFBRSxVQUFVO0FBQ2hCLFVBQUksRUFBRSxTQUFTLFlBQVksQ0FBQyxVQUFVLEVBQUU7QUFDdEMsZUFBTyxVQUFVLENBQUMsTUFBTSxLQUFLLFVBQVUsQ0FBQztPQUN6QztBQUNELGFBQU8sRUFBRTtBQUNQLFlBQUksRUFBRSxnQkFBZ0I7T0FDdkI7QUFDRCxlQUFTLEVBQUUsU0FBUyxjQUFjLENBQUMsS0FBSyxFQUFFO0FBQ3hDLGVBQU8sbUJBQU8sUUFBUSxDQUFDLEtBQUssQ0FBQyxDQUFDO09BQy9CO0tBQ0YsRUFBRTtBQUNELFVBQUksRUFBRSxVQUFVO0FBQ2hCLGFBQU8sRUFBRTtBQUNQLG1CQUFXLEVBQUUsSUFBSTtPQUNsQjtBQUNELFVBQUksRUFBRSxTQUFTLFFBQVEsQ0FBQyxVQUFVLEVBQUU7QUFDbEMsZUFBTyxVQUFVLENBQUMsTUFBTSxLQUFLLFVBQVUsQ0FBQztPQUN6QztBQUNELGVBQVMsRUFBRSxTQUFTLFVBQVUsQ0FBQyxLQUFLLEVBQUUsWUFBWSxFQUFFLGFBQWEsRUFBRTtBQUNqRSxZQUFJLE9BQU8sS0FBSyxLQUFLLFFBQVEsRUFBRTtBQUM3QixjQUFNLFNBQVMsR0FBRyxNQUFNLENBQUMsS0FBSyxDQUFDLENBQUM7QUFDaEMsY0FBSSxTQUFTLENBQUMsT0FBTyxFQUFFLEVBQUU7QUFDdkIsZ0JBQUksYUFBYSxJQUFJLGFBQWEsQ0FBQyxXQUFXLEVBQUU7QUFDOUMscUJBQU8sbUJBQU8sWUFBWSxDQUFDLFNBQVMsQ0FBQyxDQUFDO2FBQ3ZDOztBQUVELG1CQUFPLFNBQVMsQ0FBQyxNQUFNLENBQUMsWUFBWSxDQUFDLENBQUM7V0FDdkM7U0FDRjs7QUFFRCxlQUFPLEtBQUssQ0FBQztPQUNkO0tBQ0YsRUFBRTtBQUNELFVBQUksRUFBRSxTQUFTO0FBQ2YsVUFBSSxFQUFFLFNBQVMsV0FBVyxDQUFDLFVBQVUsRUFBRTtBQUNyQyxlQUFPLFVBQVUsQ0FBQyxNQUFNLEtBQUssU0FBUyxDQUFDO09BQ3hDO0FBQ0QsZUFBUyxFQUFFLFNBQVMsYUFBYSxDQUFDLEtBQUssRUFBRTtBQUN2QyxZQUFNLE1BQU0sR0FBRyxDQUNiLEdBQUcsRUFDSCxHQUFHLEVBQ0gsR0FBRyxFQUNILEdBQUcsRUFDSCxHQUFHLENBQ0osQ0FBQzs7QUFFRixlQUFPLGtCQUFNLE9BQU8sQ0FBQyxNQUFNLEVBQUUsS0FBSyxDQUFDLEtBQUssQ0FBQyxDQUFDLEdBQUcsc0JBQVUsTUFBTSxHQUFHLHNCQUFVLE9BQU8sQ0FBQztPQUNuRjtLQUNGLENBQUM7QUFDRiw2QkFBeUIsRUFBRSxTQUFTLHlCQUF5QixDQUFDLEVBQUUsRUFBRSxhQUFhLEVBQUU7QUFDL0UsVUFBSSxXQUFXLEdBQUcsRUFBRSxDQUFDO0FBQ3JCLFVBQUksV0FBVyxFQUFFO0FBQ2YsbUJBQVcsR0FBRyxXQUFXLENBQUMsT0FBTyxDQUFDLElBQUksRUFBRSxHQUFHLENBQUMsQ0FBQztBQUM3QyxtQkFBVyxHQUFHLFdBQVcsQ0FBQyxPQUFPLENBQUMsSUFBSSxFQUFFLEdBQUcsQ0FBQyxDQUFDO0FBQzdDLG1CQUFXLEdBQUcsV0FBVyxDQUFDLE9BQU8sQ0FBQyxHQUFHLEVBQUUsR0FBRyxDQUFDLENBQUM7QUFDNUMsbUJBQVcsR0FBRyxXQUFXLENBQUMsT0FBTyxDQUFDLElBQUksRUFBRSxHQUFHLENBQUMsQ0FBQztBQUM3QyxtQkFBVyxHQUFHLFdBQVcsQ0FBQyxPQUFPLENBQUMsSUFBSSxFQUFFLEdBQUcsQ0FBQyxDQUFDO0FBQzdDLG1CQUFXLEdBQUcsV0FBVyxDQUFDLE9BQU8sQ0FBQyxHQUFHLEVBQUUsR0FBRyxDQUFDLENBQUM7QUFDNUMsbUJBQVcsR0FBRyxXQUFXLENBQUMsT0FBTyxDQUFDLE1BQU0sRUFBRSxNQUFNLENBQUMsQ0FBQztBQUNsRCxtQkFBVyxHQUFHLFdBQVcsQ0FBQyxPQUFPLENBQUMsSUFBSSxFQUFFLE1BQU0sQ0FBQyxDQUFDO0FBQ2hELGVBQU8sV0FBVyxDQUFDO09BQ3BCO0FBQ0QsYUFBTyxhQUFhLENBQUM7S0FDdEI7QUFDRCxxQkFBaUIsRUFBRTtBQUNqQixnQkFBVSxFQUFFO0FBQ1YsWUFBSSxFQUFFLFVBQVU7T0FDakI7QUFDRCxZQUFNLEVBQUU7QUFDTixZQUFJLEVBQUUsVUFBVTtPQUNqQjtBQUNELFlBQU0sRUFBRTtBQUNOLFlBQUksRUFBRSxVQUFVO09BQ2pCO0FBQ0QsZUFBUyxFQUFFO0FBQ1QsWUFBSSxFQUFFLFNBQVM7T0FDaEI7QUFDRCxXQUFLLEVBQUU7QUFDTCxZQUFJLEVBQUUsVUFBVTtPQUNqQjtBQUNELGFBQU8sRUFBRTtBQUNQLFlBQUksRUFBRSxPQUFPO09BQ2Q7QUFDRCxhQUFPLEVBQUU7QUFDUCxZQUFJLEVBQUUsT0FBTztPQUNkO0FBQ0QsZUFBUyxFQUFFO0FBQ1QsWUFBSSxFQUFFLFNBQVM7T0FDaEI7QUFDRCxnQkFBVSxFQUFFO0FBQ1YsWUFBSSxFQUFFLFNBQVM7T0FDaEI7QUFDRCxnQkFBVSxFQUFFO0FBQ1YsWUFBSSxFQUFFLFNBQVM7T0FDaEI7S0FDRjtBQUNELHdCQUFvQixFQUFFLFNBQVMsb0JBQW9CLENBQUMsVUFBVSxFQUFFOzs7QUFDOUQsVUFBSSxPQUFPLFlBQUEsQ0FBQztBQUNaLFVBQUksVUFBVSxDQUFDLE1BQU0sSUFBSSxVQUFVLENBQUMsTUFBTSxLQUFLLE1BQU0sRUFBRTtBQUNyRCxlQUFPLEdBQUcsa0JBQU0sTUFBTSxDQUFDLElBQUksQ0FBQyxlQUFlLEVBQUUsU0FBUyxNQUFNLENBQUMsU0FBUyxFQUFFO0FBQ3RFLGlCQUFRLFNBQVMsQ0FBQyxJQUFJLEtBQUssVUFBVSxDQUFDLE1BQU0sQ0FBRTtTQUMvQyxDQUFDLENBQUM7QUFDSCxZQUFJLE9BQU8sQ0FBQyxNQUFNLEtBQUssQ0FBQyxFQUFFO0FBQ3hCLGlCQUFPLEdBQUcsa0JBQU0sTUFBTSxDQUFDLElBQUksQ0FBQyxlQUFlLEVBQUUsU0FBUyxNQUFNLENBQUMsU0FBUyxFQUFFO0FBQ3RFLG1CQUFRLFNBQVMsQ0FBQyxJQUFJLEtBQUssTUFBTSxDQUFFO1dBQ3BDLENBQUMsQ0FBQztTQUNKO09BQ0YsTUFBTTs7QUFDTCxjQUFJLGVBQWUsR0FBRyxNQUFLLGlCQUFpQixDQUFDLFVBQVUsQ0FBQyxTQUFTLENBQUMsQ0FBQztBQUNuRSxjQUFJLENBQUMsZUFBZSxFQUFFO0FBQ3BCLDJCQUFlLEdBQUc7QUFDaEIsa0JBQUksRUFBRSxNQUFNO0FBQ1osMEJBQVksRUFBRSxFQUFFO2FBQ2pCLENBQUM7V0FDSDtBQUNELGlCQUFPLEdBQUcsa0JBQU0sTUFBTSxDQUFDLE1BQUssZUFBZSxFQUFFLFNBQVMsTUFBTSxDQUFDLFNBQVMsRUFBRTtBQUN0RSxtQkFBUSxTQUFTLENBQUMsSUFBSSxLQUFLLGVBQWUsQ0FBQyxJQUFJLENBQUU7V0FDbEQsQ0FBQyxDQUFDOztPQUNKOztBQUVELFVBQUksT0FBTyxDQUFDLE1BQU0sS0FBSyxDQUFDLEVBQUU7QUFDeEIsZUFBTyxDQUFDLElBQUksQ0FBQztBQUNYLGNBQUksRUFBRSxVQUFVO0FBQ2hCLHNCQUFZLEVBQUUsRUFBRTtBQUNoQixtQkFBUyxFQUFFLFNBQVMsV0FBVyxDQUFDLEtBQUssRUFBRTtBQUNyQyxtQkFBTyxLQUFLLENBQUM7V0FDZDtTQUNGLENBQUMsQ0FBQztPQUNKOztBQUVELFVBQU0sY0FBYyxHQUFHO0FBQ3JCLFlBQUksRUFBRSxPQUFPLENBQUMsQ0FBQyxDQUFDLENBQUMsSUFBSTtBQUNyQixlQUFPLEVBQUUsT0FBTyxDQUFDLENBQUMsQ0FBQyxDQUFDLE9BQU87QUFDM0IsaUJBQVMsRUFBRSxPQUFPLENBQUMsQ0FBQyxDQUFDLENBQUMsU0FBUyxDQUFDLElBQUksQ0FBQyxJQUFJLENBQUM7T0FDM0MsQ0FBQzs7QUFFRixVQUFJLGNBQWMsQ0FBQyxJQUFJLEtBQUssVUFBVSxFQUFFO0FBQ3RDLHNCQUFjLENBQUMsWUFBWSxHQUFHLElBQUksQ0FBQyx5QkFBeUIsQ0FBQyxVQUFVLENBQUMsWUFBWSxFQUFFLElBQUksQ0FBQyxtQkFBbUIsQ0FBQyxDQUFDO09BQ2pILE1BQU07QUFDTCxzQkFBYyxDQUFDLFlBQVksR0FBRyxVQUFVLENBQUMsWUFBWSxDQUFDO09BQ3ZEO0FBQ0QsYUFBTyxjQUFjLENBQUM7S0FDdkI7QUFDRCxhQUFTLEVBQUUsU0FBUyxTQUFTLENBQUMsS0FBSyxFQUFFO0FBQ25DLFVBQUksQ0FBQyxHQUFHLENBQUMsQ0FBQztBQUNWLFVBQU0sTUFBTSxHQUFHLGtCQUFNLE1BQU0sQ0FBQyxLQUFLLENBQUMsTUFBTSxFQUFFLFNBQVMsWUFBWSxDQUFDLElBQUksRUFBRTtBQUNwRSxZQUFJLENBQUMsS0FBSyxHQUFHLENBQUMsRUFBRSxDQUFDO0FBQ2pCLGVBQU8sa0JBQU0sS0FBSyxDQUFDLElBQUksQ0FBQyxZQUFZLEVBQUUsU0FBUyxLQUFLLENBQUMsTUFBTSxFQUFFO0FBQzNELGlCQUFPLE1BQU0sQ0FBQyxJQUFJLENBQUMsQ0FBQztTQUNyQixDQUFDLENBQUM7T0FDSixFQUFFLElBQUksQ0FBQyxDQUFDO0FBQ1QsYUFBTyxNQUFNLENBQUM7S0FDZjtBQUNELGtCQUFjLEVBQUUsU0FBUyxjQUFjLENBQUMsTUFBTSxFQUFFO0FBQzlDLFVBQU0sa0JBQWtCLEdBQUcsRUFBRSxDQUFDO0FBQzlCLFVBQU0sT0FBTyxHQUFHLGtCQUFNLEdBQUcsQ0FBQyxNQUFNLEVBQUUsU0FBUyxTQUFTLENBQUMsSUFBSSxFQUFFO0FBQ3pELFlBQUksSUFBSSxDQUFDLE1BQU0sS0FBSyxlQUFlLEVBQUU7QUFDbkMsNEJBQWtCLENBQUMsSUFBSSxDQUFDLElBQUksQ0FBQyxLQUFLLEdBQUcsTUFBTSxDQUFDLENBQUM7U0FDOUM7O0FBRUQsWUFBSSxJQUFJLENBQUMsTUFBTSxLQUFLLE1BQU0sSUFBSSxJQUFJLENBQUMsTUFBTSxLQUFLLE9BQU8sRUFBRTtBQUNyRCw0QkFBa0IsQ0FBQyxJQUFJLENBQUMsSUFBSSxDQUFDLEtBQUssR0FBRyxNQUFNLENBQUMsQ0FBQztTQUM5Qzs7QUFFRCxlQUFPLElBQUksQ0FBQyxLQUFLLENBQUM7T0FDbkIsQ0FBQyxDQUFDO0FBQ0gsYUFBTyxPQUFPLENBQUMsTUFBTSxDQUFDLGtCQUFrQixDQUFDLENBQUM7S0FDM0M7QUFDRCw2QkFBeUIsRUFBRSxTQUFTLHlCQUF5QixDQUFDLFVBQVUsRUFBRSxTQUFTLEVBQUU7QUFDbkYsU0FBRyxDQUFDLFdBQVcsQ0FBQyxnQkFBZ0IsR0FBRyxVQUFVLENBQUMsR0FBRyxTQUFTLENBQUM7QUFDM0QsU0FBRyxDQUFDLGtCQUFrQixFQUFFLENBQUM7S0FDMUI7QUFDRCw2QkFBeUIsRUFBRSxTQUFTLHlCQUF5QixDQUFDLFVBQVUsRUFBRTtBQUN4RSxVQUFJLGdCQUFnQixHQUFHLEdBQUcsQ0FBQyxXQUFXLENBQUMsZ0JBQWdCLEdBQUcsVUFBVSxDQUFDLENBQUM7QUFDdEUsVUFBSSxDQUFDLGdCQUFnQixFQUFFO0FBQ3JCLHdCQUFnQixHQUFHLElBQUksQ0FBQyw2QkFBNkIsQ0FBQyxVQUFVLENBQUMsQ0FBQztPQUNuRTtBQUNELGFBQU8sZ0JBQWdCLENBQUM7S0FDekI7QUFDRCxpQ0FBNkIsRUFBRSxTQUFTLDZCQUE2QixDQUFDLFVBQVUsRUFBRTtBQUNoRixVQUFJLGdCQUFnQixHQUFHLEdBQUcsQ0FBQyxPQUFPLENBQUMsV0FBVyxDQUFDLGVBQWUsR0FBRyxVQUFVLENBQUMsV0FBVyxFQUFFLENBQUMsQ0FBQztBQUMzRixVQUFJLGdCQUFnQixFQUFFO0FBQ3BCLHdCQUFnQixHQUFHLGdCQUFnQixDQUFDLEtBQUssQ0FBQyxHQUFHLENBQUMsQ0FBQyxDQUFDLENBQUMsQ0FBQztPQUNuRDtBQUNELGFBQU8sZ0JBQWdCLENBQUM7S0FDekI7QUFDRCxtQkFBZSxFQUFFLFNBQVMsZUFBZSxDQUFDLFVBQVUsRUFBRTtBQUNwRCxVQUFNLFNBQVMsR0FBRyxHQUFHLENBQUMsV0FBVyxDQUFDLFNBQVMsR0FBRyxVQUFVLENBQUMsQ0FBQztBQUMxRCxVQUFJLFlBQVksR0FBRyxJQUFJLENBQUM7QUFDeEIsVUFBSSxnQkFBZ0IsR0FBRyxJQUFJLENBQUM7O0FBRTVCLHNCQUFnQixHQUFHLElBQUksQ0FBQyx5QkFBeUIsQ0FBQyxVQUFVLENBQUMsQ0FBQzs7QUFFOUQsVUFBSSxTQUFTLElBQUksU0FBUyxDQUFDLE1BQU0sR0FBRyxDQUFDLEVBQUU7QUFDckMsMEJBQU0sT0FBTyxDQUFDLFNBQVMsRUFBRSxTQUFTLE9BQU8sQ0FBQyxLQUFLLEVBQUU7QUFDL0MsY0FBSSxLQUFLLENBQUMsSUFBSSxLQUFLLGdCQUFnQixFQUFFO0FBQ25DLHdCQUFZLEdBQUcsS0FBSyxDQUFDO1dBQ3RCO1NBQ0YsQ0FBQyxDQUFDOztBQUVILFlBQUksQ0FBQyxZQUFZLEVBQUU7QUFDakIsc0JBQVksR0FBRyxTQUFTLENBQUMsQ0FBQyxDQUFDLENBQUM7U0FDN0I7QUFDRCxlQUFPLFlBQVksQ0FBQztPQUNyQjtLQUNGO0FBQ0QseUJBQXFCLEVBQUUsU0FBUyxxQkFBcUIsQ0FBQyxLQUFLLEVBQUUsVUFBVSxFQUFFLFNBQVMsRUFBRTtBQUNsRixVQUFJLEtBQUssWUFBQSxDQUFDO0FBQ1YsVUFBSSxTQUFTLEdBQUcsSUFBSSxDQUFDLG1CQUFtQixDQUFDLFVBQVUsQ0FBQyxDQUFDO0FBQ3JELFVBQUksQ0FBQyxTQUFTLElBQUksU0FBUyxJQUFJLFNBQVMsQ0FBQyxNQUFNLEdBQUcsQ0FBQyxFQUFFO0FBQ25ELFlBQUksS0FBSyxJQUFJLEtBQUssQ0FBQyxNQUFNLEdBQUcsQ0FBQyxFQUFFO0FBQzdCLDRCQUFNLE9BQU8sQ0FBQyxLQUFLLEVBQUUsU0FBUyxXQUFXLENBQUMsSUFBSSxFQUFFO0FBQzlDLGlCQUFLLEdBQUcsQ0FBQyxDQUFDLENBQUM7QUFDWCw4QkFBTSxPQUFPLENBQUMsU0FBUyxFQUFFLFNBQVMsV0FBVyxDQUFDLEtBQUssRUFBRSxDQUFDLEVBQUU7QUFDdEQsa0JBQUksS0FBSyxDQUFDLElBQUksS0FBSyxJQUFJLENBQUMsSUFBSSxFQUFFO0FBQzVCLHFCQUFLLEdBQUcsQ0FBQyxDQUFDO2VBQ1g7YUFDRixDQUFDLENBQUM7O0FBRUgsZ0JBQUksS0FBSyxHQUFHLENBQUMsQ0FBQyxFQUFFO0FBQ2QsdUJBQVMsQ0FBQyxLQUFLLENBQUMsR0FBRyxJQUFJLENBQUM7YUFDekIsTUFBTTtBQUNMLHVCQUFTLENBQUMsSUFBSSxDQUFDLElBQUksQ0FBQyxDQUFDO2FBQ3RCO1dBQ0YsQ0FBQyxDQUFDO1NBQ0o7T0FDRixNQUFNO0FBQ0wsaUJBQVMsR0FBRyxLQUFLLENBQUM7T0FDbkI7O0FBRUQsU0FBRyxDQUFDLFdBQVcsQ0FBQyxTQUFTLEdBQUcsVUFBVSxDQUFDLEdBQUcsU0FBUyxDQUFDO0FBQ3BELFNBQUcsQ0FBQyxrQkFBa0IsRUFBRSxDQUFDO0tBQzFCO0FBQ0QsMEJBQXNCLEVBQUUsU0FBUyxzQkFBc0IsQ0FBQyxPQUFPLEVBQUUsVUFBVSxFQUFFO0FBQzNFLFVBQUksS0FBSyxHQUFHLENBQUMsQ0FBQyxDQUFDO0FBQ2YsVUFBTSxTQUFTLEdBQUcsSUFBSSxDQUFDLG1CQUFtQixDQUFDLFVBQVUsQ0FBQyxDQUFDO0FBQ3ZELFVBQUksU0FBUyxJQUFJLFNBQVMsQ0FBQyxNQUFNLEdBQUcsQ0FBQyxFQUFFO0FBQ3JDLDBCQUFNLE9BQU8sQ0FBQyxTQUFTLEVBQUUsU0FBUyxPQUFPLENBQUMsS0FBSyxFQUFFLENBQUMsRUFBRTtBQUNsRCxjQUFJLEtBQUssQ0FBQyxJQUFJLEtBQUssT0FBTyxFQUFFO0FBQzFCLGlCQUFLLEdBQUcsQ0FBQyxDQUFDO1dBQ1g7U0FDRixDQUFDLENBQUM7T0FDSjs7QUFFRCxVQUFJLEtBQUssR0FBRyxDQUFDLENBQUMsRUFBRTtBQUNkLGlCQUFTLENBQUMsTUFBTSxDQUFDLEtBQUssRUFBRSxDQUFDLENBQUMsQ0FBQztBQUMzQixXQUFHLENBQUMsV0FBVyxDQUFDLFNBQVMsR0FBRyxVQUFVLENBQUMsR0FBRyxTQUFTLENBQUM7QUFDcEQsV0FBRyxDQUFDLGtCQUFrQixFQUFFLENBQUM7T0FDMUI7S0FDRjtBQUNELHVCQUFtQixFQUFFLFNBQVMsbUJBQW1CLENBQUMsVUFBVSxFQUFFO0FBQzVELFVBQU0sU0FBUyxHQUFHLEdBQUcsQ0FBQyxXQUFXLENBQUMsU0FBUyxHQUFHLFVBQVUsQ0FBQyxDQUFDO0FBQzFELGFBQU8sU0FBUyxDQUFDO0tBQ2xCO0FBQ0QsbUJBQWUsRUFBRSxDQUFDO0FBQ2hCLFVBQUksRUFBRSxVQUFVO0FBQ2hCLFVBQUksRUFBRSxTQUFTLFlBQVksQ0FBQyxVQUFVLEVBQUU7QUFDdEMsZUFBTyxVQUFVLENBQUMsTUFBTSxLQUFLLGVBQWUsQ0FBQztPQUM5QztBQUNELGVBQVMsRUFBRSxTQUFTLGlCQUFpQixDQUFDLFVBQVUsRUFBRTtBQUNoRCxlQUFPLFVBQVUsQ0FBQyxLQUFLLENBQUMsV0FBVyxFQUFFLEdBQUcsTUFBTSxDQUFDO09BQ2hEO0tBQ0YsRUFBRTtBQUNELFVBQUksRUFBRSxhQUFhO0FBQ25CLFVBQUksRUFBRSxTQUFTLGVBQWUsQ0FBQyxVQUFVLEVBQUU7QUFDekMsZUFBTyxVQUFVLENBQUMsTUFBTSxLQUFLLE9BQU8sSUFBSSxVQUFVLENBQUMsTUFBTSxLQUFLLE1BQU0sQ0FBQztPQUN0RTtBQUNELGVBQVMsRUFBRSxTQUFTLG9CQUFvQixDQUFDLFVBQVUsRUFBRTtBQUNuRCxlQUFPLFVBQVUsQ0FBQyxLQUFLLENBQUMsV0FBVyxFQUFFLEdBQUcsTUFBTSxDQUFDO09BQ2hEO0tBQ0YsQ0FBQztBQUNGLHdCQUFvQixFQUFFLFNBQVMsb0JBQW9CLENBQUMsVUFBVSxFQUFFOzs7OztBQUs5RCxVQUFNLE9BQU8sR0FBRyxrQkFBTSxNQUFNLENBQUMsSUFBSSxDQUFDLGVBQWUsRUFBRSxTQUFTLFlBQVksQ0FBQyxJQUFJLEVBQUU7QUFDN0UsZUFBTyxJQUFJLENBQUMsSUFBSSxDQUFDLFVBQVUsQ0FBQyxDQUFDO09BQzlCLENBQUMsQ0FBQzs7QUFFSCxVQUFJLE9BQU8sQ0FBQyxNQUFNLEtBQUssQ0FBQyxFQUFFO0FBQ3hCLGVBQU8sQ0FBQyxJQUFJLENBQUM7QUFDWCxtQkFBUyxFQUFFLFNBQVMsU0FBUyxDQUFDLElBQUksRUFBRTtBQUNsQyxtQkFBTyxJQUFJLENBQUMsS0FBSyxDQUFDLFdBQVcsRUFBRSxDQUFDO1dBQ2pDO1NBQ0YsQ0FBQyxDQUFDO09BQ0o7O0FBRUQsYUFBTyxPQUFPLENBQUMsQ0FBQyxDQUFDLENBQUMsU0FBUyxDQUFDLFVBQVUsQ0FBQyxDQUFDO0tBQ3pDO0FBQ0Qsa0NBQThCLEVBQUUsU0FBUyw4QkFBOEIsQ0FBQyxVQUFVLEVBQUU7QUFDbEYsYUFBTyxHQUFHLENBQUMsV0FBVyxDQUFDLCtCQUErQixHQUFHLFVBQVUsQ0FBQyxDQUFDO0tBQ3RFO0FBQ0Qsa0NBQThCLEVBQUUsU0FBUyw4QkFBOEIsQ0FBQyxVQUFVLEVBQUUsSUFBSSxFQUFFO0FBQ3hGLFNBQUcsQ0FBQyxXQUFXLENBQUMsK0JBQStCLEdBQUcsVUFBVSxDQUFDLEdBQUcsSUFBSSxDQUFDO0FBQ3JFLFNBQUcsQ0FBQyxrQkFBa0IsRUFBRSxDQUFDO0tBQzFCO0dBQ0YsQ0FBQyxDQUFDOztBQUVILG1CQUFLLFNBQVMsQ0FBQyxnQ0FBZ0MsRUFBRSxPQUFPLENBQUMsQ0FBQzttQkFDM0MsT0FBTyIsImZpbGUiOiJzcmMvR3JvdXBVdGlsaXR5LmpzIiwic291cmNlUm9vdCI6InNyYyIsInNvdXJjZXNDb250ZW50IjpbImltcG9ydCBsYW5nIGZyb20gJ2Rvam8vX2Jhc2UvbGFuZyc7XHJcbmltcG9ydCBhcnJheSBmcm9tICdkb2pvL19iYXNlL2FycmF5JztcclxuaW1wb3J0IGZvcm1hdCBmcm9tICcuL0Zvcm1hdCc7XHJcbmltcG9ydCBzZGtGb3JtYXQgZnJvbSAnYXJnb3MvRm9ybWF0JztcclxuaW1wb3J0IGdldFJlc291cmNlIGZyb20gJ2FyZ29zL0kxOG4nO1xyXG5cclxuY29uc3QgcmVzb3VyY2UgPSBnZXRSZXNvdXJjZSgnZ3JvdXBVdGlsaXR5Jyk7XHJcblxyXG5mdW5jdGlvbiBfY3JlYXRlR3JvdXBSZXF1ZXN0KG8pIHtcclxuICBjb25zdCBkZWZhdWx0T3B0aW9ucyA9IHtcclxuICAgIGNvbm5lY3Rpb246IEFwcC5nZXRTZXJ2aWNlKGZhbHNlKSxcclxuICAgIGdyb3VwSWQ6ICcnLFxyXG4gICAgcmVzb3VyY2VLaW5kOiAnZ3JvdXBzJyxcclxuICAgIGNvbnRyYWN0TmFtZTogJ3N5c3RlbScsXHJcbiAgICBxdWVyeU5hbWU6ICdleGVjdXRlJyxcclxuICAgIHF1ZXJ5QXJnczogbnVsbCxcclxuICB9O1xyXG5cclxuICBjb25zdCBvcHRpb25zID0gbGFuZy5taXhpbihkZWZhdWx0T3B0aW9ucywgbyk7XHJcblxyXG4gIGNvbnN0IHJlcXVlc3QgPSBuZXcgU2FnZS5TRGF0YS5DbGllbnQuU0RhdGFOYW1lZFF1ZXJ5UmVxdWVzdChvcHRpb25zLmNvbm5lY3Rpb24pO1xyXG4gIHJlcXVlc3Quc2V0UXVlcnlOYW1lKG9wdGlvbnMucXVlcnlOYW1lKTtcclxuICByZXF1ZXN0LnNldFJlc291cmNlS2luZChvcHRpb25zLnJlc291cmNlS2luZCk7XHJcbiAgcmVxdWVzdC5zZXRDb250cmFjdE5hbWUob3B0aW9ucy5jb250cmFjdE5hbWUpO1xyXG4gIHJlcXVlc3QuZ2V0VXJpKCkuc2V0Q29sbGVjdGlvblByZWRpY2F0ZShcIidcIiArIG9wdGlvbnMuZ3JvdXBJZCArIFwiJ1wiKTtcclxuXHJcbiAgZm9yIChjb25zdCBhcmcgaW4gb3B0aW9ucy5xdWVyeUFyZ3MpIHtcclxuICAgIGlmIChvcHRpb25zLnF1ZXJ5QXJncy5oYXNPd25Qcm9wZXJ0eShhcmcpKSB7XHJcbiAgICAgIHJlcXVlc3Quc2V0UXVlcnlBcmcoYXJnLCBvcHRpb25zLnF1ZXJ5QXJnc1thcmddKTtcclxuICAgIH1cclxuICB9XHJcblxyXG4gIHJldHVybiByZXF1ZXN0O1xyXG59XHJcblxyXG4vKipcclxuICogQGNsYXNzIGNybS5Hcm91cFV0aWxpdHlcclxuICpcclxuICogU2FsZXNsb2dpeCBncm91cCBiYXNlZCB1dGlsc1xyXG4gKlxyXG4gKiBAc2luZ2xldG9uXHJcbiAqXHJcbiAqL1xyXG5jb25zdCBfX2NsYXNzID0gbGFuZy5zZXRPYmplY3QoJ2NybS5Hcm91cFV0aWxpdHknLCB7XHJcbiAgZ3JvdXBEYXRlRm9ybWF0VGV4dDogcmVzb3VyY2UuZ3JvdXBEYXRlRm9ybWF0VGV4dCxcclxuICAvKipcclxuICAgKiBSZXR1cm5zIGFuIFNEYXRhTmFtZWRRdWVyeVJlcXVlc3Qgc2V0dXAgZm9yIGdyb3Vwc1xyXG4gICAqIEBwYXJhbSB7T2JqZWN0fSBvcHRpb25zIE9wdGlvbnMgZm9yIGNyZWF0aW5nIHRoZSByZXF1ZXN0XHJcbiAgICogQHBhcmFtIHtTdHJpbmd9IG9wdGlvbnMuZ3JvdXBJZCBUaGUgaWQgb2YgdGhlIGdyb3VwIHRoZSByZXF1ZXN0IHNob3VsZCBleGVjdXRlIG9uXHJcbiAgICogQHBhcmFtIHtPYmplY3R9IFtvcHRpb25zLnF1ZXJ5QXJnc10gQWRkaXRpb25hbCBxdWVyeSBhcmd1bWVudHMgdG8gc2V0IG9uIHRoZSByZXF1ZXN0XHJcbiAgICogQHBhcmFtIHtPYmplY3R9IFtvcHRpb25zLmNvbm5lY3Rpb25dIFNEYXRhIGNvbm5lY3Rpb24uIERlZmF1bHRzIHRvIHVzZSBBcHAuZ2V0U2VydmljZShmYWxzZSlcclxuICAgKlxyXG4gICAqL1xyXG4gIGNyZWF0ZUdyb3VwUmVxdWVzdDogZnVuY3Rpb24gY3JlYXRlR3JvdXBSZXF1ZXN0KG9wdGlvbnMpIHtcclxuICAgIGNvbnN0IGRlZmF1bHRzID0ge1xyXG4gICAgICBxdWVyeU5hbWU6ICdleGVjdXRlJyxcclxuICAgIH07XHJcblxyXG4gICAgcmV0dXJuIF9jcmVhdGVHcm91cFJlcXVlc3QobGFuZy5taXhpbihkZWZhdWx0cywgb3B0aW9ucykpO1xyXG4gIH0sXHJcblxyXG4gIC8qKlxyXG4gICAqIFJldHVybnMgYW4gU0RhdGFOYW1lZFF1ZXJ5UmVxdWVzdCBzZXR1cCBmb3IgZ3JvdXAgbWV0cmljc1xyXG4gICAqIEBwYXJhbSB7T2JqZWN0fSBvcHRpb25zIE9wdGlvbnMgZm9yIGNyZWF0aW5nIHRoZSByZXF1ZXN0XHJcbiAgICogQHBhcmFtIHtTdHJpbmd9IG9wdGlvbnMuZ3JvdXBJZCBUaGUgaWQgb2YgdGhlIGdyb3VwIHRoZSByZXF1ZXN0IHNob3VsZCBleGVjdXRlIG9uXHJcbiAgICogQHBhcmFtIHtPYmplY3R9IFtvcHRpb25zLnF1ZXJ5QXJnc10gQWRkaXRpb25hbCBxdWVyeSBhcmd1bWVudHMgdG8gc2V0IG9uIHRoZSByZXF1ZXN0XHJcbiAgICogQHBhcmFtIHtPYmplY3R9IFtvcHRpb25zLmNvbm5lY3Rpb25dIFNEYXRhIGNvbm5lY3Rpb24uIERlZmF1bHRzIHRvIHVzZSBBcHAuZ2V0U2VydmljZShmYWxzZSlcclxuICAgKlxyXG4gICAqL1xyXG4gIGNyZWF0ZUdyb3VwTWV0cmljUmVxdWVzdDogZnVuY3Rpb24gY3JlYXRlR3JvdXBNZXRyaWNSZXF1ZXN0KG9wdGlvbnMpIHtcclxuICAgIGNvbnN0IGRlZmF1bHRzID0ge1xyXG4gICAgICBxdWVyeU5hbWU6ICdleGVjdXRlTWV0cmljJyxcclxuICAgIH07XHJcblxyXG4gICAgcmV0dXJuIF9jcmVhdGVHcm91cFJlcXVlc3QobGFuZy5taXhpbihkZWZhdWx0cywgb3B0aW9ucykpO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogQXJyYXkgb2YgZnVuY3Rpb25zIHRoYXQgd2lsbCBmaWx0ZXIgb3V0IGdyb3VwIGxheW91dFxyXG4gICAqL1xyXG4gIGdyb3VwRmlsdGVyczogW1xyXG4gICAgZnVuY3Rpb24gZ3JvdXBGaWx0ZXIobGF5b3V0SXRlbSkge1xyXG4gICAgICByZXR1cm4gbGF5b3V0SXRlbS52aXNpYmxlO1xyXG4gICAgfSxcclxuICBdLFxyXG4gIGdyb3VwRm9ybWF0dGVyczogW3tcclxuICAgIG5hbWU6ICdOb25lJyxcclxuICAgIHRlc3Q6IGZ1bmN0aW9uIHRlc3ROb25lKGxheW91dEl0ZW0pIHtcclxuICAgICAgcmV0dXJuIGxheW91dEl0ZW0uZm9ybWF0ID09PSAnTm9uZSc7XHJcbiAgICB9LFxyXG4gICAgZm9ybWF0dGVyOiBmdW5jdGlvbiBmb3JtYXROb25lKHZhbHVlKSB7XHJcbiAgICAgIHJldHVybiB2YWx1ZTtcclxuICAgIH0sXHJcbiAgfSwge1xyXG4gICAgbmFtZTogJ1Bob25lJyxcclxuICAgIHRlc3Q6IGZ1bmN0aW9uIHRlc3RQaG9uZShsYXlvdXRJdGVtKSB7XHJcbiAgICAgIHJldHVybiBsYXlvdXRJdGVtLmZvcm1hdCA9PT0gJ1Bob25lJztcclxuICAgIH0sXHJcbiAgICBmb3JtYXR0ZXI6IGZ1bmN0aW9uIGZvcm1hdFBob25lKHZhbHVlKSB7XHJcbiAgICAgIHJldHVybiBmb3JtYXQucGhvbmUodmFsdWUpO1xyXG4gICAgfSxcclxuICB9LCB7XHJcbiAgICBuYW1lOiAnRml4ZWQnLFxyXG4gICAgb3B0aW9uczoge1xyXG4gICAgICBjbHNzOiAnZ3JvdXAtZml4ZWQnLFxyXG4gICAgfSxcclxuICAgIHRlc3Q6IGZ1bmN0aW9uIHRlc3RGaXhlZChsYXlvdXRJdGVtKSB7XHJcbiAgICAgIHJldHVybiBsYXlvdXRJdGVtLmZvcm1hdCA9PT0gJ0ZpeGVkJztcclxuICAgIH0sXHJcbiAgICBmb3JtYXR0ZXI6IGZ1bmN0aW9uIGZvcm1hdEZpeGVkKHZhbHVlKSB7XHJcbiAgICAgIHJldHVybiBmb3JtYXQuZml4ZWRMb2NhbGUodmFsdWUsIDIpO1xyXG4gICAgfSxcclxuICB9LCB7XHJcbiAgICBuYW1lOiAnUGVyY2VudCcsXHJcbiAgICBvcHRpb25zOiB7XHJcbiAgICAgIGNsc3M6ICdncm91cC1wZXJjZW50JyxcclxuICAgIH0sXHJcbiAgICB0ZXN0OiBmdW5jdGlvbiB0ZXN0UGVyY2VudChsYXlvdXRJdGVtKSB7XHJcbiAgICAgIHJldHVybiBsYXlvdXRJdGVtLmZvcm1hdCA9PT0gJ1BlcmNlbnQnO1xyXG4gICAgfSxcclxuICAgIGZvcm1hdHRlcjogZnVuY3Rpb24gZm9ybWF0UGVyY2VudCh2YWx1ZSkge1xyXG4gICAgICByZXR1cm4gZm9ybWF0LnBlcmNlbnQodmFsdWUsIDApO1xyXG4gICAgfSxcclxuICB9LCB7XHJcbiAgICBuYW1lOiAnSW50ZWdlcicsXHJcbiAgICB0ZXN0OiBmdW5jdGlvbiB0ZXN0SW50ZWdlcihsYXlvdXRJdGVtKSB7XHJcbiAgICAgIHJldHVybiBsYXlvdXRJdGVtLmZvcm1hdCA9PT0gJ0ludGVnZXInO1xyXG4gICAgfSxcclxuICAgIGZvcm1hdHRlcjogZnVuY3Rpb24gZm9ybWF0SW50ZWdlcih2YWx1ZSkge1xyXG4gICAgICByZXR1cm4gZm9ybWF0LmZpeGVkTG9jYWxlKHZhbHVlLCAwKTtcclxuICAgIH0sXHJcbiAgfSwge1xyXG4gICAgbmFtZTogJ0N1cnJlbmN5JyxcclxuICAgIHRlc3Q6IGZ1bmN0aW9uIHRlc3RDdXJyZW5jeShsYXlvdXRJdGVtKSB7XHJcbiAgICAgIHJldHVybiBsYXlvdXRJdGVtLmZvcm1hdCA9PT0gJ0N1cnJlbmN5JztcclxuICAgIH0sXHJcbiAgICBvcHRpb25zOiB7XHJcbiAgICAgIGNsc3M6ICdncm91cC1jdXJyZW5jeScsXHJcbiAgICB9LFxyXG4gICAgZm9ybWF0dGVyOiBmdW5jdGlvbiBmb3JtYXRDdXJyZW5jeSh2YWx1ZSkge1xyXG4gICAgICByZXR1cm4gZm9ybWF0LmN1cnJlbmN5KHZhbHVlKTtcclxuICAgIH0sXHJcbiAgfSwge1xyXG4gICAgbmFtZTogJ0RhdGVUaW1lJyxcclxuICAgIG9wdGlvbnM6IHtcclxuICAgICAgdXNlUmVsYXRpdmU6IHRydWUsXHJcbiAgICB9LFxyXG4gICAgdGVzdDogZnVuY3Rpb24gdGVzdERhdGUobGF5b3V0SXRlbSkge1xyXG4gICAgICByZXR1cm4gbGF5b3V0SXRlbS5mb3JtYXQgPT09ICdEYXRlVGltZSc7XHJcbiAgICB9LFxyXG4gICAgZm9ybWF0dGVyOiBmdW5jdGlvbiBmb3JtYXREYXRlKHZhbHVlLCBmb3JtYXRTdHJpbmcsIGZvcm1hdE9wdGlvbnMpIHtcclxuICAgICAgaWYgKHR5cGVvZiB2YWx1ZSA9PT0gJ3N0cmluZycpIHtcclxuICAgICAgICBjb25zdCBkYXRlVmFsdWUgPSBtb21lbnQodmFsdWUpO1xyXG4gICAgICAgIGlmIChkYXRlVmFsdWUuaXNWYWxpZCgpKSB7XHJcbiAgICAgICAgICBpZiAoZm9ybWF0T3B0aW9ucyAmJiBmb3JtYXRPcHRpb25zLnVzZVJlbGF0aXZlKSB7XHJcbiAgICAgICAgICAgIHJldHVybiBmb3JtYXQucmVsYXRpdmVEYXRlKGRhdGVWYWx1ZSk7XHJcbiAgICAgICAgICB9XHJcblxyXG4gICAgICAgICAgcmV0dXJuIGRhdGVWYWx1ZS5mb3JtYXQoZm9ybWF0U3RyaW5nKTtcclxuICAgICAgICB9XHJcbiAgICAgIH1cclxuXHJcbiAgICAgIHJldHVybiB2YWx1ZTtcclxuICAgIH0sXHJcbiAgfSwge1xyXG4gICAgbmFtZTogJ0Jvb2xlYW4nLFxyXG4gICAgdGVzdDogZnVuY3Rpb24gdGVzdEJvb2xlYW4obGF5b3V0SXRlbSkge1xyXG4gICAgICByZXR1cm4gbGF5b3V0SXRlbS5mb3JtYXQgPT09ICdCb29sZWFuJztcclxuICAgIH0sXHJcbiAgICBmb3JtYXR0ZXI6IGZ1bmN0aW9uIGZvcm1hdEJvb2xlYW4odmFsdWUpIHtcclxuICAgICAgY29uc3QgdHJ1dGh5ID0gW1xyXG4gICAgICAgICdUJyxcclxuICAgICAgICAndCcsXHJcbiAgICAgICAgJ1knLFxyXG4gICAgICAgICcxJyxcclxuICAgICAgICAnKycsXHJcbiAgICAgIF07XHJcblxyXG4gICAgICByZXR1cm4gYXJyYXkuaW5kZXhPZih0cnV0aHksIHZhbHVlKSA9PT0gLTEgPyBzZGtGb3JtYXQubm9UZXh0IDogc2RrRm9ybWF0Lnllc1RleHQ7XHJcbiAgICB9LFxyXG4gIH1dLFxyXG4gIHRyYW5zZm9ybURhdGVGb3JtYXRTdHJpbmc6IGZ1bmN0aW9uIHRyYW5zZm9ybURhdGVGb3JtYXRTdHJpbmcoZ2YsIGRlZmF1bHRGb3JtYXQpIHtcclxuICAgIGxldCBncm91cEZvcm1hdCA9IGdmO1xyXG4gICAgaWYgKGdyb3VwRm9ybWF0KSB7XHJcbiAgICAgIGdyb3VwRm9ybWF0ID0gZ3JvdXBGb3JtYXQucmVwbGFjZSgnTU0nLCAnTScpO1xyXG4gICAgICBncm91cEZvcm1hdCA9IGdyb3VwRm9ybWF0LnJlcGxhY2UoJ21tJywgJ00nKTtcclxuICAgICAgZ3JvdXBGb3JtYXQgPSBncm91cEZvcm1hdC5yZXBsYWNlKCdtJywgJ00nKTtcclxuICAgICAgZ3JvdXBGb3JtYXQgPSBncm91cEZvcm1hdC5yZXBsYWNlKCdERCcsICdEJyk7XHJcbiAgICAgIGdyb3VwRm9ybWF0ID0gZ3JvdXBGb3JtYXQucmVwbGFjZSgnZGQnLCAnRCcpO1xyXG4gICAgICBncm91cEZvcm1hdCA9IGdyb3VwRm9ybWF0LnJlcGxhY2UoJ2QnLCAnRCcpO1xyXG4gICAgICBncm91cEZvcm1hdCA9IGdyb3VwRm9ybWF0LnJlcGxhY2UoJ3l5eXknLCAnWVlZWScpO1xyXG4gICAgICBncm91cEZvcm1hdCA9IGdyb3VwRm9ybWF0LnJlcGxhY2UoJ3l5JywgJ1lZWVknKTtcclxuICAgICAgcmV0dXJuIGdyb3VwRm9ybWF0O1xyXG4gICAgfVxyXG4gICAgcmV0dXJuIGRlZmF1bHRGb3JtYXQ7XHJcbiAgfSxcclxuICBmb3JtYXRUeXBlQnlGaWVsZDoge1xyXG4gICAgJ0RhdGVUaW1lJzoge1xyXG4gICAgICBuYW1lOiAnRGF0ZVRpbWUnLFxyXG4gICAgfSxcclxuICAgICdEYXRlJzoge1xyXG4gICAgICBuYW1lOiAnRGF0ZVRpbWUnLFxyXG4gICAgfSxcclxuICAgICdUaW1lJzoge1xyXG4gICAgICBuYW1lOiAnRGF0ZVRpbWUnLFxyXG4gICAgfSxcclxuICAgICdCb29sZWFuJzoge1xyXG4gICAgICBuYW1lOiAnQm9vbGVhbicsXHJcbiAgICB9LFxyXG4gICAgJ0JDRCc6IHtcclxuICAgICAgbmFtZTogJ0N1cnJlbmN5JyxcclxuICAgIH0sXHJcbiAgICAnRml4ZWQnOiB7XHJcbiAgICAgIG5hbWU6ICdGaXhlZCcsXHJcbiAgICB9LFxyXG4gICAgJ0Zsb2F0Jzoge1xyXG4gICAgICBuYW1lOiAnRml4ZWQnLFxyXG4gICAgfSxcclxuICAgICdJbnRlZ2VyJzoge1xyXG4gICAgICBuYW1lOiAnSW50ZWdlcicsXHJcbiAgICB9LFxyXG4gICAgJ1NtYWxsaW50Jzoge1xyXG4gICAgICBuYW1lOiAnSW50ZWdlcicsXHJcbiAgICB9LFxyXG4gICAgJ0xhcmdlaW50Jzoge1xyXG4gICAgICBuYW1lOiAnSW50ZWdlcicsXHJcbiAgICB9LFxyXG4gIH0sXHJcbiAgZ2V0Rm9ybWF0dGVyQnlMYXlvdXQ6IGZ1bmN0aW9uIGdldEZvcm1hdHRlckJ5TGF5b3V0KGxheW91dEl0ZW0pIHtcclxuICAgIGxldCByZXN1bHRzO1xyXG4gICAgaWYgKGxheW91dEl0ZW0uZm9ybWF0ICYmIGxheW91dEl0ZW0uZm9ybWF0ICE9PSAnTm9uZScpIHtcclxuICAgICAgcmVzdWx0cyA9IGFycmF5LmZpbHRlcih0aGlzLmdyb3VwRm9ybWF0dGVycywgZnVuY3Rpb24gZmlsdGVyKGZvcm1hdHRlcikge1xyXG4gICAgICAgIHJldHVybiAoZm9ybWF0dGVyLm5hbWUgPT09IGxheW91dEl0ZW0uZm9ybWF0KTtcclxuICAgICAgfSk7XHJcbiAgICAgIGlmIChyZXN1bHRzLmxlbmd0aCA9PT0gMCkge1xyXG4gICAgICAgIHJlc3VsdHMgPSBhcnJheS5maWx0ZXIodGhpcy5ncm91cEZvcm1hdHRlcnMsIGZ1bmN0aW9uIGZpbHRlcihmb3JtYXR0ZXIpIHtcclxuICAgICAgICAgIHJldHVybiAoZm9ybWF0dGVyLm5hbWUgPT09ICdOb25lJyk7XHJcbiAgICAgICAgfSk7XHJcbiAgICAgIH1cclxuICAgIH0gZWxzZSB7XHJcbiAgICAgIGxldCBmaWVsZEZvcm1hdFR5cGUgPSB0aGlzLmZvcm1hdFR5cGVCeUZpZWxkW2xheW91dEl0ZW0uZmllbGRUeXBlXTtcclxuICAgICAgaWYgKCFmaWVsZEZvcm1hdFR5cGUpIHtcclxuICAgICAgICBmaWVsZEZvcm1hdFR5cGUgPSB7XHJcbiAgICAgICAgICBuYW1lOiAnTm9uZScsXHJcbiAgICAgICAgICBmb3JtYXRTdHJpbmc6ICcnLFxyXG4gICAgICAgIH07XHJcbiAgICAgIH1cclxuICAgICAgcmVzdWx0cyA9IGFycmF5LmZpbHRlcih0aGlzLmdyb3VwRm9ybWF0dGVycywgZnVuY3Rpb24gZmlsdGVyKGZvcm1hdHRlcikge1xyXG4gICAgICAgIHJldHVybiAoZm9ybWF0dGVyLm5hbWUgPT09IGZpZWxkRm9ybWF0VHlwZS5uYW1lKTtcclxuICAgICAgfSk7XHJcbiAgICB9XHJcbiAgICAvLyB0aGlzIG1lYW5zIHRoZXJlIGFyZSBubyBmb3JtYXR0ZXJzIGRlZmluZWQuXHJcbiAgICBpZiAocmVzdWx0cy5sZW5ndGggPT09IDApIHtcclxuICAgICAgcmVzdWx0cy5wdXNoKHtcclxuICAgICAgICBuYW1lOiAnTm9Gb3JtYXQnLFxyXG4gICAgICAgIGZvcm1hdFN0cmluZzogJycsXHJcbiAgICAgICAgZm9ybWF0dGVyOiBmdW5jdGlvbiBub0Zvcm1hdHRlcih2YWx1ZSkge1xyXG4gICAgICAgICAgcmV0dXJuIHZhbHVlO1xyXG4gICAgICAgIH0sXHJcbiAgICAgIH0pO1xyXG4gICAgfVxyXG5cclxuICAgIGNvbnN0IGZpZWxkRm9ybWF0dGVyID0ge1xyXG4gICAgICBuYW1lOiByZXN1bHRzWzBdLm5hbWUsXHJcbiAgICAgIG9wdGlvbnM6IHJlc3VsdHNbMF0ub3B0aW9ucyxcclxuICAgICAgZm9ybWF0dGVyOiByZXN1bHRzWzBdLmZvcm1hdHRlci5iaW5kKHRoaXMpLFxyXG4gICAgfTtcclxuXHJcbiAgICBpZiAoZmllbGRGb3JtYXR0ZXIubmFtZSA9PT0gJ0RhdGVUaW1lJykge1xyXG4gICAgICBmaWVsZEZvcm1hdHRlci5mb3JtYXRTdHJpbmcgPSB0aGlzLnRyYW5zZm9ybURhdGVGb3JtYXRTdHJpbmcobGF5b3V0SXRlbS5mb3JtYXRTdHJpbmcsIHRoaXMuZ3JvdXBEYXRlRm9ybWF0VGV4dCk7XHJcbiAgICB9IGVsc2Uge1xyXG4gICAgICBmaWVsZEZvcm1hdHRlci5mb3JtYXRTdHJpbmcgPSBsYXlvdXRJdGVtLmZvcm1hdFN0cmluZztcclxuICAgIH1cclxuICAgIHJldHVybiBmaWVsZEZvcm1hdHRlcjtcclxuICB9LFxyXG4gIGdldExheW91dDogZnVuY3Rpb24gZ2V0TGF5b3V0KGdyb3VwKSB7XHJcbiAgICBsZXQgaSA9IDA7XHJcbiAgICBjb25zdCBsYXlvdXQgPSBhcnJheS5maWx0ZXIoZ3JvdXAubGF5b3V0LCBmdW5jdGlvbiBmaWx0ZXJMYXlvdXQoaXRlbSkge1xyXG4gICAgICBpdGVtLmluZGV4ID0gaSsrO1xyXG4gICAgICByZXR1cm4gYXJyYXkuZXZlcnkodGhpcy5ncm91cEZpbHRlcnMsIGZ1bmN0aW9uIGV2ZXJ5KGZpbHRlcikge1xyXG4gICAgICAgIHJldHVybiBmaWx0ZXIoaXRlbSk7XHJcbiAgICAgIH0pO1xyXG4gICAgfSwgdGhpcyk7XHJcbiAgICByZXR1cm4gbGF5b3V0O1xyXG4gIH0sXHJcbiAgZ2V0Q29sdW1uTmFtZXM6IGZ1bmN0aW9uIGdldENvbHVtbk5hbWVzKGxheW91dCkge1xyXG4gICAgY29uc3QgZXh0cmFTZWxlY3RDb2x1bW5zID0gW107XHJcbiAgICBjb25zdCBjb2x1bW5zID0gYXJyYXkubWFwKGxheW91dCwgZnVuY3Rpb24gbWFwTGF5b3V0KGl0ZW0pIHtcclxuICAgICAgaWYgKGl0ZW0uZm9ybWF0ID09PSAnUGlja0xpc3QgSXRlbScpIHtcclxuICAgICAgICBleHRyYVNlbGVjdENvbHVtbnMucHVzaChpdGVtLmFsaWFzICsgJ1RFWFQnKTtcclxuICAgICAgfVxyXG5cclxuICAgICAgaWYgKGl0ZW0uZm9ybWF0ID09PSAnVXNlcicgfHwgaXRlbS5mb3JtYXQgPT09ICdPd25lcicpIHtcclxuICAgICAgICBleHRyYVNlbGVjdENvbHVtbnMucHVzaChpdGVtLmFsaWFzICsgJ05BTUUnKTtcclxuICAgICAgfVxyXG5cclxuICAgICAgcmV0dXJuIGl0ZW0uYWxpYXM7XHJcbiAgICB9KTtcclxuICAgIHJldHVybiBjb2x1bW5zLmNvbmNhdChleHRyYVNlbGVjdENvbHVtbnMpO1xyXG4gIH0sXHJcbiAgc2V0RGVmYXVsdEdyb3VwUHJlZmVyZW5jZTogZnVuY3Rpb24gc2V0RGVmYXVsdEdyb3VwUHJlZmVyZW5jZShlbnRpdHlOYW1lLCBncm91cE5hbWUpIHtcclxuICAgIEFwcC5wcmVmZXJlbmNlc1snZGVmYXVsdC1ncm91cC0nICsgZW50aXR5TmFtZV0gPSBncm91cE5hbWU7XHJcbiAgICBBcHAucGVyc2lzdFByZWZlcmVuY2VzKCk7XHJcbiAgfSxcclxuICBnZXREZWZhdWx0R3JvdXBQcmVmZXJlbmNlOiBmdW5jdGlvbiBnZXREZWZhdWx0R3JvdXBQcmVmZXJlbmNlKGVudGl0eU5hbWUpIHtcclxuICAgIGxldCBkZWZhdWx0R3JvdXBOYW1lID0gQXBwLnByZWZlcmVuY2VzWydkZWZhdWx0LWdyb3VwLScgKyBlbnRpdHlOYW1lXTtcclxuICAgIGlmICghZGVmYXVsdEdyb3VwTmFtZSkge1xyXG4gICAgICBkZWZhdWx0R3JvdXBOYW1lID0gdGhpcy5nZXREZWZhdWx0R3JvdXBVc2VyUHJlZmVyZW5jZShlbnRpdHlOYW1lKTtcclxuICAgIH1cclxuICAgIHJldHVybiBkZWZhdWx0R3JvdXBOYW1lO1xyXG4gIH0sXHJcbiAgZ2V0RGVmYXVsdEdyb3VwVXNlclByZWZlcmVuY2U6IGZ1bmN0aW9uIGdldERlZmF1bHRHcm91cFVzZXJQcmVmZXJlbmNlKGVudGl0eU5hbWUpIHtcclxuICAgIGxldCBkZWZhdWx0R3JvdXBOYW1lID0gQXBwLmNvbnRleHQudXNlck9wdGlvbnNbJ0RlZmF1bHRHcm91cDonICsgZW50aXR5TmFtZS50b1VwcGVyQ2FzZSgpXTtcclxuICAgIGlmIChkZWZhdWx0R3JvdXBOYW1lKSB7XHJcbiAgICAgIGRlZmF1bHRHcm91cE5hbWUgPSBkZWZhdWx0R3JvdXBOYW1lLnNwbGl0KCc6JylbMV07XHJcbiAgICB9XHJcbiAgICByZXR1cm4gZGVmYXVsdEdyb3VwTmFtZTtcclxuICB9LFxyXG4gIGdldERlZmF1bHRHcm91cDogZnVuY3Rpb24gZ2V0RGVmYXVsdEdyb3VwKGVudGl0eU5hbWUpIHtcclxuICAgIGNvbnN0IGdyb3VwTGlzdCA9IEFwcC5wcmVmZXJlbmNlc1snZ3JvdXBzLScgKyBlbnRpdHlOYW1lXTtcclxuICAgIGxldCBkZWZhdWx0R3JvdXAgPSBudWxsO1xyXG4gICAgbGV0IGRlZmF1bHRHcm91cE5hbWUgPSBudWxsO1xyXG5cclxuICAgIGRlZmF1bHRHcm91cE5hbWUgPSB0aGlzLmdldERlZmF1bHRHcm91cFByZWZlcmVuY2UoZW50aXR5TmFtZSk7XHJcblxyXG4gICAgaWYgKGdyb3VwTGlzdCAmJiBncm91cExpc3QubGVuZ3RoID4gMCkge1xyXG4gICAgICBhcnJheS5mb3JFYWNoKGdyb3VwTGlzdCwgZnVuY3Rpb24gZm9yRWFjaChncm91cCkge1xyXG4gICAgICAgIGlmIChncm91cC5uYW1lID09PSBkZWZhdWx0R3JvdXBOYW1lKSB7XHJcbiAgICAgICAgICBkZWZhdWx0R3JvdXAgPSBncm91cDtcclxuICAgICAgICB9XHJcbiAgICAgIH0pO1xyXG5cclxuICAgICAgaWYgKCFkZWZhdWx0R3JvdXApIHtcclxuICAgICAgICBkZWZhdWx0R3JvdXAgPSBncm91cExpc3RbMF07XHJcbiAgICAgIH1cclxuICAgICAgcmV0dXJuIGRlZmF1bHRHcm91cDtcclxuICAgIH1cclxuICB9LFxyXG4gIGFkZFRvR3JvdXBQcmVmZXJlbmNlczogZnVuY3Rpb24gYWRkVG9Hcm91cFByZWZlcmVuY2VzKGl0ZW1zLCBlbnRpdHlOYW1lLCBvdmVyd3JpdGUpIHtcclxuICAgIGxldCBmb3VuZDtcclxuICAgIGxldCBncm91cExpc3QgPSB0aGlzLmdldEdyb3VwUHJlZmVyZW5jZXMoZW50aXR5TmFtZSk7XHJcbiAgICBpZiAoIW92ZXJ3cml0ZSAmJiBncm91cExpc3QgJiYgZ3JvdXBMaXN0Lmxlbmd0aCA+IDApIHtcclxuICAgICAgaWYgKGl0ZW1zICYmIGl0ZW1zLmxlbmd0aCA+IDApIHtcclxuICAgICAgICBhcnJheS5mb3JFYWNoKGl0ZW1zLCBmdW5jdGlvbiBmb3JFYWNoSXRlbShpdGVtKSB7XHJcbiAgICAgICAgICBmb3VuZCA9IC0xO1xyXG4gICAgICAgICAgYXJyYXkuZm9yRWFjaChncm91cExpc3QsIGZ1bmN0aW9uIGZvckVhY2hMaXN0KGdyb3VwLCBpKSB7XHJcbiAgICAgICAgICAgIGlmIChncm91cC4ka2V5ID09PSBpdGVtLiRrZXkpIHtcclxuICAgICAgICAgICAgICBmb3VuZCA9IGk7XHJcbiAgICAgICAgICAgIH1cclxuICAgICAgICAgIH0pO1xyXG5cclxuICAgICAgICAgIGlmIChmb3VuZCA+IC0xKSB7XHJcbiAgICAgICAgICAgIGdyb3VwTGlzdFtmb3VuZF0gPSBpdGVtO1xyXG4gICAgICAgICAgfSBlbHNlIHtcclxuICAgICAgICAgICAgZ3JvdXBMaXN0LnB1c2goaXRlbSk7XHJcbiAgICAgICAgICB9XHJcbiAgICAgICAgfSk7XHJcbiAgICAgIH1cclxuICAgIH0gZWxzZSB7XHJcbiAgICAgIGdyb3VwTGlzdCA9IGl0ZW1zO1xyXG4gICAgfVxyXG5cclxuICAgIEFwcC5wcmVmZXJlbmNlc1snZ3JvdXBzLScgKyBlbnRpdHlOYW1lXSA9IGdyb3VwTGlzdDtcclxuICAgIEFwcC5wZXJzaXN0UHJlZmVyZW5jZXMoKTtcclxuICB9LFxyXG4gIHJlbW92ZUdyb3VwUHJlZmVyZW5jZXM6IGZ1bmN0aW9uIHJlbW92ZUdyb3VwUHJlZmVyZW5jZXMoaXRlbUtleSwgZW50aXR5TmFtZSkge1xyXG4gICAgbGV0IGZvdW5kID0gLTE7XHJcbiAgICBjb25zdCBncm91cExpc3QgPSB0aGlzLmdldEdyb3VwUHJlZmVyZW5jZXMoZW50aXR5TmFtZSk7XHJcbiAgICBpZiAoZ3JvdXBMaXN0ICYmIGdyb3VwTGlzdC5sZW5ndGggPiAwKSB7XHJcbiAgICAgIGFycmF5LmZvckVhY2goZ3JvdXBMaXN0LCBmdW5jdGlvbiBmb3JFYWNoKGdyb3VwLCBpKSB7XHJcbiAgICAgICAgaWYgKGdyb3VwLiRrZXkgPT09IGl0ZW1LZXkpIHtcclxuICAgICAgICAgIGZvdW5kID0gaTtcclxuICAgICAgICB9XHJcbiAgICAgIH0pO1xyXG4gICAgfVxyXG5cclxuICAgIGlmIChmb3VuZCA+IC0xKSB7XHJcbiAgICAgIGdyb3VwTGlzdC5zcGxpY2UoZm91bmQsIDEpO1xyXG4gICAgICBBcHAucHJlZmVyZW5jZXNbJ2dyb3Vwcy0nICsgZW50aXR5TmFtZV0gPSBncm91cExpc3Q7XHJcbiAgICAgIEFwcC5wZXJzaXN0UHJlZmVyZW5jZXMoKTtcclxuICAgIH1cclxuICB9LFxyXG4gIGdldEdyb3VwUHJlZmVyZW5jZXM6IGZ1bmN0aW9uIGdldEdyb3VwUHJlZmVyZW5jZXMoZW50aXR5TmFtZSkge1xyXG4gICAgY29uc3QgZ3JvdXBMaXN0ID0gQXBwLnByZWZlcmVuY2VzWydncm91cHMtJyArIGVudGl0eU5hbWVdO1xyXG4gICAgcmV0dXJuIGdyb3VwTGlzdDtcclxuICB9LFxyXG4gIGdyb3VwRmllbGROYW1lczogW3tcclxuICAgIG5hbWU6ICdQaWNrTGlzdCcsXHJcbiAgICB0ZXN0OiBmdW5jdGlvbiB0ZXN0UGlja0xpc3QobGF5b3V0SXRlbSkge1xyXG4gICAgICByZXR1cm4gbGF5b3V0SXRlbS5mb3JtYXQgPT09ICdQaWNrTGlzdCBJdGVtJztcclxuICAgIH0sXHJcbiAgICBmaWVsZE5hbWU6IGZ1bmN0aW9uIHBpY2tMaXN0RmllbGROYW1lKGxheW91dEl0ZW0pIHtcclxuICAgICAgcmV0dXJuIGxheW91dEl0ZW0uYWxpYXMudG9VcHBlckNhc2UoKSArICdURVhUJztcclxuICAgIH0sXHJcbiAgfSwge1xyXG4gICAgbmFtZTogJ093bmVyT3JVc2VyJyxcclxuICAgIHRlc3Q6IGZ1bmN0aW9uIHRlc3RPd25lck9yVXNlcihsYXlvdXRJdGVtKSB7XHJcbiAgICAgIHJldHVybiBsYXlvdXRJdGVtLmZvcm1hdCA9PT0gJ093bmVyJyB8fCBsYXlvdXRJdGVtLmZvcm1hdCA9PT0gJ1VzZXInO1xyXG4gICAgfSxcclxuICAgIGZpZWxkTmFtZTogZnVuY3Rpb24gb3duZXJPclVzZXJGaWVsZE5hbWUobGF5b3V0SXRlbSkge1xyXG4gICAgICByZXR1cm4gbGF5b3V0SXRlbS5hbGlhcy50b1VwcGVyQ2FzZSgpICsgJ05BTUUnO1xyXG4gICAgfSxcclxuICB9XSxcclxuICBnZXRGaWVsZE5hbWVCeUxheW91dDogZnVuY3Rpb24gZ2V0RmllbGROYW1lQnlMYXlvdXQobGF5b3V0SXRlbSkge1xyXG4gICAgLy8gRGV0ZXJtaW5lcyB3aGF0IGZpZWxkL3Byb3BlcnR5IG5hbWUgc2hvdWxkIGJlIHVzZWQgaW4gdGhlIGZlZWQgZm9yIGEgbGF5b3V0IGl0ZW0uXHJcbiAgICAvLyBUaGlzIGlzIHVzdWFsbHkganVzdCB0aGUgbGF5b3V0IGl0ZW0ncyBhbGlhcyBpbiB1cHBlciBjYXNlLCBob3dldmVyIHRoZXJlIGFyZSBzb21lIGV4Y2VwdGlvbnM6XHJcbiAgICAvLyBQaWNrbGlzdCBsYXlvdXQgaXRlbXMgbmVlZCB0byBzZWxlY3QgdGhlIGFsaWFzICsgJ1RFWFQnLFxyXG4gICAgLy8gT3duZXIgYW5kIHVzZXIgaXRlbXMgbmVlZCB0byBzZWxlY3QgdGhlIGFsaWFzICsgJ05BTUUnXHJcbiAgICBjb25zdCByZXN1bHRzID0gYXJyYXkuZmlsdGVyKHRoaXMuZ3JvdXBGaWVsZE5hbWVzLCBmdW5jdGlvbiBmaWx0ZXJGaWVsZHMobmFtZSkge1xyXG4gICAgICByZXR1cm4gbmFtZS50ZXN0KGxheW91dEl0ZW0pO1xyXG4gICAgfSk7XHJcblxyXG4gICAgaWYgKHJlc3VsdHMubGVuZ3RoID09PSAwKSB7XHJcbiAgICAgIHJlc3VsdHMucHVzaCh7XHJcbiAgICAgICAgZmllbGROYW1lOiBmdW5jdGlvbiBmaWVsZE5hbWUoaXRlbSkge1xyXG4gICAgICAgICAgcmV0dXJuIGl0ZW0uYWxpYXMudG9VcHBlckNhc2UoKTtcclxuICAgICAgICB9LFxyXG4gICAgICB9KTtcclxuICAgIH1cclxuXHJcbiAgICByZXR1cm4gcmVzdWx0c1swXS5maWVsZE5hbWUobGF5b3V0SXRlbSk7XHJcbiAgfSxcclxuICBnZXRTZWxlY3RlZEdyb3VwTGF5b3V0VGVtcGxhdGU6IGZ1bmN0aW9uIGdldFNlbGVjdGVkR3JvdXBMYXlvdXRUZW1wbGF0ZShlbnRpdHlOYW1lKSB7XHJcbiAgICByZXR1cm4gQXBwLnByZWZlcmVuY2VzWydncm91cHMtc2VsZWN0ZWQtdGVtcGxhdGUtbmFtZScgKyBlbnRpdHlOYW1lXTtcclxuICB9LFxyXG4gIHNldFNlbGVjdGVkR3JvdXBMYXlvdXRUZW1wbGF0ZTogZnVuY3Rpb24gc2V0U2VsZWN0ZWRHcm91cExheW91dFRlbXBsYXRlKGVudGl0eU5hbWUsIG5hbWUpIHtcclxuICAgIEFwcC5wcmVmZXJlbmNlc1snZ3JvdXBzLXNlbGVjdGVkLXRlbXBsYXRlLW5hbWUnICsgZW50aXR5TmFtZV0gPSBuYW1lO1xyXG4gICAgQXBwLnBlcnNpc3RQcmVmZXJlbmNlcygpO1xyXG4gIH0sXHJcbn0pO1xyXG5cclxubGFuZy5zZXRPYmplY3QoJ01vYmlsZS5TYWxlc0xvZ2l4Lkdyb3VwVXRpbGl0eScsIF9fY2xhc3MpO1xyXG5leHBvcnQgZGVmYXVsdCBfX2NsYXNzO1xyXG4iXX0=
 </pre>
 </body>
 </html>

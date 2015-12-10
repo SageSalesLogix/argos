@@ -15,372 +15,342 @@
   </script>
 </head>
 <body onload="prettyPrint(); highlight();">
-  <pre class="prettyprint lang-js">/*
- * Copyright (c) 1997-2013, SalesLogix, NA., LLC. All rights reserved.
- */
+  <pre class="prettyprint lang-js">define('crm/Views/Attachment/ViewAttachment', ['exports', 'module', 'dojo/_base/declare', 'dojo/_base/lang', 'dojo/dom-construct', 'dojo/dom-attr', 'dojo/dom-class', 'dojo/has', 'dojo/dom', 'dojo/dom-geometry', '../../AttachmentManager', '../../Utility', 'argos/Detail', 'argos/_LegacySDataDetailMixin', 'argos/I18n'], function (exports, module, _dojo_baseDeclare, _dojo_baseLang, _dojoDomConstruct, _dojoDomAttr, _dojoDomClass, _dojoHas, _dojoDom, _dojoDomGeometry, _AttachmentManager, _Utility, _argosDetail, _argos_LegacySDataDetailMixin, _argosI18n) {
+  function _interopRequireDefault(obj) { return obj &amp;&amp; obj.__esModule ? obj : { 'default': obj }; }
 
-<span id='crm-Views-Attachment-ViewAttachment'>/**
-</span> * @class crm.Views.Attachment.ViewAttachment
- *
- *
- * @extends argos.Detail
- * @mixins argos.Detail
- * @mixins argos._LegacySDataDetailMixin
- *
- * @requires argos.Detail
- * @requires argos._LegacySDataDetailMixin
- *
- * @requires crm.Format
- * @requires crm.AttachmentManager
- * @requires crm.Utility
- *
- */
-define('crm/Views/Attachment/ViewAttachment', [
-    'dojo/_base/declare',
-    'dojo/_base/lang',
-    'dojo/string',
-    'dojo/_base/connect',
-    'dojo/_base/array',
-    '../../Format',
-    'dojo/dom-construct',
-    'dojo/dom-attr',
-    'dojo/dom-class',
-    'dojo/has',
-    'dojo/dom',
-    'dojo/dom-geometry',
-    '../../AttachmentManager',
-    '../../Utility',
-    'argos/Detail',
-    'argos/_LegacySDataDetailMixin'
-], function(
-    declare,
-    lang,
-    string,
-    connect,
-    array,
-    format,
-    domConstruct,
-    domAttr,
-    domClass,
-    has,
-    dom,
-    domGeom,
-    AttachmentManager,
-    Utility,
-    Detail,
-    _LegacySDataDetailMixin
-) {
+  var _declare = _interopRequireDefault(_dojo_baseDeclare);
 
-    var __class = declare('crm.Views.Attachment.ViewAttachment', [Detail, _LegacySDataDetailMixin], {
-        //Localization
-        detailsText: 'Attachment Details',
-        descriptionText: 'description',
-        fileNameText: 'file name',
-        attachDateText: 'attachment date',
-        fileSizeText: 'file size',
-        userText: 'user',
-        attachmentNotSupportedText: 'The attachment type is not supported for viewing.',
-        attachmentDateFormatText: 'ddd M/D/YYYY h:mm a',
-        downloadingText:'Downloading attachment ...',
-        notSupportedText: 'Viewing attachments is not supported by your device.',
+  var _lang = _interopRequireDefault(_dojo_baseLang);
 
-        //View Properties
-        id: 'view_attachment',
-        editView: '',
-        security: null,
-        querySelect: ['description', 'user', 'attachDate', 'fileSize', 'fileName', 'url', 'fileExists', 'remoteStatus', 'dataType'],
-        resourceKind: 'attachments',
-        contractName: 'system',
-        orginalImageSize: { width: 0, height: 0 },
-        queryInclude: ['$descriptors'],
-        dataURL: null,
-        notSupportedTemplate: new Simplate([
-            '&lt;h2&gt;{%= $$.notSupportedText %}&lt;/h2&gt;'
-        ]),
-        widgetTemplate: new Simplate([
-            '&lt;div id=&quot;{%= $.id %}&quot; title=&quot;{%= $.titleText %}&quot; class=&quot;overthrow detail panel {%= $.cls %}&quot; {% if ($.resourceKind) { %}data-resource-kind=&quot;{%= $.resourceKind %}&quot;{% } %}&gt;',
-            '{%! $.loadingTemplate %}',
-            '&lt;div class=&quot;panel-content&quot; data-dojo-attach-point=&quot;contentNode&quot;&gt;&lt;/div&gt;',
-            '&lt;div class=&quot;attachment-viewer-content&quot; data-dojo-attach-point=&quot;attachmentViewerNode&quot;&gt;&lt;/div&gt;',
-            '&lt;/div&gt;'
-        ]),
-        attachmentLoadingTemplate: new Simplate([
-            '&lt;div class=&quot;list-loading-indicator&quot;&gt;{%= $.loadingText %}&lt;/div&gt;'
-        ]),
-        attachmentViewTemplate: new Simplate([
-            '&lt;div class=&quot;attachment-viewer-label&quot; style=&quot;white-space:nowrap;&quot;&gt;',
-               '&lt;label&gt;{%= $.description + &quot; (&quot; + $.fileType + &quot;)&quot;  %}&lt;/label&gt;',
-            '&lt;/div&gt;',
-            '&lt;div class=&quot;attachment-viewer-area&quot;&gt;',
-                   '&lt;iframe id=&quot;attachment-Iframe&quot; src=&quot;{%= $.url %}&quot;&gt;&lt;/iframe&gt;',
-            '&lt;/div&gt;'
-        ]),
-        attachmentViewImageTemplate: new Simplate([
-           '&lt;div class=&quot;attachment-viewer-label&quot; style=&quot;white-space:nowrap;&quot;&gt;',
-               '&lt;label&gt;{%= $.description + &quot; (&quot; + $.fileType + &quot;)&quot;  %}&lt;/label&gt;',
-           '&lt;/div&gt;',
-           '&lt;div class=&quot;attachment-viewer-area&quot;&gt;',
-               '&lt;table&gt;',
-                   '&lt;tr valign=&quot;middle&quot;&gt;',
-                       '&lt;td id=&quot;imagePlaceholder&quot; align=&quot;center&quot;&gt;',
-                       '&lt;/td&gt;',
-                   '&lt;/tr&gt;',
-               '&lt;/table&gt;',
-           '&lt;/div&gt;'
-        ]),
-        attachmentViewNotSupportedTemplate: new Simplate([
-                '&lt;div class=&quot;attachment-viewer-label&quot;&gt;',
-                '&lt;label&gt;{%= $$.attachmentNotSupportedText %}&lt;/label&gt;',
-                '&lt;/div&gt;',
-                '&lt;div class=&quot;attachment-viewer-not-supported&quot;&gt;',
-                '&lt;h3&gt;&lt;span&gt;{%: $.description %}&amp;nbsp;&lt;/span&gt;&lt;/h3&gt;',
-                '&lt;h4&gt;&lt;span&gt;({%: crm.Format.date($.attachDate, $$.attachmentDateFormatText) %})&amp;nbsp;&lt;/span&gt;',
-                '&lt;span&gt;{%: crm.Format.fileSize($.fileSize) %} &lt;/span&gt;&lt;/h4&gt;',
-                '&lt;h4&gt;&lt;span&gt;{%: crm.Utility.getFileExtension($.fileName) %} &lt;/span&gt;&lt;/h4&gt;',
-                '{% if($.user) { %}',
-                    '&lt;h4&gt;&lt;span&gt;{%: $.user.$descriptor  %}&lt;/span&gt;&lt;/h4&gt;',
-               '{% } %}',
-               '&lt;/div&gt;'
-        ]),
+  var _domConstruct = _interopRequireDefault(_dojoDomConstruct);
 
-        downloadingTemplate: new Simplate([
-            '&lt;li class=&quot;list-loading-indicator&quot;&gt;&lt;div&gt;{%= $.downloadingText %}&lt;/div&gt;&lt;/li&gt;'
-        ]),
-        show: function(options) {
-            this.inherited(arguments);
-            this.attachmentViewerNode.innerHTML = '';
-            if (!has('html5-file-api')) {
-                domConstruct.place(this.notSupportedTemplate.apply({}, this), this.domNode, 'only');
-                return;
-            }
+  var _domAttr = _interopRequireDefault(_dojoDomAttr);
 
-            //If this opened the second time we need to check to see if it is the same attachmnent and let the Process Entry function load the view.
-            if (this.entry) {
-                if (options.key === this.entry.$key) {
-                    this._loadAttachmentView(this.entry);
-                }
-            }
-        },
-        processEntry: function(entry) {
-            this.inherited(arguments);
-            this._loadAttachmentView(entry);
-        },
-        createRequest: function() {
-            var request = this.inherited(arguments);
-            request.setQueryArg('_includeFile', 'false');
-            return request;
-        },
-        createEntryForDelete: function(e) {
-            var entry = {
-                '$key': e['$key'],
-                '$etag': e['$etag'],
-                '$name': e['$name']
-            };
-            return entry;
-        },
-        createToolLayout: function() {
-            return this.tools;
-        },
-        createLayout: function() {
-            return this.tools || (this.tools = []);
-        },
-        _loadAttachmentView: function(entry) {
-            var data, am, isFile, url, viewNode, tpl, dl, description, attachmentid, fileType, self, iframe;
+  var _domClass = _interopRequireDefault(_dojoDomClass);
 
-            am = new AttachmentManager();
+  var _has = _interopRequireDefault(_dojoHas);
 
-            if (!entry.url) {
-                description = entry.description;
-                fileType = Utility.getFileExtension(entry.fileName);
-                isFile = true;
-            } else {
-                isFile = false;
-                description = entry.description + ' (' + entry.url + ')';
-                fileType = 'url';
-            }
+  var _dom = _interopRequireDefault(_dojoDom);
 
-            data = {
-                fileName: entry.fileName,
-                fileSize: entry.fileSize,
-                fileType: fileType,
-                url: '',
-                description: description
-            };
+  var _domGeom = _interopRequireDefault(_dojoDomGeometry);
 
-            if (isFile) {
-                fileType = Utility.getFileExtension(entry.fileName);
-                if (this._isfileTypeAllowed(fileType)) {
-                    if (this._isfileTypeImage(fileType)) {
-                        viewNode = domConstruct.place(this.attachmentViewImageTemplate.apply(data, this), this.attachmentViewerNode, 'last');
-                        tpl = this.downloadingTemplate.apply(this);
-                        dl = domConstruct.place(tpl, this.attachmentViewerNode, 'first');
-                        domClass.add(this.domNode, 'list-loading');
-                        self = this;
-                        attachmentid = entry.$key;
-                        //dataurl
-                        am.getAttachmentFile(attachmentid, 'arraybuffer', function(responseInfo) {
-                            var rData, image, loadHandler, loaded;
+  var _AttachmentManager2 = _interopRequireDefault(_AttachmentManager);
 
-                            rData = Utility.base64ArrayBuffer(responseInfo.response);
-                            self.dataURL = 'data:' + responseInfo.contentType + ';base64,' + rData;
+  var _Utility2 = _interopRequireDefault(_Utility);
 
-                            image = new Image();
+  var _Detail = _interopRequireDefault(_argosDetail);
 
-                            loadHandler = function() {
-                                if (loaded) {
-                                    return;
-                                }
+  var _LegacySDataDetailMixin2 = _interopRequireDefault(_argos_LegacySDataDetailMixin);
 
-                                self._orginalImageSize = { width: image.width, height: image.height };
-                                self._sizeImage(self.domNode, image);
-                                domConstruct.place(image, 'imagePlaceholder', 'only');
-                                loaded = true;
-                            };
+  var _getResource = _interopRequireDefault(_argosI18n);
 
-                            image.onload = loadHandler;
-                            image.src = self.dataURL;
+  var resource = (0, _getResource['default'])('attachmentView');
 
-                            if (image.complete) {
-                                loadHandler();
-                            }
+<span id='crm-Views-Attachment-ViewAttachment'>  /**
+</span>   * @class crm.Views.Attachment.ViewAttachment
+   *
+   *
+   * @extends argos.Detail
+   * @mixins argos.Detail
+   * @mixins argos._LegacySDataDetailMixin
+   *
+   * @requires argos.Detail
+   * @requires argos._LegacySDataDetailMixin
+   *
+   * @requires crm.Format
+   * @requires crm.AttachmentManager
+   * @requires crm.Utility
+   *
+   */
+  var __class = (0, _declare['default'])('crm.Views.Attachment.ViewAttachment', [_Detail['default'], _LegacySDataDetailMixin2['default']], {
+    // Localization
+    detailsText: resource.detailsText,
+    descriptionText: resource.descriptionText,
+    fileNameText: resource.fileNameText,
+    attachDateText: resource.attachDateText,
+    fileSizeText: resource.fileSizeText,
+    userText: resource.userText,
+    attachmentNotSupportedText: resource.attachmentNotSupportedText,
+    attachmentDateFormatText: resource.attachmentDateFormatText,
+    downloadingText: resource.downloadingText,
+    notSupportedText: resource.notSupportedText,
 
-                            // Set download text to hidden
-                            domClass.add(dl, 'display-none');
-                        });
-                    } else { //View file type in Iframe
-                        if (this._viewImageOnly() === false) {
-                            viewNode = domConstruct.place(this.attachmentViewTemplate.apply(data, this), this.attachmentViewerNode, 'last');
-                            tpl = this.downloadingTemplate.apply(this);
-                            dl = domConstruct.place(tpl, this.attachmentViewerNode, 'first');
-                            domClass.add(this.domNode, 'list-loading');
-                            self = this;
-                            attachmentid = entry.$key;
-                            am.getAttachmentFile(attachmentid, 'arraybuffer', function(responseInfo) {
-                                var rData, dataUrl, iframe;
+    // View Properties
+    id: 'view_attachment',
+    editView: '',
+    security: null,
+    isTabbed: false,
+    querySelect: ['description', 'user', 'attachDate', 'fileSize', 'fileName', 'url', 'fileExists', 'remoteStatus', 'dataType'],
+    resourceKind: 'attachments',
+    contractName: 'system',
+    orginalImageSize: {
+      width: 0,
+      height: 0
+    },
+    queryInclude: ['$descriptors'],
+    dataURL: null,
+    notSupportedTemplate: new Simplate(['&lt;h2&gt;{%= $$.notSupportedText %}&lt;/h2&gt;']),
+    widgetTemplate: new Simplate(['&lt;div id=&quot;{%= $.id %}&quot; title=&quot;{%= $.titleText %}&quot; class=&quot;overthrow detail panel {%= $.cls %}&quot; {% if ($.resourceKind) { %}data-resource-kind=&quot;{%= $.resourceKind %}&quot;{% } %}&gt;', '{%! $.loadingTemplate %}', '&lt;div class=&quot;panel-content&quot; data-dojo-attach-point=&quot;contentNode&quot;&gt;&lt;/div&gt;', '&lt;div class=&quot;attachment-viewer-content&quot; data-dojo-attach-point=&quot;attachmentViewerNode&quot;&gt;&lt;/div&gt;', '&lt;/div&gt;']),
+    attachmentLoadingTemplate: new Simplate(['&lt;div class=&quot;list-loading-indicator&quot;&gt;{%= $.loadingText %}&lt;/div&gt;']),
+    attachmentViewTemplate: new Simplate(['&lt;div class=&quot;attachment-viewer-label&quot; style=&quot;white-space:nowrap;&quot;&gt;', '&lt;label&gt;{%= $.description + &quot; (&quot; + $.fileType + &quot;)&quot;  %}&lt;/label&gt;', '&lt;/div&gt;', '&lt;div class=&quot;attachment-viewer-area&quot;&gt;', '&lt;iframe id=&quot;attachment-Iframe&quot; src=&quot;{%= $.url %}&quot;&gt;&lt;/iframe&gt;', '&lt;/div&gt;']),
+    attachmentViewImageTemplate: new Simplate(['&lt;div class=&quot;attachment-viewer-label&quot; style=&quot;white-space:nowrap;&quot;&gt;', '&lt;label&gt;{%= $.description + &quot; (&quot; + $.fileType + &quot;)&quot;  %}&lt;/label&gt;', '&lt;/div&gt;', '&lt;div class=&quot;attachment-viewer-area&quot;&gt;', '&lt;table&gt;', '&lt;tr valign=&quot;middle&quot;&gt;', '&lt;td id=&quot;imagePlaceholder&quot; align=&quot;center&quot;&gt;', '&lt;/td&gt;', '&lt;/tr&gt;', '&lt;/table&gt;', '&lt;/div&gt;']),
+    attachmentViewNotSupportedTemplate: new Simplate(['&lt;div class=&quot;attachment-viewer-label&quot;&gt;', '&lt;label&gt;{%= $$.attachmentNotSupportedText %}&lt;/label&gt;', '&lt;/div&gt;', '&lt;div class=&quot;attachment-viewer-not-supported&quot;&gt;', '&lt;h3&gt;&lt;span&gt;{%: $.description %}&amp;nbsp;&lt;/span&gt;&lt;/h3&gt;', '&lt;h4&gt;&lt;span&gt;({%: crm.Format.date($.attachDate, $$.attachmentDateFormatText) %})&amp;nbsp;&lt;/span&gt;', '&lt;span&gt;{%: crm.Format.fileSize($.fileSize) %} &lt;/span&gt;&lt;/h4&gt;', '&lt;h4&gt;&lt;span&gt;{%: crm.Utility.getFileExtension($.fileName) %} &lt;/span&gt;&lt;/h4&gt;', '{% if($.user) { %}', '&lt;h4&gt;&lt;span&gt;{%: $.user.$descriptor  %}&lt;/span&gt;&lt;/h4&gt;', '{% } %}', '&lt;/div&gt;']),
 
-                                rData = Utility.base64ArrayBuffer(responseInfo.response);
-                                dataUrl = 'data:' + responseInfo.contentType + ';base64,' + rData;
-                                domClass.add(dl, 'display-none');
-                                iframe = dom.byId('attachment-Iframe');
-                                iframe.onload = function() {
-                                    domClass.add(dl, 'display-none');
-                                };
-                                domClass.add(dl, 'display-none');
-                                domAttr.set(iframe, 'src', dataUrl);
-                            });
-                        } else { //Only view images
-                            viewNode = domConstruct.place(this.attachmentViewNotSupportedTemplate.apply(entry, this), this.attachmentViewerNode, 'last');
-                        }
-                    }
-                } else { //File type not allowed
-                    viewNode = domConstruct.place(this.attachmentViewNotSupportedTemplate.apply(entry, this), this.attachmentViewerNode, 'last');
-                }
+    downloadingTemplate: new Simplate(['&lt;li class=&quot;list-loading-indicator&quot;&gt;&lt;div&gt;{%= $.downloadingText %}&lt;/div&gt;&lt;/li&gt;']),
+    show: function show(options) {
+      this.inherited(arguments);
+      this.attachmentViewerNode.innerHTML = '';
+      if (!(0, _has['default'])('html5-file-api')) {
+        _domConstruct['default'].place(this.notSupportedTemplate.apply({}, this), this.domNode, 'only');
+        return;
+      }
 
-            } else { // url Attachment
-                viewNode = domConstruct.place(this.attachmentViewTemplate.apply(data, this), this.attachmentViewerNode, 'last');
-                url = am.getAttachmenturlByEntity(entry);
-                domClass.add(this.domNode, 'list-loading');
-                tpl = this.downloadingTemplate.apply(this);
-                dl = domConstruct.place(tpl, this.attachmentViewerNode, 'first');
-                iframe = dom.byId('attachment-Iframe');
-                iframe.onload = function() {
-                    domClass.add(dl, 'display-none');
-                };
-                domAttr.set(iframe, 'src', url);
-                domClass.add(dl, 'display-none');
-            }
-
-        },
-        _isfileTypeImage: function(fileType) {
-            var imageTypes;
-
-            fileType = fileType.substr(fileType.lastIndexOf('.') + 1).toLowerCase();
-            if (App.imageFileTypes) {
-                imageTypes = App.imageFileTypes;
-            } else {
-                imageTypes = { jpg: true, gif: true, png: true, bmp: true, tif: true };
-            }
-
-            if (imageTypes[fileType]) {
-                return true;
-            }
-
-            return false;
-        },
-        _isfileTypeAllowed: function(fileType) {
-            var fileTypes;
-
-            fileType = fileType.substr(fileType.lastIndexOf('.') + 1).toLowerCase();
-            if (App.nonViewableFileTypes) {
-                fileTypes = App.nonViewableFileTypes;
-            } else {
-                fileTypes = { exe: true, dll: true };
-            }
-
-            if (fileTypes[fileType]) {
-                return false;
-            }
-            return true;
-        },
-        _viewImageOnly: function() {
-            return false;
-        },
-        _sizeImage: function(containerNode, image) {
-            var wH, wW, iH, iW, contentBox, scale;
-
-            contentBox = domGeom.getContentBox(containerNode);
-            wH = contentBox.h;
-            wW = contentBox.w;
-            iH = image.height;
-            iW = image.width;
-            scale = 1;
-
-            if (wH &gt; 200) {
-                wH = wH - 50;
-            }
-
-            if (wW &gt; 200) {
-                wW = wW - 50;
-            }
-
-            if (wH &lt; 50) {
-                wH = 100;
-            }
-
-            if (wW &lt; 50) {
-                wW = 100;
-            }
-
-            // if the image is larger than the window
-            if (iW &gt; wW &amp;&amp; iH &gt; wH) {
-                // if the window height is lager than the width
-                if (wH &lt; wW) {
-                    scale = 1 - ((iH - wH) / iH);
-                } else { // if the window width is lager than the height
-                    scale = 1 - ((iW - wW) / iW);
-                }
-            } else if (iW &gt; wW) {// if the image  width is lager than the height
-                scale = 1 - ((iW - wW) / iW);
-            } else if (iH &gt; wH) {// if the image  height is lager than the width
-                scale = 1 - ((iH - wH) / iH);
-            } else {
-               //Image is samller than view
-                if (wH / iH &gt; wW / iW) {
-                    scale = 1 + ((wH - iH) / wH);
-                } else {
-                    scale = 1 + ((wW - iW) / wW);
-                }
-            }
-            image.height = 0.90 * scale * iH;
-            image.width = 0.90 * scale * iW;
-
+      // If this opened the second time we need to check to see if it is the same attachmnent and let the Process Entry function load the view.
+      if (this.entry) {
+        if (options.key === this.entry.$key) {
+          this._loadAttachmentView(this.entry);
         }
-    });
+      }
+    },
+    processEntry: function processEntry(entry) {
+      this.inherited(arguments);
+      this._loadAttachmentView(entry);
+    },
+    createRequest: function createRequest() {
+      var request = this.inherited(arguments);
+      request.setQueryArg('_includeFile', 'false');
+      return request;
+    },
+    createEntryForDelete: function createEntryForDelete(e) {
+      var entry = {
+        '$key': e.$key,
+        '$etag': e.$etag,
+        '$name': e.$name
+      };
+      return entry;
+    },
+    createToolLayout: function createToolLayout() {
+      return this.tools;
+    },
+    createLayout: function createLayout() {
+      return this.tools || (this.tools = []);
+    },
+    _loadAttachmentView: function _loadAttachmentView(entry) {
+      var _this = this;
 
-    lang.setObject('Mobile.SalesLogix.Views.Attachment.ViewAttachment', __class);
-    return __class;
+      var am = new _AttachmentManager2['default']();
+      var description = undefined;
+      var isFile = undefined;
+      var fileType = undefined;
+      var loaded = undefined;
+
+      if (!entry.url) {
+        description = entry.description;
+        fileType = _Utility2['default'].getFileExtension(entry.fileName);
+        isFile = true;
+      } else {
+        isFile = false;
+        description = entry.description + ' (' + entry.url + ')';
+        fileType = 'url';
+      }
+
+      var data = {
+        fileName: entry.fileName,
+        fileSize: entry.fileSize,
+        fileType: fileType,
+        url: '',
+        description: description
+      };
+
+      if (isFile) {
+        fileType = _Utility2['default'].getFileExtension(entry.fileName);
+        if (this._isfileTypeAllowed(fileType)) {
+          if (this._isfileTypeImage(fileType)) {
+            (function () {
+              _domConstruct['default'].place(_this.attachmentViewImageTemplate.apply(data, _this), _this.attachmentViewerNode, 'last');
+              var tpl = _this.downloadingTemplate.apply(_this);
+              var dl = _domConstruct['default'].place(tpl, _this.attachmentViewerNode, 'first');
+              _domClass['default'].add(_this.domNode, 'list-loading');
+              var self = _this;
+              var attachmentid = entry.$key;
+              // dataurl
+              am.getAttachmentFile(attachmentid, 'arraybuffer', function imageHandler(responseInfo) {
+                var rData = _Utility2['default'].base64ArrayBuffer(responseInfo.response);
+                self.dataURL = 'data:' + responseInfo.contentType + ';base64,' + rData;
+
+                var image = new Image();
+
+                var loadHandler = function loadHandler() {
+                  if (loaded) {
+                    return;
+                  }
+
+                  self._orginalImageSize = {
+                    width: image.width,
+                    height: image.height
+                  };
+                  self._sizeImage(self.domNode, image);
+                  _domConstruct['default'].place(image, 'imagePlaceholder', 'only');
+                  loaded = true;
+                };
+
+                image.onload = loadHandler;
+                image.src = self.dataURL;
+
+                if (image.complete) {
+                  loadHandler();
+                }
+
+                // Set download text to hidden
+                _domClass['default'].add(dl, 'display-none');
+              });
+            })();
+          } else {
+            // View file type in Iframe
+            if (this._viewImageOnly() === false) {
+              (function () {
+                _domConstruct['default'].place(_this.attachmentViewTemplate.apply(data, _this), _this.attachmentViewerNode, 'last');
+                var tpl = _this.downloadingTemplate.apply(_this);
+                var dl = _domConstruct['default'].place(tpl, _this.attachmentViewerNode, 'first');
+                _domClass['default'].add(_this.domNode, 'list-loading');
+                var attachmentid = entry.$key;
+                am.getAttachmentFile(attachmentid, 'arraybuffer', function iframeResponse(responseInfo) {
+                  var rData = _Utility2['default'].base64ArrayBuffer(responseInfo.response);
+                  var dataUrl = 'data:' + responseInfo.contentType + ';base64,' + rData;
+                  _domClass['default'].add(dl, 'display-none');
+                  var iframe = _dom['default'].byId('attachment-Iframe');
+                  iframe.onload = function iframeOnLoad() {
+                    _domClass['default'].add(dl, 'display-none');
+                  };
+                  _domClass['default'].add(dl, 'display-none');
+                  _domAttr['default'].set(iframe, 'src', dataUrl);
+                });
+              })();
+            } else {
+              // Only view images
+              _domConstruct['default'].place(this.attachmentViewNotSupportedTemplate.apply(entry, this), this.attachmentViewerNode, 'last');
+            }
+          }
+        } else {
+          // File type not allowed
+          _domConstruct['default'].place(this.attachmentViewNotSupportedTemplate.apply(entry, this), this.attachmentViewerNode, 'last');
+        }
+      } else {
+        (function () {
+          // url Attachment
+          _domConstruct['default'].place(_this.attachmentViewTemplate.apply(data, _this), _this.attachmentViewerNode, 'last');
+          var url = am.getAttachmenturlByEntity(entry);
+          _domClass['default'].add(_this.domNode, 'list-loading');
+          var tpl = _this.downloadingTemplate.apply(_this);
+          var dl = _domConstruct['default'].place(tpl, _this.attachmentViewerNode, 'first');
+          var iframe = _dom['default'].byId('attachment-Iframe');
+          iframe.onload = function iframeOnLoad() {
+            _domClass['default'].add(dl, 'display-none');
+          };
+          _domAttr['default'].set(iframe, 'src', url);
+          _domClass['default'].add(dl, 'display-none');
+        })();
+      }
+    },
+    _isfileTypeImage: function _isfileTypeImage(fileType) {
+      var fType = fileType.substr(fileType.lastIndexOf('.') + 1).toLowerCase();
+      var imageTypes = undefined;
+
+      if (App.imageFileTypes) {
+        imageTypes = App.imageFileTypes;
+      } else {
+        imageTypes = {
+          jpg: true,
+          gif: true,
+          png: true,
+          bmp: true,
+          tif: true
+        };
+      }
+
+      if (imageTypes[fType]) {
+        return true;
+      }
+
+      return false;
+    },
+    _isfileTypeAllowed: function _isfileTypeAllowed(fileType) {
+      var fType = fileType.substr(fileType.lastIndexOf('.') + 1).toLowerCase();
+      var fileTypes = undefined;
+
+      if (App.nonViewableFileTypes) {
+        fileTypes = App.nonViewableFileTypes;
+      } else {
+        fileTypes = {
+          exe: true,
+          dll: true
+        };
+      }
+
+      if (fileTypes[fType]) {
+        return false;
+      }
+      return true;
+    },
+    _viewImageOnly: function _viewImageOnly() {
+      return false;
+    },
+    _sizeImage: function _sizeImage(containerNode, image) {
+      var contentBox = _domGeom['default'].getContentBox(containerNode);
+      var iH = image.height;
+      var iW = image.width;
+      var wH = contentBox.h;
+      var wW = contentBox.w;
+      var scale = 1;
+
+      if (wH &gt; 200) {
+        wH = wH - 50;
+      }
+
+      if (wW &gt; 200) {
+        wW = wW - 50;
+      }
+
+      if (wH &lt; 50) {
+        wH = 100;
+      }
+
+      if (wW &lt; 50) {
+        wW = 100;
+      }
+
+      // if the image is larger than the window
+      if (iW &gt; wW &amp;&amp; iH &gt; wH) {
+        // if the window height is lager than the width
+        if (wH &lt; wW) {
+          scale = 1 - (iH - wH) / iH;
+        } else {
+          // if the window width is lager than the height
+          scale = 1 - (iW - wW) / iW;
+        }
+      } else if (iW &gt; wW) {
+        // if the image  width is lager than the height
+        scale = 1 - (iW - wW) / iW;
+      } else if (iH &gt; wH) {
+        // if the image  height is lager than the width
+        scale = 1 - (iH - wH) / iH;
+      } else {
+        // Image is samller than view
+        if (wH / iH &gt; wW / iW) {
+          scale = 1 + (wH - iH) / wH;
+        } else {
+          scale = 1 + (wW - iW) / wW;
+        }
+      }
+      image.height = 0.90 * scale * iH;
+      image.width = 0.90 * scale * iW;
+    }
+  });
+
+  _lang['default'].setObject('Mobile.SalesLogix.Views.Attachment.ViewAttachment', __class);
+  module.exports = __class;
 });
-
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInNyYy9WaWV3cy9BdHRhY2htZW50L1ZpZXdBdHRhY2htZW50LmpzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiI7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7O0FBY0EsTUFBTSxRQUFRLEdBQUcsNkJBQVksZ0JBQWdCLENBQUMsQ0FBQzs7Ozs7Ozs7Ozs7Ozs7Ozs7O0FBa0IvQyxNQUFNLE9BQU8sR0FBRyx5QkFBUSxxQ0FBcUMsRUFBRSx5REFBaUMsRUFBRTs7QUFFaEcsZUFBVyxFQUFFLFFBQVEsQ0FBQyxXQUFXO0FBQ2pDLG1CQUFlLEVBQUUsUUFBUSxDQUFDLGVBQWU7QUFDekMsZ0JBQVksRUFBRSxRQUFRLENBQUMsWUFBWTtBQUNuQyxrQkFBYyxFQUFFLFFBQVEsQ0FBQyxjQUFjO0FBQ3ZDLGdCQUFZLEVBQUUsUUFBUSxDQUFDLFlBQVk7QUFDbkMsWUFBUSxFQUFFLFFBQVEsQ0FBQyxRQUFRO0FBQzNCLDhCQUEwQixFQUFFLFFBQVEsQ0FBQywwQkFBMEI7QUFDL0QsNEJBQXdCLEVBQUUsUUFBUSxDQUFDLHdCQUF3QjtBQUMzRCxtQkFBZSxFQUFFLFFBQVEsQ0FBQyxlQUFlO0FBQ3pDLG9CQUFnQixFQUFFLFFBQVEsQ0FBQyxnQkFBZ0I7OztBQUczQyxNQUFFLEVBQUUsaUJBQWlCO0FBQ3JCLFlBQVEsRUFBRSxFQUFFO0FBQ1osWUFBUSxFQUFFLElBQUk7QUFDZCxZQUFRLEVBQUUsS0FBSztBQUNmLGVBQVcsRUFBRSxDQUFDLGFBQWEsRUFBRSxNQUFNLEVBQUUsWUFBWSxFQUFFLFVBQVUsRUFBRSxVQUFVLEVBQUUsS0FBSyxFQUFFLFlBQVksRUFBRSxjQUFjLEVBQUUsVUFBVSxDQUFDO0FBQzNILGdCQUFZLEVBQUUsYUFBYTtBQUMzQixnQkFBWSxFQUFFLFFBQVE7QUFDdEIsb0JBQWdCLEVBQUU7QUFDaEIsV0FBSyxFQUFFLENBQUM7QUFDUixZQUFNLEVBQUUsQ0FBQztLQUNWO0FBQ0QsZ0JBQVksRUFBRSxDQUFDLGNBQWMsQ0FBQztBQUM5QixX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cyIsInNvdXJjZVJvb3QiOiJzcmMiLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgZGVjbGFyZSBmcm9tICdkb2pvL19iYXNlL2RlY2xhcmUnO1xyXG5pbXBvcnQgbGFuZyBmcm9tICdkb2pvL19iYXNlL2xhbmcnO1xyXG5pbXBvcnQgZG9tQ29uc3RydWN0IGZyb20gJ2Rvam8vZG9tLWNvbnN0cnVjdCc7XHJcbmltcG9ydCBkb21BdHRyIGZyb20gJ2Rvam8vZG9tLWF0dHInO1xyXG5pbXBvcnQgZG9tQ2xhc3MgZnJvbSAnZG9qby9kb20tY2xhc3MnO1xyXG5pbXBvcnQgaGFzIGZyb20gJ2Rvam8vaGFzJztcclxuaW1wb3J0IGRvbSBmcm9tICdkb2pvL2RvbSc7XHJcbmltcG9ydCBkb21HZW9tIGZyb20gJ2Rvam8vZG9tLWdlb21ldHJ5JztcclxuaW1wb3J0IEF0dGFjaG1lbnRNYW5hZ2VyIGZyb20gJy4uLy4uL0F0dGFjaG1lbnRNYW5hZ2VyJztcclxuaW1wb3J0IFV0aWxpdHkgZnJvbSAnLi4vLi4vVXRpbGl0eSc7XHJcbmltcG9ydCBEZXRhaWwgZnJvbSAnYXJnb3MvRGV0YWlsJztcclxuaW1wb3J0IF9MZWdhY3lTRGF0YURldGFpbE1peGluIGZyb20gJ2FyZ29zL19MZWdhY3lTRGF0YURldGFpbE1peGluJztcclxuaW1wb3J0IGdldFJlc291cmNlIGZyb20gJ2FyZ29zL0kxOG4nO1xyXG5cclxuY29uc3QgcmVzb3VyY2UgPSBnZXRSZXNvdXJjZSgnYXR0YWNobWVudFZpZXcnKTtcclxuXHJcbi8qKlxyXG4gKiBAY2xhc3MgY3JtLlZpZXdzLkF0dGFjaG1lbnQuVmlld0F0dGFjaG1lbnRcclxuICpcclxuICpcclxuICogQGV4dGVuZHMgYXJnb3MuRGV0YWlsXHJcbiAqIEBtaXhpbnMgYXJnb3MuRGV0YWlsXHJcbiAqIEBtaXhpbnMgYXJnb3MuX0xlZ2FjeVNEYXRhRGV0YWlsTWl4aW5cclxuICpcclxuICogQHJlcXVpcmVzIGFyZ29zLkRldGFpbFxyXG4gKiBAcmVxdWlyZXMgYXJnb3MuX0xlZ2FjeVNEYXRhRGV0YWlsTWl4aW5cclxuICpcclxuICogQHJlcXVpcmVzIGNybS5Gb3JtYXRcclxuICogQHJlcXVpcmVzIGNybS5BdHRhY2htZW50TWFuYWdlclxyXG4gKiBAcmVxdWlyZXMgY3JtLlV0aWxpdHlcclxuICpcclxuICovXHJcbmNvbnN0IF9fY2xhc3MgPSBkZWNsYXJlKCdjcm0uVmlld3MuQXR0YWNobWVudC5WaWV3QXR0YWNobWVudCcsIFtEZXRhaWwsIF9MZWdhY3lTRGF0YURldGFpbE1peGluXSwge1xyXG4gIC8vIExvY2FsaXphdGlvblxyXG4gIGRldGFpbHNUZXh0OiByZXNvdXJjZS5kZXRhaWxzVGV4dCxcclxuICBkZXNjcmlwdGlvblRleHQ6IHJlc291cmNlLmRlc2NyaXB0aW9uVGV4dCxcclxuICBmaWxlTmFtZVRleHQ6IHJlc291cmNlLmZpbGVOYW1lVGV4dCxcclxuICBhdHRhY2hEYXRlVGV4dDogcmVzb3VyY2UuYXR0YWNoRGF0ZVRleHQsXHJcbiAgZmlsZVNpemVUZXh0OiByZXNvdXJjZS5maWxlU2l6ZVRleHQsXHJcbiAgdXNlclRleHQ6IHJlc291cmNlLnVzZXJUZXh0LFxyXG4gIGF0dGFjaG1lbnROb3RTdXBwb3J0ZWRUZXh0OiByZXNvdXJjZS5hdHRhY2htZW50Tm90U3VwcG9ydGVkVGV4dCxcclxuICBhdHRhY2htZW50RGF0ZUZvcm1hdFRleHQ6IHJlc291cmNlLmF0dGFjaG1lbnREYXRlRm9ybWF0VGV4dCxcclxuICBkb3dubG9hZGluZ1RleHQ6IHJlc291cmNlLmRvd25sb2FkaW5nVGV4dCxcclxuICBub3RTdXBwb3J0ZWRUZXh0OiByZXNvdXJjZS5ub3RTdXBwb3J0ZWRUZXh0LFxyXG5cclxuICAvLyBWaWV3IFByb3BlcnRpZXNcclxuICBpZDogJ3ZpZXdfYXR0YWNobWVudCcsXHJcbiAgZWRpdFZpZXc6ICcnLFxyXG4gIHNlY3VyaXR5OiBudWxsLFxyXG4gIGlzVGFiYmVkOiBmYWxzZSxcclxuICBxdWVyeVNlbGVjdDogWydkZXNjcmlwdGlvbicsICd1c2VyJywgJ2F0dGFjaERhdGUnLCAnZmlsZVNpemUnLCAnZmlsZU5hbWUnLCAndXJsJywgJ2ZpbGVFeGlzdHMnLCAncmVtb3RlU3RhdHVzJywgJ2RhdGFUeXBlJ10sXHJcbiAgcmVzb3VyY2VLaW5kOiAnYXR0YWNobWVudHMnLFxyXG4gIGNvbnRyYWN0TmFtZTogJ3N5c3RlbScsXHJcbiAgb3JnaW5hbEltYWdlU2l6ZToge1xyXG4gICAgd2lkdGg6IDAsXHJcbiAgICBoZWlnaHQ6IDAsXHJcbiAgfSxcclxuICBxdWVyeUluY2x1ZGU6IFsnJGRlc2NyaXB0b3JzJ10sXHJcbiAgZGF0YVVSTDogbnVsbCxcclxuICBub3RTdXBwb3J0ZWRUZW1wbGF0ZTogbmV3IFNpbXBsYXRlKFtcclxuICAgICc8aDI+eyU9ICQkLm5vdFN1cHBvcnRlZFRleHQgJX08L2gyPicsXHJcbiAgXSksXHJcbiAgd2lkZ2V0VGVtcGxhdGU6IG5ldyBTaW1wbGF0ZShbXHJcbiAgICAnPGRpdiBpZD1cInslPSAkLmlkICV9XCIgdGl0bGU9XCJ7JT0gJC50aXRsZVRleHQgJX1cIiBjbGFzcz1cIm92ZXJ0aHJvdyBkZXRhaWwgcGFuZWwgeyU9ICQuY2xzICV9XCIgeyUgaWYgKCQucmVzb3VyY2VLaW5kKSB7ICV9ZGF0YS1yZXNvdXJjZS1raW5kPVwieyU9ICQucmVzb3VyY2VLaW5kICV9XCJ7JSB9ICV9PicsXHJcbiAgICAneyUhICQubG9hZGluZ1RlbXBsYXRlICV9JyxcclxuICAgICc8ZGl2IGNsYXNzPVwicGFuZWwtY29udGVudFwiIGRhdGEtZG9qby1hdHRhY2gtcG9pbnQ9XCJjb250ZW50Tm9kZVwiPjwvZGl2PicsXHJcbiAgICAnPGRpdiBjbGFzcz1cImF0dGFjaG1lbnQtdmlld2VyLWNvbnRlbnRcIiBkYXRhLWRvam8tYXR0YWNoLXBvaW50PVwiYXR0YWNobWVudFZpZXdlck5vZGVcIj48L2Rpdj4nLFxyXG4gICAgJzwvZGl2PicsXHJcbiAgXSksXHJcbiAgYXR0YWNobWVudExvYWRpbmdUZW1wbGF0ZTogbmV3IFNpbXBsYXRlKFtcclxuICAgICc8ZGl2IGNsYXNzPVwibGlzdC1sb2FkaW5nLWluZGljYXRvclwiPnslPSAkLmxvYWRpbmdUZXh0ICV9PC9kaXY+JyxcclxuICBdKSxcclxuICBhdHRhY2htZW50Vmlld1RlbXBsYXRlOiBuZXcgU2ltcGxhdGUoW1xyXG4gICAgJzxkaXYgY2xhc3M9XCJhdHRhY2htZW50LXZpZXdlci1sYWJlbFwiIHN0eWxlPVwid2hpdGUtc3BhY2U6bm93cmFwO1wiPicsXHJcbiAgICAnPGxhYmVsPnslPSAkLmRlc2NyaXB0aW9uICsgXCIgKFwiICsgJC5maWxlVHlwZSArIFwiKVwiICAlfTwvbGFiZWw+JyxcclxuICAgICc8L2Rpdj4nLFxyXG4gICAgJzxkaXYgY2xhc3M9XCJhdHRhY2htZW50LXZpZXdlci1hcmVhXCI+JyxcclxuICAgICc8aWZyYW1lIGlkPVwiYXR0YWNobWVudC1JZnJhbWVcIiBzcmM9XCJ7JT0gJC51cmwgJX1cIj48L2lmcmFtZT4nLFxyXG4gICAgJzwvZGl2PicsXHJcbiAgXSksXHJcbiAgYXR0YWNobWVudFZpZXdJbWFnZVRlbXBsYXRlOiBuZXcgU2ltcGxhdGUoW1xyXG4gICAgJzxkaXYgY2xhc3M9XCJhdHRhY2htZW50LXZpZXdlci1sYWJlbFwiIHN0eWxlPVwid2hpdGUtc3BhY2U6bm93cmFwO1wiPicsXHJcbiAgICAnPGxhYmVsPnslPSAkLmRlc2NyaXB0aW9uICsgXCIgKFwiICsgJC5maWxlVHlwZSArIFwiKVwiICAlfTwvbGFiZWw+JyxcclxuICAgICc8L2Rpdj4nLFxyXG4gICAgJzxkaXYgY2xhc3M9XCJhdHRhY2htZW50LXZpZXdlci1hcmVhXCI+JyxcclxuICAgICc8dGFibGU+JyxcclxuICAgICc8dHIgdmFsaWduPVwibWlkZGxlXCI+JyxcclxuICAgICc8dGQgaWQ9XCJpbWFnZVBsYWNlaG9sZGVyXCIgYWxpZ249XCJjZW50ZXJcIj4nLFxyXG4gICAgJzwvdGQ+JyxcclxuICAgICc8L3RyPicsXHJcbiAgICAnPC90YWJsZT4nLFxyXG4gICAgJzwvZGl2PicsXHJcbiAgXSksXHJcbiAgYXR0YWNobWVudFZpZXdOb3RTdXBwb3J0ZWRUZW1wbGF0ZTogbmV3IFNpbXBsYXRlKFtcclxuICAgICc8ZGl2IGNsYXNzPVwiYXR0YWNobWVudC12aWV3ZXItbGFiZWxcIj4nLFxyXG4gICAgJzxsYWJlbD57JT0gJCQuYXR0YWNobWVudE5vdFN1cHBvcnRlZFRleHQgJX08L2xhYmVsPicsXHJcbiAgICAnPC9kaXY+JyxcclxuICAgICc8ZGl2IGNsYXNzPVwiYXR0YWNobWVudC12aWV3ZXItbm90LXN1cHBvcnRlZFwiPicsXHJcbiAgICAnPGgzPjxzcGFuPnslOiAkLmRlc2NyaXB0aW9uICV9Jm5ic3A7PC9zcGFuPjwvaDM+JyxcclxuICAgICc8aDQ+PHNwYW4+KHslOiBjcm0uRm9ybWF0LmRhdGUoJC5hdHRhY2hEYXRlLCAkJC5hdHRhY2htZW50RGF0ZUZvcm1hdFRleHQpICV9KSZuYnNwOzwvc3Bhbj4nLFxyXG4gICAgJzxzcGFuPnslOiBjcm0uRm9ybWF0LmZpbGVTaXplKCQuZmlsZVNpemUpICV9IDwvc3Bhbj48L2g0PicsXHJcbiAgICAnPGg0PjxzcGFuPnslOiBjcm0uVXRpbGl0eS5nZXRGaWxlRXh0ZW5zaW9uKCQuZmlsZU5hbWUpICV9IDwvc3Bhbj48L2g0PicsXHJcbiAgICAneyUgaWYoJC51c2VyKSB7ICV9JyxcclxuICAgICc8aDQ+PHNwYW4+eyU6ICQudXNlci4kZGVzY3JpcHRvciAgJX08L3NwYW4+PC9oND4nLFxyXG4gICAgJ3slIH0gJX0nLFxyXG4gICAgJzwvZGl2PicsXHJcbiAgXSksXHJcblxyXG4gIGRvd25sb2FkaW5nVGVtcGxhdGU6IG5ldyBTaW1wbGF0ZShbXHJcbiAgICAnPGxpIGNsYXNzPVwibGlzdC1sb2FkaW5nLWluZGljYXRvclwiPjxkaXY+eyU9ICQuZG93bmxvYWRpbmdUZXh0ICV9PC9kaXY+PC9saT4nLFxyXG4gIF0pLFxyXG4gIHNob3c6IGZ1bmN0aW9uIHNob3cob3B0aW9ucykge1xyXG4gICAgdGhpcy5pbmhlcml0ZWQoYXJndW1lbnRzKTtcclxuICAgIHRoaXMuYXR0YWNobWVudFZpZXdlck5vZGUuaW5uZXJIVE1MID0gJyc7XHJcbiAgICBpZiAoIWhhcygnaHRtbDUtZmlsZS1hcGknKSkge1xyXG4gICAgICBkb21Db25zdHJ1Y3QucGxhY2UodGhpcy5ub3RTdXBwb3J0ZWRUZW1wbGF0ZS5hcHBseSh7fSwgdGhpcyksIHRoaXMuZG9tTm9kZSwgJ29ubHknKTtcclxuICAgICAgcmV0dXJuO1xyXG4gICAgfVxyXG5cclxuICAgIC8vIElmIHRoaXMgb3BlbmVkIHRoZSBzZWNvbmQgdGltZSB3ZSBuZWVkIHRvIGNoZWNrIHRvIHNlZSBpZiBpdCBpcyB0aGUgc2FtZSBhdHRhY2htbmVudCBhbmQgbGV0IHRoZSBQcm9jZXNzIEVudHJ5IGZ1bmN0aW9uIGxvYWQgdGhlIHZpZXcuXHJcbiAgICBpZiAodGhpcy5lbnRyeSkge1xyXG4gICAgICBpZiAob3B0aW9ucy5rZXkgPT09IHRoaXMuZW50cnkuJGtleSkge1xyXG4gICAgICAgIHRoaXMuX2xvYWRBdHRhY2htZW50Vmlldyh0aGlzLmVudHJ5KTtcclxuICAgICAgfVxyXG4gICAgfVxyXG4gIH0sXHJcbiAgcHJvY2Vzc0VudHJ5OiBmdW5jdGlvbiBwcm9jZXNzRW50cnkoZW50cnkpIHtcclxuICAgIHRoaXMuaW5oZXJpdGVkKGFyZ3VtZW50cyk7XHJcbiAgICB0aGlzLl9sb2FkQXR0YWNobWVudFZpZXcoZW50cnkpO1xyXG4gIH0sXHJcbiAgY3JlYXRlUmVxdWVzdDogZnVuY3Rpb24gY3JlYXRlUmVxdWVzdCgpIHtcclxuICAgIGNvbnN0IHJlcXVlc3QgPSB0aGlzLmluaGVyaXRlZChhcmd1bWVudHMpO1xyXG4gICAgcmVxdWVzdC5zZXRRdWVyeUFyZygnX2luY2x1ZGVGaWxlJywgJ2ZhbHNlJyk7XHJcbiAgICByZXR1cm4gcmVxdWVzdDtcclxuICB9LFxyXG4gIGNyZWF0ZUVudHJ5Rm9yRGVsZXRlOiBmdW5jdGlvbiBjcmVhdGVFbnRyeUZvckRlbGV0ZShlKSB7XHJcbiAgICBjb25zdCBlbnRyeSA9IHtcclxuICAgICAgJyRrZXknOiBlLiRrZXksXHJcbiAgICAgICckZXRhZyc6IGUuJGV0YWcsXHJcbiAgICAgICckbmFtZSc6IGUuJG5hbWUsXHJcbiAgICB9O1xyXG4gICAgcmV0dXJuIGVudHJ5O1xyXG4gIH0sXHJcbiAgY3JlYXRlVG9vbExheW91dDogZnVuY3Rpb24gY3JlYXRlVG9vbExheW91dCgpIHtcclxuICAgIHJldHVybiB0aGlzLnRvb2xzO1xyXG4gIH0sXHJcbiAgY3JlYXRlTGF5b3V0OiBmdW5jdGlvbiBjcmVhdGVMYXlvdXQoKSB7XHJcbiAgICByZXR1cm4gdGhpcy50b29scyB8fCAodGhpcy50b29scyA9IFtdKTtcclxuICB9LFxyXG4gIF9sb2FkQXR0YWNobWVudFZpZXc6IGZ1bmN0aW9uIF9sb2FkQXR0YWNobWVudFZpZXcoZW50cnkpIHtcclxuICAgIGNvbnN0IGFtID0gbmV3IEF0dGFjaG1lbnRNYW5hZ2VyKCk7XHJcbiAgICBsZXQgZGVzY3JpcHRpb247XHJcbiAgICBsZXQgaXNGaWxlO1xyXG4gICAgbGV0IGZpbGVUeXBlO1xyXG4gICAgbGV0IGxvYWRlZDtcclxuXHJcbiAgICBpZiAoIWVudHJ5LnVybCkge1xyXG4gICAgICBkZXNjcmlwdGlvbiA9IGVudHJ5LmRlc2NyaXB0aW9uO1xyXG4gICAgICBmaWxlVHlwZSA9IFV0aWxpdHkuZ2V0RmlsZUV4dGVuc2lvbihlbnRyeS5maWxlTmFtZSk7XHJcbiAgICAgIGlzRmlsZSA9IHRydWU7XHJcbiAgICB9IGVsc2Uge1xyXG4gICAgICBpc0ZpbGUgPSBmYWxzZTtcclxuICAgICAgZGVzY3JpcHRpb24gPSBlbnRyeS5kZXNjcmlwdGlvbiArICcgKCcgKyBlbnRyeS51cmwgKyAnKSc7XHJcbiAgICAgIGZpbGVUeXBlID0gJ3VybCc7XHJcbiAgICB9XHJcblxyXG4gICAgY29uc3QgZGF0YSA9IHtcclxuICAgICAgZmlsZU5hbWU6IGVudHJ5LmZpbGVOYW1lLFxyXG4gICAgICBmaWxlU2l6ZTogZW50cnkuZmlsZVNpemUsXHJcbiAgICAgIGZpbGVUeXBlOiBmaWxlVHlwZSxcclxuICAgICAgdXJsOiAnJyxcclxuICAgICAgZGVzY3JpcHRpb246IGRlc2NyaXB0aW9uLFxyXG4gICAgfTtcclxuXHJcbiAgICBpZiAoaXNGaWxlKSB7XHJcbiAgICAgIGZpbGVUeXBlID0gVXRpbGl0eS5nZXRGaWxlRXh0ZW5zaW9uKGVudHJ5LmZpbGVOYW1lKTtcclxuICAgICAgaWYgKHRoaXMuX2lzZmlsZVR5cGVBbGxvd2VkKGZpbGVUeXBlKSkge1xyXG4gICAgICAgIGlmICh0aGlzLl9pc2ZpbGVUeXBlSW1hZ2UoZmlsZVR5cGUpKSB7XHJcbiAgICAgICAgICBkb21Db25zdHJ1Y3QucGxhY2UodGhpcy5hdHRhY2htZW50Vmlld0ltYWdlVGVtcGxhdGUuYXBwbHkoZGF0YSwgdGhpcyksIHRoaXMuYXR0YWNobWVudFZpZXdlck5vZGUsICdsYXN0Jyk7XHJcbiAgICAgICAgICBjb25zdCB0cGwgPSB0aGlzLmRvd25sb2FkaW5nVGVtcGxhdGUuYXBwbHkodGhpcyk7XHJcbiAgICAgICAgICBjb25zdCBkbCA9IGRvbUNvbnN0cnVjdC5wbGFjZSh0cGwsIHRoaXMuYXR0YWNobWVudFZpZXdlck5vZGUsICdmaXJzdCcpO1xyXG4gICAgICAgICAgZG9tQ2xhc3MuYWRkKHRoaXMuZG9tTm9kZSwgJ2xpc3QtbG9hZGluZycpO1xyXG4gICAgICAgICAgY29uc3Qgc2VsZiA9IHRoaXM7XHJcbiAgICAgICAgICBjb25zdCBhdHRhY2htZW50aWQgPSBlbnRyeS4ka2V5O1xyXG4gICAgICAgICAgLy8gZGF0YXVybFxyXG4gICAgICAgICAgYW0uZ2V0QXR0YWNobWVudEZpbGUoYXR0YWNobWVudGlkLCAnYXJyYXlidWZmZXInLCBmdW5jdGlvbiBpbWFnZUhhbmRsZXIocmVzcG9uc2VJbmZvKSB7XHJcbiAgICAgICAgICAgIGNvbnN0IHJEYXRhID0gVXRpbGl0eS5iYXNlNjRBcnJheUJ1ZmZlcihyZXNwb25zZUluZm8ucmVzcG9uc2UpO1xyXG4gICAgICAgICAgICBzZWxmLmRhdGFVUkwgPSAnZGF0YTonICsgcmVzcG9uc2VJbmZvLmNvbnRlbnRUeXBlICsgJztiYXNlNjQsJyArIHJEYXRhO1xyXG5cclxuICAgICAgICAgICAgY29uc3QgaW1hZ2UgPSBuZXcgSW1hZ2UoKTtcclxuXHJcbiAgICAgICAgICAgIGNvbnN0IGxvYWRIYW5kbGVyID0gZnVuY3Rpb24gbG9hZEhhbmRsZXIoKSB7XHJcbiAgICAgICAgICAgICAgaWYgKGxvYWRlZCkge1xyXG4gICAgICAgICAgICAgICAgcmV0dXJuO1xyXG4gICAgICAgICAgICAgIH1cclxuXHJcbiAgICAgICAgICAgICAgc2VsZi5fb3JnaW5hbEltYWdlU2l6ZSA9IHtcclxuICAgICAgICAgICAgICAgIHdpZHRoOiBpbWFnZS53aWR0aCxcclxuICAgICAgICAgICAgICAgIGhlaWdodDogaW1hZ2UuaGVpZ2h0LFxyXG4gICAgICAgICAgICAgIH07XHJcbiAgICAgICAgICAgICAgc2VsZi5fc2l6ZUltYWdlKHNlbGYuZG9tTm9kZSwgaW1hZ2UpO1xyXG4gICAgICAgICAgICAgIGRvbUNvbnN0cnVjdC5wbGFjZShpbWFnZSwgJ2ltYWdlUGxhY2Vob2xkZXInLCAnb25seScpO1xyXG4gICAgICAgICAgICAgIGxvYWRlZCA9IHRydWU7XHJcbiAgICAgICAgICAgIH07XHJcblxyXG4gICAgICAgICAgICBpbWFnZS5vbmxvYWQgPSBsb2FkSGFuZGxlcjtcclxuICAgICAgICAgICAgaW1hZ2Uuc3JjID0gc2VsZi5kYXRhVVJMO1xyXG5cclxuICAgICAgICAgICAgaWYgKGltYWdlLmNvbXBsZXRlKSB7XHJcbiAgICAgICAgICAgICAgbG9hZEhhbmRsZXIoKTtcclxuICAgICAgICAgICAgfVxyXG5cclxuICAgICAgICAgICAgLy8gU2V0IGRvd25sb2FkIHRleHQgdG8gaGlkZGVuXHJcbiAgICAgICAgICAgIGRvbUNsYXNzLmFkZChkbCwgJ2Rpc3BsYXktbm9uZScpO1xyXG4gICAgICAgICAgfSk7XHJcbiAgICAgICAgfSBlbHNlIHsgLy8gVmlldyBmaWxlIHR5cGUgaW4gSWZyYW1lXHJcbiAgICAgICAgICBpZiAodGhpcy5fdmlld0ltYWdlT25seSgpID09PSBmYWxzZSkge1xyXG4gICAgICAgICAgICBkb21Db25zdHJ1Y3QucGxhY2UodGhpcy5hdHRhY2htZW50Vmlld1RlbXBsYXRlLmFwcGx5KGRhdGEsIHRoaXMpLCB0aGlzLmF0dGFjaG1lbnRWaWV3ZXJOb2RlLCAnbGFzdCcpO1xyXG4gICAgICAgICAgICBjb25zdCB0cGwgPSB0aGlzLmRvd25sb2FkaW5nVGVtcGxhdGUuYXBwbHkodGhpcyk7XHJcbiAgICAgICAgICAgIGNvbnN0IGRsID0gZG9tQ29uc3RydWN0LnBsYWNlKHRwbCwgdGhpcy5hdHRhY2htZW50Vmlld2VyTm9kZSwgJ2ZpcnN0Jyk7XHJcbiAgICAgICAgICAgIGRvbUNsYXNzLmFkZCh0aGlzLmRvbU5vZGUsICdsaXN0LWxvYWRpbmcnKTtcclxuICAgICAgICAgICAgY29uc3QgYXR0YWNobWVudGlkID0gZW50cnkuJGtleTtcclxuICAgICAgICAgICAgYW0uZ2V0QXR0YWNobWVudEZpbGUoYXR0YWNobWVudGlkLCAnYXJyYXlidWZmZXInLCBmdW5jdGlvbiBpZnJhbWVSZXNwb25zZShyZXNwb25zZUluZm8pIHtcclxuICAgICAgICAgICAgICBjb25zdCByRGF0YSA9IFV0aWxpdHkuYmFzZTY0QXJyYXlCdWZmZXIocmVzcG9uc2VJbmZvLnJlc3BvbnNlKTtcclxuICAgICAgICAgICAgICBjb25zdCBkYXRhVXJsID0gJ2RhdGE6JyArIHJlc3BvbnNlSW5mby5jb250ZW50VHlwZSArICc7YmFzZTY0LCcgKyByRGF0YTtcclxuICAgICAgICAgICAgICBkb21DbGFzcy5hZGQoZGwsICdkaXNwbGF5LW5vbmUnKTtcclxuICAgICAgICAgICAgICBjb25zdCBpZnJhbWUgPSBkb20uYnlJZCgnYXR0YWNobWVudC1JZnJhbWUnKTtcclxuICAgICAgICAgICAgICBpZnJhbWUub25sb2FkID0gZnVuY3Rpb24gaWZyYW1lT25Mb2FkKCkge1xyXG4gICAgICAgICAgICAgICAgZG9tQ2xhc3MuYWRkKGRsLCAnZGlzcGxheS1ub25lJyk7XHJcbiAgICAgICAgICAgICAgfTtcclxuICAgICAgICAgICAgICBkb21DbGFzcy5hZGQoZGwsICdkaXNwbGF5LW5vbmUnKTtcclxuICAgICAgICAgICAgICBkb21BdHRyLnNldChpZnJhbWUsICdzcmMnLCBkYXRhVXJsKTtcclxuICAgICAgICAgICAgfSk7XHJcbiAgICAgICAgICB9IGVsc2UgeyAvLyBPbmx5IHZpZXcgaW1hZ2VzXHJcbiAgICAgICAgICAgIGRvbUNvbnN0cnVjdC5wbGFjZSh0aGlzLmF0dGFjaG1lbnRWaWV3Tm90U3VwcG9ydGVkVGVtcGxhdGUuYXBwbHkoZW50cnksIHRoaXMpLCB0aGlzLmF0dGFjaG1lbnRWaWV3ZXJOb2RlLCAnbGFzdCcpO1xyXG4gICAgICAgICAgfVxyXG4gICAgICAgIH1cclxuICAgICAgfSBlbHNlIHsgLy8gRmlsZSB0eXBlIG5vdCBhbGxvd2VkXHJcbiAgICAgICAgZG9tQ29uc3RydWN0LnBsYWNlKHRoaXMuYXR0YWNobWVudFZpZXdOb3RTdXBwb3J0ZWRUZW1wbGF0ZS5hcHBseShlbnRyeSwgdGhpcyksIHRoaXMuYXR0YWNobWVudFZpZXdlck5vZGUsICdsYXN0Jyk7XHJcbiAgICAgIH1cclxuICAgIH0gZWxzZSB7IC8vIHVybCBBdHRhY2htZW50XHJcbiAgICAgIGRvbUNvbnN0cnVjdC5wbGFjZSh0aGlzLmF0dGFjaG1lbnRWaWV3VGVtcGxhdGUuYXBwbHkoZGF0YSwgdGhpcyksIHRoaXMuYXR0YWNobWVudFZpZXdlck5vZGUsICdsYXN0Jyk7XHJcbiAgICAgIGNvbnN0IHVybCA9IGFtLmdldEF0dGFjaG1lbnR1cmxCeUVudGl0eShlbnRyeSk7XHJcbiAgICAgIGRvbUNsYXNzLmFkZCh0aGlzLmRvbU5vZGUsICdsaXN0LWxvYWRpbmcnKTtcclxuICAgICAgY29uc3QgdHBsID0gdGhpcy5kb3dubG9hZGluZ1RlbXBsYXRlLmFwcGx5KHRoaXMpO1xyXG4gICAgICBjb25zdCBkbCA9IGRvbUNvbnN0cnVjdC5wbGFjZSh0cGwsIHRoaXMuYXR0YWNobWVudFZpZXdlck5vZGUsICdmaXJzdCcpO1xyXG4gICAgICBjb25zdCBpZnJhbWUgPSBkb20uYnlJZCgnYXR0YWNobWVudC1JZnJhbWUnKTtcclxuICAgICAgaWZyYW1lLm9ubG9hZCA9IGZ1bmN0aW9uIGlmcmFtZU9uTG9hZCgpIHtcclxuICAgICAgICBkb21DbGFzcy5hZGQoZGwsICdkaXNwbGF5LW5vbmUnKTtcclxuICAgICAgfTtcclxuICAgICAgZG9tQXR0ci5zZXQoaWZyYW1lLCAnc3JjJywgdXJsKTtcclxuICAgICAgZG9tQ2xhc3MuYWRkKGRsLCAnZGlzcGxheS1ub25lJyk7XHJcbiAgICB9XHJcbiAgfSxcclxuICBfaXNmaWxlVHlwZUltYWdlOiBmdW5jdGlvbiBfaXNmaWxlVHlwZUltYWdlKGZpbGVUeXBlKSB7XHJcbiAgICBjb25zdCBmVHlwZSA9IGZpbGVUeXBlLnN1YnN0cihmaWxlVHlwZS5sYXN0SW5kZXhPZignLicpICsgMSkudG9Mb3dlckNhc2UoKTtcclxuICAgIGxldCBpbWFnZVR5cGVzO1xyXG5cclxuICAgIGlmIChBcHAuaW1hZ2VGaWxlVHlwZXMpIHtcclxuICAgICAgaW1hZ2VUeXBlcyA9IEFwcC5pbWFnZUZpbGVUeXBlcztcclxuICAgIH0gZWxzZSB7XHJcbiAgICAgIGltYWdlVHlwZXMgPSB7XHJcbiAgICAgICAganBnOiB0cnVlLFxyXG4gICAgICAgIGdpZjogdHJ1ZSxcclxuICAgICAgICBwbmc6IHRydWUsXHJcbiAgICAgICAgYm1wOiB0cnVlLFxyXG4gICAgICAgIHRpZjogdHJ1ZSxcclxuICAgICAgfTtcclxuICAgIH1cclxuXHJcbiAgICBpZiAoaW1hZ2VUeXBlc1tmVHlwZV0pIHtcclxuICAgICAgcmV0dXJuIHRydWU7XHJcbiAgICB9XHJcblxyXG4gICAgcmV0dXJuIGZhbHNlO1xyXG4gIH0sXHJcbiAgX2lzZmlsZVR5cGVBbGxvd2VkOiBmdW5jdGlvbiBfaXNmaWxlVHlwZUFsbG93ZWQoZmlsZVR5cGUpIHtcclxuICAgIGNvbnN0IGZUeXBlID0gZmlsZVR5cGUuc3Vic3RyKGZpbGVUeXBlLmxhc3RJbmRleE9mKCcuJykgKyAxKS50b0xvd2VyQ2FzZSgpO1xyXG4gICAgbGV0IGZpbGVUeXBlcztcclxuXHJcbiAgICBpZiAoQXBwLm5vblZpZXdhYmxlRmlsZVR5cGVzKSB7XHJcbiAgICAgIGZpbGVUeXBlcyA9IEFwcC5ub25WaWV3YWJsZUZpbGVUeXBlcztcclxuICAgIH0gZWxzZSB7XHJcbiAgICAgIGZpbGVUeXBlcyA9IHtcclxuICAgICAgICBleGU6IHRydWUsXHJcbiAgICAgICAgZGxsOiB0cnVlLFxyXG4gICAgICB9O1xyXG4gICAgfVxyXG5cclxuICAgIGlmIChmaWxlVHlwZXNbZlR5cGVdKSB7XHJcbiAgICAgIHJldHVybiBmYWxzZTtcclxuICAgIH1cclxuICAgIHJldHVybiB0cnVlO1xyXG4gIH0sXHJcbiAgX3ZpZXdJbWFnZU9ubHk6IGZ1bmN0aW9uIF92aWV3SW1hZ2VPbmx5KCkge1xyXG4gICAgcmV0dXJuIGZhbHNlO1xyXG4gIH0sXHJcbiAgX3NpemVJbWFnZTogZnVuY3Rpb24gX3NpemVJbWFnZShjb250YWluZXJOb2RlLCBpbWFnZSkge1xyXG4gICAgY29uc3QgY29udGVudEJveCA9IGRvbUdlb20uZ2V0Q29udGVudEJveChjb250YWluZXJOb2RlKTtcclxuICAgIGNvbnN0IGlIID0gaW1hZ2UuaGVpZ2h0O1xyXG4gICAgY29uc3QgaVcgPSBpbWFnZS53aWR0aDtcclxuICAgIGxldCB3SCA9IGNvbnRlbnRCb3guaDtcclxuICAgIGxldCB3VyA9IGNvbnRlbnRCb3gudztcclxuICAgIGxldCBzY2FsZSA9IDE7XHJcblxyXG4gICAgaWYgKHdIID4gMjAwKSB7XHJcbiAgICAgIHdIID0gd0ggLSA1MDtcclxuICAgIH1cclxuXHJcbiAgICBpZiAod1cgPiAyMDApIHtcclxuICAgICAgd1cgPSB3VyAtIDUwO1xyXG4gICAgfVxyXG5cclxuICAgIGlmICh3SCA8IDUwKSB7XHJcbiAgICAgIHdIID0gMTAwO1xyXG4gICAgfVxyXG5cclxuICAgIGlmICh3VyA8IDUwKSB7XHJcbiAgICAgIHdXID0gMTAwO1xyXG4gICAgfVxyXG5cclxuICAgIC8vIGlmIHRoZSBpbWFnZSBpcyBsYXJnZXIgdGhhbiB0aGUgd2luZG93XHJcbiAgICBpZiAoaVcgPiB3VyAmJiBpSCA+IHdIKSB7XHJcbiAgICAgIC8vIGlmIHRoZSB3aW5kb3cgaGVpZ2h0IGlzIGxhZ2VyIHRoYW4gdGhlIHdpZHRoXHJcbiAgICAgIGlmICh3SCA8IHdXKSB7XHJcbiAgICAgICAgc2NhbGUgPSAxIC0gKChpSCAtIHdIKSAvIGlIKTtcclxuICAgICAgfSBlbHNlIHsgLy8gaWYgdGhlIHdpbmRvdyB3aWR0aCBpcyBsYWdlciB0aGFuIHRoZSBoZWlnaHRcclxuICAgICAgICBzY2FsZSA9IDEgLSAoKGlXIC0gd1cpIC8gaVcpO1xyXG4gICAgICB9XHJcbiAgICB9IGVsc2UgaWYgKGlXID4gd1cpIHsgLy8gaWYgdGhlIGltYWdlICB3aWR0aCBpcyBsYWdlciB0aGFuIHRoZSBoZWlnaHRcclxuICAgICAgc2NhbGUgPSAxIC0gKChpVyAtIHdXKSAvIGlXKTtcclxuICAgIH0gZWxzZSBpZiAoaUggPiB3SCkgeyAvLyBpZiB0aGUgaW1hZ2UgIGhlaWdodCBpcyBsYWdlciB0aGFuIHRoZSB3aWR0aFxyXG4gICAgICBzY2FsZSA9IDEgLSAoKGlIIC0gd0gpIC8gaUgpO1xyXG4gICAgfSBlbHNlIHtcclxuICAgICAgLy8gSW1hZ2UgaXMgc2FtbGxlciB0aGFuIHZpZXdcclxuICAgICAgaWYgKHdIIC8gaUggPiB3VyAvIGlXKSB7XHJcbiAgICAgICAgc2NhbGUgPSAxICsgKCh3SCAtIGlIKSAvIHdIKTtcclxuICAgICAgfSBlbHNlIHtcclxuICAgICAgICBzY2FsZSA9IDEgKyAoKHdXIC0gaVcpIC8gd1cpO1xyXG4gICAgICB9XHJcbiAgICB9XHJcbiAgICBpbWFnZS5oZWlnaHQgPSAwLjkwICogc2NhbGUgKiBpSDtcclxuICAgIGltYWdlLndpZHRoID0gMC45MCAqIHNjYWxlICogaVc7XHJcbiAgfSxcclxufSk7XHJcblxyXG5sYW5nLnNldE9iamVjdCgnTW9iaWxlLlNhbGVzTG9naXguVmlld3MuQXR0YWNobWVudC5WaWV3QXR0YWNobWVudCcsIF9fY2xhc3MpO1xyXG5leHBvcnQgZGVmYXVsdCBfX2NsYXNzO1xyXG4iXX0=
 </pre>
 </body>
 </html>

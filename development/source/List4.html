@@ -15,217 +15,175 @@
   </script>
 </head>
 <body onload="prettyPrint(); highlight();">
-  <pre class="prettyprint lang-js">/*
- * Copyright (c) 1997-2013, SalesLogix, NA., LLC. All rights reserved.
- */
+  <pre class="prettyprint lang-js">define('crm/Views/Attachment/List', ['exports', 'module', 'dojo/_base/declare', 'dojo/_base/lang', 'dojo/string', 'dojo/has', '../../Utility', 'argos/List', 'argos/_LegacySDataListMixin', 'argos/Convert', '../_RightDrawerListMixin', '../_CardLayoutListMixin', 'argos/I18n'], function (exports, module, _dojo_baseDeclare, _dojo_baseLang, _dojoString, _dojoHas, _Utility, _argosList, _argos_LegacySDataListMixin, _argosConvert, _RightDrawerListMixin2, _CardLayoutListMixin2, _argosI18n) {
+  function _interopRequireDefault(obj) { return obj &amp;&amp; obj.__esModule ? obj : { 'default': obj }; }
 
-<span id='crm-Views-Attachments-List'>/**
-</span> * @class crm.Views.Attachments.List
- *
- * @extends argos.List
- * @mixins argos.List
- * @mixins crm.Views._RightDrawerListMixin
- * @mixins crm.Views._CardLayoutListMixin
- * @mixins argos._LegacySDataListMixin
- *
- * @requires argos.List
- * @requires argos._LegacySDataListMixin
- * @requires argos.Convert
- *
- * @requires crm.Format
- * @requires crm.Views._RightDrawerListMixin
- * @requires crm.Views._CardLayoutListMixin
- *
- * @requires moment
- *
- */
-define('crm/Views/Attachment/List', [
-    'dojo/_base/declare',
-    'dojo/_base/lang',
-    'dojo/string',
-    'dojo/has',
-    '../../Format',
-    '../../Utility',
-    'argos/List',
-    'argos/_LegacySDataListMixin',
-    'argos/Convert',
-    '../_RightDrawerListMixin',
-    '../_CardLayoutListMixin',
-    'moment'
-], function(
-    declare,
-    lang,
-    string,
-    has,
-    format,
-    utility,
-    List,
-    _LegacySDataListMixin,
-    convert,
-    _RightDrawerListMixin,
-    _CardLayoutListMixin,
-    moment
-) {
+  var _declare = _interopRequireDefault(_dojo_baseDeclare);
 
-    var __class = declare('crm.Views.Attachment.List', [List, _RightDrawerListMixin, _CardLayoutListMixin, _LegacySDataListMixin], {
-        //Templates
-        itemTemplate: new Simplate([
-           '{% if ($.dataType === &quot;R&quot;) { %}',
-               '{%! $$.fileTemplate %}',
-           '{% } else { %}',
-              '{%! $$.urlTemplate %}',
-           '{% } %}'
-        ]),
-        fileTemplate: new Simplate([
-             '&lt;h3&gt;&lt;span&gt;{%: $.description %}&amp;nbsp;&lt;/span&gt;&lt;/h3&gt;',
-             '&lt;h4&gt;&lt;span&gt;({%: $$.uploadedOnText %} {%: crm.Format.relativeDate($.attachDate) %})&amp;nbsp;&lt;/span&gt;',
-            '&lt;span&gt;{%: crm.Format.fileSize($.fileSize) %} &lt;/span&gt;&lt;/h4&gt;',
-            '&lt;h4&gt;&lt;span&gt;{%: crm.Utility.getFileExtension($.fileName) %} &lt;/span&gt;&lt;/h4&gt;',
-            '{% if($.user) { %}',
-                '&lt;h4&gt;&lt;span&gt;{%: $.user.$descriptor  %}&lt;/span&gt;&lt;/h4&gt;',
-            '{% } %}'
-        ]),
-        urlTemplate: new Simplate([
-            '&lt;h3&gt;&lt;span&gt;{%: $.description %} &amp;nbsp;&lt;/span&gt;&lt;/h3&gt;',
-            '{% if ($.attachDate) { %}',
-                '&lt;h4&gt;&lt;span&gt;({%: $$.uploadedOnText %} {%: crm.Format.relativeDate($.attachDate) %})&amp;nbsp;&lt;/span&gt;&lt;/h4&gt;',
-            '{% } %}',
-            '&lt;h4&gt;&lt;span&gt;{%: $.url %}&amp;nbsp;&lt;/span&gt;&lt;/h4&gt;',
-            '{% if($.user) { %}',
-            '&lt;h4&gt;&lt;span&gt;{%: $.user.$descriptor  %}&lt;/span&gt;&lt;/h4&gt;',
-            '{% } %}'
-        ]),
+  var _lang = _interopRequireDefault(_dojo_baseLang);
 
-        //Localization
-        titleText: 'Attachments',
-        attachmentDateFormatText: 'ddd M/D/YYYY hh:mm:ss',
-        uploadedOnText: 'Uploaded ',// Uploaded 10 days ago
+  var _string = _interopRequireDefault(_dojoString);
 
-        //View Properties
-        id: 'attachment_list',
-        security: null,
-        enableActions: true,
-        detailView: 'view_attachment',
-        insertView: 'attachment_Add',
-        iconClass: 'fa fa-paperclip fa-lg',
-        queryOrderBy: 'attachDate desc',
-        querySelect:  [
-            'description',
-            'user',
-            'createUser',
-            'attachDate',
-            'fileSize',
-            'fileName',
-            'url',
-            'fileExists',
-            'remoteStatus',
-            'dataType',
-            'ModifyDate'
-        ],
-        resourceKind: 'attachments',
-        contractName: 'system',
-        queryInclude: ['$descriptors'],
+  var _has = _interopRequireDefault(_dojoHas);
 
-        hashTagQueries: {
-            'url': 'url ne null',
-            'binary': 'url eq null'
-        },
-        hashTagQueriesText: {
-            'url': 'url',
-            'binary': 'binary'
-        },
-        createToolLayout: function() {
-            if (!has('html5-file-api')) {
-                this.insertView = null;
-            } else {
-                return this.inherited(arguments);
-            }
-        },
-        createRequest: function() {
-            var request = this.inherited(arguments);
-            request.setQueryArg('_includeFile', 'false');
-            return request;
-        },
-        formatSearchQuery: function(searchQuery) {
-            return string.substitute('upper(description) like &quot;%${0}%&quot;', [this.escapeSearchQuery(searchQuery.toUpperCase())]);
-        },
-        getLink: function(attachment) {
-            if (attachment['url']) {
-                var href = attachment['url'] || '';
-                href = (href.indexOf('http') &lt; 0) ? 'http://' + href : href;
-                return string.substitute('&lt;a href=&quot;${0}&quot; target=&quot;_blank&quot; title=&quot;${1}&quot;&gt;${2}&lt;/a&gt;', [href, attachment['url'], attachment['$descriptor']]);
-            } else {
-                if (attachment['fileExists']) {
-                    return string.substitute('&lt;a href=&quot;javascript: Sage.Utility.File.Attachment.getAttachment(\'${0}\');&quot; title=&quot;${1}&quot;&gt;${1}&lt;/a&gt;',
-                        [attachment['$key'], attachment['$descriptor']]);
-                } else {
-                    return attachment['$descriptor'];
-                }
-            }
-        },
-        itemIconClass: 'fa-file-o',
-        fileIconByType: {
-            'xls': 'fa-file-excel-o',
-            'xlsx': 'fa-file-excel-o',
-            'doc': 'fa-file-word-o',
-            'docx': 'fa-file-word-o',
-            'ppt': 'fa-file-powerpoint-o',
-            'pptx': 'fa-file-powerpoint-o',
-            'txt': 'fa-file-text-o',
-            'rtf': 'fa-file-text-o',
-            'csv': 'fa-file-text-o',
-            'pdf': 'fa-file-pdf-o',
-            'zip': 'fa-file-zip-o',
-            'png': 'fa-file-image-o',
-            'jpg': 'fa-file-image-o',
-            'gif': 'fa-file-image-o',
-            'bmp': 'fa-file-image-o'
-        },
-        getItemIconClass: function(entry) {
-            var cls, typeCls, type, fileName = entry &amp;&amp; entry.fileName;
-            type = utility.getFileExtension(fileName);
-            cls = this.itemIconClass;
-            if (type) {
-                type = type.substr(1); //Remove the '.' from the ext.
-                typeCls = this.fileIconByType[type];
-                if (typeCls) {
-                    cls = typeCls;
-                }
-            }
-            if (cls) {
-                cls = 'fa ' + cls + ' fa-2x';
-            }
-            return cls;
-        },
-        createIndicatorLayout: function() {
-            return this.itemIndicators || (this.itemIndicators = [{
-                id: 'touched',
-                cls: 'fa fa-hand-o-up fa-lg',
-                label: 'Touched',
-                onApply: function(entry, parent) {
-                    this.isEnabled = parent.hasBeenTouched(entry);
-                }
-            }]
-            );
-        },
-        hasBeenTouched: function(entry) {
-            var modifiedDate, currentDate, weekAgo;
-            if (entry['modifyDate']) {
-                modifiedDate = moment(convert.toDateFromString(entry['modifyDate']));
-                currentDate = moment().endOf('day');
-                weekAgo = moment().subtract(1, 'weeks');
+  var _utility = _interopRequireDefault(_Utility);
 
-                return modifiedDate.isAfter(weekAgo) &amp;&amp;
-                    modifiedDate.isBefore(currentDate);
-            }
-            return false;
+  var _List = _interopRequireDefault(_argosList);
+
+  var _LegacySDataListMixin2 = _interopRequireDefault(_argos_LegacySDataListMixin);
+
+  var _convert = _interopRequireDefault(_argosConvert);
+
+  var _RightDrawerListMixin3 = _interopRequireDefault(_RightDrawerListMixin2);
+
+  var _CardLayoutListMixin3 = _interopRequireDefault(_CardLayoutListMixin2);
+
+  var _getResource = _interopRequireDefault(_argosI18n);
+
+  var resource = (0, _getResource['default'])('attachmentList');
+
+<span id='crm-Views-Attachments-List'>  /**
+</span>   * @class crm.Views.Attachments.List
+   *
+   * @extends argos.List
+   * @mixins argos.List
+   * @mixins crm.Views._RightDrawerListMixin
+   * @mixins crm.Views._CardLayoutListMixin
+   * @mixins argos._LegacySDataListMixin
+   *
+   * @requires argos.List
+   * @requires argos._LegacySDataListMixin
+   * @requires argos.Convert
+   *
+   * @requires crm.Format
+   * @requires crm.Views._RightDrawerListMixin
+   * @requires crm.Views._CardLayoutListMixin
+   *
+   * @requires moment
+   *
+   */
+  var __class = (0, _declare['default'])('crm.Views.Attachment.List', [_List['default'], _RightDrawerListMixin3['default'], _CardLayoutListMixin3['default'], _LegacySDataListMixin2['default']], {
+    // Templates
+    itemTemplate: new Simplate(['{% if ($.dataType === &quot;R&quot;) { %}', '{%! $$.fileTemplate %}', '{% } else { %}', '{%! $$.urlTemplate %}', '{% } %}']),
+    fileTemplate: new Simplate(['&lt;h3&gt;&lt;span&gt;{%: $.description %}&amp;nbsp;&lt;/span&gt;&lt;/h3&gt;', '&lt;h4&gt;&lt;span&gt;({%: $$.uploadedOnText %} {%: crm.Format.relativeDate($.attachDate) %})&amp;nbsp;&lt;/span&gt;', '&lt;span&gt;{%: crm.Format.fileSize($.fileSize) %} &lt;/span&gt;&lt;/h4&gt;', '&lt;h4&gt;&lt;span&gt;{%: crm.Utility.getFileExtension($.fileName) %} &lt;/span&gt;&lt;/h4&gt;', '{% if($.user) { %}', '&lt;h4&gt;&lt;span&gt;{%: $.user.$descriptor  %}&lt;/span&gt;&lt;/h4&gt;', '{% } %}']),
+    urlTemplate: new Simplate(['&lt;h3&gt;&lt;span&gt;{%: $.description %} &amp;nbsp;&lt;/span&gt;&lt;/h3&gt;', '{% if ($.attachDate) { %}', '&lt;h4&gt;&lt;span&gt;({%: $$.uploadedOnText %} {%: crm.Format.relativeDate($.attachDate) %})&amp;nbsp;&lt;/span&gt;&lt;/h4&gt;', '{% } %}', '&lt;h4&gt;&lt;span&gt;{%: $.url %}&amp;nbsp;&lt;/span&gt;&lt;/h4&gt;', '{% if($.user) { %}', '&lt;h4&gt;&lt;span&gt;{%: $.user.$descriptor  %}&lt;/span&gt;&lt;/h4&gt;', '{% } %}']),
+
+    // Localization
+    titleText: resource.titleText,
+    attachmentDateFormatText: resource.attachmentDateFormatText,
+    uploadedOnText: resource.uploadedOnText, // Uploaded 10 days ago
+
+    // View Properties
+    id: 'attachment_list',
+    security: null,
+    enableActions: true,
+    detailView: 'view_attachment',
+    insertView: 'attachment_Add',
+    iconClass: 'fa fa-paperclip fa-lg',
+    queryOrderBy: 'attachDate desc',
+    querySelect: ['description', 'user', 'createUser', 'attachDate', 'fileSize', 'fileName', 'url', 'fileExists', 'remoteStatus', 'dataType', 'ModifyDate'],
+    resourceKind: 'attachments',
+    contractName: 'system',
+    queryInclude: ['$descriptors'],
+
+    hashTagQueries: {
+      'url': &quot;(fileName like '%.URL')&quot;,
+      'binary': &quot;(fileName not like '%.URL')&quot;
+    },
+    hashTagQueriesText: {
+      'url': 'url',
+      'binary': 'binary'
+    },
+    createToolLayout: function createToolLayout() {
+      if (!(0, _has['default'])('html5-file-api')) {
+        this.insertView = null;
+      } else {
+        return this.inherited(arguments);
+      }
+    },
+    createRequest: function createRequest() {
+      var request = this.inherited(arguments);
+      request.setQueryArg('_includeFile', 'false');
+      return request;
+    },
+    formatSearchQuery: function formatSearchQuery(searchQuery) {
+      return _string['default'].substitute('upper(description) like &quot;%${0}%&quot;', [this.escapeSearchQuery(searchQuery.toUpperCase())]);
+    },
+    getLink: function getLink(attachment) {
+      var toReturn = undefined;
+      if (attachment.url) {
+        var href = attachment.url || '';
+        href = href.indexOf('http') &lt; 0 ? 'http://' + href : href;
+        toReturn = _string['default'].substitute('&lt;a href=&quot;${0}&quot; target=&quot;_blank&quot; title=&quot;${1}&quot;&gt;${2}&lt;/a&gt;', [href, attachment.url, attachment.$descriptor]);
+      } else {
+        if (attachment.fileExists) {
+          toReturn = _string['default'].substitute('&lt;a href=&quot;javascript: Sage.Utility.File.Attachment.getAttachment(\'${0}\');&quot; title=&quot;${1}&quot;&gt;${1}&lt;/a&gt;', [attachment.$key, attachment.$descriptor]);
+        } else {
+          toReturn = attachment.$descriptor;
         }
-    });
+      }
+      return toReturn;
+    },
+    itemIconClass: 'fa-file-o',
+    fileIconByType: {
+      'xls': 'fa-file-excel-o',
+      'xlsx': 'fa-file-excel-o',
+      'doc': 'fa-file-word-o',
+      'docx': 'fa-file-word-o',
+      'ppt': 'fa-file-powerpoint-o',
+      'pptx': 'fa-file-powerpoint-o',
+      'txt': 'fa-file-text-o',
+      'rtf': 'fa-file-text-o',
+      'csv': 'fa-file-text-o',
+      'pdf': 'fa-file-pdf-o',
+      'zip': 'fa-file-zip-o',
+      'png': 'fa-file-image-o',
+      'jpg': 'fa-file-image-o',
+      'gif': 'fa-file-image-o',
+      'bmp': 'fa-file-image-o'
+    },
+    getItemIconClass: function getItemIconClass(entry) {
+      var fileName = entry &amp;&amp; entry.fileName;
+      var type = _utility['default'].getFileExtension(fileName);
+      var cls = this.itemIconClass;
+      if (type) {
+        type = type.substr(1); // Remove the '.' from the ext.
+        var typeCls = this.fileIconByType[type];
+        if (typeCls) {
+          cls = typeCls;
+        }
+      }
+      if (cls) {
+        cls = 'fa ' + cls + ' fa-2x';
+      }
+      return cls;
+    },
+    createIndicatorLayout: function createIndicatorLayout() {
+      return this.itemIndicators || (this.itemIndicators = [{
+        id: 'touched',
+        cls: 'fa fa-hand-o-up fa-lg',
+        label: 'Touched',
+        onApply: function onApply(entry, parent) {
+          this.isEnabled = parent.hasBeenTouched(entry);
+        }
+      }]);
+    },
+    hasBeenTouched: function hasBeenTouched(entry) {
+      if (entry.modifyDate) {
+        var modifiedDate = moment(_convert['default'].toDateFromString(entry.modifyDate));
+        var currentDate = moment().endOf('day');
+        var weekAgo = moment().subtract(1, 'weeks');
 
-    lang.setObject('Mobile.SalesLogix.Views.Attachment.List', __class);
-    return __class;
+        return modifiedDate.isAfter(weekAgo) &amp;&amp; modifiedDate.isBefore(currentDate);
+      }
+      return false;
+    }
+  });
+
+  _lang['default'].setObject('Mobile.SalesLogix.Views.Attachment.List', __class);
+  module.exports = __class;
 });
-
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInNyYy9WaWV3cy9BdHRhY2htZW50L0xpc3QuanMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7OztBQVlBLE1BQU0sUUFBUSxHQUFHLDZCQUFZLGdCQUFnQixDQUFDLENBQUM7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7QUFzQi9DLE1BQU0sT0FBTyxHQUFHLHlCQUFRLDJCQUEyQixFQUFFLDBIQUEwRSxFQUFFOztBQUUvSCxnQkFBWSxFQUFFLElBQUksUUFBUSxDQUFDLENBQ3pCLGlDQUFpQyxFQUNqQyx3QkFBd0IsRUFDeEIsZ0JBQWdCLEVBQ2hCLHVCQUF1QixFQUN2QixTQUFTLENBQ1YsQ0FBQztBQUNGLGdCQUFZLEVBQUUsSUFBSSxRQUFRLENBQUMsQ0FDekIsa0RBQWtELEVBQ2xELGdHQUFnRyxFQUNoRywyREFBMkQsRUFDM0Qsd0VBQXdFLEVBQ3hFLG9CQUFvQixFQUNwQixrREFBa0QsRUFDbEQsU0FBUyxDQUNWLENBQUM7QUFDRixlQUFXLEVBQUUsSUFBSSxRQUFRLENBQUMsQ0FDeEIsbURBQW1ELEVBQ25ELDJCQUEyQixFQUMzQixxR0FBcUcsRUFDckcsU0FBUyxFQUNULDBDQUEwQyxFQUMxQyxvQkFBb0IsRUFDcEIsa0RBQWtELEVBQ2xELFNBQVMsQ0FDVixDQUFDOzs7QUFHRixhQUFTLEVBQUUsUUFBUSxDQUFDLFNBQVM7QUFDN0IsNEJBQXdCLEVBQUUsUUFBUSxDQUFDLHdCQUF3QjtBQUMzRCxrQkFBYyxFQUFFLFFBQVEsQ0FBQyxjQUFjOzs7QUFHdkMsTUFBRSxFQUFFLGlCQUFpQjtBQUNyQixZQUFRLEVBQUUsSUFBSTtBQUNkLGlCQUFhLEVBQUUsSUFBSTtBQUNuQixjQUFVLEVBQUUsaUJBQWlCO0FBQzdCLGNBQVUsRUFBRSxnQkFBZ0I7QUFDNUIsYUFBUyxFQUFFLHVCQUF1QjtBQUNsQyxnQkFBWSxFQUFFLGlCQUFpQjtBQUMvQixlQUFXLEVBQUUsQ0FDWCxhQUFhLEVBQ2IsTUFBTSxFQUNOLFlBQVks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RUFBRSxDQUFDLEtBQUssQ0FBQyxLQUFLLENBQUMsQ0FBQztBQUMxQyxZQUFNLE9BQU8sR0FBRyxNQUFNLEVBQUUsQ0FBQyxRQUFRLENBQUMsQ0FBQyxFQUFFLE9BQU8sQ0FBQyxDQUFDOztBQUU5QyxlQUFPLFlBQVksQ0FBQyxPQUFPLENBQUMsT0FBTyxDQUFDLElBQ2xDLFlBQVksQ0FBQyxRQUFRLENBQUMsV0FBVyxDQUFDLENBQUM7T0FDdEM7QUFDRCxhQUFPLEtBQUssQ0FBQztLQUNkO0dBQ0YsQ0FBQyxDQUFDOztBQUVILG1CQUFLLFNBQVMsQ0FBQyx5Q0FBeUMsRUFBRSxPQUFPLENBQUMsQ0FBQzttQkFDcEQsT0FBTyIsImZpbGUiOiJzcmMvVmlld3MvQXR0YWNobWVudC9MaXN0LmpzIiwic291cmNlUm9vdCI6InNyYyIsInNvdXJjZXNDb250ZW50IjpbImltcG9ydCBkZWNsYXJlIGZyb20gJ2Rvam8vX2Jhc2UvZGVjbGFyZSc7XHJcbmltcG9ydCBsYW5nIGZyb20gJ2Rvam8vX2Jhc2UvbGFuZyc7XHJcbmltcG9ydCBzdHJpbmcgZnJvbSAnZG9qby9zdHJpbmcnO1xyXG5pbXBvcnQgaGFzIGZyb20gJ2Rvam8vaGFzJztcclxuaW1wb3J0IHV0aWxpdHkgZnJvbSAnLi4vLi4vVXRpbGl0eSc7XHJcbmltcG9ydCBMaXN0IGZyb20gJ2FyZ29zL0xpc3QnO1xyXG5pbXBvcnQgX0xlZ2FjeVNEYXRhTGlzdE1peGluIGZyb20gJ2FyZ29zL19MZWdhY3lTRGF0YUxpc3RNaXhpbic7XHJcbmltcG9ydCBjb252ZXJ0IGZyb20gJ2FyZ29zL0NvbnZlcnQnO1xyXG5pbXBvcnQgX1JpZ2h0RHJhd2VyTGlzdE1peGluIGZyb20gJy4uL19SaWdodERyYXdlckxpc3RNaXhpbic7XHJcbmltcG9ydCBfQ2FyZExheW91dExpc3RNaXhpbiBmcm9tICcuLi9fQ2FyZExheW91dExpc3RNaXhpbic7XHJcbmltcG9ydCBnZXRSZXNvdXJjZSBmcm9tICdhcmdvcy9JMThuJztcclxuXHJcbmNvbnN0IHJlc291cmNlID0gZ2V0UmVzb3VyY2UoJ2F0dGFjaG1lbnRMaXN0Jyk7XHJcblxyXG4vKipcclxuICogQGNsYXNzIGNybS5WaWV3cy5BdHRhY2htZW50cy5MaXN0XHJcbiAqXHJcbiAqIEBleHRlbmRzIGFyZ29zLkxpc3RcclxuICogQG1peGlucyBhcmdvcy5MaXN0XHJcbiAqIEBtaXhpbnMgY3JtLlZpZXdzLl9SaWdodERyYXdlckxpc3RNaXhpblxyXG4gKiBAbWl4aW5zIGNybS5WaWV3cy5fQ2FyZExheW91dExpc3RNaXhpblxyXG4gKiBAbWl4aW5zIGFyZ29zLl9MZWdhY3lTRGF0YUxpc3RNaXhpblxyXG4gKlxyXG4gKiBAcmVxdWlyZXMgYXJnb3MuTGlzdFxyXG4gKiBAcmVxdWlyZXMgYXJnb3MuX0xlZ2FjeVNEYXRhTGlzdE1peGluXHJcbiAqIEByZXF1aXJlcyBhcmdvcy5Db252ZXJ0XHJcbiAqXHJcbiAqIEByZXF1aXJlcyBjcm0uRm9ybWF0XHJcbiAqIEByZXF1aXJlcyBjcm0uVmlld3MuX1JpZ2h0RHJhd2VyTGlzdE1peGluXHJcbiAqIEByZXF1aXJlcyBjcm0uVmlld3MuX0NhcmRMYXlvdXRMaXN0TWl4aW5cclxuICpcclxuICogQHJlcXVpcmVzIG1vbWVudFxyXG4gKlxyXG4gKi9cclxuY29uc3QgX19jbGFzcyA9IGRlY2xhcmUoJ2NybS5WaWV3cy5BdHRhY2htZW50Lkxpc3QnLCBbTGlzdCwgX1JpZ2h0RHJhd2VyTGlzdE1peGluLCBfQ2FyZExheW91dExpc3RNaXhpbiwgX0xlZ2FjeVNEYXRhTGlzdE1peGluXSwge1xyXG4gIC8vIFRlbXBsYXRlc1xyXG4gIGl0ZW1UZW1wbGF0ZTogbmV3IFNpbXBsYXRlKFtcclxuICAgICd7JSBpZiAoJC5kYXRhVHlwZSA9PT0gXCJSXCIpIHsgJX0nLFxyXG4gICAgJ3slISAkJC5maWxlVGVtcGxhdGUgJX0nLFxyXG4gICAgJ3slIH0gZWxzZSB7ICV9JyxcclxuICAgICd7JSEgJCQudXJsVGVtcGxhdGUgJX0nLFxyXG4gICAgJ3slIH0gJX0nLFxyXG4gIF0pLFxyXG4gIGZpbGVUZW1wbGF0ZTogbmV3IFNpbXBsYXRlKFtcclxuICAgICc8aDM+PHNwYW4+eyU6ICQuZGVzY3JpcHRpb24gJX0mbmJzcDs8L3NwYW4+PC9oMz4nLFxyXG4gICAgJzxoND48c3Bhbj4oeyU6ICQkLnVwbG9hZGVkT25UZXh0ICV9IHslOiBjcm0uRm9ybWF0LnJlbGF0aXZlRGF0ZSgkLmF0dGFjaERhdGUpICV9KSZuYnNwOzwvc3Bhbj4nLFxyXG4gICAgJzxzcGFuPnslOiBjcm0uRm9ybWF0LmZpbGVTaXplKCQuZmlsZVNpemUpICV9IDwvc3Bhbj48L2g0PicsXHJcbiAgICAnPGg0PjxzcGFuPnslOiBjcm0uVXRpbGl0eS5nZXRGaWxlRXh0ZW5zaW9uKCQuZmlsZU5hbWUpICV9IDwvc3Bhbj48L2g0PicsXHJcbiAgICAneyUgaWYoJC51c2VyKSB7ICV9JyxcclxuICAgICc8aDQ+PHNwYW4+eyU6ICQudXNlci4kZGVzY3JpcHRvciAgJX08L3NwYW4+PC9oND4nLFxyXG4gICAgJ3slIH0gJX0nLFxyXG4gIF0pLFxyXG4gIHVybFRlbXBsYXRlOiBuZXcgU2ltcGxhdGUoW1xyXG4gICAgJzxoMz48c3Bhbj57JTogJC5kZXNjcmlwdGlvbiAlfSAmbmJzcDs8L3NwYW4+PC9oMz4nLFxyXG4gICAgJ3slIGlmICgkLmF0dGFjaERhdGUpIHsgJX0nLFxyXG4gICAgJzxoND48c3Bhbj4oeyU6ICQkLnVwbG9hZGVkT25UZXh0ICV9IHslOiBjcm0uRm9ybWF0LnJlbGF0aXZlRGF0ZSgkLmF0dGFjaERhdGUpICV9KSZuYnNwOzwvc3Bhbj48L2g0PicsXHJcbiAgICAneyUgfSAlfScsXHJcbiAgICAnPGg0PjxzcGFuPnslOiAkLnVybCAlfSZuYnNwOzwvc3Bhbj48L2g0PicsXHJcbiAgICAneyUgaWYoJC51c2VyKSB7ICV9JyxcclxuICAgICc8aDQ+PHNwYW4+eyU6ICQudXNlci4kZGVzY3JpcHRvciAgJX08L3NwYW4+PC9oND4nLFxyXG4gICAgJ3slIH0gJX0nLFxyXG4gIF0pLFxyXG5cclxuICAvLyBMb2NhbGl6YXRpb25cclxuICB0aXRsZVRleHQ6IHJlc291cmNlLnRpdGxlVGV4dCxcclxuICBhdHRhY2htZW50RGF0ZUZvcm1hdFRleHQ6IHJlc291cmNlLmF0dGFjaG1lbnREYXRlRm9ybWF0VGV4dCxcclxuICB1cGxvYWRlZE9uVGV4dDogcmVzb3VyY2UudXBsb2FkZWRPblRleHQsIC8vIFVwbG9hZGVkIDEwIGRheXMgYWdvXHJcblxyXG4gIC8vIFZpZXcgUHJvcGVydGllc1xyXG4gIGlkOiAnYXR0YWNobWVudF9saXN0JyxcclxuICBzZWN1cml0eTogbnVsbCxcclxuICBlbmFibGVBY3Rpb25zOiB0cnVlLFxyXG4gIGRldGFpbFZpZXc6ICd2aWV3X2F0dGFjaG1lbnQnLFxyXG4gIGluc2VydFZpZXc6ICdhdHRhY2htZW50X0FkZCcsXHJcbiAgaWNvbkNsYXNzOiAnZmEgZmEtcGFwZXJjbGlwIGZhLWxnJyxcclxuICBxdWVyeU9yZGVyQnk6ICdhdHRhY2hEYXRlIGRlc2MnLFxyXG4gIHF1ZXJ5U2VsZWN0OiBbXHJcbiAgICAnZGVzY3JpcHRpb24nLFxyXG4gICAgJ3VzZXInLFxyXG4gICAgJ2NyZWF0ZVVzZXInLFxyXG4gICAgJ2F0dGFjaERhdGUnLFxyXG4gICAgJ2ZpbGVTaXplJyxcclxuICAgICdmaWxlTmFtZScsXHJcbiAgICAndXJsJyxcclxuICAgICdmaWxlRXhpc3RzJyxcclxuICAgICdyZW1vdGVTdGF0dXMnLFxyXG4gICAgJ2RhdGFUeXBlJyxcclxuICAgICdNb2RpZnlEYXRlJyxcclxuICBdLFxyXG4gIHJlc291cmNlS2luZDogJ2F0dGFjaG1lbnRzJyxcclxuICBjb250cmFjdE5hbWU6ICdzeXN0ZW0nLFxyXG4gIHF1ZXJ5SW5jbHVkZTogWyckZGVzY3JpcHRvcnMnXSxcclxuXHJcbiAgaGFzaFRhZ1F1ZXJpZXM6IHtcclxuICAgICd1cmwnOiBcIihmaWxlTmFtZSBsaWtlICclLlVSTCcpXCIsXHJcbiAgICAnYmluYXJ5JzogXCIoZmlsZU5hbWUgbm90IGxpa2UgJyUuVVJMJylcIixcclxuICB9LFxyXG4gIGhhc2hUYWdRdWVyaWVzVGV4dDoge1xyXG4gICAgJ3VybCc6ICd1cmwnLFxyXG4gICAgJ2JpbmFyeSc6ICdiaW5hcnknLFxyXG4gIH0sXHJcbiAgY3JlYXRlVG9vbExheW91dDogZnVuY3Rpb24gY3JlYXRlVG9vbExheW91dCgpIHtcclxuICAgIGlmICghaGFzKCdodG1sNS1maWxlLWFwaScpKSB7XHJcbiAgICAgIHRoaXMuaW5zZXJ0VmlldyA9IG51bGw7XHJcbiAgICB9IGVsc2Uge1xyXG4gICAgICByZXR1cm4gdGhpcy5pbmhlcml0ZWQoYXJndW1lbnRzKTtcclxuICAgIH1cclxuICB9LFxyXG4gIGNyZWF0ZVJlcXVlc3Q6IGZ1bmN0aW9uIGNyZWF0ZVJlcXVlc3QoKSB7XHJcbiAgICBjb25zdCByZXF1ZXN0ID0gdGhpcy5pbmhlcml0ZWQoYXJndW1lbnRzKTtcclxuICAgIHJlcXVlc3Quc2V0UXVlcnlBcmcoJ19pbmNsdWRlRmlsZScsICdmYWxzZScpO1xyXG4gICAgcmV0dXJuIHJlcXVlc3Q7XHJcbiAgfSxcclxuICBmb3JtYXRTZWFyY2hRdWVyeTogZnVuY3Rpb24gZm9ybWF0U2VhcmNoUXVlcnkoc2VhcmNoUXVlcnkpIHtcclxuICAgIHJldHVybiBzdHJpbmcuc3Vic3RpdHV0ZSgndXBwZXIoZGVzY3JpcHRpb24pIGxpa2UgXCIlJHswfSVcIicsIFt0aGlzLmVzY2FwZVNlYXJjaFF1ZXJ5KHNlYXJjaFF1ZXJ5LnRvVXBwZXJDYXNlKCkpXSk7XHJcbiAgfSxcclxuICBnZXRMaW5rOiBmdW5jdGlvbiBnZXRMaW5rKGF0dGFjaG1lbnQpIHtcclxuICAgIGxldCB0b1JldHVybjtcclxuICAgIGlmIChhdHRhY2htZW50LnVybCkge1xyXG4gICAgICBsZXQgaHJlZiA9IGF0dGFjaG1lbnQudXJsIHx8ICcnO1xyXG4gICAgICBocmVmID0gKGhyZWYuaW5kZXhPZignaHR0cCcpIDwgMCkgPyAnaHR0cDovLycgKyBocmVmIDogaHJlZjtcclxuICAgICAgdG9SZXR1cm4gPSBzdHJpbmcuc3Vic3RpdHV0ZSgnPGEgaHJlZj1cIiR7MH1cIiB0YXJnZXQ9XCJfYmxhbmtcIiB0aXRsZT1cIiR7MX1cIj4kezJ9PC9hPicsIFtocmVmLCBhdHRhY2htZW50LnVybCwgYXR0YWNobWVudC4kZGVzY3JpcHRvcl0pO1xyXG4gICAgfSBlbHNlIHtcclxuICAgICAgaWYgKGF0dGFjaG1lbnQuZmlsZUV4aXN0cykge1xyXG4gICAgICAgIHRvUmV0dXJuID0gc3RyaW5nLnN1YnN0aXR1dGUoJzxhIGhyZWY9XCJqYXZhc2NyaXB0OiBTYWdlLlV0aWxpdHkuRmlsZS5BdHRhY2htZW50LmdldEF0dGFjaG1lbnQoXFwnJHswfVxcJyk7XCIgdGl0bGU9XCIkezF9XCI+JHsxfTwvYT4nLCBbYXR0YWNobWVudC4ka2V5LCBhdHRhY2htZW50LiRkZXNjcmlwdG9yXSk7XHJcbiAgICAgIH0gZWxzZSB7XHJcbiAgICAgICAgdG9SZXR1cm4gPSBhdHRhY2htZW50LiRkZXNjcmlwdG9yO1xyXG4gICAgICB9XHJcbiAgICB9XHJcbiAgICByZXR1cm4gdG9SZXR1cm47XHJcbiAgfSxcclxuICBpdGVtSWNvbkNsYXNzOiAnZmEtZmlsZS1vJyxcclxuICBmaWxlSWNvbkJ5VHlwZToge1xyXG4gICAgJ3hscyc6ICdmYS1maWxlLWV4Y2VsLW8nLFxyXG4gICAgJ3hsc3gnOiAnZmEtZmlsZS1leGNlbC1vJyxcclxuICAgICdkb2MnOiAnZmEtZmlsZS13b3JkLW8nLFxyXG4gICAgJ2RvY3gnOiAnZmEtZmlsZS13b3JkLW8nLFxyXG4gICAgJ3BwdCc6ICdmYS1maWxlLXBvd2VycG9pbnQtbycsXHJcbiAgICAncHB0eCc6ICdmYS1maWxlLXBvd2VycG9pbnQtbycsXHJcbiAgICAndHh0JzogJ2ZhLWZpbGUtdGV4dC1vJyxcclxuICAgICdydGYnOiAnZmEtZmlsZS10ZXh0LW8nLFxyXG4gICAgJ2Nzdic6ICdmYS1maWxlLXRleHQtbycsXHJcbiAgICAncGRmJzogJ2ZhLWZpbGUtcGRmLW8nLFxyXG4gICAgJ3ppcCc6ICdmYS1maWxlLXppcC1vJyxcclxuICAgICdwbmcnOiAnZmEtZmlsZS1pbWFnZS1vJyxcclxuICAgICdqcGcnOiAnZmEtZmlsZS1pbWFnZS1vJyxcclxuICAgICdnaWYnOiAnZmEtZmlsZS1pbWFnZS1vJyxcclxuICAgICdibXAnOiAnZmEtZmlsZS1pbWFnZS1vJyxcclxuICB9LFxyXG4gIGdldEl0ZW1JY29uQ2xhc3M6IGZ1bmN0aW9uIGdldEl0ZW1JY29uQ2xhc3MoZW50cnkpIHtcclxuICAgIGNvbnN0IGZpbGVOYW1lID0gZW50cnkgJiYgZW50cnkuZmlsZU5hbWU7XHJcbiAgICBsZXQgdHlwZSA9IHV0aWxpdHkuZ2V0RmlsZUV4dGVuc2lvbihmaWxlTmFtZSk7XHJcbiAgICBsZXQgY2xzID0gdGhpcy5pdGVtSWNvbkNsYXNzO1xyXG4gICAgaWYgKHR5cGUpIHtcclxuICAgICAgdHlwZSA9IHR5cGUuc3Vic3RyKDEpOyAvLyBSZW1vdmUgdGhlICcuJyBmcm9tIHRoZSBleHQuXHJcbiAgICAgIGNvbnN0IHR5cGVDbHMgPSB0aGlzLmZpbGVJY29uQnlUeXBlW3R5cGVdO1xyXG4gICAgICBpZiAodHlwZUNscykge1xyXG4gICAgICAgIGNscyA9IHR5cGVDbHM7XHJcbiAgICAgIH1cclxuICAgIH1cclxuICAgIGlmIChjbHMpIHtcclxuICAgICAgY2xzID0gJ2ZhICcgKyBjbHMgKyAnIGZhLTJ4JztcclxuICAgIH1cclxuICAgIHJldHVybiBjbHM7XHJcbiAgfSxcclxuICBjcmVhdGVJbmRpY2F0b3JMYXlvdXQ6IGZ1bmN0aW9uIGNyZWF0ZUluZGljYXRvckxheW91dCgpIHtcclxuICAgIHJldHVybiB0aGlzLml0ZW1JbmRpY2F0b3JzIHx8ICh0aGlzLml0ZW1JbmRpY2F0b3JzID0gW3tcclxuICAgICAgaWQ6ICd0b3VjaGVkJyxcclxuICAgICAgY2xzOiAnZmEgZmEtaGFuZC1vLXVwIGZhLWxnJyxcclxuICAgICAgbGFiZWw6ICdUb3VjaGVkJyxcclxuICAgICAgb25BcHBseTogZnVuY3Rpb24gb25BcHBseShlbnRyeSwgcGFyZW50KSB7XHJcbiAgICAgICAgdGhpcy5pc0VuYWJsZWQgPSBwYXJlbnQuaGFzQmVlblRvdWNoZWQoZW50cnkpO1xyXG4gICAgICB9LFxyXG4gICAgfV0pO1xyXG4gIH0sXHJcbiAgaGFzQmVlblRvdWNoZWQ6IGZ1bmN0aW9uIGhhc0JlZW5Ub3VjaGVkKGVudHJ5KSB7XHJcbiAgICBpZiAoZW50cnkubW9kaWZ5RGF0ZSkge1xyXG4gICAgICBjb25zdCBtb2RpZmllZERhdGUgPSBtb21lbnQoY29udmVydC50b0RhdGVGcm9tU3RyaW5nKGVudHJ5Lm1vZGlmeURhdGUpKTtcclxuICAgICAgY29uc3QgY3VycmVudERhdGUgPSBtb21lbnQoKS5lbmRPZignZGF5Jyk7XHJcbiAgICAgIGNvbnN0IHdlZWtBZ28gPSBtb21lbnQoKS5zdWJ0cmFjdCgxLCAnd2Vla3MnKTtcclxuXHJcbiAgICAgIHJldHVybiBtb2RpZmllZERhdGUuaXNBZnRlcih3ZWVrQWdvKSAmJlxyXG4gICAgICAgIG1vZGlmaWVkRGF0ZS5pc0JlZm9yZShjdXJyZW50RGF0ZSk7XHJcbiAgICB9XHJcbiAgICByZXR1cm4gZmFsc2U7XHJcbiAgfSxcclxufSk7XHJcblxyXG5sYW5nLnNldE9iamVjdCgnTW9iaWxlLlNhbGVzTG9naXguVmlld3MuQXR0YWNobWVudC5MaXN0JywgX19jbGFzcyk7XHJcbmV4cG9ydCBkZWZhdWx0IF9fY2xhc3M7XHJcbiJdfQ==
 </pre>
 </body>
 </html>

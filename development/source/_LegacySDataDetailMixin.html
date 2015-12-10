@@ -15,145 +15,148 @@
   </script>
 </head>
 <body onload="prettyPrint(); highlight();">
-  <pre class="prettyprint lang-js">/*
- * Copyright (c) 1997-2014, SalesLogix, NA., LLC. All rights reserved.
- */
+  <pre class="prettyprint lang-js">define('argos/_LegacySDataDetailMixin', ['exports', 'module', 'dojo/_base/declare', 'dojo/_base/lang', 'dojo/dom-class', 'dojo/dom-construct', 'dojo/string', './ErrorManager'], function (exports, module, _dojo_baseDeclare, _dojo_baseLang, _dojoDomClass, _dojoDomConstruct, _dojoString, _ErrorManager) {
+  function _interopRequireDefault(obj) { return obj &amp;&amp; obj.__esModule ? obj : { 'default': obj }; }
 
-<span id='global-property-'>/**
-</span> * _LegacySDataDetailMixin enables legacy SData operations for the Detail view.
- *
- * @alternateClassName _LegacySDataDetailMixin
- */
-define('argos/_LegacySDataDetailMixin', [
-    'dojo/_base/declare',
-    'dojo/_base/lang',
-    'dojo/dom-class',
-    'dojo/dom-construct',
-    'dojo/string',
-    './ErrorManager'
-], function(
-    declare,
-    lang,
-    domClass,
-    domConstruct,
-    string,
-    ErrorManager
-) {
-    var __class = declare('argos._LegacySDataDetailMixin', null, {
-<span id='global-method-requestData'>        /**
-</span>         * Initiates the SData request.
-         */
-        requestData: function() {
-            var request;
-            request = this.createRequest();
+  /*
+   * Copyright (c) 1997-2014, SalesLogix, NA., LLC. All rights reserved.
+   */
 
-            if (request) {
-                request.read({
-                    success: this.onRequestDataSuccess,
-                    failure: this.onRequestDataFailure,
-                    aborted: this.onRequestDataAborted,
-                    scope: this
-                });
-            }
-        },
-<span id='global-method-createRequest'>        /**
-</span>         * Creates Sage.SData.Client.SDataSingleResourceRequest instance and sets a number of known properties.
-         *
-         * List of properties used `this.property/this.options.property`:
-         *
-         * `/key`, `resourceKind`, `querySelect`, `queryInclude`, `queryOrderBy`, and `contractName`
-         *
-         * @return {Object} Sage.SData.Client.SDataSingleResourceRequest instance.
-         */
-        createRequest: function() {
-            var request = new Sage.SData.Client.SDataSingleResourceRequest(this.getService());
+  var _declare = _interopRequireDefault(_dojo_baseDeclare);
 
-            /* test for complex selector */
-            /* todo: more robust test required? */
-            if (/(\s+)/.test(this.options.key)) {
-                request.setResourceSelector(this.options.key);
-            } else {
-                request.setResourceSelector(string.substitute(&quot;'${0}'&quot;, [this.options.key]));
-            }
+  var _lang = _interopRequireDefault(_dojo_baseLang);
 
-            if (this.resourceKind) {
-                request.setResourceKind(this.resourceKind);
-            }
+  var _domClass = _interopRequireDefault(_dojoDomClass);
 
-            if (this.querySelect) {
-                request.setQueryArg(Sage.SData.Client.SDataUri.QueryArgNames.Select, this.querySelect.join(','));
-            }
+  var _domConstruct = _interopRequireDefault(_dojoDomConstruct);
 
-            if (this.queryInclude) {
-                request.setQueryArg(Sage.SData.Client.SDataUri.QueryArgNames.Include, this.queryInclude.join(','));
-            }
+  var _string = _interopRequireDefault(_dojoString);
 
-            if (this.queryOrderBy) {
-                request.setQueryArg(Sage.SData.Client.SDataUri.QueryArgNames.OrderBy, this.queryOrderBy);
-            }
+  var _ErrorManager2 = _interopRequireDefault(_ErrorManager);
 
-            if (this.contractName) {
-                request.setContractName(this.contractName);
-            }
+<span id='global-property-__class'>  /**
+</span>   * _LegacySDataDetailMixin enables legacy SData operations for the Detail view.
+   *
+   * @alternateClassName _LegacySDataDetailMixin
+   */
+  var __class = (0, _declare['default'])('argos._LegacySDataDetailMixin', null, {
+<span id='global-method-requestData'>    /**
+</span>     * Initiates the SData request.
+     */
+    requestData: function requestData() {
+      var request = this.createRequest();
 
-            return request;
-        },
-<span id='global-method-processEntry'>        /**
-</span>         * Saves the SData response to `this.entry` and invokes {@link #processLayout processLayout} by passing the customized
-         * layout definition. If no entry is provided, empty the screen.
-         * @param {Object} entry SData response
-         */
-        processEntry: function(entry) {
-            this.entry = entry;
+      if (request) {
+        request.read({
+          success: this.onRequestDataSuccess,
+          failure: this.onRequestDataFailure,
+          aborted: this.onRequestDataAborted,
+          scope: this
+        });
+      }
+    },
+<span id='global-method-createRequest'>    /**
+</span>     * Creates Sage.SData.Client.SDataSingleResourceRequest instance and sets a number of known properties.
+     *
+     * List of properties used `this.property/this.options.property`:
+     *
+     * `/key`, `resourceKind`, `querySelect`, `queryInclude`, `queryOrderBy`, and `contractName`
+     *
+     * @return {Object} Sage.SData.Client.SDataSingleResourceRequest instance.
+     */
+    createRequest: function createRequest() {
+      var request = new Sage.SData.Client.SDataSingleResourceRequest(this.getService());
 
-            if (this.entry) {
-                this.processLayout(this._createCustomizedLayout(this.createLayout()), this.entry);
-            } else {
-                this.set('detailContent', '');
-            }
-        },
-<span id='global-method-onRequestDataSuccess'>        /**
-</span>         * Handler when a request to SData is successful
-         * @param {Object} entry The SData response
-         */
-        onRequestDataSuccess: function(entry) {
-            this.processEntry(entry);
-            domClass.remove(this.domNode, 'panel-loading');
-        },
-<span id='global-method-onRequestDataFailure'>        /**
-</span>         * Handler when an error occurs while request data from the SData endpoint.
-         * @param {Object} response The response object.
-         * @param {Object} o The options that were passed when creating the Ajax request.
-         */
-        onRequestDataFailure: function(response, o) {
-            if (response &amp;&amp; response.status === 404) {
-                domConstruct.place(this.notAvailableTemplate.apply(this), this.contentNode, 'last');
-            } else {
-                alert(string.substitute(this.requestErrorText, [response, o]));
-                ErrorManager.addError('failure', response);
-            }
+      /* test for complex selector */
+      /* todo: more robust test required? */
+      if (/(\s+)/.test(this.options.key)) {
+        request.setResourceSelector(this.options.key);
+      } else {
+        request.setResourceSelector(_string['default'].substitute(&quot;'${0}'&quot;, [this.options.key]));
+      }
 
-            domClass.remove(this.domNode, 'panel-loading');
-        },
-<span id='global-method-onRequestDataAborted'>        /**
-</span>         * Handler when an a request is aborted from an SData endpoint.
-         *
-         * Clears the `this.options` object which will by default force a refresh of the view.
-         *
-         * @param {Object} response The response object.
-         * @param {Object} o The options that were passed when creating the Ajax request.
-         */
-        onRequestDataAborted: function(response, o) {
-            this.options = false; // force a refresh
-            ErrorManager.addError('aborted', response);
-            domClass.remove(this.domNode, 'panel-loading');
+      if (this.resourceKind) {
+        request.setResourceKind(this.resourceKind);
+      }
+
+      if (this.querySelect) {
+        request.setQueryArg(Sage.SData.Client.SDataUri.QueryArgNames.Select, this.querySelect.join(','));
+      }
+
+      if (this.queryInclude) {
+        request.setQueryArg(Sage.SData.Client.SDataUri.QueryArgNames.Include, this.queryInclude.join(','));
+      }
+
+      if (this.queryOrderBy) {
+        request.setQueryArg(Sage.SData.Client.SDataUri.QueryArgNames.OrderBy, this.queryOrderBy);
+      }
+
+      if (this.contractName) {
+        request.setContractName(this.contractName);
+      }
+
+      return request;
+    },
+<span id='global-method-processEntry'>    /**
+</span>     * Saves the SData response to `this.entry` and invokes {@link #processLayout processLayout} by passing the customized
+     * layout definition. If no entry is provided, empty the screen.
+     * @param {Object} entry SData response
+     */
+    processEntry: function processEntry(entry) {
+      this.entry = entry;
+
+      if (this.entry) {
+        this.processLayout(this._createCustomizedLayout(this.createLayout()), this.entry);
+        if (this.isTabbed) {
+          this.createTabs(this.tabs);
+          this.placeDetailHeader(this.entry);
         }
-    });
+      } else {
+        this.set('detailContent', '');
+      }
+    },
+<span id='global-method-onRequestDataSuccess'>    /**
+</span>     * Handler when a request to SData is successful
+     * @param {Object} entry The SData response
+     */
+    onRequestDataSuccess: function onRequestDataSuccess(entry) {
+      this.processEntry(entry);
+      _domClass['default'].remove(this.domNode, 'panel-loading');
+    },
+<span id='global-method-onRequestDataFailure'>    /**
+</span>     * Handler when an error occurs while request data from the SData endpoint.
+     * @param {Object} response The response object.
+     * @param {Object} o The options that were passed when creating the Ajax request.
+     */
+    onRequestDataFailure: function onRequestDataFailure(response, o) {
+      if (response &amp;&amp; response.status === 404) {
+        _domConstruct['default'].place(this.notAvailableTemplate.apply(this), this.contentNode, 'last');
+      } else {
+        alert(_string['default'].substitute(this.requestErrorText, [response, o])); // eslint-disable-line
+        _ErrorManager2['default'].addError('failure', response);
+      }
 
-    lang.setObject('Sage.Platform.Mobile._LegacySDataDetailMixin', __class);
-    return __class;
+      _domClass['default'].remove(this.domNode, 'panel-loading');
+    },
+<span id='global-method-onRequestDataAborted'>    /**
+</span>     * Handler when an a request is aborted from an SData endpoint.
+     *
+     * Clears the `this.options` object which will by default force a refresh of the view.
+     *
+     * @param {Object} response The response object.
+     * @param {Object} o The options that were passed when creating the Ajax request.
+     */
+    onRequestDataAborted: function onRequestDataAborted(response /*, o*/) {
+      this.options = false; // force a refresh
+      _ErrorManager2['default'].addError('aborted', response);
+      _domClass['default'].remove(this.domNode, 'panel-loading');
+    }
+  });
+
+  _lang['default'].setObject('Sage.Platform.Mobile._LegacySDataDetailMixin', __class);
+  module.exports = __class;
 });
-
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInNyYy9fTGVnYWN5U0RhdGFEZXRhaWxNaXhpbi5qcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7QUFlQSxNQUFNLE9BQU8sR0FBRyx5QkFBUSwrQkFBK0IsRUFBRSxJQUFJLEVBQUU7Ozs7QUFJN0QsZUFBVyxFQUFFLFNBQVMsV0FBVyxHQUFHO0FBQ2xDLFVBQU0sT0FBTyxHQUFHLElBQUksQ0FBQyxhQUFhLEVBQUUsQ0FBQzs7QUFFckMsVUFBSSxPQUFPLEVBQUU7QUFDWCxlQUFPLENBQUMsSUFBSSxDQUFDO0FBQ1gsaUJBQU8sRUFBRSxJQUFJLENBQUMsb0JBQW9CO0FBQ2xDLGlCQUFPLEVBQUUsSUFBSSxDQUFDLG9CQUFvQjtBQUNsQyxpQkFBTyxFQUFFLElBQUksQ0FBQyxvQkFBb0I7QUFDbEMsZUFBSyxFQUFFLElBQUk7U0FDWixDQUFDLENBQUM7T0FDSjtLQUNGOzs7Ozs7Ozs7O0FBVUQsaUJBQWEsRUFBRSxTQUFTLGFBQWEsR0FBRztBQUN0QyxVQUFNLE9BQU8sR0FBRyxJQUFJLElBQUksQ0FBQyxLQUFLLENBQUMsTUFBTSxDQUFDLDBCQUEwQixDQUFDLElBQUksQ0FBQyxVQUFVLEVBQUUsQ0FBQyxDQUFDOzs7O0FBSXBGLFVBQUksT0FBTyxDQUFDLElBQUksQ0FBQyxJQUFJLENBQUMsT0FBTyxDQUFDLEdBQUcsQ0FBQyxFQUFFO0FBQ2xDLGVBQU8sQ0FBQyxtQkFBbUIsQ0FBQyxJQUFJLENBQUMsT0FBTyxDQUFDLEdBQUcsQ0FBQyxDQUFDO09BQy9DLE1BQU07QUFDTCxlQUFPLENBQUMsbUJBQW1CLENBQUMsbUJBQU8sVUFBVSxDQUFDLFFBQVEsRUFBRSxDQUFDLElBQUksQ0FBQyxPQUFPLENBQUMsR0FBRyxDQUFDLENBQUMsQ0FBQyxDQUFDO09BQzlFOztBQUVELFVBQUksSUFBSSxDQUFDLFlBQVksRUFBRTtBQUNyQixlQUFPLENBQUMsZUFBZSxDQUFDLElBQUksQ0FBQyxZQUFZLENBQUMsQ0FBQztP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RUFBRSxlQUFlLENBQUMsQ0FBQztLQUNoRDtHQUNGLENBQUMsQ0FBQzs7QUFFSCxtQkFBSyxTQUFTLENBQUMsOENBQThDLEVBQUUsT0FBTyxDQUFDLENBQUM7bUJBQ3pELE9BQU8iLCJmaWxlIjoic3JjL19MZWdhY3lTRGF0YURldGFpbE1peGluLmpzIiwic291cmNlUm9vdCI6InNyYyIsInNvdXJjZXNDb250ZW50IjpbIi8qXHJcbiAqIENvcHlyaWdodCAoYykgMTk5Ny0yMDE0LCBTYWxlc0xvZ2l4LCBOQS4sIExMQy4gQWxsIHJpZ2h0cyByZXNlcnZlZC5cclxuICovXHJcbmltcG9ydCBkZWNsYXJlIGZyb20gJ2Rvam8vX2Jhc2UvZGVjbGFyZSc7XHJcbmltcG9ydCBsYW5nIGZyb20gJ2Rvam8vX2Jhc2UvbGFuZyc7XHJcbmltcG9ydCBkb21DbGFzcyBmcm9tICdkb2pvL2RvbS1jbGFzcyc7XHJcbmltcG9ydCBkb21Db25zdHJ1Y3QgZnJvbSAnZG9qby9kb20tY29uc3RydWN0JztcclxuaW1wb3J0IHN0cmluZyBmcm9tICdkb2pvL3N0cmluZyc7XHJcbmltcG9ydCBFcnJvck1hbmFnZXIgZnJvbSAnLi9FcnJvck1hbmFnZXInO1xyXG5cclxuLyoqXHJcbiAqIF9MZWdhY3lTRGF0YURldGFpbE1peGluIGVuYWJsZXMgbGVnYWN5IFNEYXRhIG9wZXJhdGlvbnMgZm9yIHRoZSBEZXRhaWwgdmlldy5cclxuICpcclxuICogQGFsdGVybmF0ZUNsYXNzTmFtZSBfTGVnYWN5U0RhdGFEZXRhaWxNaXhpblxyXG4gKi9cclxuY29uc3QgX19jbGFzcyA9IGRlY2xhcmUoJ2FyZ29zLl9MZWdhY3lTRGF0YURldGFpbE1peGluJywgbnVsbCwge1xyXG4gIC8qKlxyXG4gICAqIEluaXRpYXRlcyB0aGUgU0RhdGEgcmVxdWVzdC5cclxuICAgKi9cclxuICByZXF1ZXN0RGF0YTogZnVuY3Rpb24gcmVxdWVzdERhdGEoKSB7XHJcbiAgICBjb25zdCByZXF1ZXN0ID0gdGhpcy5jcmVhdGVSZXF1ZXN0KCk7XHJcblxyXG4gICAgaWYgKHJlcXVlc3QpIHtcclxuICAgICAgcmVxdWVzdC5yZWFkKHtcclxuICAgICAgICBzdWNjZXNzOiB0aGlzLm9uUmVxdWVzdERhdGFTdWNjZXNzLFxyXG4gICAgICAgIGZhaWx1cmU6IHRoaXMub25SZXF1ZXN0RGF0YUZhaWx1cmUsXHJcbiAgICAgICAgYWJvcnRlZDogdGhpcy5vblJlcXVlc3REYXRhQWJvcnRlZCxcclxuICAgICAgICBzY29wZTogdGhpcyxcclxuICAgICAgfSk7XHJcbiAgICB9XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBDcmVhdGVzIFNhZ2UuU0RhdGEuQ2xpZW50LlNEYXRhU2luZ2xlUmVzb3VyY2VSZXF1ZXN0IGluc3RhbmNlIGFuZCBzZXRzIGEgbnVtYmVyIG9mIGtub3duIHByb3BlcnRpZXMuXHJcbiAgICpcclxuICAgKiBMaXN0IG9mIHByb3BlcnRpZXMgdXNlZCBgdGhpcy5wcm9wZXJ0eS90aGlzLm9wdGlvbnMucHJvcGVydHlgOlxyXG4gICAqXHJcbiAgICogYC9rZXlgLCBgcmVzb3VyY2VLaW5kYCwgYHF1ZXJ5U2VsZWN0YCwgYHF1ZXJ5SW5jbHVkZWAsIGBxdWVyeU9yZGVyQnlgLCBhbmQgYGNvbnRyYWN0TmFtZWBcclxuICAgKlxyXG4gICAqIEByZXR1cm4ge09iamVjdH0gU2FnZS5TRGF0YS5DbGllbnQuU0RhdGFTaW5nbGVSZXNvdXJjZVJlcXVlc3QgaW5zdGFuY2UuXHJcbiAgICovXHJcbiAgY3JlYXRlUmVxdWVzdDogZnVuY3Rpb24gY3JlYXRlUmVxdWVzdCgpIHtcclxuICAgIGNvbnN0IHJlcXVlc3QgPSBuZXcgU2FnZS5TRGF0YS5DbGllbnQuU0RhdGFTaW5nbGVSZXNvdXJjZVJlcXVlc3QodGhpcy5nZXRTZXJ2aWNlKCkpO1xyXG5cclxuICAgIC8qIHRlc3QgZm9yIGNvbXBsZXggc2VsZWN0b3IgKi9cclxuICAgIC8qIHRvZG86IG1vcmUgcm9idXN0IHRlc3QgcmVxdWlyZWQ/ICovXHJcbiAgICBpZiAoLyhcXHMrKS8udGVzdCh0aGlzLm9wdGlvbnMua2V5KSkge1xyXG4gICAgICByZXF1ZXN0LnNldFJlc291cmNlU2VsZWN0b3IodGhpcy5vcHRpb25zLmtleSk7XHJcbiAgICB9IGVsc2Uge1xyXG4gICAgICByZXF1ZXN0LnNldFJlc291cmNlU2VsZWN0b3Ioc3RyaW5nLnN1YnN0aXR1dGUoXCInJHswfSdcIiwgW3RoaXMub3B0aW9ucy5rZXldKSk7XHJcbiAgICB9XHJcblxyXG4gICAgaWYgKHRoaXMucmVzb3VyY2VLaW5kKSB7XHJcbiAgICAgIHJlcXVlc3Quc2V0UmVzb3VyY2VLaW5kKHRoaXMucmVzb3VyY2VLaW5kKTtcclxuICAgIH1cclxuXHJcbiAgICBpZiAodGhpcy5xdWVyeVNlbGVjdCkge1xyXG4gICAgICByZXF1ZXN0LnNldFF1ZXJ5QXJnKFNhZ2UuU0RhdGEuQ2xpZW50LlNEYXRhVXJpLlF1ZXJ5QXJnTmFtZXMuU2VsZWN0LCB0aGlzLnF1ZXJ5U2VsZWN0LmpvaW4oJywnKSk7XHJcbiAgICB9XHJcblxyXG4gICAgaWYgKHRoaXMucXVlcnlJbmNsdWRlKSB7XHJcbiAgICAgIHJlcXVlc3Quc2V0UXVlcnlBcmcoU2FnZS5TRGF0YS5DbGllbnQuU0RhdGFVcmkuUXVlcnlBcmdOYW1lcy5JbmNsdWRlLCB0aGlzLnF1ZXJ5SW5jbHVkZS5qb2luKCcsJykpO1xyXG4gICAgfVxyXG5cclxuICAgIGlmICh0aGlzLnF1ZXJ5T3JkZXJCeSkge1xyXG4gICAgICByZXF1ZXN0LnNldFF1ZXJ5QXJnKFNhZ2UuU0RhdGEuQ2xpZW50LlNEYXRhVXJpLlF1ZXJ5QXJnTmFtZXMuT3JkZXJCeSwgdGhpcy5xdWVyeU9yZGVyQnkpO1xyXG4gICAgfVxyXG5cclxuICAgIGlmICh0aGlzLmNvbnRyYWN0TmFtZSkge1xyXG4gICAgICByZXF1ZXN0LnNldENvbnRyYWN0TmFtZSh0aGlzLmNvbnRyYWN0TmFtZSk7XHJcbiAgICB9XHJcblxyXG4gICAgcmV0dXJuIHJlcXVlc3Q7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBTYXZlcyB0aGUgU0RhdGEgcmVzcG9uc2UgdG8gYHRoaXMuZW50cnlgIGFuZCBpbnZva2VzIHtAbGluayAjcHJvY2Vzc0xheW91dCBwcm9jZXNzTGF5b3V0fSBieSBwYXNzaW5nIHRoZSBjdXN0b21pemVkXHJcbiAgICogbGF5b3V0IGRlZmluaXRpb24uIElmIG5vIGVudHJ5IGlzIHByb3ZpZGVkLCBlbXB0eSB0aGUgc2NyZWVuLlxyXG4gICAqIEBwYXJhbSB7T2JqZWN0fSBlbnRyeSBTRGF0YSByZXNwb25zZVxyXG4gICAqL1xyXG4gIHByb2Nlc3NFbnRyeTogZnVuY3Rpb24gcHJvY2Vzc0VudHJ5KGVudHJ5KSB7XHJcbiAgICB0aGlzLmVudHJ5ID0gZW50cnk7XHJcblxyXG4gICAgaWYgKHRoaXMuZW50cnkpIHtcclxuICAgICAgdGhpcy5wcm9jZXNzTGF5b3V0KHRoaXMuX2NyZWF0ZUN1c3RvbWl6ZWRMYXlvdXQodGhpcy5jcmVhdGVMYXlvdXQoKSksIHRoaXMuZW50cnkpO1xyXG4gICAgICBpZiAodGhpcy5pc1RhYmJlZCkge1xyXG4gICAgICAgIHRoaXMuY3JlYXRlVGFicyh0aGlzLnRhYnMpO1xyXG4gICAgICAgIHRoaXMucGxhY2VEZXRhaWxIZWFkZXIodGhpcy5lbnRyeSk7XHJcbiAgICAgIH1cclxuICAgIH0gZWxzZSB7XHJcbiAgICAgIHRoaXMuc2V0KCdkZXRhaWxDb250ZW50JywgJycpO1xyXG4gICAgfVxyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogSGFuZGxlciB3aGVuIGEgcmVxdWVzdCB0byBTRGF0YSBpcyBzdWNjZXNzZnVsXHJcbiAgICogQHBhcmFtIHtPYmplY3R9IGVudHJ5IFRoZSBTRGF0YSByZXNwb25zZVxyXG4gICAqL1xyXG4gIG9uUmVxdWVzdERhdGFTdWNjZXNzOiBmdW5jdGlvbiBvblJlcXVlc3REYXRhU3VjY2VzcyhlbnRyeSkge1xyXG4gICAgdGhpcy5wcm9jZXNzRW50cnkoZW50cnkpO1xyXG4gICAgZG9tQ2xhc3MucmVtb3ZlKHRoaXMuZG9tTm9kZSwgJ3BhbmVsLWxvYWRpbmcnKTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIEhhbmRsZXIgd2hlbiBhbiBlcnJvciBvY2N1cnMgd2hpbGUgcmVxdWVzdCBkYXRhIGZyb20gdGhlIFNEYXRhIGVuZHBvaW50LlxyXG4gICAqIEBwYXJhbSB7T2JqZWN0fSByZXNwb25zZSBUaGUgcmVzcG9uc2Ugb2JqZWN0LlxyXG4gICAqIEBwYXJhbSB7T2JqZWN0fSBvIFRoZSBvcHRpb25zIHRoYXQgd2VyZSBwYXNzZWQgd2hlbiBjcmVhdGluZyB0aGUgQWpheCByZXF1ZXN0LlxyXG4gICAqL1xyXG4gIG9uUmVxdWVzdERhdGFGYWlsdXJlOiBmdW5jdGlvbiBvblJlcXVlc3REYXRhRmFpbHVyZShyZXNwb25zZSwgbykge1xyXG4gICAgaWYgKHJlc3BvbnNlICYmIHJlc3BvbnNlLnN0YXR1cyA9PT0gNDA0KSB7XHJcbiAgICAgIGRvbUNvbnN0cnVjdC5wbGFjZSh0aGlzLm5vdEF2YWlsYWJsZVRlbXBsYXRlLmFwcGx5KHRoaXMpLCB0aGlzLmNvbnRlbnROb2RlLCAnbGFzdCcpO1xyXG4gICAgfSBlbHNlIHtcclxuICAgICAgYWxlcnQoc3RyaW5nLnN1YnN0aXR1dGUodGhpcy5yZXF1ZXN0RXJyb3JUZXh0LCBbcmVzcG9uc2UsIG9dKSk7IC8vIGVzbGludC1kaXNhYmxlLWxpbmVcclxuICAgICAgRXJyb3JNYW5hZ2VyLmFkZEVycm9yKCdmYWlsdXJlJywgcmVzcG9uc2UpO1xyXG4gICAgfVxyXG5cclxuICAgIGRvbUNsYXNzLnJlbW92ZSh0aGlzLmRvbU5vZGUsICdwYW5lbC1sb2FkaW5nJyk7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBIYW5kbGVyIHdoZW4gYW4gYSByZXF1ZXN0IGlzIGFib3J0ZWQgZnJvbSBhbiBTRGF0YSBlbmRwb2ludC5cclxuICAgKlxyXG4gICAqIENsZWFycyB0aGUgYHRoaXMub3B0aW9uc2Agb2JqZWN0IHdoaWNoIHdpbGwgYnkgZGVmYXVsdCBmb3JjZSBhIHJlZnJlc2ggb2YgdGhlIHZpZXcuXHJcbiAgICpcclxuICAgKiBAcGFyYW0ge09iamVjdH0gcmVzcG9uc2UgVGhlIHJlc3BvbnNlIG9iamVjdC5cclxuICAgKiBAcGFyYW0ge09iamVjdH0gbyBUaGUgb3B0aW9ucyB0aGF0IHdlcmUgcGFzc2VkIHdoZW4gY3JlYXRpbmcgdGhlIEFqYXggcmVxdWVzdC5cclxuICAgKi9cclxuICBvblJlcXVlc3REYXRhQWJvcnRlZDogZnVuY3Rpb24gb25SZXF1ZXN0RGF0YUFib3J0ZWQocmVzcG9uc2UvKiwgbyovKSB7XHJcbiAgICB0aGlzLm9wdGlvbnMgPSBmYWxzZTsgLy8gZm9yY2UgYSByZWZyZXNoXHJcbiAgICBFcnJvck1hbmFnZXIuYWRkRXJyb3IoJ2Fib3J0ZWQnLCByZXNwb25zZSk7XHJcbiAgICBkb21DbGFzcy5yZW1vdmUodGhpcy5kb21Ob2RlLCAncGFuZWwtbG9hZGluZycpO1xyXG4gIH0sXHJcbn0pO1xyXG5cclxubGFuZy5zZXRPYmplY3QoJ1NhZ2UuUGxhdGZvcm0uTW9iaWxlLl9MZWdhY3lTRGF0YURldGFpbE1peGluJywgX19jbGFzcyk7XHJcbmV4cG9ydCBkZWZhdWx0IF9fY2xhc3M7XHJcbiJdfQ==
 </pre>
 </body>
 </html>

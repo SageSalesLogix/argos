@@ -15,155 +15,163 @@
   </script>
 </head>
 <body onload="prettyPrint(); highlight();">
-  <pre class="prettyprint lang-js">/*
- * Copyright (c) 1997-2013, SalesLogix, NA., LLC. All rights reserved.
- */
+  <pre class="prettyprint lang-js">define('crm/Views/_MetricListMixin', ['exports', 'module', 'dojo/_base/declare', 'dojo/_base/array', 'dojo/_base/lang', 'dojo/dom-construct', './MetricWidget', '../GroupUtility'], function (exports, module, _dojo_baseDeclare, _dojo_baseArray, _dojo_baseLang, _dojoDomConstruct, _MetricWidget, _GroupUtility) {
+  function _interopRequireDefault(obj) { return obj &amp;&amp; obj.__esModule ? obj : { 'default': obj }; }
 
-<span id='crm-Views-_MetricListMixin'>/**
-</span> * @class crm.Views._MetricListMixin
- *
- * Mixin for adding KPI widgets to list views.
- *
- * @since 3.0
- *
- * @requires crm.Views.MetricWidget
- *
- */
-define('crm/Views/_MetricListMixin', [
-    'dojo/_base/declare',
-    'dojo/_base/array',
-    'dojo/_base/lang',
-    'dojo/aspect',
-    './MetricWidget',
-    '../GroupUtility'
-], function(
-    declare,
-    array,
-    lang,
-    aspect,
-    MetricWidget,
-    GroupUtility
-) {
-    var __class = declare('crm.Views._MetricListMixin', null, {
-        // Metrics
-        metricNode: null,
-        metricWidgets: null,
-        configurationView: 'metric_configure',
-        entityName: '',
+  var _declare = _interopRequireDefault(_dojo_baseDeclare);
 
-        metricWidgetsBuilt: false,
+  var _array = _interopRequireDefault(_dojo_baseArray);
 
-        postMixInProperties: function() {
-            this.inherited(arguments);
-            this.widgetTemplate =  new Simplate([
-                '&lt;div id=&quot;{%= $.id %}&quot; title=&quot;{%= $.titleText %}&quot; class=&quot;list {%= $.cls %}&quot; {% if ($.resourceKind) { %}data-resource-kind=&quot;{%= $.resourceKind %}&quot;{% } %}&gt;',
-                    '&lt;div data-dojo-attach-point=&quot;searchNode&quot;&gt;&lt;/div&gt;',
-                    '&lt;div class=&quot;overthrow scroller&quot; data-dojo-attach-point=&quot;scrollerNode&quot;&gt;',
-                        '&lt;div class=&quot;metric-list&quot;&gt;',
-                            '&lt;div data-dojo-attach-point=&quot;metricNode&quot; class=&quot;metric-wrapper&quot;&gt;&lt;/div&gt;',
-                        '&lt;/div&gt;',
-                        '{%! $.emptySelectionTemplate %}',
-                        '&lt;ul class=&quot;list-content&quot; data-dojo-attach-point=&quot;contentNode&quot;&gt;&lt;/ul&gt;',
-                        '{%! $.moreTemplate %}',
-                        '{%! $.listActionTemplate %}',
-                    '&lt;/div&gt;',
-                '&lt;/div&gt;'
-            ]);
-        },
-        createMetricWidgetsLayout: function() {
-            var filtered = [],
-                metrics = [];
+  var _lang = _interopRequireDefault(_dojo_baseLang);
 
-            metrics = App.getMetricsByResourceKind(this.resourceKind);
+  var _domConstruct = _interopRequireDefault(_dojoDomConstruct);
 
-            if (metrics.length &gt; 0) {
-                filtered = array.filter(metrics, function(item) {
-                    return item.enabled;
-                });
-            }
+  var _MetricWidget2 = _interopRequireDefault(_MetricWidget);
 
-            return lang.clone(filtered);
-        },
-        postCreate: function() {
-            this.inherited(arguments);
-        },
-        destroyWidgets: function() {
-            array.forEach(this.metricWidgets, function(widget) {
-                widget.destroy();
-            }, this);
+  var _GroupUtility2 = _interopRequireDefault(_GroupUtility);
 
-            this.metricWidgetsBuilt = false;
-        },
-        requestData: function() {
-            this.inherited(arguments);
-            this.rebuildWidgets();
-        },
-        clear: function() {
-            this.inherited(arguments);
-            this.destroyWidgets();
-        },
-        rebuildWidgets: function() {
-            if (this.metricWidgetsBuilt) {
-                return;
-            }
+<span id='crm-Views-_MetricListMixin'>  /**
+</span>   * @class crm.Views._MetricListMixin
+   *
+   * Mixin for adding KPI widgets to list views.
+   *
+   * @since 3.0
+   *
+   * @requires crm.Views.MetricWidget
+   *
+   */
+  var __class = (0, _declare['default'])('crm.Views._MetricListMixin', null, {
+    // Metrics
+    metricTemplate: new Simplate(['&lt;div class=&quot;metric-list&quot;&gt;', '&lt;/div&gt;']),
+    metricWrapper: new Simplate(['&lt;div data-dojo-attach-point=&quot;metricNode&quot; class=&quot;metric-wrapper&quot;&gt;&lt;/div&gt;']),
+    metricNode: null,
+    metricWidgets: null,
+    entityName: '',
 
-            this.destroyWidgets();
-            this.metricWidgets = [];
+    metricWidgetsBuilt: false,
+    metricWidgetCtor: _MetricWidget2['default'],
+    rebuildingWidgets: false,
 
-            if (this.options &amp;&amp; this.options.simpleMode &amp;&amp; (this.options.simpleMode === true)) {
-                return;
-            }
+    createMetricWidgetsLayout: function createMetricWidgetsLayout() {
+      var metrics = App.getMetricsByResourceKind(this.resourceKind);
+      return metrics.filter(function (item) {
+        return item.enabled;
+      });
+    },
+    postCreate: function postCreate() {
+      this.inherited(arguments);
+      var metricList = _domConstruct['default'].toDom(this.metricTemplate.apply(this));
+      this.metricNode = _domConstruct['default'].toDom(this.metricWrapper.apply(this));
+      _domConstruct['default'].place(this.metricNode, metricList, 'only');
+      _domConstruct['default'].place(metricList, this.scrollerNode, 'first');
+    },
+    destroyWidgets: function destroyWidgets() {
+      _array['default'].forEach(this.metricWidgets, function destroy(widget) {
+        widget.destroy();
+      }, this);
 
-            var widgetOptions;
-            // Create metrics widgets and place them in the metricNode
-            widgetOptions = this.createMetricWidgetsLayout() || [];
-            array.forEach(widgetOptions, function(options) {
-                if (this._hasValidOptions(options)) {
-                    options.returnToId = this.id;
+      this.metricWidgetsBuilt = false;
+    },
+    requestData: function requestData() {
+      this.inherited(arguments);
+      this.rebuildWidgets();
+    },
+    clear: function clear() {
+      this.inherited(arguments);
+      this.destroyWidgets();
+    },
+    _applyStateToWidgetOptions: function _applyStateToWidgetOptions(options) {
+      // eslint-disable-line
+      if (!this._hasValidOptions(options)) {
+        return options;
+      }
 
-                    if (this.groupsMode) {
-                        options.queryArgs._activeFilter = '';
-                        options.request = GroupUtility.createGroupMetricRequest({
-                            groupId: this.currentGroupId,
-                            queryArgs: options.queryArgs
-                        });
-                        options.currentSearchExpression = this._currentGroup &amp;&amp; this._currentGroup.displayName;
-                    } else {
-                        options.request = null;
-                        options.resourceKind = this.resourceKind;
-                        options.currentSearchExpression = this.currentSearchExpression;
-                        options.queryArgs._activeFilter = this._getCurrentQuery();
-                    }
+      options.returnToId = this.id;
 
-                    var widget = new MetricWidget(options);
-                    widget.placeAt(this.metricNode, 'last');
-                    widget.requestData();
-                    this.metricWidgets.push(widget);
-                }
-            }, this);
-
-            this.metricWidgetsBuilt = true;
-        },
-        _getCurrentQuery: function() {
-            // Get the current query from the search box, and any context query located in options.where
-            var query = this.query,
-                where = this.options &amp;&amp; this.options.where;
-            return array.filter([query, where], function(item) {
-                return !!item;
-            }).join(' and ');
-        },
-        _hasValidOptions: function(options) {
-            return options
-                &amp;&amp; options.queryArgs
-                &amp;&amp; options.queryArgs._filterName
-                &amp;&amp; options.queryArgs._metricName;
+      if (this.groupsMode) {
+        options.queryArgs._activeFilter = '';
+        options.request = _GroupUtility2['default'].createGroupMetricRequest({
+          groupId: this.currentGroupId,
+          queryArgs: options.queryArgs
+        });
+        options.currentSearchExpression = this._currentGroup &amp;&amp; this._currentGroup.displayName;
+      } else {
+        options.request = null;
+        options.resourceKind = this.resourceKind;
+        options.currentSearchExpression = this.currentSearchExpression;
+        if (options.queryArgs) {
+          options.queryArgs._activeFilter = this._getCurrentQuery(options);
         }
-    });
+      }
 
-    lang.setObject('Mobile.SalesLogix.Views._MetricListMixin', __class);
-    return __class;
+      return options;
+    },
+    _instantiateMetricWidget: function _instantiateMetricWidget(options) {
+      var _this = this;
+
+      return new Promise(function (resolve) {
+        if (options.widgetModule) {
+          require([options.widgetModule], function (Ctor) {
+            var instance = new Ctor(_this._applyStateToWidgetOptions(options));
+            resolve(instance);
+          });
+        } else {
+          var Ctor = _this.metricWidgetCtor || _MetricWidget2['default'];
+          var instance = new Ctor(_this._applyStateToWidgetOptions(options));
+          resolve(instance);
+        }
+      });
+    },
+    rebuildWidgets: function rebuildWidgets() {
+      var _this2 = this;
+
+      if (this.metricWidgetsBuilt || this.rebuildingWidgets) {
+        return;
+      }
+      this.rebuildingWidgets = true;
+      this.destroyWidgets();
+
+      if (this.options &amp;&amp; this.options.simpleMode &amp;&amp; this.options.simpleMode === true) {
+        return;
+      }
+
+      // Create metrics widgets and place them in the metricNode
+      var widgetOptions = this.createMetricWidgetsLayout() || [];
+      var widgets = widgetOptions.filter(function (options) {
+        return _this2._hasValidOptions(options);
+      }).map(function (options) {
+        var clonedOptions = Object.assign({}, options);
+        return _this2._instantiateMetricWidget(clonedOptions).then(function (widget) {
+          widget.placeAt(_this2.metricNode, 'last');
+          widget.requestData();
+          return widget;
+        });
+      });
+
+      Promise.all(widgets).then(function (results) {
+        _this2.metricWidgets = results;
+        _this2.metricWidgetsBuilt = true;
+        _this2.rebuildingWidgets = false;
+      });
+    },
+    _getCurrentQuery: function _getCurrentQuery(options) {
+      // Get the current query from the search box, and any context query located in options.where
+      var query = this.query;
+      var where = this.options &amp;&amp; this.options.where;
+      var optionsQuery = options &amp;&amp; options.queryArgs &amp;&amp; options.queryArgs.activeFilter;
+      return _array['default'].filter([query, where, optionsQuery], function checkItem(item) {
+        return !!item;
+      }).join(' and ');
+    },
+    _hasValidOptions: function _hasValidOptions(options) {
+      return options &amp;&amp; options.queryArgs &amp;&amp; options.queryArgs._filterName || options &amp;&amp; options.widgetModule;
+    }
+  });
+
+  _lang['default'].setObject('Mobile.SalesLogix.Views._MetricListMixin', __class);
+  module.exports = __class;
 });
-
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInNyYy9WaWV3cy9fTWV0cmljTGlzdE1peGluLmpzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiI7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7QUFpQkEsTUFBTSxPQUFPLEdBQUcseUJBQVEsNEJBQTRCLEVBQUUsSUFBSSxFQUFFOztBQUUxRCxrQkFBYyxFQUFFLElBQUksUUFBUSxDQUFDLENBQzNCLDJCQUEyQixFQUMzQixRQUFRLENBQ1QsQ0FBQztBQUNGLGlCQUFhLEVBQUUsSUFBSSxRQUFRLENBQUMsQ0FDMUIsd0VBQXdFLENBQ3pFLENBQUM7QUFDRixjQUFVLEVBQUUsSUFBSTtBQUNoQixpQkFBYSxFQUFFLElBQUk7QUFDbkIsY0FBVSxFQUFFLEVBQUU7O0FBRWQsc0JBQWtCLEVBQUUsS0FBSztBQUN6QixvQkFBZ0IsMkJBQWM7QUFDOUIscUJBQWlCLEVBQUUsS0FBSzs7QUFFeEIsNkJBQXlCLEVBQUUsU0FBUyx5QkFBeUIsR0FBRztBQUM5RCxVQUFNLE9BQU8sR0FBRyxHQUFHLENBQUMsd0JBQXdCLENBQUMsSUFBSSxDQUFDLFlBQVksQ0FBQyxDQUFDO0FBQ2hFLGFBQU8sT0FBTyxDQUFDLE1BQU0sQ0FBQyxVQUFDLElBQUk7ZUFBSyxJQUFJLENBQUMsT0FBTztPQUFBLENBQUMsQ0FBQztLQUMvQztBQUNELGNBQVUsRUFBRSxTQUFTLFVBQVUsR0FBRztBQUNoQyxVQUFJLENBQUMsU0FBUyxDQUFDLFNBQVMsQ0FBQyxDQUFDO0FBQzFCLFVBQU0sVUFBVSxHQUFHLHlCQUFhLEtBQUssQ0FBQyxJQUFJLENBQUMsY0FBYyxDQUFDLEtBQUssQ0FBQyxJQUFJLENBQUMsQ0FBQyxDQUFDO0FBQ3ZFLFVBQUksQ0FBQyxVQUFVLEdBQUcseUJBQWEsS0FBSyxDQUFDLElBQUksQ0FBQyxhQUFhLENBQUMsS0FBSyxDQUFDLElBQUksQ0FBQyxDQUFDLENBQUM7QUFDckUsK0JBQWEsS0FBSyxDQUFDLElBQUksQ0FBQyxVQUFVLEVBQUUsVUFBVSxFQUFFLE1BQU0sQ0FB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QUVuRCxVQUFNLEtBQUssR0FBRyxJQUFJLENBQUMsS0FBSyxDQUFDO0FBQ3pCLFVBQU0sS0FBSyxHQUFHLElBQUksQ0FBQyxPQUFPLElBQUksSUFBSSxDQUFDLE9BQU8sQ0FBQyxLQUFLLENBQUM7QUFDakQsVUFBTSxZQUFZLEdBQUcsT0FBTyxJQUFJLE9BQU8sQ0FBQyxTQUFTLElBQUksT0FBTyxDQUFDLFNBQVMsQ0FBQyxZQUFZLENBQUM7QUFDcEYsYUFBTyxrQkFBTSxNQUFNLENBQUMsQ0FBQyxLQUFLLEVBQUUsS0FBSyxFQUFFLFlBQVksQ0FBQyxFQUFFLFNBQVMsU0FBUyxDQUFDLElBQUksRUFBRTtBQUN2RSxlQUFPLENBQUMsQ0FBQyxJQUFJLENBQUM7T0FDZixDQUFDLENBQ0QsSUFBSSxDQUFDLE9BQU8sQ0FBQyxDQUFDO0tBQ2xCO0FBQ0Qsb0JBQWdCLEVBQUUsU0FBUyxnQkFBZ0IsQ0FBQyxPQUFPLEVBQUU7QUFDbkQsYUFBTyxBQUFDLE9BQU8sSUFBSSxPQUFPLENBQUMsU0FBUyxJQUFJLE9BQU8sQ0FBQyxTQUFTLENBQUMsV0FBVyxJQUNsRSxPQUFPLElBQUksT0FBTyxDQUFDLFlBQVksQUFBQyxDQUFDO0tBQ3JDO0dBQ0YsQ0FBQyxDQUFDOztBQUVILG1CQUFLLFNBQVMsQ0FBQywwQ0FBMEMsRUFBRSxPQUFPLENBQUMsQ0FBQzttQkFDckQsT0FBTyIsImZpbGUiOiJzcmMvVmlld3MvX01ldHJpY0xpc3RNaXhpbi5qcyIsInNvdXJjZVJvb3QiOiJzcmMiLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgZGVjbGFyZSBmcm9tICdkb2pvL19iYXNlL2RlY2xhcmUnO1xyXG5pbXBvcnQgYXJyYXkgZnJvbSAnZG9qby9fYmFzZS9hcnJheSc7XHJcbmltcG9ydCBsYW5nIGZyb20gJ2Rvam8vX2Jhc2UvbGFuZyc7XHJcbmltcG9ydCBkb21Db25zdHJ1Y3QgZnJvbSAnZG9qby9kb20tY29uc3RydWN0JztcclxuaW1wb3J0IE1ldHJpY1dpZGdldCBmcm9tICcuL01ldHJpY1dpZGdldCc7XHJcbmltcG9ydCBHcm91cFV0aWxpdHkgZnJvbSAnLi4vR3JvdXBVdGlsaXR5JztcclxuXHJcbi8qKlxyXG4gKiBAY2xhc3MgY3JtLlZpZXdzLl9NZXRyaWNMaXN0TWl4aW5cclxuICpcclxuICogTWl4aW4gZm9yIGFkZGluZyBLUEkgd2lkZ2V0cyB0byBsaXN0IHZpZXdzLlxyXG4gKlxyXG4gKiBAc2luY2UgMy4wXHJcbiAqXHJcbiAqIEByZXF1aXJlcyBjcm0uVmlld3MuTWV0cmljV2lkZ2V0XHJcbiAqXHJcbiAqL1xyXG5jb25zdCBfX2NsYXNzID0gZGVjbGFyZSgnY3JtLlZpZXdzLl9NZXRyaWNMaXN0TWl4aW4nLCBudWxsLCB7XHJcbiAgLy8gTWV0cmljc1xyXG4gIG1ldHJpY1RlbXBsYXRlOiBuZXcgU2ltcGxhdGUoW1xyXG4gICAgJzxkaXYgY2xhc3M9XCJtZXRyaWMtbGlzdFwiPicsXHJcbiAgICAnPC9kaXY+JyxcclxuICBdKSxcclxuICBtZXRyaWNXcmFwcGVyOiBuZXcgU2ltcGxhdGUoW1xyXG4gICAgJzxkaXYgZGF0YS1kb2pvLWF0dGFjaC1wb2ludD1cIm1ldHJpY05vZGVcIiBjbGFzcz1cIm1ldHJpYy13cmFwcGVyXCI+PC9kaXY+JyxcclxuICBdKSxcclxuICBtZXRyaWNOb2RlOiBudWxsLFxyXG4gIG1ldHJpY1dpZGdldHM6IG51bGwsXHJcbiAgZW50aXR5TmFtZTogJycsXHJcblxyXG4gIG1ldHJpY1dpZGdldHNCdWlsdDogZmFsc2UsXHJcbiAgbWV0cmljV2lkZ2V0Q3RvcjogTWV0cmljV2lkZ2V0LFxyXG4gIHJlYnVpbGRpbmdXaWRnZXRzOiBmYWxzZSxcclxuXHJcbiAgY3JlYXRlTWV0cmljV2lkZ2V0c0xheW91dDogZnVuY3Rpb24gY3JlYXRlTWV0cmljV2lkZ2V0c0xheW91dCgpIHtcclxuICAgIGNvbnN0IG1ldHJpY3MgPSBBcHAuZ2V0TWV0cmljc0J5UmVzb3VyY2VLaW5kKHRoaXMucmVzb3VyY2VLaW5kKTtcclxuICAgIHJldHVybiBtZXRyaWNzLmZpbHRlcigoaXRlbSkgPT4gaXRlbS5lbmFibGVkKTtcclxuICB9LFxyXG4gIHBvc3RDcmVhdGU6IGZ1bmN0aW9uIHBvc3RDcmVhdGUoKSB7XHJcbiAgICB0aGlzLmluaGVyaXRlZChhcmd1bWVudHMpO1xyXG4gICAgY29uc3QgbWV0cmljTGlzdCA9IGRvbUNvbnN0cnVjdC50b0RvbSh0aGlzLm1ldHJpY1RlbXBsYXRlLmFwcGx5KHRoaXMpKTtcclxuICAgIHRoaXMubWV0cmljTm9kZSA9IGRvbUNvbnN0cnVjdC50b0RvbSh0aGlzLm1ldHJpY1dyYXBwZXIuYXBwbHkodGhpcykpO1xyXG4gICAgZG9tQ29uc3RydWN0LnBsYWNlKHRoaXMubWV0cmljTm9kZSwgbWV0cmljTGlzdCwgJ29ubHknKTtcclxuICAgIGRvbUNvbnN0cnVjdC5wbGFjZShtZXRyaWNMaXN0LCB0aGlzLnNjcm9sbGVyTm9kZSwgJ2ZpcnN0Jyk7XHJcbiAgfSxcclxuICBkZXN0cm95V2lkZ2V0czogZnVuY3Rpb24gZGVzdHJveVdpZGdldHMoKSB7XHJcbiAgICBhcnJheS5mb3JFYWNoKHRoaXMubWV0cmljV2lkZ2V0cywgZnVuY3Rpb24gZGVzdHJveSh3aWRnZXQpIHtcclxuICAgICAgd2lkZ2V0LmRlc3Ryb3koKTtcclxuICAgIH0sIHRoaXMpO1xyXG5cclxuICAgIHRoaXMubWV0cmljV2lkZ2V0c0J1aWx0ID0gZmFsc2U7XHJcbiAgfSxcclxuICByZXF1ZXN0RGF0YTogZnVuY3Rpb24gcmVxdWVzdERhdGEoKSB7XHJcbiAgICB0aGlzLmluaGVyaXRlZChhcmd1bWVudHMpO1xyXG4gICAgdGhpcy5yZWJ1aWxkV2lkZ2V0cygpO1xyXG4gIH0sXHJcbiAgY2xlYXI6IGZ1bmN0aW9uIGNsZWFyKCkge1xyXG4gICAgdGhpcy5pbmhlcml0ZWQoYXJndW1lbnRzKTtcclxuICAgIHRoaXMuZGVzdHJveVdpZGdldHMoKTtcclxuICB9LFxyXG4gIF9hcHBseVN0YXRlVG9XaWRnZXRPcHRpb25zOiBmdW5jdGlvbiBfYXBwbHlTdGF0ZVRvV2lkZ2V0T3B0aW9ucyhvcHRpb25zKSB7Ly8gZXNsaW50LWRpc2FibGUtbGluZVxyXG4gICAgaWYgKCF0aGlzLl9oYXNWYWxpZE9wdGlvbnMob3B0aW9ucykpIHtcclxuICAgICAgcmV0dXJuIG9wdGlvbnM7XHJcbiAgICB9XHJcblxyXG4gICAgb3B0aW9ucy5yZXR1cm5Ub0lkID0gdGhpcy5pZDtcclxuXHJcbiAgICBpZiAodGhpcy5ncm91cHNNb2RlKSB7XHJcbiAgICAgIG9wdGlvbnMucXVlcnlBcmdzLl9hY3RpdmVGaWx0ZXIgPSAnJztcclxuICAgICAgb3B0aW9ucy5yZXF1ZXN0ID0gR3JvdXBVdGlsaXR5LmNyZWF0ZUdyb3VwTWV0cmljUmVxdWVzdCh7XHJcbiAgICAgICAgZ3JvdXBJZDogdGhpcy5jdXJyZW50R3JvdXBJZCxcclxuICAgICAgICBxdWVyeUFyZ3M6IG9wdGlvbnMucXVlcnlBcmdzLFxyXG4gICAgICB9KTtcclxuICAgICAgb3B0aW9ucy5jdXJyZW50U2VhcmNoRXhwcmVzc2lvbiA9IHRoaXMuX2N1cnJlbnRHcm91cCAmJiB0aGlzLl9jdXJyZW50R3JvdXAuZGlzcGxheU5hbWU7XHJcbiAgICB9IGVsc2Uge1xyXG4gICAgICBvcHRpb25zLnJlcXVlc3QgPSBudWxsO1xyXG4gICAgICBvcHRpb25zLnJlc291cmNlS2luZCA9IHRoaXMucmVzb3VyY2VLaW5kO1xyXG4gICAgICBvcHRpb25zLmN1cnJlbnRTZWFyY2hFeHByZXNzaW9uID0gdGhpcy5jdXJyZW50U2VhcmNoRXhwcmVzc2lvbjtcclxuICAgICAgaWYgKG9wdGlvbnMucXVlcnlBcmdzKSB7XHJcbiAgICAgICAgb3B0aW9ucy5xdWVyeUFyZ3MuX2FjdGl2ZUZpbHRlciA9IHRoaXMuX2dldEN1cnJlbnRRdWVyeShvcHRpb25zKTtcclxuICAgICAgfVxyXG4gICAgfVxyXG5cclxuICAgIHJldHVybiBvcHRpb25zO1xyXG4gIH0sXHJcbiAgX2luc3RhbnRpYXRlTWV0cmljV2lkZ2V0OiBmdW5jdGlvbiBfaW5zdGFudGlhdGVNZXRyaWNXaWRnZXQob3B0aW9ucykge1xyXG4gICAgcmV0dXJuIG5ldyBQcm9taXNlKChyZXNvbHZlKSA9PiB7XHJcbiAgICAgIGlmIChvcHRpb25zLndpZGdldE1vZHVsZSkge1xyXG4gICAgICAgIHJlcXVpcmUoW29wdGlvbnMud2lkZ2V0TW9kdWxlXSwgKEN0b3IpID0+IHtcclxuICAgICAgICAgIGNvbnN0IGluc3RhbmNlID0gbmV3IEN0b3IodGhpcy5fYXBwbHlTdGF0ZVRvV2lkZ2V0T3B0aW9ucyhvcHRpb25zKSk7XHJcbiAgICAgICAgICByZXNvbHZlKGluc3RhbmNlKTtcclxuICAgICAgICB9KTtcclxuICAgICAgfSBlbHNlIHtcclxuICAgICAgICBjb25zdCBDdG9yID0gdGhpcy5tZXRyaWNXaWRnZXRDdG9yIHx8IE1ldHJpY1dpZGdldDtcclxuICAgICAgICBjb25zdCBpbnN0YW5jZSA9IG5ldyBDdG9yKHRoaXMuX2FwcGx5U3RhdGVUb1dpZGdldE9wdGlvbnMob3B0aW9ucykpO1xyXG4gICAgICAgIHJlc29sdmUoaW5zdGFuY2UpO1xyXG4gICAgICB9XHJcbiAgICB9KTtcclxuICB9LFxyXG4gIHJlYnVpbGRXaWRnZXRzOiBmdW5jdGlvbiByZWJ1aWxkV2lkZ2V0cygpIHtcclxuICAgIGlmICh0aGlzLm1ldHJpY1dpZGdldHNCdWlsdCB8fCB0aGlzLnJlYnVpbGRpbmdXaWRnZXRzKSB7XHJcbiAgICAgIHJldHVybjtcclxuICAgIH1cclxuICAgIHRoaXMucmVidWlsZGluZ1dpZGdldHMgPSB0cnVlO1xyXG4gICAgdGhpcy5kZXN0cm95V2lkZ2V0cygpO1xyXG5cclxuICAgIGlmICh0aGlzLm9wdGlvbnMgJiYgdGhpcy5vcHRpb25zLnNpbXBsZU1vZGUgJiYgKHRoaXMub3B0aW9ucy5zaW1wbGVNb2RlID09PSB0cnVlKSkge1xyXG4gICAgICByZXR1cm47XHJcbiAgICB9XHJcblxyXG4gICAgLy8gQ3JlYXRlIG1ldHJpY3Mgd2lkZ2V0cyBhbmQgcGxhY2UgdGhlbSBpbiB0aGUgbWV0cmljTm9kZVxyXG4gICAgY29uc3Qgd2lkZ2V0T3B0aW9ucyA9IHRoaXMuY3JlYXRlTWV0cmljV2lkZ2V0c0xheW91dCgpIHx8IFtdO1xyXG4gICAgY29uc3Qgd2lkZ2V0cyA9IHdpZGdldE9wdGlvbnMuZmlsdGVyKChvcHRpb25zKSA9PiB0aGlzLl9oYXNWYWxpZE9wdGlvbnMob3B0aW9ucykpXHJcbiAgICAgIC5tYXAoKG9wdGlvbnMpID0+IHtcclxuICAgICAgICBjb25zdCBjbG9uZWRPcHRpb25zID0gT2JqZWN0LmFzc2lnbih7fSwgb3B0aW9ucyk7XHJcbiAgICAgICAgcmV0dXJuIHRoaXMuX2luc3RhbnRpYXRlTWV0cmljV2lkZ2V0KGNsb25lZE9wdGlvbnMpLnRoZW4oKHdpZGdldCkgPT4ge1xyXG4gICAgICAgICAgd2lkZ2V0LnBsYWNlQXQodGhpcy5tZXRyaWNOb2RlLCAnbGFzdCcpO1xyXG4gICAgICAgICAgd2lkZ2V0LnJlcXVlc3REYXRhKCk7XHJcbiAgICAgICAgICByZXR1cm4gd2lkZ2V0O1xyXG4gICAgICAgIH0pO1xyXG4gICAgICB9KTtcclxuXHJcbiAgICBQcm9taXNlLmFsbCh3aWRnZXRzKS50aGVuKChyZXN1bHRzKSA9PiB7XHJcbiAgICAgIHRoaXMubWV0cmljV2lkZ2V0cyA9IHJlc3VsdHM7XHJcbiAgICAgIHRoaXMubWV0cmljV2lkZ2V0c0J1aWx0ID0gdHJ1ZTtcclxuICAgICAgdGhpcy5yZWJ1aWxkaW5nV2lkZ2V0cyA9IGZhbHNlO1xyXG4gICAgfSk7XHJcbiAgfSxcclxuICBfZ2V0Q3VycmVudFF1ZXJ5OiBmdW5jdGlvbiBfZ2V0Q3VycmVudFF1ZXJ5KG9wdGlvbnMpIHtcclxuICAgIC8vIEdldCB0aGUgY3VycmVudCBxdWVyeSBmcm9tIHRoZSBzZWFyY2ggYm94LCBhbmQgYW55IGNvbnRleHQgcXVlcnkgbG9jYXRlZCBpbiBvcHRpb25zLndoZXJlXHJcbiAgICBjb25zdCBxdWVyeSA9IHRoaXMucXVlcnk7XHJcbiAgICBjb25zdCB3aGVyZSA9IHRoaXMub3B0aW9ucyAmJiB0aGlzLm9wdGlvbnMud2hlcmU7XHJcbiAgICBjb25zdCBvcHRpb25zUXVlcnkgPSBvcHRpb25zICYmIG9wdGlvbnMucXVlcnlBcmdzICYmIG9wdGlvbnMucXVlcnlBcmdzLmFjdGl2ZUZpbHRlcjtcclxuICAgIHJldHVybiBhcnJheS5maWx0ZXIoW3F1ZXJ5LCB3aGVyZSwgb3B0aW9uc1F1ZXJ5XSwgZnVuY3Rpb24gY2hlY2tJdGVtKGl0ZW0pIHtcclxuICAgICAgICByZXR1cm4gISFpdGVtO1xyXG4gICAgICB9KVxyXG4gICAgICAuam9pbignIGFuZCAnKTtcclxuICB9LFxyXG4gIF9oYXNWYWxpZE9wdGlvbnM6IGZ1bmN0aW9uIF9oYXNWYWxpZE9wdGlvbnMob3B0aW9ucykge1xyXG4gICAgcmV0dXJuIChvcHRpb25zICYmIG9wdGlvbnMucXVlcnlBcmdzICYmIG9wdGlvbnMucXVlcnlBcmdzLl9maWx0ZXJOYW1lKSB8fFxyXG4gICAgICAob3B0aW9ucyAmJiBvcHRpb25zLndpZGdldE1vZHVsZSk7XHJcbiAgfSxcclxufSk7XHJcblxyXG5sYW5nLnNldE9iamVjdCgnTW9iaWxlLlNhbGVzTG9naXguVmlld3MuX01ldHJpY0xpc3RNaXhpbicsIF9fY2xhc3MpO1xyXG5leHBvcnQgZGVmYXVsdCBfX2NsYXNzO1xyXG4iXX0=
 </pre>
 </body>
 </html>

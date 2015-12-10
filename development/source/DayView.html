@@ -15,550 +15,425 @@
   </script>
 </head>
 <body onload="prettyPrint(); highlight();">
-  <pre class="prettyprint lang-js">/*
- * Copyright (c) 1997-2013, SalesLogix, NA., LLC. All rights reserved.
- */
+  <pre class="prettyprint lang-js">define('crm/Views/Calendar/DayView', ['exports', 'module', 'dojo/_base/declare', 'dojo/_base/lang', 'dojo/string', 'dojo/query', 'dojo/dom-class', 'dojo/dom-construct', 'argos/ErrorManager', 'argos/Convert', 'argos/List', 'argos/_LegacySDataListMixin', 'argos/I18n'], function (exports, module, _dojo_baseDeclare, _dojo_baseLang, _dojoString, _dojoQuery, _dojoDomClass, _dojoDomConstruct, _argosErrorManager, _argosConvert, _argosList, _argos_LegacySDataListMixin, _argosI18n) {
+  function _interopRequireDefault(obj) { return obj &amp;&amp; obj.__esModule ? obj : { 'default': obj }; }
 
-<span id='crm-Views-Calendar-DayView'>/**
-</span> * @class crm.Views.Calendar.DayView
- *
- * @extends argos.List
- * @mixins argos.List
- * @mixins argos._LegacySDataListMixin
- *
- * @requires argos.List
- * @requires argos._LegacySDataListMixin
- * @requires argos.Convert
- * @requires argos.ErrorManager
- *
- * @requires moment
- *
- */
-define('crm/Views/Calendar/DayView', [
-    'dojo/_base/declare',
-    'dojo/_base/lang',
-    'dojo/string',
-    'dojo/query',
-    'dojo/dom-class',
-    'dojo/dom-construct',
-    'argos/ErrorManager',
-    'argos/Convert',
-    'argos/List',
-    'argos/_LegacySDataListMixin',
-    'moment'
-], function(
-    declare,
-    lang,
-    string,
-    query,
-    domClass,
-    domConstruct,
-    ErrorManager,
-    convert,
-    List,
-    _LegacySDataListMixin,
-    moment
-) {
+  var _declare = _interopRequireDefault(_dojo_baseDeclare);
 
-    var __class = declare('crm.Views.Calendar.DayView', [List, _LegacySDataListMixin], {
-        // Localization
-        titleText: 'Calendar',
-        eventDateFormatText: 'M/D/YYYY',
-        dateHeaderFormatText: 'dddd, M/D/YYYY',
-        startTimeFormatText: 'h:mm A',
-        todayText: 'Today',
-        dayText: 'Day',
-        weekText: 'Week',
-        monthText: 'Month',
-        allDayText: 'All-Day',
-        eventHeaderText: 'Events',
-        activityHeaderText: 'Activities',
-        eventMoreText: 'View More Event(s)',
-        toggleCollapseText: 'toggle collapse',
-        enablePullToRefresh: false,
-        toggleCollapseClass: 'fa fa-chevron-down',
-        toggleExpandClass: 'fa fa-chevron-right',
+  var _lang = _interopRequireDefault(_dojo_baseLang);
 
-        // Templates
-        widgetTemplate: new Simplate([
-            '&lt;div id=&quot;{%= $.id %}&quot; title=&quot;{%= $.titleText %}&quot; class=&quot;overthrow list {%= $.cls %}&quot; {% if ($.resourceKind) { %}data-resource-kind=&quot;{%= $.resourceKind %}&quot;{% } %}&gt;',
-                '&lt;div data-dojo-attach-point=&quot;searchNode&quot;&gt;&lt;/div&gt;',
-                '{%! $.navigationTemplate %}',
-                '&lt;div style=&quot;clear:both&quot;&gt;&lt;/div&gt;',
-                '&lt;div class=&quot;event-content event-hidden&quot; data-dojo-attach-point=&quot;eventContainerNode&quot;&gt;',
-                '&lt;h2 data-action=&quot;toggleGroup&quot;&gt;&lt;button data-dojo-attach-point=&quot;collapseButton&quot; class=&quot;{%= $$.toggleCollapseClass %}&quot; aria-label=&quot;{%: $$.toggleCollapseText %}&quot;&gt;&lt;/button&gt;{%= $.eventHeaderText %}&lt;/h2&gt;',
-                '&lt;ul class=&quot;list-content&quot; data-dojo-attach-point=&quot;eventContentNode&quot;&gt;&lt;/ul&gt;',
-                '{%! $.eventMoreTemplate %}',
-                '&lt;/div&gt;',
-                '&lt;h2&gt;{%= $.activityHeaderText %}&lt;/h2&gt;',
-                '&lt;ul class=&quot;list-content&quot; data-dojo-attach-point=&quot;contentNode&quot;&gt;&lt;/ul&gt;',
-                '{%! $.moreTemplate %}',
-            '&lt;/div&gt;'
-        ]),
-        rowTemplate: new Simplate([
-            '&lt;li data-action=&quot;activateEntry&quot; data-key=&quot;{%= $.$key %}&quot; data-descriptor=&quot;{%: $.Description %}&quot; data-activity-type=&quot;{%: $.Type %}&quot;&gt;',
-            '&lt;table class=&quot;calendar-entry-table&quot;&gt;&lt;tr&gt;',
-            '&lt;td class=&quot;entry-table-icon&quot;&gt;',
-            '&lt;button data-action=&quot;selectEntry&quot; class=&quot;list-item-selector button {%= $$.activityIconByType[$.Type] %}&quot;&gt;',
-            '&lt;/button&gt;',
-            '&lt;/td&gt;',
-            '&lt;td class=&quot;entry-table-time&quot;&gt;{%! $$.timeTemplate %}&lt;/td&gt;',
-            '&lt;td class=&quot;entry-table-description&quot;&gt;{%! $$.itemTemplate %}&lt;/td&gt;',
-            '&lt;/tr&gt;&lt;/table&gt;',
-            '&lt;/li&gt;'
-        ]),
-        eventRowTemplate: new Simplate([
-            '&lt;li data-action=&quot;activateEntry&quot; data-key=&quot;{%= $.$key %}&quot; data-descriptor=&quot;{%: $.$descriptor %}&quot; data-activity-type=&quot;Event&quot;&gt;',
-            '&lt;table class=&quot;calendar-entry-table&quot;&gt;&lt;tr&gt;',
-            '&lt;td class=&quot;entry-table-icon&quot;&gt;',
-            '&lt;button data-action=&quot;selectEntry&quot; class=&quot;list-item-selector button {%= $$.eventIcon %}&quot;&gt;',
-            '&lt;/button&gt;',
-            '&lt;/td&gt;',
-            '&lt;td class=&quot;entry-table-description&quot;&gt;{%! $$.eventItemTemplate %}&lt;/td&gt;',
-            '&lt;/tr&gt;&lt;/table&gt;',
-            '&lt;/li&gt;'
-        ]),
-        timeTemplate: new Simplate([
-            '{% if ($.Timeless) { %}',
-            '&lt;span class=&quot;p-time&quot;&gt;{%= $$.allDayText %}&lt;/span&gt;',
-            '{% } else { %}',
-            '&lt;span class=&quot;p-time&quot;&gt;{%: crm.Format.date($.StartDate, $$.startTimeFormatText) %}&lt;/span&gt;',
-            '{% } %}'
-        ]),
-        itemTemplate: new Simplate([
-            '&lt;h3 class=&quot;p-description&quot;&gt;{%: $.Description %}&lt;/h3&gt;',
-            '&lt;h4&gt;{%= $$.nameTemplate.apply($) %}&lt;/h4&gt;'
-        ]),
-        eventItemTemplate: new Simplate([
-            '&lt;h3 class=&quot;p-description&quot;&gt;{%: $.Description %} ({%: $.Type %})&lt;/h3&gt;',
-            '&lt;h4&gt;{%! $$.eventNameTemplate %}&lt;/h4&gt;'
-        ]),
-        nameTemplate: new Simplate([
-            '{% if ($.ContactName) { %}',
-            '{%: $.ContactName %} / {%: $.AccountName %}',
-            '{% } else if ($.AccountName) { %}',
-            '{%: $.AccountName %}',
-            '{% } else { %}',
-            '{%: $.LeadName %}',
-            '{% } %}'
-        ]),
-        eventNameTemplate: new Simplate([
-            '{%: crm.Format.date($.StartDate, $$.eventDateFormatText) %}',
-            '&amp;nbsp;-&amp;nbsp;',
-            '{%: crm.Format.date($.EndDate, $$.eventDateFormatText) %}'
-        ]),
-        navigationTemplate: new Simplate([
-            '&lt;div class=&quot;split-buttons&quot;&gt;',
-            '&lt;button data-tool=&quot;today&quot; data-action=&quot;getToday&quot; class=&quot;button&quot;&gt;{%: $.todayText %}&lt;/button&gt;',
-            '&lt;button data-tool=&quot;selectdate&quot; data-action=&quot;selectDate&quot; class=&quot;button fa fa-calendar&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;/button&gt;',
-            '&lt;button data-tool=&quot;day&quot; class=&quot;button current&quot;&gt;{%: $.dayText %}&lt;/button&gt;',
-            '&lt;button data-tool=&quot;week&quot; data-action=&quot;navigateToWeekView&quot; class=&quot;button&quot;&gt;{%: $.weekText %}&lt;/button&gt;',
-            '&lt;button data-tool=&quot;month&quot; data-action=&quot;navigateToMonthView&quot; class=&quot;button&quot;&gt;{%: $.monthText %}&lt;/button&gt;',
-            '&lt;/div&gt;',
-            '&lt;div class=&quot;nav-bar&quot;&gt;',
-            '&lt;button data-tool=&quot;next&quot; data-action=&quot;getNextDay&quot; class=&quot;button button-next fa fa-arrow-right fa-lg&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;/button&gt;',
-            '&lt;button data-tool=&quot;prev&quot; data-action=&quot;getPrevDay&quot; class=&quot;button button-prev fa fa-arrow-left fa-lg&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;/button&gt;',
-            '&lt;h3 class=&quot;date-text&quot; data-dojo-attach-point=&quot;dateNode&quot;&gt;&lt;/h3&gt;',
-            '&lt;/div&gt;'
-        ]),
-        eventMoreTemplate: new Simplate([
-            '&lt;div class=&quot;list-more&quot; data-dojo-attach-point=&quot;eventMoreNode&quot;&gt;',
-            '&lt;button class=&quot;button&quot; data-action=&quot;activateEventMore&quot;&gt;',
-            '&lt;span data-dojo-attach-point=&quot;eventRemainingContentNode&quot;&gt;{%= $.eventMoreText %}&lt;/span&gt;',
-            '&lt;/button&gt;',
-            '&lt;/div&gt;'
-        ]),
-        attributeMap: {
-            listContent: {
-                node: 'contentNode',
-                type: 'innerHTML'
-            },
-            eventListContent: {
-                node: 'eventContentNode',
-                type: 'innerHTML'
-            },
-            dateContent: {
-                node: 'dateNode',
-                type: 'innerHTML'
-            },
-            eventRemainingContent: {
-                node: 'eventRemainingContentNode',
-                type: 'innerHTML'
-            },
-            remainingContent: {
-                node: 'remainingContentNode',
-                type: 'innerHTML'
-            }
-        },
+  var _string = _interopRequireDefault(_dojoString);
 
-        //View Properties
-        id: 'calendar_daylist',
-        cls: 'activities-for-day',
-        iconClass: 'fa fa-calendar fa-lg',
+  var _query = _interopRequireDefault(_dojoQuery);
 
-        datePickerView: 'generic_calendar',
-        monthView: 'calendar_monthlist',
-        weekView: 'calendar_weeklist',
-        activityDetailView: 'activity_detail',
-        eventDetailView: 'event_detail',
-        insertView: 'activity_types_list',
-        enableSearch: false,
-        currentDate: null,
-        contractName: 'system',
-        queryOrderBy: 'StartDate desc',
-        querySelect: [
-            'Description',
-            'StartDate',
-            'Type',
-            'AccountName',
-            'ContactName',
-            'LeadId',
-            'LeadName',
-            'UserId',
-            'Timeless',
-            'Recurring'
-        ],
-        eventFeed: null,
-        eventPageSize: 3,
-        eventQuerySelect: [
-            'StartDate',
-            'EndDate',
-            'Description',
-            'Type'
-        ],
-        activityIconByType: {
-            'atToDo': 'fa fa-list-ul',
-            'atPhoneCall': 'fa fa-phone',
-            'atAppointment': 'fa fa-calendar-o',
-            'atLiterature': 'fa fa-book',
-            'atPersonal': 'fa fa-check-square-o',
-            'atQuestion': 'fa fa-question-circle',
-            'atNote': 'fa fa-file-text-o',
-            'atEMail': 'fa fa-envelope'
-        },
-        eventIcon: 'fa fa-calendar-o',
-        resourceKind: 'activities',
-        pageSize: 1000,
+  var _domClass = _interopRequireDefault(_dojoDomClass);
 
-        continuousScrolling: false,
+  var _domConstruct = _interopRequireDefault(_dojoDomConstruct);
 
-        _onRefresh: function(o) {
-            this.inherited(arguments);
-            if (o.resourceKind === 'activities' || o.resourceKind === 'events') {
-                this.refreshRequired = true;
-            }
-        },
-        init: function() {
-            this.inherited(arguments);
-            this.currentDate = moment().startOf('day');
-        },
-        toggleGroup: function(params) {
-            var node,
-                button;
+  var _ErrorManager = _interopRequireDefault(_argosErrorManager);
 
-            node = params.$source;
-            if (node &amp;&amp; node.parentNode) {
-                domClass.toggle(node, 'collapsed');
-                domClass.toggle(node.parentNode, 'collapsed-event');
+  var _convert = _interopRequireDefault(_argosConvert);
 
-                button = this.collapseButton;
+  var _List = _interopRequireDefault(_argosList);
 
-                if (button) {
-                    domClass.toggle(button, this.toggleCollapseClass);
-                    domClass.toggle(button, this.toggleExpandClass);
-                }
-            }
-        },
-        refresh: function() {
-            this.clear();
+  var _LegacySDataListMixin2 = _interopRequireDefault(_argos_LegacySDataListMixin);
 
-            this.options = this.options || {};
-            this.options['where'] = this.formatQueryForActivities();
-            this.feed = null;
-            this.eventFeed = null;
-            this.set('dateContent', this.currentDate.format(this.dateHeaderFormatText));
+  var _getResource = _interopRequireDefault(_argosI18n);
 
-            this.requestData();
-            this.requestEventData();
-        },
-        requestEventData: function() {
-            var request = this.createEventRequest();
-            request.read({
-                success: this.onRequestEventDataSuccess,
-                failure: this.onRequestEventDataFailure,
-                aborted: this.onRequestEventDataAborted,
-                scope: this
-            });
-        },
-        onRequestEventDataFailure: function(response, o) {
-            alert(string.substitute(this.requestErrorText, [response, o]));
-            ErrorManager.addError(response, o, this.options, 'failure');
-        },
-        onRequestEventDataAborted: function() {
-            this.options = false; // force a refresh
-        },
-        onRequestEventDataSuccess: function(feed) {
-            this.processEventFeed(feed);
-        },
-        createEventRequest: function() {
-            var eventSelect = this.eventQuerySelect,
-                eventWhere = this.getEventQuery(),
-                request = new Sage.SData.Client.SDataResourceCollectionRequest(this.getService())
-                    .setCount(this.eventPageSize)
-                    .setStartIndex(1)
-                    .setResourceKind('events')
-                    .setQueryArg(Sage.SData.Client.SDataUri.QueryArgNames.Select, this.expandExpression(eventSelect).join(','))
-                    .setQueryArg(Sage.SData.Client.SDataUri.QueryArgNames.Where, eventWhere);
-            return request;
-        },
-        getEventQuery: function() {
-            return string.substitute(
-                [
-                    'UserId eq &quot;${0}&quot; and (',
-                    '(StartDate gt @${1}@ or EndDate gt @${1}@) and ',
-                    'StartDate lt @${2}@',
-                    ')'
-                ].join(''),
-                [
-                    App.context['user'] &amp;&amp; App.context['user']['$key'],
-                    convert.toIsoStringFromDate(this.currentDate.clone().startOf('day').toDate()),
-                    convert.toIsoStringFromDate(this.currentDate.clone().endOf('day').toDate())
-                ]
-            );
-        },
-        activateEventMore: function() {
-            var view = App.getView('event_related'),
-                where = this.getEventQuery();
-            if (view) {
-                view.show({'where': where});
-            }
-        },
-        hideEventList: function() {
-            domClass.add(this.eventContainerNode, 'event-hidden');
-        },
-        showEventList: function() {
-            domClass.remove(this.eventContainerNode, 'event-hidden');
-        },
-        processEventFeed: function(feed) {
-            var r = feed['$resources'],
-                feedLength = r.length,
-                i,
-                row,
-                o = [];
-            this.eventFeed = feed;
+  var resource = (0, _getResource['default'])('calendarDayView');
 
-            if (feedLength === 0) {
-                this.hideEventList();
-                return false;
-            } else {
-                this.showEventList();
-            }
+<span id='crm-Views-Calendar-DayView'>  /**
+</span>   * @class crm.Views.Calendar.DayView
+   *
+   * @extends argos.List
+   * @mixins argos.List
+   * @mixins argos._LegacySDataListMixin
+   *
+   * @requires argos.List
+   * @requires argos._LegacySDataListMixin
+   * @requires argos.Convert
+   * @requires argos.ErrorManager
+   *
+   * @requires moment
+   *
+   */
+  var __class = (0, _declare['default'])('crm.Views.Calendar.DayView', [_List['default'], _LegacySDataListMixin2['default']], {
+    // Localization
+    titleText: resource.titleText,
+    eventDateFormatText: resource.eventDateFormatText,
+    dateHeaderFormatText: resource.dateHeaderFormatText,
+    startTimeFormatText: resource.startTimeFormatText,
+    todayText: resource.todayText,
+    dayText: resource.dayText,
+    weekText: resource.weekText,
+    monthText: resource.monthText,
+    allDayText: resource.allDayText,
+    eventHeaderText: resource.eventHeaderText,
+    activityHeaderText: resource.activityHeaderText,
+    eventMoreText: resource.eventMoreText,
+    toggleCollapseText: resource.toggleCollapseText,
 
-            for (i = 0; i &lt; feedLength; i++) {
-                row = r[i];
-                row.isEvent = true;
-                this.entries[row.$key] = row;
-                o.push(this.eventRowTemplate.apply(row, this));
-            }
+    enablePullToRefresh: false,
+    toggleCollapseClass: 'fa fa-chevron-down',
+    toggleExpandClass: 'fa fa-chevron-right',
 
-            if (feed['$totalResults'] &gt; feedLength) {
-                domClass.add(this.eventContainerNode, 'list-has-more');
-                this.set('eventRemainingContent', this.eventMoreText);
-            } else {
-                domClass.remove(this.eventContainerNode, 'list-has-more');
-                this.set('eventRemainingContent', '');
-            }
+    // Templates
+    widgetTemplate: new Simplate(['&lt;div id=&quot;{%= $.id %}&quot; title=&quot;{%= $.titleText %}&quot; class=&quot;overthrow list {%= $.cls %}&quot; {% if ($.resourceKind) { %}data-resource-kind=&quot;{%= $.resourceKind %}&quot;{% } %}&gt;', '&lt;div data-dojo-attach-point=&quot;searchNode&quot;&gt;&lt;/div&gt;', '{%! $.navigationTemplate %}', '&lt;div style=&quot;clear:both&quot;&gt;&lt;/div&gt;', '&lt;div class=&quot;event-content event-hidden&quot; data-dojo-attach-point=&quot;eventContainerNode&quot;&gt;', '&lt;h2 data-action=&quot;toggleGroup&quot;&gt;&lt;button data-dojo-attach-point=&quot;collapseButton&quot; class=&quot;{%= $$.toggleCollapseClass %}&quot; aria-label=&quot;{%: $$.toggleCollapseText %}&quot;&gt;&lt;/button&gt;{%= $.eventHeaderText %}&lt;/h2&gt;', '&lt;ul class=&quot;list-content&quot; data-dojo-attach-point=&quot;eventContentNode&quot;&gt;&lt;/ul&gt;', '{%! $.eventMoreTemplate %}', '&lt;/div&gt;', '&lt;h2&gt;{%= $.activityHeaderText %}&lt;/h2&gt;', '&lt;ul class=&quot;list-content&quot; data-dojo-attach-point=&quot;contentNode&quot;&gt;&lt;/ul&gt;', '{%! $.moreTemplate %}', '&lt;/div&gt;']),
+    rowTemplate: new Simplate(['&lt;li data-action=&quot;activateEntry&quot; data-key=&quot;{%= $.$key %}&quot; data-descriptor=&quot;{%: $.Description %}&quot; data-activity-type=&quot;{%: $.Type %}&quot;&gt;', '&lt;table class=&quot;calendar-entry-table&quot;&gt;&lt;tr&gt;', '&lt;td class=&quot;entry-table-icon&quot;&gt;', '&lt;button data-action=&quot;selectEntry&quot; class=&quot;list-item-selector button {%= $$.activityIconByType[$.Type] %}&quot;&gt;', '&lt;/button&gt;', '&lt;/td&gt;', '&lt;td class=&quot;entry-table-time&quot;&gt;{%! $$.timeTemplate %}&lt;/td&gt;', '&lt;td class=&quot;entry-table-description&quot;&gt;{%! $$.itemTemplate %}&lt;/td&gt;', '&lt;/tr&gt;&lt;/table&gt;', '&lt;/li&gt;']),
+    eventRowTemplate: new Simplate(['&lt;li data-action=&quot;activateEntry&quot; data-key=&quot;{%= $.$key %}&quot; data-descriptor=&quot;{%: $.$descriptor %}&quot; data-activity-type=&quot;Event&quot;&gt;', '&lt;table class=&quot;calendar-entry-table&quot;&gt;&lt;tr&gt;', '&lt;td class=&quot;entry-table-icon&quot;&gt;', '&lt;button data-action=&quot;selectEntry&quot; class=&quot;list-item-selector button {%= $$.eventIcon %}&quot;&gt;', '&lt;/button&gt;', '&lt;/td&gt;', '&lt;td class=&quot;entry-table-description&quot;&gt;{%! $$.eventItemTemplate %}&lt;/td&gt;', '&lt;/tr&gt;&lt;/table&gt;', '&lt;/li&gt;']),
+    timeTemplate: new Simplate(['{% if ($.Timeless) { %}', '&lt;span class=&quot;p-time&quot;&gt;{%= $$.allDayText %}&lt;/span&gt;', '{% } else { %}', '&lt;span class=&quot;p-time&quot;&gt;{%: crm.Format.date($.StartDate, $$.startTimeFormatText) %}&lt;/span&gt;', '{% } %}']),
+    itemTemplate: new Simplate(['&lt;h3 class=&quot;p-description&quot;&gt;{%: $.Description %}&lt;/h3&gt;', '&lt;h4&gt;{%= $$.nameTemplate.apply($) %}&lt;/h4&gt;']),
+    eventItemTemplate: new Simplate(['&lt;h3 class=&quot;p-description&quot;&gt;{%: $.Description %} ({%: $.Type %})&lt;/h3&gt;', '&lt;h4&gt;{%! $$.eventNameTemplate %}&lt;/h4&gt;']),
+    nameTemplate: new Simplate(['{% if ($.ContactName) { %}', '{%: $.ContactName %} / {%: $.AccountName %}', '{% } else if ($.AccountName) { %}', '{%: $.AccountName %}', '{% } else { %}', '{%: $.LeadName %}', '{% } %}']),
+    eventNameTemplate: new Simplate(['{%: crm.Format.date($.StartDate, $$.eventDateFormatText) %}', '&amp;nbsp;-&amp;nbsp;', '{%: crm.Format.date($.EndDate, $$.eventDateFormatText) %}']),
+    navigationTemplate: new Simplate(['&lt;div class=&quot;split-buttons&quot;&gt;', '&lt;button data-tool=&quot;today&quot; data-action=&quot;getToday&quot; class=&quot;button&quot;&gt;{%: $.todayText %}&lt;/button&gt;', '&lt;button data-tool=&quot;selectdate&quot; data-action=&quot;selectDate&quot; class=&quot;button fa fa-calendar&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;/button&gt;', '&lt;button data-tool=&quot;day&quot; class=&quot;button current&quot;&gt;{%: $.dayText %}&lt;/button&gt;', '&lt;button data-tool=&quot;week&quot; data-action=&quot;navigateToWeekView&quot; class=&quot;button&quot;&gt;{%: $.weekText %}&lt;/button&gt;', '&lt;button data-tool=&quot;month&quot; data-action=&quot;navigateToMonthView&quot; class=&quot;button&quot;&gt;{%: $.monthText %}&lt;/button&gt;', '&lt;/div&gt;', '&lt;div class=&quot;nav-bar&quot;&gt;', '&lt;button data-tool=&quot;next&quot; data-action=&quot;getNextDay&quot; class=&quot;button button-next fa fa-arrow-right fa-lg&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;/button&gt;', '&lt;button data-tool=&quot;prev&quot; data-action=&quot;getPrevDay&quot; class=&quot;button button-prev fa fa-arrow-left fa-lg&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;/button&gt;', '&lt;h3 class=&quot;date-text&quot; data-dojo-attach-point=&quot;dateNode&quot;&gt;&lt;/h3&gt;', '&lt;/div&gt;']),
+    eventMoreTemplate: new Simplate(['&lt;div class=&quot;list-more&quot; data-dojo-attach-point=&quot;eventMoreNode&quot;&gt;', '&lt;button class=&quot;button&quot; data-action=&quot;activateEventMore&quot;&gt;', '&lt;span data-dojo-attach-point=&quot;eventRemainingContentNode&quot;&gt;{%= $.eventMoreText %}&lt;/span&gt;', '&lt;/button&gt;', '&lt;/div&gt;']),
+    attributeMap: {
+      listContent: {
+        node: 'contentNode',
+        type: 'innerHTML'
+      },
+      eventListContent: {
+        node: 'eventContentNode',
+        type: 'innerHTML'
+      },
+      dateContent: {
+        node: 'dateNode',
+        type: 'innerHTML'
+      },
+      eventRemainingContent: {
+        node: 'eventRemainingContentNode',
+        type: 'innerHTML'
+      },
+      remainingContent: {
+        node: 'remainingContentNode',
+        type: 'innerHTML'
+      }
+    },
 
-            this.set('eventListContent', o.join(''));
-        },
-        processFeed: function(feed) {
-            var r = feed['$resources'],
-                feedLength = r.length,
-                i,
-                row,
-                o = [];
+    // View Properties
+    id: 'calendar_daylist',
+    cls: 'activities-for-day',
+    iconClass: 'fa fa-calendar fa-lg',
 
-            this.feed = feed;
-            for (i = 0; i &lt; feedLength; i++) {
-                row = r[i];
-                row.isEvent = false;
-                this.entries[row.$key] = row;
-                o.push(this.rowTemplate.apply(row, this));
-            }
+    datePickerView: 'generic_calendar',
+    monthView: 'calendar_monthlist',
+    weekView: 'calendar_weeklist',
+    activityDetailView: 'activity_detail',
+    eventDetailView: 'event_detail',
+    insertView: 'activity_types_list',
+    enableSearch: false,
+    currentDate: null,
+    contractName: 'system',
+    queryOrderBy: 'StartDate desc',
+    querySelect: ['Description', 'StartDate', 'Type', 'AccountName', 'ContactName', 'LeadId', 'LeadName', 'UserId', 'Timeless', 'Recurring'],
+    eventFeed: null,
+    eventPageSize: 3,
+    eventQuerySelect: ['StartDate', 'EndDate', 'Description', 'Type'],
+    activityIconByType: {
+      'atToDo': 'fa fa-list-ul',
+      'atPhoneCall': 'fa fa-phone',
+      'atAppointment': 'fa fa-calendar-o',
+      'atLiterature': 'fa fa-book',
+      'atPersonal': 'fa fa-check-square-o',
+      'atQuestion': 'fa fa-question-circle',
+      'atNote': 'fa fa-file-text-o',
+      'atEMail': 'fa fa-envelope'
+    },
+    eventIcon: 'fa fa-calendar-o',
+    resourceKind: 'activities',
+    pageSize: 1000,
+    expose: false,
 
-            // If we fetched a page that has no data due to un-reliable counts,
-            // check if we fetched anything in the previous pages before assuming there is no data.
-            if (feedLength === 0 &amp;&amp; Object.keys(this.entries).length === 0) {
-                this.set('listContent', this.noDataTemplate.apply(this));
-                return false;
-            }
+    continuousScrolling: false,
 
-            if (o.length &gt; 0) {
-                domConstruct.place(o.join(''), this.contentNode, 'last');
-            }
+    _onRefresh: function _onRefresh(o) {
+      this.inherited(arguments);
+      if (o.resourceKind === 'activities' || o.resourceKind === 'events') {
+        this.refreshRequired = true;
+      }
+    },
+    init: function init() {
+      this.inherited(arguments);
+      this.currentDate = moment().startOf('day');
+    },
+    toggleGroup: function toggleGroup(params) {
+      var node = params.$source;
+      if (node &amp;&amp; node.parentNode) {
+        _domClass['default'].toggle(node, 'collapsed');
+        _domClass['default'].toggle(node.parentNode, 'collapsed-event');
 
-            this.set('remainingContent', '');// Feed does not return reliable data, don't show remaining
+        var button = this.collapseButton;
 
-            domClass.toggle(this.domNode, 'list-has-more', this.hasMoreData());// This could be wrong, handle it on the next processFeed if so
-
-            if (this.options.allowEmptySelection) {
-                domClass.add(this.domNode, 'list-has-empty-opt');
-            }
-
-            this._loadPreviousSelections();
-        },
-        show: function(options) {
-            if (options) {
-                this.processShowOptions(options);
-            }
-
-            options = options || {};
-            options['where'] = this.formatQueryForActivities();
-
-            this.set('dateContent', this.currentDate.format(this.dateHeaderFormatText));
-            this.inherited(arguments, [options]);
-        },
-        processShowOptions: function(options) {
-            if (options.currentDate) {
-                this.currentDate = moment(options.currentDate).startOf('day') || moment().startOf('day');
-                this.refreshRequired = true;
-            }
-        },
-        isLoading: function() {
-            return domClass.contains(this.domNode, 'list-loading');
-        },
-        getNextDay: function() {
-            if (this.isLoading()) {
-                return;
-            }
-
-            this.currentDate.add({days: 1});
-            this.refresh();
-        },
-        getToday: function() {
-            if (this.isLoading()) {
-                return;
-            }
-
-            if (this.currentDate === moment().startOf('day')) {
-                return;
-            }
-
-            this.currentDate = moment().startOf('day');
-            this.refresh();
-        },
-        getPrevDay: function() {
-            if (this.isLoading()) {
-                return;
-            }
-
-            this.currentDate.subtract({days: 1});
-            this.refresh();
-        },
-        formatQueryForActivities: function() {
-            var queryWhere,
-                startDate,
-                endDate;
-
-            queryWhere = [
-                'UserActivities.UserId eq &quot;${0}&quot; and Type ne &quot;atLiterature&quot; and (',
-                '(Timeless eq false and StartDate between @${1}@ and @${2}@) or ',
-                '(Timeless eq true and StartDate between @${3}@ and @${4}@))'
-            ].join('');
-
-            startDate = this.currentDate.clone().startOf('day').toDate();
-            endDate = this.currentDate.clone().endOf('day').toDate();
-
-            return string.substitute(
-                queryWhere,
-                [App.context['user'] &amp;&amp; App.context['user']['$key'],
-                convert.toIsoStringFromDate(startDate),
-                convert.toIsoStringFromDate(endDate),
-                this.currentDate.format('YYYY-MM-DDT00:00:00[Z]'),
-                this.currentDate.format('YYYY-MM-DDT23:59:59[Z]')]
-            );
-        },
-        selectEntry: function(params) {
-            var row = query(params.$source).closest('[data-key]')[0],
-                key = row ? row.getAttribute('data-key') : false;
-
-            this.navigateToDetailView(key);
-        },
-        selectDate: function() {
-            var options = {
-                date: this.currentDate,
-                showTimePicker: false,
-                timeless: false,
-                tools: {
-                    tbar: [{
-                            id: 'complete',
-                            cls: 'fa fa-check fa-fw fa-lg',
-                            fn: this.selectDateSuccess,
-                            scope: this
-                        }, {
-                            id: 'cancel',
-                            side: 'left',
-                            cls: 'fa fa-ban fa-fw fa-lg',
-                            fn: ReUI.back,
-                            scope: ReUI
-                        }]
-                }
-            },
-                view = App.getView(this.datePickerView);
-            if (view) {
-                view.show(options);
-            }
-        },
-        selectDateSuccess: function() {
-            var view = App.getPrimaryActiveView();
-            this.currentDate = moment(view.getDateTime()).startOf('day');
-            this.refresh();
-            ReUI.back();
-        },
-        navigateToWeekView: function() {
-            var view = App.getView(this.weekView),
-                navDate = this.currentDate ? this.currentDate : moment().startOf('day'),
-                options = {currentDate: navDate.valueOf()};
-            view.show(options);
-        },
-        navigateToMonthView: function() {
-            var view = App.getView(this.monthView),
-                navDate = this.currentDate ? this.currentDate : moment().startOf('day'),
-                options = {currentDate: navDate.valueOf()};
-            view.show(options);
-        },
-        navigateToInsertView: function() {
-            var view = App.getView(this.insertView || this.editView);
-
-            this.options.currentDate = this.currentDate.format('YYYY-MM-DD') || Date.today();
-            if (view) {
-                view.show({
-                    negateHistory: true,
-                    returnTo: this.id,
-                    insert: true,
-                    currentDate: this.options.currentDate.valueOf()
-                });
-            }
-        },
-        navigateToDetailView: function(key, descriptor) {
-            var entry = this.entries[key],
-                detailView = (entry.isEvent) ? this.eventDetailView : this.activityDetailView,
-                view = App.getView(detailView);
-
-            descriptor = (entry.isEvent) ? descriptor : entry.Description;
-            if (view) {
-                view.show({
-                    title: descriptor,
-                    key: key
-                });
-            }
+        if (button) {
+          _domClass['default'].toggle(button, this.toggleCollapseClass);
+          _domClass['default'].toggle(button, this.toggleExpandClass);
         }
-    });
+      }
+    },
+    refresh: function refresh() {
+      this.clear();
 
-    lang.setObject('Mobile.SalesLogix.Views.Calendar.DayView', __class);
-    return __class;
+      this.options = this.options || {};
+      this.options.where = this.formatQueryForActivities();
+      this.feed = null;
+      this.eventFeed = null;
+      this.set('dateContent', this.currentDate.format(this.dateHeaderFormatText));
+
+      this.requestData();
+      this.requestEventData();
+    },
+    requestEventData: function requestEventData() {
+      var request = this.createEventRequest();
+      request.read({
+        success: this.onRequestEventDataSuccess,
+        failure: this.onRequestEventDataFailure,
+        aborted: this.onRequestEventDataAborted,
+        scope: this
+      });
+    },
+    onRequestEventDataFailure: function onRequestEventDataFailure(response, o) {
+      alert(_string['default'].substitute(this.requestErrorText, [response, o])); // eslint-disable-line
+      _ErrorManager['default'].addError(response, o, this.options, 'failure');
+    },
+    onRequestEventDataAborted: function onRequestEventDataAborted() {
+      this.options = false; // force a refresh
+    },
+    onRequestEventDataSuccess: function onRequestEventDataSuccess(feed) {
+      this.processEventFeed(feed);
+    },
+    createEventRequest: function createEventRequest() {
+      var eventSelect = this.eventQuerySelect;
+      var eventWhere = this.getEventQuery();
+      var request = new Sage.SData.Client.SDataResourceCollectionRequest(this.getService()).setCount(this.eventPageSize).setStartIndex(1).setResourceKind('events').setQueryArg(Sage.SData.Client.SDataUri.QueryArgNames.Select, this.expandExpression(eventSelect).join(',')).setQueryArg(Sage.SData.Client.SDataUri.QueryArgNames.Where, eventWhere);
+      return request;
+    },
+    getEventQuery: function getEventQuery() {
+      return _string['default'].substitute(['UserId eq &quot;${0}&quot; and (', '(StartDate gt @${1}@ or EndDate gt @${1}@) and ', 'StartDate lt @${2}@', ')'].join(''), [App.context.user &amp;&amp; App.context.user.$key, _convert['default'].toIsoStringFromDate(this.currentDate.clone().startOf('day').toDate()), _convert['default'].toIsoStringFromDate(this.currentDate.clone().endOf('day').toDate())]);
+    },
+    activateEventMore: function activateEventMore() {
+      var view = App.getView('event_related');
+      if (view) {
+        var where = this.getEventQuery();
+        view.show({
+          'where': where
+        });
+      }
+    },
+    hideEventList: function hideEventList() {
+      _domClass['default'].add(this.eventContainerNode, 'event-hidden');
+    },
+    showEventList: function showEventList() {
+      _domClass['default'].remove(this.eventContainerNode, 'event-hidden');
+    },
+    processEventFeed: function processEventFeed(feed) {
+      var r = feed.$resources;
+      var feedLength = r.length;
+      var o = [];
+      this.eventFeed = feed;
+
+      if (feedLength === 0) {
+        this.hideEventList();
+        return false;
+      }
+      this.showEventList();
+
+      for (var i = 0; i &lt; feedLength; i++) {
+        var row = r[i];
+        row.isEvent = true;
+        this.entries[row.$key] = row;
+        o.push(this.eventRowTemplate.apply(row, this));
+      }
+
+      if (feed.$totalResults &gt; feedLength) {
+        _domClass['default'].add(this.eventContainerNode, 'list-has-more');
+        this.set('eventRemainingContent', this.eventMoreText);
+      } else {
+        _domClass['default'].remove(this.eventContainerNode, 'list-has-more');
+        this.set('eventRemainingContent', '');
+      }
+
+      this.set('eventListContent', o.join(''));
+    },
+    processFeed: function processFeed(feed) {
+      var r = feed.$resources;
+      var feedLength = r.length;
+      var o = [];
+
+      this.feed = feed;
+      for (var i = 0; i &lt; feedLength; i++) {
+        var row = r[i];
+        row.isEvent = false;
+        this.entries[row.$key] = row;
+        o.push(this.rowTemplate.apply(row, this));
+      }
+
+      // If we fetched a page that has no data due to un-reliable counts,
+      // check if we fetched anything in the previous pages before assuming there is no data.
+      if (feedLength === 0 &amp;&amp; Object.keys(this.entries).length === 0) {
+        this.set('listContent', this.noDataTemplate.apply(this));
+        return false;
+      }
+
+      if (o.length &gt; 0) {
+        _domConstruct['default'].place(o.join(''), this.contentNode, 'last');
+      }
+
+      this.set('remainingContent', ''); // Feed does not return reliable data, don't show remaining
+
+      _domClass['default'].toggle(this.domNode, 'list-has-more', this.hasMoreData()); // This could be wrong, handle it on the next processFeed if so
+
+      if (this.options.allowEmptySelection) {
+        _domClass['default'].add(this.domNode, 'list-has-empty-opt');
+      }
+
+      this._loadPreviousSelections();
+    },
+    show: function show(options) {
+      if (options) {
+        this.processShowOptions(options);
+      }
+
+      var theOptions = options || {};
+      theOptions.where = this.formatQueryForActivities();
+
+      this.set('dateContent', this.currentDate.format(this.dateHeaderFormatText));
+      this.inherited(arguments, [theOptions]);
+    },
+    processShowOptions: function processShowOptions(options) {
+      if (options.currentDate) {
+        this.currentDate = moment(options.currentDate).startOf('day') || moment().startOf('day');
+        this.refreshRequired = true;
+      }
+    },
+    isLoading: function isLoading() {
+      return _domClass['default'].contains(this.domNode, 'list-loading');
+    },
+    getNextDay: function getNextDay() {
+      if (this.isLoading()) {
+        return;
+      }
+
+      this.currentDate.add({
+        days: 1
+      });
+      this.refresh();
+    },
+    getToday: function getToday() {
+      if (this.isLoading()) {
+        return;
+      }
+
+      if (this.currentDate === moment().startOf('day')) {
+        return;
+      }
+
+      this.currentDate = moment().startOf('day');
+      this.refresh();
+    },
+    getPrevDay: function getPrevDay() {
+      if (this.isLoading()) {
+        return;
+      }
+
+      this.currentDate.subtract({
+        days: 1
+      });
+      this.refresh();
+    },
+    formatQueryForActivities: function formatQueryForActivities() {
+      var queryWhere = ['UserActivities.UserId eq &quot;${0}&quot; and Type ne &quot;atLiterature&quot; and (', '(Timeless eq false and StartDate between @${1}@ and @${2}@) or ', '(Timeless eq true and StartDate between @${3}@ and @${4}@))'].join('');
+
+      var startDate = this.currentDate.clone().startOf('day').toDate();
+      var endDate = this.currentDate.clone().endOf('day').toDate();
+
+      return _string['default'].substitute(queryWhere, [App.context.user &amp;&amp; App.context.user.$key, _convert['default'].toIsoStringFromDate(startDate), _convert['default'].toIsoStringFromDate(endDate), this.currentDate.format('YYYY-MM-DDT00:00:00[Z]'), this.currentDate.format('YYYY-MM-DDT23:59:59[Z]')]);
+    },
+    selectEntry: function selectEntry(params) {
+      var row = (0, _query['default'])(params.$source).closest('[data-key]')[0];
+      var key = row ? row.getAttribute('data-key') : false;
+
+      this.navigateToDetailView(key);
+    },
+    selectDate: function selectDate() {
+      var options = {
+        date: this.currentDate,
+        showTimePicker: false,
+        timeless: false,
+        tools: {
+          tbar: [{
+            id: 'complete',
+            cls: 'fa fa-check fa-fw fa-lg',
+            fn: this.selectDateSuccess,
+            scope: this
+          }, {
+            id: 'cancel',
+            side: 'left',
+            cls: 'fa fa-ban fa-fw fa-lg',
+            fn: ReUI.back,
+            scope: ReUI
+          }]
+        }
+      };
+      var view = App.getView(this.datePickerView);
+      if (view) {
+        view.show(options);
+      }
+    },
+    selectDateSuccess: function selectDateSuccess() {
+      var view = App.getPrimaryActiveView();
+      this.currentDate = moment(view.getDateTime()).startOf('day');
+      this.refresh();
+      ReUI.back();
+    },
+    navigateToWeekView: function navigateToWeekView() {
+      var view = App.getView(this.weekView);
+      var navDate = this.currentDate ? this.currentDate : moment().startOf('day');
+      var options = {
+        currentDate: navDate.valueOf()
+      };
+      view.show(options);
+    },
+    navigateToMonthView: function navigateToMonthView() {
+      var view = App.getView(this.monthView);
+      var navDate = this.currentDate ? this.currentDate : moment().startOf('day');
+      var options = {
+        currentDate: navDate.valueOf()
+      };
+      view.show(options);
+    },
+    navigateToInsertView: function navigateToInsertView() {
+      var view = App.getView(this.insertView || this.editView);
+
+      this.options.currentDate = this.currentDate.format('YYYY-MM-DD') || moment().startOf('day');
+      if (view) {
+        view.show({
+          negateHistory: true,
+          returnTo: this.id,
+          insert: true,
+          currentDate: this.options.currentDate.valueOf()
+        });
+      }
+    },
+    navigateToDetailView: function navigateToDetailView(key, descriptor) {
+      var entry = this.entries[key];
+      var detailView = entry.isEvent ? this.eventDetailView : this.activityDetailView;
+      var view = App.getView(detailView);
+
+      var theDescriptor = entry.isEvent ? descriptor : entry.Description;
+      if (view) {
+        view.show({
+          title: theDescriptor,
+          key: key
+        });
+      }
+    }
+  });
+
+  _lang['default'].setObject('Mobile.SalesLogix.Views.Calendar.DayView', __class);
+  module.exports = __class;
 });
-
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInNyYy9WaWV3cy9DYWxlbmRhci9EYXlWaWV3LmpzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiI7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7QUFZQSxNQUFNLFFBQVEsR0FBRyw2QkFBWSxpQkFBaUIsQ0FBQyxDQUFDOzs7Ozs7Ozs7Ozs7Ozs7OztBQWlCaEQsTUFBTSxPQUFPLEdBQUcseUJBQVEsNEJBQTRCLEVBQUUscURBQTZCLEVBQUU7O0FBRW5GLGFBQVMsRUFBRSxRQUFRLENBQUMsU0FBUztBQUM3Qix1QkFBbUIsRUFBRSxRQUFRLENBQUMsbUJBQW1CO0FBQ2pELHdCQUFvQixFQUFFLFFBQVEsQ0FBQyxvQkFBb0I7QUFDbkQsdUJBQW1CLEVBQUUsUUFBUSxDQUFDLG1CQUFtQjtBQUNqRCxhQUFTLEVBQUUsUUFBUSxDQUFDLFNBQVM7QUFDN0IsV0FBTyxFQUFFLFFBQVEsQ0FBQyxPQUFPO0FBQ3pCLFlBQVEsRUFBRSxRQUFRLENBQUMsUUFBUTtBQUMzQixhQUFTLEVBQUUsUUFBUSxDQUFDLFNBQVM7QUFDN0IsY0FBVSxFQUFFLFFBQVEsQ0FBQyxVQUFVO0FBQy9CLG1CQUFlLEVBQUUsUUFBUSxDQUFDLGVBQWU7QUFDekMsc0JBQWtCLEVBQUUsUUFBUSxDQUFDLGtCQUFrQjtBQUMvQyxpQkFBYSxFQUFFLFFBQVEsQ0FBQyxhQUFhO0FBQ3JDLHNCQUFrQixFQUFFLFFBQVEsQ0FBQyxrQkFBa0I7O0FBRS9DLHVCQUFtQixFQUFFLEtBQUs7QUFDMUIsdUJBQW1CLEVBQUUsb0JBQW9CO0FBQ3pDLHFCQUFpQixFQUFFLHFCQUFxQjs7O0FBR3hDLGtCQUFjLEVBQUUsSUFBSSxRQUFRLENBQUMsQ0FDM0Isb0tBQW9LLEVBQ3BLLGlEQUFpRCxFQUNqRCw2QkFBNkIsRUFDN0IsZ0NBQWdDLEVBQ2hDLHNGQUFzRixFQUN0RixzTUFBc00sRUFDdE0sMEVBQTBFLEVBQzFFLDRCQUE0QixFQUM1QixRQUFRLEVBQ1Isc0NBQXNDLEVBQ3RDLHFFQUFxRSxFQUNyRSx1QkFB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T0FBTyxFQUFFO1NBQ2hELENBQUMsQ0FBQztPQUNKO0tBQ0Y7QUFDRCx3QkFBb0IsRUFBRSxTQUFTLG9CQUFvQixDQUFDLEdBQUcsRUFBRSxVQUFVLEVBQUU7QUFDbkUsVUFBTSxLQUFLLEdBQUcsSUFBSSxDQUFDLE9BQU8sQ0FBQyxHQUFHLENBQUMsQ0FBQztBQUNoQyxVQUFNLFVBQVUsR0FBRyxBQUFDLEtBQUssQ0FBQyxPQUFPLEdBQUksSUFBSSxDQUFDLGVBQWUsR0FBRyxJQUFJLENBQUMsa0JBQWtCLENBQUM7QUFDcEYsVUFBTSxJQUFJLEdBQUcsR0FBRyxDQUFDLE9BQU8sQ0FBQyxVQUFVLENBQUMsQ0FBQzs7QUFFckMsVUFBTSxhQUFhLEdBQUcsQUFBQyxLQUFLLENBQUMsT0FBTyxHQUFJLFVBQVUsR0FBRyxLQUFLLENBQUMsV0FBVyxDQUFDO0FBQ3ZFLFVBQUksSUFBSSxFQUFFO0FBQ1IsWUFBSSxDQUFDLElBQUksQ0FBQztBQUNSLGVBQUssRUFBRSxhQUFhO0FBQ3BCLGFBQUcsRUFBRSxHQUFHO1NBQ1QsQ0FBQyxDQUFDO09BQ0o7S0FDRjtHQUNGLENBQUMsQ0FBQzs7QUFFSCxtQkFBSyxTQUFTLENBQUMsMENBQTBDLEVBQUUsT0FBTyxDQUFDLENBQUM7bUJBQ3JELE9BQU8iLCJmaWxlIjoic3JjL1ZpZXdzL0NhbGVuZGFyL0RheVZpZXcuanMiLCJzb3VyY2VSb290Ijoic3JjIiwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IGRlY2xhcmUgZnJvbSAnZG9qby9fYmFzZS9kZWNsYXJlJztcclxuaW1wb3J0IGxhbmcgZnJvbSAnZG9qby9fYmFzZS9sYW5nJztcclxuaW1wb3J0IHN0cmluZyBmcm9tICdkb2pvL3N0cmluZyc7XHJcbmltcG9ydCBxdWVyeSBmcm9tICdkb2pvL3F1ZXJ5JztcclxuaW1wb3J0IGRvbUNsYXNzIGZyb20gJ2Rvam8vZG9tLWNsYXNzJztcclxuaW1wb3J0IGRvbUNvbnN0cnVjdCBmcm9tICdkb2pvL2RvbS1jb25zdHJ1Y3QnO1xyXG5pbXBvcnQgRXJyb3JNYW5hZ2VyIGZyb20gJ2FyZ29zL0Vycm9yTWFuYWdlcic7XHJcbmltcG9ydCBjb252ZXJ0IGZyb20gJ2FyZ29zL0NvbnZlcnQnO1xyXG5pbXBvcnQgTGlzdCBmcm9tICdhcmdvcy9MaXN0JztcclxuaW1wb3J0IF9MZWdhY3lTRGF0YUxpc3RNaXhpbiBmcm9tICdhcmdvcy9fTGVnYWN5U0RhdGFMaXN0TWl4aW4nO1xyXG5pbXBvcnQgZ2V0UmVzb3VyY2UgZnJvbSAnYXJnb3MvSTE4bic7XHJcblxyXG5jb25zdCByZXNvdXJjZSA9IGdldFJlc291cmNlKCdjYWxlbmRhckRheVZpZXcnKTtcclxuXHJcbi8qKlxyXG4gKiBAY2xhc3MgY3JtLlZpZXdzLkNhbGVuZGFyLkRheVZpZXdcclxuICpcclxuICogQGV4dGVuZHMgYXJnb3MuTGlzdFxyXG4gKiBAbWl4aW5zIGFyZ29zLkxpc3RcclxuICogQG1peGlucyBhcmdvcy5fTGVnYWN5U0RhdGFMaXN0TWl4aW5cclxuICpcclxuICogQHJlcXVpcmVzIGFyZ29zLkxpc3RcclxuICogQHJlcXVpcmVzIGFyZ29zLl9MZWdhY3lTRGF0YUxpc3RNaXhpblxyXG4gKiBAcmVxdWlyZXMgYXJnb3MuQ29udmVydFxyXG4gKiBAcmVxdWlyZXMgYXJnb3MuRXJyb3JNYW5hZ2VyXHJcbiAqXHJcbiAqIEByZXF1aXJlcyBtb21lbnRcclxuICpcclxuICovXHJcbmNvbnN0IF9fY2xhc3MgPSBkZWNsYXJlKCdjcm0uVmlld3MuQ2FsZW5kYXIuRGF5VmlldycsIFtMaXN0LCBfTGVnYWN5U0RhdGFMaXN0TWl4aW5dLCB7XHJcbiAgLy8gTG9jYWxpemF0aW9uXHJcbiAgdGl0bGVUZXh0OiByZXNvdXJjZS50aXRsZVRleHQsXHJcbiAgZXZlbnREYXRlRm9ybWF0VGV4dDogcmVzb3VyY2UuZXZlbnREYXRlRm9ybWF0VGV4dCxcclxuICBkYXRlSGVhZGVyRm9ybWF0VGV4dDogcmVzb3VyY2UuZGF0ZUhlYWRlckZvcm1hdFRleHQsXHJcbiAgc3RhcnRUaW1lRm9ybWF0VGV4dDogcmVzb3VyY2Uuc3RhcnRUaW1lRm9ybWF0VGV4dCxcclxuICB0b2RheVRleHQ6IHJlc291cmNlLnRvZGF5VGV4dCxcclxuICBkYXlUZXh0OiByZXNvdXJjZS5kYXlUZXh0LFxyXG4gIHdlZWtUZXh0OiByZXNvdXJjZS53ZWVrVGV4dCxcclxuICBtb250aFRleHQ6IHJlc291cmNlLm1vbnRoVGV4dCxcclxuICBhbGxEYXlUZXh0OiByZXNvdXJjZS5hbGxEYXlUZXh0LFxyXG4gIGV2ZW50SGVhZGVyVGV4dDogcmVzb3VyY2UuZXZlbnRIZWFkZXJUZXh0LFxyXG4gIGFjdGl2aXR5SGVhZGVyVGV4dDogcmVzb3VyY2UuYWN0aXZpdHlIZWFkZXJUZXh0LFxyXG4gIGV2ZW50TW9yZVRleHQ6IHJlc291cmNlLmV2ZW50TW9yZVRleHQsXHJcbiAgdG9nZ2xlQ29sbGFwc2VUZXh0OiByZXNvdXJjZS50b2dnbGVDb2xsYXBzZVRleHQsXHJcblxyXG4gIGVuYWJsZVB1bGxUb1JlZnJlc2g6IGZhbHNlLFxyXG4gIHRvZ2dsZUNvbGxhcHNlQ2xhc3M6ICdmYSBmYS1jaGV2cm9uLWRvd24nLFxyXG4gIHRvZ2dsZUV4cGFuZENsYXNzOiAnZmEgZmEtY2hldnJvbi1yaWdodCcsXHJcblxyXG4gIC8vIFRlbXBsYXRlc1xyXG4gIHdpZGdldFRlbXBsYXRlOiBuZXcgU2ltcGxhdGUoW1xyXG4gICAgJzxkaXYgaWQ9XCJ7JT0gJC5pZCAlfVwiIHRpdGxlPVwieyU9ICQudGl0bGVUZXh0ICV9XCIgY2xhc3M9XCJvdmVydGhyb3cgbGlzdCB7JT0gJC5jbHMgJX1cIiB7JSBpZiAoJC5yZXNvdXJjZUtpbmQpIHsgJX1kYXRhLXJlc291cmNlLWtpbmQ9XCJ7JT0gJC5yZXNvdXJjZUtpbmQgJX1cInslIH0gJX0+JyxcclxuICAgICc8ZGl2IGRhdGEtZG9qby1hdHRhY2gtcG9pbnQ9XCJzZWFyY2hOb2RlXCI+PC9kaXY+JyxcclxuICAgICd7JSEgJC5uYXZpZ2F0aW9uVGVtcGxhdGUgJX0nLFxyXG4gICAgJzxkaXYgc3R5bGU9XCJjbGVhcjpib3RoXCI+PC9kaXY+JyxcclxuICAgICc8ZGl2IGNsYXNzPVwiZXZlbnQtY29udGVudCBldmVudC1oaWRkZW5cIiBkYXRhLWRvam8tYXR0YWNoLXBvaW50PVwiZXZlbnRDb250YWluZXJOb2RlXCI+JyxcclxuICAgICc8aDIgZGF0YS1hY3Rpb249XCJ0b2dnbGVHcm91cFwiPjxidXR0b24gZGF0YS1kb2pvLWF0dGFjaC1wb2ludD1cImNvbGxhcHNlQnV0dG9uXCIgY2xhc3M9XCJ7JT0gJCQudG9nZ2xlQ29sbGFwc2VDbGFzcyAlfVwiIGFyaWEtbGFiZWw9XCJ7JTogJCQudG9nZ2xlQ29sbGFwc2VUZXh0ICV9XCI+PC9idXR0b24+eyU9ICQuZXZlbnRIZWFkZXJUZXh0ICV9PC9oMj4nLFxyXG4gICAgJzx1bCBjbGFzcz1cImxpc3QtY29udGVudFwiIGRhdGEtZG9qby1hdHRhY2gtcG9pbnQ9XCJldmVudENvbnRlbnROb2RlXCI+PC91bD4nLFxyXG4gICAgJ3slISAkLmV2ZW50TW9yZVRlbXBsYXRlICV9JyxcclxuICAgICc8L2Rpdj4nLFxyXG4gICAgJzxoMj57JT0gJC5hY3Rpdml0eUhlYWRlclRleHQgJX08L2gyPicsXHJcbiAgICAnPHVsIGNsYXNzPVwibGlzdC1jb250ZW50XCIgZGF0YS1kb2pvLWF0dGFjaC1wb2ludD1cImNvbnRlbnROb2RlXCI+PC91bD4nLFxyXG4gICAgJ3slISAkLm1vcmVUZW1wbGF0ZSAlfScsXHJcbiAgICAnPC9kaXY+JyxcclxuICBdKSxcclxuICByb3dUZW1wbGF0ZTogbmV3IFNpbXBsYXRlKFtcclxuICAgICc8bGkgZGF0YS1hY3Rpb249XCJhY3RpdmF0ZUVudHJ5XCIgZGF0YS1rZXk9XCJ7JT0gJC4ka2V5ICV9XCIgZGF0YS1kZXNjcmlwdG9yPVwieyU6ICQuRGVzY3JpcHRpb24gJX1cIiBkYXRhLWFjdGl2aXR5LXR5cGU9XCJ7JTogJC5UeXBlICV9XCI+JyxcclxuICAgICc8dGFibGUgY2xhc3M9XCJjYWxlbmRhci1lbnRyeS10YWJsZVwiPjx0cj4nLFxyXG4gICAgJzx0ZCBjbGFzcz1cImVudHJ5LXRhYmxlLWljb25cIj4nLFxyXG4gICAgJzxidXR0b24gZGF0YS1hY3Rpb249XCJzZWxlY3RFbnRyeVwiIGNsYXNzPVwibGlzdC1pdGVtLXNlbGVjdG9yIGJ1dHRvbiB7JT0gJCQuYWN0aXZpdHlJY29uQnlUeXBlWyQuVHlwZV0gJX1cIj4nLFxyXG4gICAgJzwvYnV0dG9uPicsXHJcbiAgICAnPC90ZD4nLFxyXG4gICAgJzx0ZCBjbGFzcz1cImVudHJ5LXRhYmxlLXRpbWVcIj57JSEgJCQudGltZVRlbXBsYXRlICV9PC90ZD4nLFxyXG4gICAgJzx0ZCBjbGFzcz1cImVudHJ5LXRhYmxlLWRlc2NyaXB0aW9uXCI+eyUhICQkLml0ZW1UZW1wbGF0ZSAlfTwvdGQ+JyxcclxuICAgICc8L3RyPjwvdGFibGU+JyxcclxuICAgICc8L2xpPicsXHJcbiAgXSksXHJcbiAgZXZlbnRSb3dUZW1wbGF0ZTogbmV3IFNpbXBsYXRlKFtcclxuICAgICc8bGkgZGF0YS1hY3Rpb249XCJhY3RpdmF0ZUVudHJ5XCIgZGF0YS1rZXk9XCJ7JT0gJC4ka2V5ICV9XCIgZGF0YS1kZXNjcmlwdG9yPVwieyU6ICQuJGRlc2NyaXB0b3IgJX1cIiBkYXRhLWFjdGl2aXR5LXR5cGU9XCJFdmVudFwiPicsXHJcbiAgICAnPHRhYmxlIGNsYXNzPVwiY2FsZW5kYXItZW50cnktdGFibGVcIj48dHI+JyxcclxuICAgICc8dGQgY2xhc3M9XCJlbnRyeS10YWJsZS1pY29uXCI+JyxcclxuICAgICc8YnV0dG9uIGRhdGEtYWN0aW9uPVwic2VsZWN0RW50cnlcIiBjbGFzcz1cImxpc3QtaXRlbS1zZWxlY3RvciBidXR0b24geyU9ICQkLmV2ZW50SWNvbiAlfVwiPicsXHJcbiAgICAnPC9idXR0b24+JyxcclxuICAgICc8L3RkPicsXHJcbiAgICAnPHRkIGNsYXNzPVwiZW50cnktdGFibGUtZGVzY3JpcHRpb25cIj57JSEgJCQuZXZlbnRJdGVtVGVtcGxhdGUgJX08L3RkPicsXHJcbiAgICAnPC90cj48L3RhYmxlPicsXHJcbiAgICAnPC9saT4nLFxyXG4gIF0pLFxyXG4gIHRpbWVUZW1wbGF0ZTogbmV3IFNpbXBsYXRlKFtcclxuICAgICd7JSBpZiAoJC5UaW1lbGVzcykgeyAlfScsXHJcbiAgICAnPHNwYW4gY2xhc3M9XCJwLXRpbWVcIj57JT0gJCQuYWxsRGF5VGV4dCAlfTwvc3Bhbj4nLFxyXG4gICAgJ3slIH0gZWxzZSB7ICV9JyxcclxuICAgICc8c3BhbiBjbGFzcz1cInAtdGltZVwiPnslOiBjcm0uRm9ybWF0LmRhdGUoJC5TdGFydERhdGUsICQkLnN0YXJ0VGltZUZvcm1hdFRleHQpICV9PC9zcGFuPicsXHJcbiAgICAneyUgfSAlfScsXHJcbiAgXSksXHJcbiAgaXRlbVRlbXBsYXRlOiBuZXcgU2ltcGxhdGUoW1xyXG4gICAgJzxoMyBjbGFzcz1cInAtZGVzY3JpcHRpb25cIj57JTogJC5EZXNjcmlwdGlvbiAlfTwvaDM+JyxcclxuICAgICc8aDQ+eyU9ICQkLm5hbWVUZW1wbGF0ZS5hcHBseSgkKSAlfTwvaDQ+JyxcclxuICBdKSxcclxuICBldmVudEl0ZW1UZW1wbGF0ZTogbmV3IFNpbXBsYXRlKFtcclxuICAgICc8aDMgY2xhc3M9XCJwLWRlc2NyaXB0aW9uXCI+eyU6ICQuRGVzY3JpcHRpb24gJX0gKHslOiAkLlR5cGUgJX0pPC9oMz4nLFxyXG4gICAgJzxoND57JSEgJCQuZXZlbnROYW1lVGVtcGxhdGUgJX08L2g0PicsXHJcbiAgXSksXHJcbiAgbmFtZVRlbXBsYXRlOiBuZXcgU2ltcGxhdGUoW1xyXG4gICAgJ3slIGlmICgkLkNvbnRhY3ROYW1lKSB7ICV9JyxcclxuICAgICd7JTogJC5Db250YWN0TmFtZSAlfSAvIHslOiAkLkFjY291bnROYW1lICV9JyxcclxuICAgICd7JSB9IGVsc2UgaWYgKCQuQWNjb3VudE5hbWUpIHsgJX0nLFxyXG4gICAgJ3slOiAkLkFjY291bnROYW1lICV9JyxcclxuICAgICd7JSB9IGVsc2UgeyAlfScsXHJcbiAgICAneyU6ICQuTGVhZE5hbWUgJX0nLFxyXG4gICAgJ3slIH0gJX0nLFxyXG4gIF0pLFxyXG4gIGV2ZW50TmFtZVRlbXBsYXRlOiBuZXcgU2ltcGxhdGUoW1xyXG4gICAgJ3slOiBjcm0uRm9ybWF0LmRhdGUoJC5TdGFydERhdGUsICQkLmV2ZW50RGF0ZUZvcm1hdFRleHQpICV9JyxcclxuICAgICcmbmJzcDstJm5ic3A7JyxcclxuICAgICd7JTogY3JtLkZvcm1hdC5kYXRlKCQuRW5kRGF0ZSwgJCQuZXZlbnREYXRlRm9ybWF0VGV4dCkgJX0nLFxyXG4gIF0pLFxyXG4gIG5hdmlnYXRpb25UZW1wbGF0ZTogbmV3IFNpbXBsYXRlKFtcclxuICAgICc8ZGl2IGNsYXNzPVwic3BsaXQtYnV0dG9uc1wiPicsXHJcbiAgICAnPGJ1dHRvbiBkYXRhLXRvb2w9XCJ0b2RheVwiIGRhdGEtYWN0aW9uPVwiZ2V0VG9kYXlcIiBjbGFzcz1cImJ1dHRvblwiPnslOiAkLnRvZGF5VGV4dCAlfTwvYnV0dG9uPicsXHJcbiAgICAnPGJ1dHRvbiBkYXRhLXRvb2w9XCJzZWxlY3RkYXRlXCIgZGF0YS1hY3Rpb249XCJzZWxlY3REYXRlXCIgY2xhc3M9XCJidXR0b24gZmEgZmEtY2FsZW5kYXJcIj48c3Bhbj48L3NwYW4+PC9idXR0b24+JyxcclxuICAgICc8YnV0dG9uIGRhdGEtdG9vbD1cImRheVwiIGNsYXNzPVwiYnV0dG9uIGN1cnJlbnRcIj57JTogJC5kYXlUZXh0ICV9PC9idXR0b24+JyxcclxuICAgICc8YnV0dG9uIGRhdGEtdG9vbD1cIndlZWtcIiBkYXRhLWFjdGlvbj1cIm5hdmlnYXRlVG9XZWVrVmlld1wiIGNsYXNzPVwiYnV0dG9uXCI+eyU6ICQud2Vla1RleHQgJX08L2J1dHRvbj4nLFxyXG4gICAgJzxidXR0b24gZGF0YS10b29sPVwibW9udGhcIiBkYXRhLWFjdGlvbj1cIm5hdmlnYXRlVG9Nb250aFZpZXdcIiBjbGFzcz1cImJ1dHRvblwiPnslOiAkLm1vbnRoVGV4dCAlfTwvYnV0dG9uPicsXHJcbiAgICAnPC9kaXY+JyxcclxuICAgICc8ZGl2IGNsYXNzPVwibmF2LWJhclwiPicsXHJcbiAgICAnPGJ1dHRvbiBkYXRhLXRvb2w9XCJuZXh0XCIgZGF0YS1hY3Rpb249XCJnZXROZXh0RGF5XCIgY2xhc3M9XCJidXR0b24gYnV0dG9uLW5leHQgZmEgZmEtYXJyb3ctcmlnaHQgZmEtbGdcIj48c3Bhbj48L3NwYW4+PC9idXR0b24+JyxcclxuICAgICc8YnV0dG9uIGRhdGEtdG9vbD1cInByZXZcIiBkYXRhLWFjdGlvbj1cImdldFByZXZEYXlcIiBjbGFzcz1cImJ1dHRvbiBidXR0b24tcHJldiBmYSBmYS1hcnJvdy1sZWZ0IGZhLWxnXCI+PHNwYW4+PC9zcGFuPjwvYnV0dG9uPicsXHJcbiAgICAnPGgzIGNsYXNzPVwiZGF0ZS10ZXh0XCIgZGF0YS1kb2pvLWF0dGFjaC1wb2ludD1cImRhdGVOb2RlXCI+PC9oMz4nLFxyXG4gICAgJzwvZGl2PicsXHJcbiAgXSksXHJcbiAgZXZlbnRNb3JlVGVtcGxhdGU6IG5ldyBTaW1wbGF0ZShbXHJcbiAgICAnPGRpdiBjbGFzcz1cImxpc3QtbW9yZVwiIGRhdGEtZG9qby1hdHRhY2gtcG9pbnQ9XCJldmVudE1vcmVOb2RlXCI+JyxcclxuICAgICc8YnV0dG9uIGNsYXNzPVwiYnV0dG9uXCIgZGF0YS1hY3Rpb249XCJhY3RpdmF0ZUV2ZW50TW9yZVwiPicsXHJcbiAgICAnPHNwYW4gZGF0YS1kb2pvLWF0dGFjaC1wb2ludD1cImV2ZW50UmVtYWluaW5nQ29udGVudE5vZGVcIj57JT0gJC5ldmVudE1vcmVUZXh0ICV9PC9zcGFuPicsXHJcbiAgICAnPC9idXR0b24+JyxcclxuICAgICc8L2Rpdj4nLFxyXG4gIF0pLFxyXG4gIGF0dHJpYnV0ZU1hcDoge1xyXG4gICAgbGlzdENvbnRlbnQ6IHtcclxuICAgICAgbm9kZTogJ2NvbnRlbnROb2RlJyxcclxuICAgICAgdHlwZTogJ2lubmVySFRNTCcsXHJcbiAgICB9LFxyXG4gICAgZXZlbnRMaXN0Q29udGVudDoge1xyXG4gICAgICBub2RlOiAnZXZlbnRDb250ZW50Tm9kZScsXHJcbiAgICAgIHR5cGU6ICdpbm5lckhUTUwnLFxyXG4gICAgfSxcclxuICAgIGRhdGVDb250ZW50OiB7XHJcbiAgICAgIG5vZGU6ICdkYXRlTm9kZScsXHJcbiAgICAgIHR5cGU6ICdpbm5lckhUTUwnLFxyXG4gICAgfSxcclxuICAgIGV2ZW50UmVtYWluaW5nQ29udGVudDoge1xyXG4gICAgICBub2RlOiAnZXZlbnRSZW1haW5pbmdDb250ZW50Tm9kZScsXHJcbiAgICAgIHR5cGU6ICdpbm5lckhUTUwnLFxyXG4gICAgfSxcclxuICAgIHJlbWFpbmluZ0NvbnRlbnQ6IHtcclxuICAgICAgbm9kZTogJ3JlbWFpbmluZ0NvbnRlbnROb2RlJyxcclxuICAgICAgdHlwZTogJ2lubmVySFRNTCcsXHJcbiAgICB9LFxyXG4gIH0sXHJcblxyXG4gIC8vIFZpZXcgUHJvcGVydGllc1xyXG4gIGlkOiAnY2FsZW5kYXJfZGF5bGlzdCcsXHJcbiAgY2xzOiAnYWN0aXZpdGllcy1mb3ItZGF5JyxcclxuICBpY29uQ2xhc3M6ICdmYSBmYS1jYWxlbmRhciBmYS1sZycsXHJcblxyXG4gIGRhdGVQaWNrZXJWaWV3OiAnZ2VuZXJpY19jYWxlbmRhcicsXHJcbiAgbW9udGhWaWV3OiAnY2FsZW5kYXJfbW9udGhsaXN0JyxcclxuICB3ZWVrVmlldzogJ2NhbGVuZGFyX3dlZWtsaXN0JyxcclxuICBhY3Rpdml0eURldGFpbFZpZXc6ICdhY3Rpdml0eV9kZXRhaWwnLFxyXG4gIGV2ZW50RGV0YWlsVmlldzogJ2V2ZW50X2RldGFpbCcsXHJcbiAgaW5zZXJ0VmlldzogJ2FjdGl2aXR5X3R5cGVzX2xpc3QnLFxyXG4gIGVuYWJsZVNlYXJjaDogZmFsc2UsXHJcbiAgY3VycmVudERhdGU6IG51bGwsXHJcbiAgY29udHJhY3ROYW1lOiAnc3lzdGVtJyxcclxuICBxdWVyeU9yZGVyQnk6ICdTdGFydERhdGUgZGVzYycsXHJcbiAgcXVlcnlTZWxlY3Q6IFtcclxuICAgICdEZXNjcmlwdGlvbicsXHJcbiAgICAnU3RhcnREYXRlJyxcclxuICAgICdUeXBlJyxcclxuICAgICdBY2NvdW50TmFtZScsXHJcbiAgICAnQ29udGFjdE5hbWUnLFxyXG4gICAgJ0xlYWRJZCcsXHJcbiAgICAnTGVhZE5hbWUnLFxyXG4gICAgJ1VzZXJJZCcsXHJcbiAgICAnVGltZWxlc3MnLFxyXG4gICAgJ1JlY3VycmluZycsXHJcbiAgXSxcclxuICBldmVudEZlZWQ6IG51bGwsXHJcbiAgZXZlbnRQYWdlU2l6ZTogMyxcclxuICBldmVudFF1ZXJ5U2VsZWN0OiBbXHJcbiAgICAnU3RhcnREYXRlJyxcclxuICAgICdFbmREYXRlJyxcclxuICAgICdEZXNjcmlwdGlvbicsXHJcbiAgICAnVHlwZScsXHJcbiAgXSxcclxuICBhY3Rpdml0eUljb25CeVR5cGU6IHtcclxuICAgICdhdFRvRG8nOiAnZmEgZmEtbGlzdC11bCcsXHJcbiAgICAnYXRQaG9uZUNhbGwnOiAnZmEgZmEtcGhvbmUnLFxyXG4gICAgJ2F0QXBwb2ludG1lbnQnOiAnZmEgZmEtY2FsZW5kYXItbycsXHJcbiAgICAnYXRMaXRlcmF0dXJlJzogJ2ZhIGZhLWJvb2snLFxyXG4gICAgJ2F0UGVyc29uYWwnOiAnZmEgZmEtY2hlY2stc3F1YXJlLW8nLFxyXG4gICAgJ2F0UXVlc3Rpb24nOiAnZmEgZmEtcXVlc3Rpb24tY2lyY2xlJyxcclxuICAgICdhdE5vdGUnOiAnZmEgZmEtZmlsZS10ZXh0LW8nLFxyXG4gICAgJ2F0RU1haWwnOiAnZmEgZmEtZW52ZWxvcGUnLFxyXG4gIH0sXHJcbiAgZXZlbnRJY29uOiAnZmEgZmEtY2FsZW5kYXItbycsXHJcbiAgcmVzb3VyY2VLaW5kOiAnYWN0aXZpdGllcycsXHJcbiAgcGFnZVNpemU6IDEwMDAsXHJcbiAgZXhwb3NlOiBmYWxzZSxcclxuXHJcbiAgY29udGludW91c1Njcm9sbGluZzogZmFsc2UsXHJcblxyXG4gIF9vblJlZnJlc2g6IGZ1bmN0aW9uIF9vblJlZnJlc2gobykge1xyXG4gICAgdGhpcy5pbmhlcml0ZWQoYXJndW1lbnRzKTtcclxuICAgIGlmIChvLnJlc291cmNlS2luZCA9PT0gJ2FjdGl2aXRpZXMnIHx8IG8ucmVzb3VyY2VLaW5kID09PSAnZXZlbnRzJykge1xyXG4gICAgICB0aGlzLnJlZnJlc2hSZXF1aXJlZCA9IHRydWU7XHJcbiAgICB9XHJcbiAgfSxcclxuICBpbml0OiBmdW5jdGlvbiBpbml0KCkge1xyXG4gICAgdGhpcy5pbmhlcml0ZWQoYXJndW1lbnRzKTtcclxuICAgIHRoaXMuY3VycmVudERhdGUgPSBtb21lbnQoKS5zdGFydE9mKCdkYXknKTtcclxuICB9LFxyXG4gIHRvZ2dsZUdyb3VwOiBmdW5jdGlvbiB0b2dnbGVHcm91cChwYXJhbXMpIHtcclxuICAgIGNvbnN0IG5vZGUgPSBwYXJhbXMuJHNvdXJjZTtcclxuICAgIGlmIChub2RlICYmIG5vZGUucGFyZW50Tm9kZSkge1xyXG4gICAgICBkb21DbGFzcy50b2dnbGUobm9kZSwgJ2NvbGxhcHNlZCcpO1xyXG4gICAgICBkb21DbGFzcy50b2dnbGUobm9kZS5wYXJlbnROb2RlLCAnY29sbGFwc2VkLWV2ZW50Jyk7XHJcblxyXG4gICAgICBjb25zdCBidXR0b24gPSB0aGlzLmNvbGxhcHNlQnV0dG9uO1xyXG5cclxuICAgICAgaWYgKGJ1dHRvbikge1xyXG4gICAgICAgIGRvbUNsYXNzLnRvZ2dsZShidXR0b24sIHRoaXMudG9nZ2xlQ29sbGFwc2VDbGFzcyk7XHJcbiAgICAgICAgZG9tQ2xhc3MudG9nZ2xlKGJ1dHRvbiwgdGhpcy50b2dnbGVFeHBhbmRDbGFzcyk7XHJcbiAgICAgIH1cclxuICAgIH1cclxuICB9LFxyXG4gIHJlZnJlc2g6IGZ1bmN0aW9uIHJlZnJlc2goKSB7XHJcbiAgICB0aGlzLmNsZWFyKCk7XHJcblxyXG4gICAgdGhpcy5vcHRpb25zID0gdGhpcy5vcHRpb25zIHx8IHt9O1xyXG4gICAgdGhpcy5vcHRpb25zLndoZXJlID0gdGhpcy5mb3JtYXRRdWVyeUZvckFjdGl2aXRpZXMoKTtcclxuICAgIHRoaXMuZmVlZCA9IG51bGw7XHJcbiAgICB0aGlzLmV2ZW50RmVlZCA9IG51bGw7XHJcbiAgICB0aGlzLnNldCgnZGF0ZUNvbnRlbnQnLCB0aGlzLmN1cnJlbnREYXRlLmZvcm1hdCh0aGlzLmRhdGVIZWFkZXJGb3JtYXRUZXh0KSk7XHJcblxyXG4gICAgdGhpcy5yZXF1ZXN0RGF0YSgpO1xyXG4gICAgdGhpcy5yZXF1ZXN0RXZlbnREYXRhKCk7XHJcbiAgfSxcclxuICByZXF1ZXN0RXZlbnREYXRhOiBmdW5jdGlvbiByZXF1ZXN0RXZlbnREYXRhKCkge1xyXG4gICAgY29uc3QgcmVxdWVzdCA9IHRoaXMuY3JlYXRlRXZlbnRSZXF1ZXN0KCk7XHJcbiAgICByZXF1ZXN0LnJlYWQoe1xyXG4gICAgICBzdWNjZXNzOiB0aGlzLm9uUmVxdWVzdEV2ZW50RGF0YVN1Y2Nlc3MsXHJcbiAgICAgIGZhaWx1cmU6IHRoaXMub25SZXF1ZXN0RXZlbnREYXRhRmFpbHVyZSxcclxuICAgICAgYWJvcnRlZDogdGhpcy5vblJlcXVlc3RFdmVudERhdGFBYm9ydGVkLFxyXG4gICAgICBzY29wZTogdGhpcyxcclxuICAgIH0pO1xyXG4gIH0sXHJcbiAgb25SZXF1ZXN0RXZlbnREYXRhRmFpbHVyZTogZnVuY3Rpb24gb25SZXF1ZXN0RXZlbnREYXRhRmFpbHVyZShyZXNwb25zZSwgbykge1xyXG4gICAgYWxlcnQoc3RyaW5nLnN1YnN0aXR1dGUodGhpcy5yZXF1ZXN0RXJyb3JUZXh0LCBbcmVzcG9uc2UsIG9dKSk7IC8vIGVzbGludC1kaXNhYmxlLWxpbmVcclxuICAgIEVycm9yTWFuYWdlci5hZGRFcnJvcihyZXNwb25zZSwgbywgdGhpcy5vcHRpb25zLCAnZmFpbHVyZScpO1xyXG4gIH0sXHJcbiAgb25SZXF1ZXN0RXZlbnREYXRhQWJvcnRlZDogZnVuY3Rpb24gb25SZXF1ZXN0RXZlbnREYXRhQWJvcnRlZCgpIHtcclxuICAgIHRoaXMub3B0aW9ucyA9IGZhbHNlOyAvLyBmb3JjZSBhIHJlZnJlc2hcclxuICB9LFxyXG4gIG9uUmVxdWVzdEV2ZW50RGF0YVN1Y2Nlc3M6IGZ1bmN0aW9uIG9uUmVxdWVzdEV2ZW50RGF0YVN1Y2Nlc3MoZmVlZCkge1xyXG4gICAgdGhpcy5wcm9jZXNzRXZlbnRGZWVkKGZlZWQpO1xyXG4gIH0sXHJcbiAgY3JlYXRlRXZlbnRSZXF1ZXN0OiBmdW5jdGlvbiBjcmVhdGVFdmVudFJlcXVlc3QoKSB7XHJcbiAgICBjb25zdCBldmVudFNlbGVjdCA9IHRoaXMuZXZlbnRRdWVyeVNlbGVjdDtcclxuICAgIGNvbnN0IGV2ZW50V2hlcmUgPSB0aGlzLmdldEV2ZW50UXVlcnkoKTtcclxuICAgIGNvbnN0IHJlcXVlc3QgPSBuZXcgU2FnZS5TRGF0YS5DbGllbnQuU0RhdGFSZXNvdXJjZUNvbGxlY3Rpb25SZXF1ZXN0KHRoaXMuZ2V0U2VydmljZSgpKVxyXG4gICAgICAuc2V0Q291bnQodGhpcy5ldmVudFBhZ2VTaXplKVxyXG4gICAgICAuc2V0U3RhcnRJbmRleCgxKVxyXG4gICAgICAuc2V0UmVzb3VyY2VLaW5kKCdldmVudHMnKVxyXG4gICAgICAuc2V0UXVlcnlBcmcoU2FnZS5TRGF0YS5DbGllbnQuU0RhdGFVcmkuUXVlcnlBcmdOYW1lcy5TZWxlY3QsIHRoaXMuZXhwYW5kRXhwcmVzc2lvbihldmVudFNlbGVjdCkuam9pbignLCcpKVxyXG4gICAgICAuc2V0UXVlcnlBcmcoU2FnZS5TRGF0YS5DbGllbnQuU0RhdGFVcmkuUXVlcnlBcmdOYW1lcy5XaGVyZSwgZXZlbnRXaGVyZSk7XHJcbiAgICByZXR1cm4gcmVxdWVzdDtcclxuICB9LFxyXG4gIGdldEV2ZW50UXVlcnk6IGZ1bmN0aW9uIGdldEV2ZW50UXVlcnkoKSB7XHJcbiAgICByZXR1cm4gc3RyaW5nLnN1YnN0aXR1dGUoXHJcbiAgICAgIFtcclxuICAgICAgICAnVXNlcklkIGVxIFwiJHswfVwiIGFuZCAoJyxcclxuICAgICAgICAnKFN0YXJ0RGF0ZSBndCBAJHsxfUAgb3IgRW5kRGF0ZSBndCBAJHsxfUApIGFuZCAnLFxyXG4gICAgICAgICdTdGFydERhdGUgbHQgQCR7Mn1AJyxcclxuICAgICAgICAnKScsXHJcbiAgICAgIF0uam9pbignJyksIFtcclxuICAgICAgICBBcHAuY29udGV4dC51c2VyICYmIEFwcC5jb250ZXh0LnVzZXIuJGtleSxcclxuICAgICAgICBjb252ZXJ0LnRvSXNvU3RyaW5nRnJvbURhdGUodGhpcy5jdXJyZW50RGF0ZS5jbG9uZSgpLnN0YXJ0T2YoJ2RheScpLnRvRGF0ZSgpKSxcclxuICAgICAgICBjb252ZXJ0LnRvSXNvU3RyaW5nRnJvbURhdGUodGhpcy5jdXJyZW50RGF0ZS5jbG9uZSgpLmVuZE9mKCdkYXknKS50b0RhdGUoKSksXHJcbiAgICAgIF1cclxuICAgICk7XHJcbiAgfSxcclxuICBhY3RpdmF0ZUV2ZW50TW9yZTogZnVuY3Rpb24gYWN0aXZhdGVFdmVudE1vcmUoKSB7XHJcbiAgICBjb25zdCB2aWV3ID0gQXBwLmdldFZpZXcoJ2V2ZW50X3JlbGF0ZWQnKTtcclxuICAgIGlmICh2aWV3KSB7XHJcbiAgICAgIGNvbnN0IHdoZXJlID0gdGhpcy5nZXRFdmVudFF1ZXJ5KCk7XHJcbiAgICAgIHZpZXcuc2hvdyh7XHJcbiAgICAgICAgJ3doZXJlJzogd2hlcmUsXHJcbiAgICAgIH0pO1xyXG4gICAgfVxyXG4gIH0sXHJcbiAgaGlkZUV2ZW50TGlzdDogZnVuY3Rpb24gaGlkZUV2ZW50TGlzdCgpIHtcclxuICAgIGRvbUNsYXNzLmFkZCh0aGlzLmV2ZW50Q29udGFpbmVyTm9kZSwgJ2V2ZW50LWhpZGRlbicpO1xyXG4gIH0sXHJcbiAgc2hvd0V2ZW50TGlzdDogZnVuY3Rpb24gc2hvd0V2ZW50TGlzdCgpIHtcclxuICAgIGRvbUNsYXNzLnJlbW92ZSh0aGlzLmV2ZW50Q29udGFpbmVyTm9kZSwgJ2V2ZW50LWhpZGRlbicpO1xyXG4gIH0sXHJcbiAgcHJvY2Vzc0V2ZW50RmVlZDogZnVuY3Rpb24gcHJvY2Vzc0V2ZW50RmVlZChmZWVkKSB7XHJcbiAgICBjb25zdCByID0gZmVlZC4kcmVzb3VyY2VzO1xyXG4gICAgY29uc3QgZmVlZExlbmd0aCA9IHIubGVuZ3RoO1xyXG4gICAgY29uc3QgbyA9IFtdO1xyXG4gICAgdGhpcy5ldmVudEZlZWQgPSBmZWVkO1xyXG5cclxuICAgIGlmIChmZWVkTGVuZ3RoID09PSAwKSB7XHJcbiAgICAgIHRoaXMuaGlkZUV2ZW50TGlzdCgpO1xyXG4gICAgICByZXR1cm4gZmFsc2U7XHJcbiAgICB9XHJcbiAgICB0aGlzLnNob3dFdmVudExpc3QoKTtcclxuXHJcbiAgICBmb3IgKGxldCBpID0gMDsgaSA8IGZlZWRMZW5ndGg7IGkrKykge1xyXG4gICAgICBjb25zdCByb3cgPSByW2ldO1xyXG4gICAgICByb3cuaXNFdmVudCA9IHRydWU7XHJcbiAgICAgIHRoaXMuZW50cmllc1tyb3cuJGtleV0gPSByb3c7XHJcbiAgICAgIG8ucHVzaCh0aGlzLmV2ZW50Um93VGVtcGxhdGUuYXBwbHkocm93LCB0aGlzKSk7XHJcbiAgICB9XHJcblxyXG4gICAgaWYgKGZlZWQuJHRvdGFsUmVzdWx0cyA+IGZlZWRMZW5ndGgpIHtcclxuICAgICAgZG9tQ2xhc3MuYWRkKHRoaXMuZXZlbnRDb250YWluZXJOb2RlLCAnbGlzdC1oYXMtbW9yZScpO1xyXG4gICAgICB0aGlzLnNldCgnZXZlbnRSZW1haW5pbmdDb250ZW50JywgdGhpcy5ldmVudE1vcmVUZXh0KTtcclxuICAgIH0gZWxzZSB7XHJcbiAgICAgIGRvbUNsYXNzLnJlbW92ZSh0aGlzLmV2ZW50Q29udGFpbmVyTm9kZSwgJ2xpc3QtaGFzLW1vcmUnKTtcclxuICAgICAgdGhpcy5zZXQoJ2V2ZW50UmVtYWluaW5nQ29udGVudCcsICcnKTtcclxuICAgIH1cclxuXHJcbiAgICB0aGlzLnNldCgnZXZlbnRMaXN0Q29udGVudCcsIG8uam9pbignJykpO1xyXG4gIH0sXHJcbiAgcHJvY2Vzc0ZlZWQ6IGZ1bmN0aW9uIHByb2Nlc3NGZWVkKGZlZWQpIHtcclxuICAgIGNvbnN0IHIgPSBmZWVkLiRyZXNvdXJjZXM7XHJcbiAgICBjb25zdCBmZWVkTGVuZ3RoID0gci5sZW5ndGg7XHJcbiAgICBjb25zdCBvID0gW107XHJcblxyXG4gICAgdGhpcy5mZWVkID0gZmVlZDtcclxuICAgIGZvciAobGV0IGkgPSAwOyBpIDwgZmVlZExlbmd0aDsgaSsrKSB7XHJcbiAgICAgIGNvbnN0IHJvdyA9IHJbaV07XHJcbiAgICAgIHJvdy5pc0V2ZW50ID0gZmFsc2U7XHJcbiAgICAgIHRoaXMuZW50cmllc1tyb3cuJGtleV0gPSByb3c7XHJcbiAgICAgIG8ucHVzaCh0aGlzLnJvd1RlbXBsYXRlLmFwcGx5KHJvdywgdGhpcykpO1xyXG4gICAgfVxyXG5cclxuICAgIC8vIElmIHdlIGZldGNoZWQgYSBwYWdlIHRoYXQgaGFzIG5vIGRhdGEgZHVlIHRvIHVuLXJlbGlhYmxlIGNvdW50cyxcclxuICAgIC8vIGNoZWNrIGlmIHdlIGZldGNoZWQgYW55dGhpbmcgaW4gdGhlIHByZXZpb3VzIHBhZ2VzIGJlZm9yZSBhc3N1bWluZyB0aGVyZSBpcyBubyBkYXRhLlxyXG4gICAgaWYgKGZlZWRMZW5ndGggPT09IDAgJiYgT2JqZWN0LmtleXModGhpcy5lbnRyaWVzKS5sZW5ndGggPT09IDApIHtcclxuICAgICAgdGhpcy5zZXQoJ2xpc3RDb250ZW50JywgdGhpcy5ub0RhdGFUZW1wbGF0ZS5hcHBseSh0aGlzKSk7XHJcbiAgICAgIHJldHVybiBmYWxzZTtcclxuICAgIH1cclxuXHJcbiAgICBpZiAoby5sZW5ndGggPiAwKSB7XHJcbiAgICAgIGRvbUNvbnN0cnVjdC5wbGFjZShvLmpvaW4oJycpLCB0aGlzLmNvbnRlbnROb2RlLCAnbGFzdCcpO1xyXG4gICAgfVxyXG5cclxuICAgIHRoaXMuc2V0KCdyZW1haW5pbmdDb250ZW50JywgJycpOyAvLyBGZWVkIGRvZXMgbm90IHJldHVybiByZWxpYWJsZSBkYXRhLCBkb24ndCBzaG93IHJlbWFpbmluZ1xyXG5cclxuICAgIGRvbUNsYXNzLnRvZ2dsZSh0aGlzLmRvbU5vZGUsICdsaXN0LWhhcy1tb3JlJywgdGhpcy5oYXNNb3JlRGF0YSgpKTsgLy8gVGhpcyBjb3VsZCBiZSB3cm9uZywgaGFuZGxlIGl0IG9uIHRoZSBuZXh0IHByb2Nlc3NGZWVkIGlmIHNvXHJcblxyXG4gICAgaWYgKHRoaXMub3B0aW9ucy5hbGxvd0VtcHR5U2VsZWN0aW9uKSB7XHJcbiAgICAgIGRvbUNsYXNzLmFkZCh0aGlzLmRvbU5vZGUsICdsaXN0LWhhcy1lbXB0eS1vcHQnKTtcclxuICAgIH1cclxuXHJcbiAgICB0aGlzLl9sb2FkUHJldmlvdXNTZWxlY3Rpb25zKCk7XHJcbiAgfSxcclxuICBzaG93OiBmdW5jdGlvbiBzaG93KG9wdGlvbnMpIHtcclxuICAgIGlmIChvcHRpb25zKSB7XHJcbiAgICAgIHRoaXMucHJvY2Vzc1Nob3dPcHRpb25zKG9wdGlvbnMpO1xyXG4gICAgfVxyXG5cclxuICAgIGNvbnN0IHRoZU9wdGlvbnMgPSBvcHRpb25zIHx8IHt9O1xyXG4gICAgdGhlT3B0aW9ucy53aGVyZSA9IHRoaXMuZm9ybWF0UXVlcnlGb3JBY3Rpdml0aWVzKCk7XHJcblxyXG4gICAgdGhpcy5zZXQoJ2RhdGVDb250ZW50JywgdGhpcy5jdXJyZW50RGF0ZS5mb3JtYXQodGhpcy5kYXRlSGVhZGVyRm9ybWF0VGV4dCkpO1xyXG4gICAgdGhpcy5pbmhlcml0ZWQoYXJndW1lbnRzLCBbdGhlT3B0aW9uc10pO1xyXG4gIH0sXHJcbiAgcHJvY2Vzc1Nob3dPcHRpb25zOiBmdW5jdGlvbiBwcm9jZXNzU2hvd09wdGlvbnMob3B0aW9ucykge1xyXG4gICAgaWYgKG9wdGlvbnMuY3VycmVudERhdGUpIHtcclxuICAgICAgdGhpcy5jdXJyZW50RGF0ZSA9IG1vbWVudChvcHRpb25zLmN1cnJlbnREYXRlKS5zdGFydE9mKCdkYXknKSB8fCBtb21lbnQoKS5zdGFydE9mKCdkYXknKTtcclxuICAgICAgdGhpcy5yZWZyZXNoUmVxdWlyZWQgPSB0cnVlO1xyXG4gICAgfVxyXG4gIH0sXHJcbiAgaXNMb2FkaW5nOiBmdW5jdGlvbiBpc0xvYWRpbmcoKSB7XHJcbiAgICByZXR1cm4gZG9tQ2xhc3MuY29udGFpbnModGhpcy5kb21Ob2RlLCAnbGlzdC1sb2FkaW5nJyk7XHJcbiAgfSxcclxuICBnZXROZXh0RGF5OiBmdW5jdGlvbiBnZXROZXh0RGF5KCkge1xyXG4gICAgaWYgKHRoaXMuaXNMb2FkaW5nKCkpIHtcclxuICAgICAgcmV0dXJuO1xyXG4gICAgfVxyXG5cclxuICAgIHRoaXMuY3VycmVudERhdGUuYWRkKHtcclxuICAgICAgZGF5czogMSxcclxuICAgIH0pO1xyXG4gICAgdGhpcy5yZWZyZXNoKCk7XHJcbiAgfSxcclxuICBnZXRUb2RheTogZnVuY3Rpb24gZ2V0VG9kYXkoKSB7XHJcbiAgICBpZiAodGhpcy5pc0xvYWRpbmcoKSkge1xyXG4gICAgICByZXR1cm47XHJcbiAgICB9XHJcblxyXG4gICAgaWYgKHRoaXMuY3VycmVudERhdGUgPT09IG1vbWVudCgpLnN0YXJ0T2YoJ2RheScpKSB7XHJcbiAgICAgIHJldHVybjtcclxuICAgIH1cclxuXHJcbiAgICB0aGlzLmN1cnJlbnREYXRlID0gbW9tZW50KCkuc3RhcnRPZignZGF5Jyk7XHJcbiAgICB0aGlzLnJlZnJlc2goKTtcclxuICB9LFxyXG4gIGdldFByZXZEYXk6IGZ1bmN0aW9uIGdldFByZXZEYXkoKSB7XHJcbiAgICBpZiAodGhpcy5pc0xvYWRpbmcoKSkge1xyXG4gICAgICByZXR1cm47XHJcbiAgICB9XHJcblxyXG4gICAgdGhpcy5jdXJyZW50RGF0ZS5zdWJ0cmFjdCh7XHJcbiAgICAgIGRheXM6IDEsXHJcbiAgICB9KTtcclxuICAgIHRoaXMucmVmcmVzaCgpO1xyXG4gIH0sXHJcbiAgZm9ybWF0UXVlcnlGb3JBY3Rpdml0aWVzOiBmdW5jdGlvbiBmb3JtYXRRdWVyeUZvckFjdGl2aXRpZXMoKSB7XHJcbiAgICBjb25zdCBxdWVyeVdoZXJlID0gW1xyXG4gICAgICAnVXNlckFjdGl2aXRpZXMuVXNlcklkIGVxIFwiJHswfVwiIGFuZCBUeXBlIG5lIFwiYXRMaXRlcmF0dXJlXCIgYW5kICgnLFxyXG4gICAgICAnKFRpbWVsZXNzIGVxIGZhbHNlIGFuZCBTdGFydERhdGUgYmV0d2VlbiBAJHsxfUAgYW5kIEAkezJ9QCkgb3IgJyxcclxuICAgICAgJyhUaW1lbGVzcyBlcSB0cnVlIGFuZCBTdGFydERhdGUgYmV0d2VlbiBAJHszfUAgYW5kIEAkezR9QCkpJyxcclxuICAgIF0uam9pbignJyk7XHJcblxyXG4gICAgY29uc3Qgc3RhcnREYXRlID0gdGhpcy5jdXJyZW50RGF0ZS5jbG9uZSgpLnN0YXJ0T2YoJ2RheScpLnRvRGF0ZSgpO1xyXG4gICAgY29uc3QgZW5kRGF0ZSA9IHRoaXMuY3VycmVudERhdGUuY2xvbmUoKS5lbmRPZignZGF5JykudG9EYXRlKCk7XHJcblxyXG4gICAgcmV0dXJuIHN0cmluZy5zdWJzdGl0dXRlKFxyXG4gICAgICBxdWVyeVdoZXJlLCBbQXBwLmNvbnRleHQudXNlciAmJiBBcHAuY29udGV4dC51c2VyLiRrZXksXHJcbiAgICAgICAgY29udmVydC50b0lzb1N0cmluZ0Zyb21EYXRlKHN0YXJ0RGF0ZSksXHJcbiAgICAgICAgY29udmVydC50b0lzb1N0cmluZ0Zyb21EYXRlKGVuZERhdGUpLFxyXG4gICAgICAgIHRoaXMuY3VycmVudERhdGUuZm9ybWF0KCdZWVlZLU1NLUREVDAwOjAwOjAwW1pdJyksXHJcbiAgICAgICAgdGhpcy5jdXJyZW50RGF0ZS5mb3JtYXQoJ1lZWVktTU0tRERUMjM6NTk6NTlbWl0nKSxcclxuICAgICAgXVxyXG4gICAgKTtcclxuICB9LFxyXG4gIHNlbGVjdEVudHJ5OiBmdW5jdGlvbiBzZWxlY3RFbnRyeShwYXJhbXMpIHtcclxuICAgIGNvbnN0IHJvdyA9IHF1ZXJ5KHBhcmFtcy4kc291cmNlKS5jbG9zZXN0KCdbZGF0YS1rZXldJylbMF07XHJcbiAgICBjb25zdCBrZXkgPSByb3cgPyByb3cuZ2V0QXR0cmlidXRlKCdkYXRhLWtleScpIDogZmFsc2U7XHJcblxyXG4gICAgdGhpcy5uYXZpZ2F0ZVRvRGV0YWlsVmlldyhrZXkpO1xyXG4gIH0sXHJcbiAgc2VsZWN0RGF0ZTogZnVuY3Rpb24gc2VsZWN0RGF0ZSgpIHtcclxuICAgIGNvbnN0IG9wdGlvbnMgPSB7XHJcbiAgICAgICAgZGF0ZTogdGhpcy5jdXJyZW50RGF0ZSxcclxuICAgICAgICBzaG93VGltZVBpY2tlcjogZmFsc2UsXHJcbiAgICAgICAgdGltZWxlc3M6IGZhbHNlLFxyXG4gICAgICAgIHRvb2xzOiB7XHJcbiAgICAgICAgICB0YmFyOiBbe1xyXG4gICAgICAgICAgICBpZDogJ2NvbXBsZXRlJyxcclxuICAgICAgICAgICAgY2xzOiAnZmEgZmEtY2hlY2sgZmEtZncgZmEtbGcnLFxyXG4gICAgICAgICAgICBmbjogdGhpcy5zZWxlY3REYXRlU3VjY2VzcyxcclxuICAgICAgICAgICAgc2NvcGU6IHRoaXMsXHJcbiAgICAgICAgICB9LCB7XHJcbiAgICAgICAgICAgIGlkOiAnY2FuY2VsJyxcclxuICAgICAgICAgICAgc2lkZTogJ2xlZnQnLFxyXG4gICAgICAgICAgICBjbHM6ICdmYSBmYS1iYW4gZmEtZncgZmEtbGcnLFxyXG4gICAgICAgICAgICBmbjogUmVVSS5iYWNrLFxyXG4gICAgICAgICAgICBzY29wZTogUmVVSSxcclxuICAgICAgICAgIH1dLFxyXG4gICAgICAgIH0sXHJcbiAgICAgIH07XHJcbiAgICBjb25zdCB2aWV3ID0gQXBwLmdldFZpZXcodGhpcy5kYXRlUGlja2VyVmlldyk7XHJcbiAgICBpZiAodmlldykge1xyXG4gICAgICB2aWV3LnNob3cob3B0aW9ucyk7XHJcbiAgICB9XHJcbiAgfSxcclxuICBzZWxlY3REYXRlU3VjY2VzczogZnVuY3Rpb24gc2VsZWN0RGF0ZVN1Y2Nlc3MoKSB7XHJcbiAgICBjb25zdCB2aWV3ID0gQXBwLmdldFByaW1hcnlBY3RpdmVWaWV3KCk7XHJcbiAgICB0aGlzLmN1cnJlbnREYXRlID0gbW9tZW50KHZpZXcuZ2V0RGF0ZVRpbWUoKSkuc3RhcnRPZignZGF5Jyk7XHJcbiAgICB0aGlzLnJlZnJlc2goKTtcclxuICAgIFJlVUkuYmFjaygpO1xyXG4gIH0sXHJcbiAgbmF2aWdhdGVUb1dlZWtWaWV3OiBmdW5jdGlvbiBuYXZpZ2F0ZVRvV2Vla1ZpZXcoKSB7XHJcbiAgICBjb25zdCB2aWV3ID0gQXBwLmdldFZpZXcodGhpcy53ZWVrVmlldyk7XHJcbiAgICBjb25zdCBuYXZEYXRlID0gdGhpcy5jdXJyZW50RGF0ZSA/IHRoaXMuY3VycmVudERhdGUgOiBtb21lbnQoKS5zdGFydE9mKCdkYXknKTtcclxuICAgIGNvbnN0IG9wdGlvbnMgPSB7XHJcbiAgICAgICAgY3VycmVudERhdGU6IG5hdkRhdGUudmFsdWVPZigpLFxyXG4gICAgICB9O1xyXG4gICAgdmlldy5zaG93KG9wdGlvbnMpO1xyXG4gIH0sXHJcbiAgbmF2aWdhdGVUb01vbnRoVmlldzogZnVuY3Rpb24gbmF2aWdhdGVUb01vbnRoVmlldygpIHtcclxuICAgIGNvbnN0IHZpZXcgPSBBcHAuZ2V0Vmlldyh0aGlzLm1vbnRoVmlldyk7XHJcbiAgICBjb25zdCBuYXZEYXRlID0gdGhpcy5jdXJyZW50RGF0ZSA/IHRoaXMuY3VycmVudERhdGUgOiBtb21lbnQoKS5zdGFydE9mKCdkYXknKTtcclxuICAgIGNvbnN0IG9wdGlvbnMgPSB7XHJcbiAgICAgICAgY3VycmVudERhdGU6IG5hdkRhdGUudmFsdWVPZigpLFxyXG4gICAgICB9O1xyXG4gICAgdmlldy5zaG93KG9wdGlvbnMpO1xyXG4gIH0sXHJcbiAgbmF2aWdhdGVUb0luc2VydFZpZXc6IGZ1bmN0aW9uIG5hdmlnYXRlVG9JbnNlcnRWaWV3KCkge1xyXG4gICAgY29uc3QgdmlldyA9IEFwcC5nZXRWaWV3KHRoaXMuaW5zZXJ0VmlldyB8fCB0aGlzLmVkaXRWaWV3KTtcclxuXHJcbiAgICB0aGlzLm9wdGlvbnMuY3VycmVudERhdGUgPSB0aGlzLmN1cnJlbnREYXRlLmZvcm1hdCgnWVlZWS1NTS1ERCcpIHx8IG1vbWVudCgpLnN0YXJ0T2YoJ2RheScpO1xyXG4gICAgaWYgKHZpZXcpIHtcclxuICAgICAgdmlldy5zaG93KHtcclxuICAgICAgICBuZWdhdGVIaXN0b3J5OiB0cnVlLFxyXG4gICAgICAgIHJldHVyblRvOiB0aGlzLmlkLFxyXG4gICAgICAgIGluc2VydDogdHJ1ZSxcclxuICAgICAgICBjdXJyZW50RGF0ZTogdGhpcy5vcHRpb25zLmN1cnJlbnREYXRlLnZhbHVlT2YoKSxcclxuICAgICAgfSk7XHJcbiAgICB9XHJcbiAgfSxcclxuICBuYXZpZ2F0ZVRvRGV0YWlsVmlldzogZnVuY3Rpb24gbmF2aWdhdGVUb0RldGFpbFZpZXcoa2V5LCBkZXNjcmlwdG9yKSB7XHJcbiAgICBjb25zdCBlbnRyeSA9IHRoaXMuZW50cmllc1trZXldO1xyXG4gICAgY29uc3QgZGV0YWlsVmlldyA9IChlbnRyeS5pc0V2ZW50KSA/IHRoaXMuZXZlbnREZXRhaWxWaWV3IDogdGhpcy5hY3Rpdml0eURldGFpbFZpZXc7XHJcbiAgICBjb25zdCB2aWV3ID0gQXBwLmdldFZpZXcoZGV0YWlsVmlldyk7XHJcblxyXG4gICAgY29uc3QgdGhlRGVzY3JpcHRvciA9IChlbnRyeS5pc0V2ZW50KSA/IGRlc2NyaXB0b3IgOiBlbnRyeS5EZXNjcmlwdGlvbjtcclxuICAgIGlmICh2aWV3KSB7XHJcbiAgICAgIHZpZXcuc2hvdyh7XHJcbiAgICAgICAgdGl0bGU6IHRoZURlc2NyaXB0b3IsXHJcbiAgICAgICAga2V5OiBrZXksXHJcbiAgICAgIH0pO1xyXG4gICAgfVxyXG4gIH0sXHJcbn0pO1xyXG5cclxubGFuZy5zZXRPYmplY3QoJ01vYmlsZS5TYWxlc0xvZ2l4LlZpZXdzLkNhbGVuZGFyLkRheVZpZXcnLCBfX2NsYXNzKTtcclxuZXhwb3J0IGRlZmF1bHQgX19jbGFzcztcclxuIl19
 </pre>
 </body>
 </html>

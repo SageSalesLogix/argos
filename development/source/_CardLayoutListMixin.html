@@ -15,262 +15,198 @@
   </script>
 </head>
 <body onload="prettyPrint(); highlight();">
-  <pre class="prettyprint lang-js">/* Copyright (c) 1997-2013, SalesLogix, NA., LLC. All rights reserved.*/
+  <pre class="prettyprint lang-js">define('crm/Views/_CardLayoutListMixin', ['exports', 'module', 'dojo/_base/declare', 'dojo/_base/lang', 'dojo/dom-construct', 'dojo/query', 'argos/Convert', 'argos/I18n'], function (exports, module, _dojo_baseDeclare, _dojo_baseLang, _dojoDomConstruct, _dojoQuery, _argosConvert, _argosI18n) {
+  function _interopRequireDefault(obj) { return obj &amp;&amp; obj.__esModule ? obj : { 'default': obj }; }
 
-<span id='crm-Views-_CardLayoutListMixin'>/**
-</span> * @class crm.Views._CardLayoutListMixin
- *
- * Mixin for card list layouts.
- *
- * @since 3.0
- *
- * @requires argos.Convert
- *
- */
-define('crm/Views/_CardLayoutListMixin', [
-    'dojo/_base/array',
-    'dojo/_base/declare',
-    'dojo/_base/event',
-    'dojo/_base/lang',
-    'dojo/dom-attr',
-    'dojo/dom',
-    'dojo/dom-construct',
-    'dojo/query',
-    'dojo/dom-class',
-    'argos/Convert',
-    'moment'
-], function(
-    array,
-    declare,
-    event,
-    lang,
-    domAttr,
-    dom,
-    domConstruct,
-    query,
-    domClass,
-    convert,
-    moment
-) {
+  var _declare = _interopRequireDefault(_dojo_baseDeclare);
 
-    var mixinName,
-        __class;
+  var _lang = _interopRequireDefault(_dojo_baseLang);
 
-    mixinName = 'crm.Views._CardLayoutListMixin';
+  var _domConstruct = _interopRequireDefault(_dojoDomConstruct);
 
-    __class = declare('crm.Views._CardLayoutListMixin', null, {
-        itemIcon: 'content/images/icons/man_1.png',
-        itemIconAltText:'Contact',
-        itemIconClass: '',
-        allRecordsText: 'no search applied',
-        itemIndicators:null,
-        itemExts: null,
-        itemIndicatorIconPath: 'content/images/icons/',
-        itemIndicatorShowDisabled: true,
-        currentSearchExpression: '',
-        itemIndicatorTemplate: new Simplate([
-           '&lt;span{% if ($.iconCls) { %} class=&quot;{%= $.iconCls %}&quot; {% } %}&gt;',
-                '{% if ($.showIcon === false) { %}',
-                    '{%: $.valueText %}',
-                '{% } else if ($.indicatorIcon &amp;&amp; !$.iconCls) { %}',
-                    '&lt;img src=&quot;{%= $.indicatorIcon %}&quot; alt=&quot;{%= $.label %}&quot; /&gt;',
-                '{% } %}',
-           '&lt;/span&gt;'
-        ]),
-        itemExtTemplate: new Simplate([
-            '&lt;li data-dojo-attach-point=&quot;itemExtNode&quot; class=&quot;card-item-ext-row&quot;&gt;&lt;/li&gt;'
-        ]),
-        itemRowContainerTemplate: new Simplate([
-        '&lt;li data-action=&quot;activateEntry&quot; data-key=&quot;{%= $$.getItemActionKey($) %}&quot; data-descriptor=&quot;{%: $$.getItemDescriptor($) %}&quot;&gt;',
-            '{%! $$.itemRowContentTemplate %}',
-        '&lt;/li&gt;'
-        ]),
-        itemFooterTemplate: new Simplate([
-            '&lt;div id=&quot;list-item-footer&quot; class=&quot;list-item-footer&quot;&gt;',
-            '&lt;/div&gt;'
-        ]),
-        itemIconTemplate: new Simplate([
-            '&lt;button data-action=&quot;selectEntry&quot; class=&quot;list-item-selector button&quot;&gt;',
-            '{% if ($$.getItemIconClass($)) { %}',
-                '&lt;span class=&quot;{%= $$.getItemIconClass($) %}&quot;&gt;&lt;/span&gt;',
-            '{% } else { %}',
-                '&lt;img id=&quot;list-item-image_{%: $.$key %}&quot; src=&quot;{%: $$.getItemIconSource($) %}&quot; alt=&quot;{%: $$.getItemIconAlt($) %}&quot; class=&quot;icon&quot; /&gt;',
-            '{% } %}',
-            '&lt;/button&gt;'
-        ]),
-        itemRowContentTemplate: new Simplate([
-           '&lt;div id=&quot;top_item_indicators&quot; class=&quot;list-item-indicator-content&quot;&gt;&lt;/div&gt;',
-           '{%! $$.itemIconTemplate %}',
-           '&lt;div class=&quot;list-item-content&quot; data-snap-ignore=&quot;true&quot;&gt;{%! $$.itemTemplate %}&lt;/div&gt;',
-           '&lt;div id=&quot;bottom_item_indicators&quot; class=&quot;list-item-indicator-content&quot;&gt;&lt;/div&gt;',
-           '&lt;div id=&quot;list-item-content-related&quot;&gt;&lt;/div&gt;',
-           '{%! $$.itemFooterTemplate %}'
-        ]),
-        postMixInProperties: function() {
-            this.inherited(arguments);
-            this.cls = ' card-layout';
-            this.rowTemplate = new Simplate([
-             '{%! $$.itemRowContainerTemplate %}'
-            ]);
-            this.createIndicatorLayout();
-        },
-        placeAt: function() {
-            this.inherited(arguments);
-            this._intFooter();
-        },
-        show: function(options) {
-            if (options &amp;&amp; options.simpleMode &amp;&amp; (options.simpleMode === true)) {
-                this.itemFooterTemplate = new Simplate([]);
-            }
-            this.inherited(arguments);
-        },
-        _intFooter: function() {
-            if (!this.actions.length) {
-                this.itemFooterTemplate = new Simplate(['']);
-            }
-        },
-        getItemActionKey: function(entry) {
-            return entry.$key || entry[this.idProperty];
-        },
-        getItemDescriptor: function(entry) {
-            return entry.$descriptor || entry[this.labelProperty];
-        },
-        getItemIconClass: function() {
-            return this.itemIconClass;
-        },
-        getItemIconSource: function() {
-            return this.itemIcon || this.icon || this.selectIcon;
-        },
-        getItemIconAlt: function() {
-            return this.itemIconAltText;
-        },
-        createIndicators: function(topIndicatorsNode, bottomIndicatorsNode, indicators, entry) {
-            var indicatorTemplate, options, indicatorHTML, i, iconPath, self = this;
-            for (i = 0; i &lt; indicators.length; i++) {
-                (function(indicator) {
-                    iconPath = indicator.iconPath || self.itemIndicatorIconPath;
-                    if (indicator.onApply) {
-                        try {
-                            indicator.onApply(entry, self);
-                        } catch(err) {
-                            indicator.isEnabled = false;
-                        }
-                    }
-                    options = {
-                        indicatorIndex: i,
-                        indicatorIcon: indicator.icon
-                            ? iconPath + indicator.icon
-                            : '',
-                        iconCls: indicator.cls || ''
-                    };
+  var _query = _interopRequireDefault(_dojoQuery);
 
-                    indicatorTemplate = indicator.template || self.itemIndicatorTemplate;
+  var _convert = _interopRequireDefault(_argosConvert);
 
-                    lang.mixin(indicator, options);
+  var _getResource = _interopRequireDefault(_argosI18n);
 
-                    if (indicator.isEnabled === false) {
-                        indicator.label = '';
-                        if (indicator.cls) {
-                            indicator.iconCls = indicator.cls + ' disabled';
-                        } else {
-                            indicator.indicatorIcon = indicator.icon
-                                ? iconPath + 'disabled_' + indicator.icon
-                                : '';
-                        }
-                    } else {
-                        indicator.indicatorIcon = indicator.icon
-                            ? iconPath + indicator.icon
-                            : '';
-                    }
+  var resource = (0, _getResource['default'])('cardLayoutListMixin');
 
-                    if (indicator.isEnabled === false &amp;&amp; indicator.showIcon === false) {
-                        return;
-                    }
-
-                    if (self.itemIndicatorShowDisabled || indicator.isEnabled) {
-
-                        if (indicator.isEnabled === false &amp;&amp; indicator.showIcon === false) {
-                            return;
-                        } else {
-
-                            indicatorHTML = indicatorTemplate.apply(indicator, indicator.id);
-                            if (indicator.location === 'top') {
-                                domConstruct.place(indicatorHTML, topIndicatorsNode, 'last');
-                            } else {
-                                domConstruct.place(indicatorHTML, bottomIndicatorsNode, 'last');
-                            }
-                        }
-                    }
-                })(indicators[i]);
-            }
-        },
-        onApplyRowTemplate: function(entry, rowNode) {
-            if (this.options &amp;&amp; this.options.simpleMode &amp;&amp; ( this.options.simpleMode === true)) {
-                return;
-            }
-
-            this.applyRowIndicators(entry, rowNode);
-            this.inherited(arguments);
-        },
-        applyRowIndicators: function(entry, rowNode) {
-            var topIndicatorsNode, bottomIndicatorsNode;
-            if (this.itemIndicators &amp;&amp; this.itemIndicators.length &gt; 0) {
-                topIndicatorsNode = query('&gt; #top_item_indicators', rowNode);
-                bottomIndicatorsNode = query('&gt; #bottom_item_indicators', rowNode);
-                if (bottomIndicatorsNode[0] &amp;&amp; topIndicatorsNode[0]) {
-                    if (bottomIndicatorsNode[0].childNodes.length === 0 &amp;&amp; topIndicatorsNode[0].childNodes.length === 0 ) {
-                        this.createIndicators(topIndicatorsNode[0], bottomIndicatorsNode[0], this._createCustomizedLayout(this.itemIndicators, 'indicators'), entry);
-                    }
-                }
-            }
-        },
-        createIndicatorLayout: function() {
-            return this.itemIndicators || (this.itemIndicators = [{
-                id: 'touched',
-                cls: 'fa fa-hand-o-up fa-lg',
-                onApply: function(entry, parent) {
-                    this.isEnabled = parent.hasBeenTouched(entry);
-                }
-            }]
-            );
-        },
-        hasBeenTouched: function(entry) {
-            var modifiedDate, currentDate, weekAgo;
-            if (entry['ModifyDate']) {
-                modifiedDate = moment(convert.toDateFromString(entry['ModifyDate']));
-                currentDate = moment().endOf('day');
-                weekAgo = moment().subtract(1, 'weeks');
-
-                return modifiedDate.isAfter(weekAgo) &amp;&amp;
-                    modifiedDate.isBefore(currentDate);
-            }
-            return false;
-        },
-        requestData: function() {
-            var mixin = lang.getObject(mixinName);
-            if (this.searchWidget) {
-                this.currentSearchExpression = this.searchWidget.getSearchExpression() || mixin.prototype.allRecordsText;
-            }
-
-            this.inherited(arguments);
-        },
-<span id='crm-Views-_CardLayoutListMixin-method-getContextSnapShot'>        /**
-</span>         * Returns a rendered html snap shot of the entry.
-         */
-        getContextSnapShot: function(options) {
-            var snapShot, entry = this.entries[options.key];
-            if (entry) {
-                snapShot = this.itemRowContainerTemplate.apply(entry, this);
-            }
-
-            return snapShot;
+<span id='crm-Views-_CardLayoutListMixin'>  /**
+</span>   * @class crm.Views._CardLayoutListMixin
+   *
+   * Mixin for card list layouts.
+   *
+   * @since 3.0
+   *
+   * @requires argos.Convert
+   *
+   */
+  var __class = (0, _declare['default'])('crm.Views._CardLayoutListMixin', null, {
+    itemIcon: 'content/images/icons/man_1.png',
+    itemIconAltText: resource.itemIconAltText,
+    itemIconClass: '',
+    allRecordsText: resource.allRecordsText,
+    itemIndicators: null,
+    itemExts: null,
+    itemIndicatorIconPath: 'content/images/icons/',
+    itemIndicatorShowDisabled: true,
+    currentSearchExpression: '',
+    itemIndicatorTemplate: new Simplate(['&lt;span{% if ($.iconCls) { %} class=&quot;{%= $.iconCls %}&quot; {% } %}&gt;', '{% if ($.showIcon === false) { %}', '{%: $.valueText %}', '{% } else if ($.indicatorIcon &amp;&amp; !$.iconCls) { %}', '&lt;img src=&quot;{%= $.indicatorIcon %}&quot; alt=&quot;{%= $.label %}&quot; /&gt;', '{% } %}', '&lt;/span&gt;']),
+    itemExtTemplate: new Simplate(['&lt;li data-dojo-attach-point=&quot;itemExtNode&quot; class=&quot;card-item-ext-row&quot;&gt;&lt;/li&gt;']),
+    itemRowContainerTemplate: new Simplate(['&lt;li data-action=&quot;activateEntry&quot; data-key=&quot;{%= $$.getItemActionKey($) %}&quot; data-descriptor=&quot;{%: $$.getItemDescriptor($) %}&quot;&gt;', '{%! $$.itemRowContentTemplate %}', '&lt;/li&gt;']),
+    itemFooterTemplate: new Simplate(['&lt;div id=&quot;list-item-footer&quot; class=&quot;list-item-footer&quot;&gt;', '&lt;/div&gt;']),
+    itemIconTemplate: new Simplate(['&lt;button data-action=&quot;selectEntry&quot; class=&quot;list-item-selector button&quot;&gt;', '{% if ($$.getItemIconClass($)) { %}', '&lt;span class=&quot;{%= $$.getItemIconClass($) %}&quot;&gt;&lt;/span&gt;', '{% } else { %}', '&lt;img id=&quot;list-item-image_{%: $.$key %}&quot; src=&quot;{%: $$.getItemIconSource($) %}&quot; alt=&quot;{%: $$.getItemIconAlt($) %}&quot; class=&quot;icon&quot; /&gt;', '{% } %}', '&lt;/button&gt;']),
+    itemRowContentTemplate: new Simplate(['&lt;div id=&quot;top_item_indicators&quot; class=&quot;list-item-indicator-content&quot;&gt;&lt;/div&gt;', '{%! $$.itemIconTemplate %}', '&lt;div class=&quot;list-item-content&quot; data-snap-ignore=&quot;true&quot;&gt;{%! $$.itemTemplate %}&lt;/div&gt;', '&lt;div id=&quot;bottom_item_indicators&quot; class=&quot;list-item-indicator-content&quot;&gt;&lt;/div&gt;', '&lt;div id=&quot;list-item-content-related&quot;&gt;&lt;/div&gt;', '{%! $$.itemFooterTemplate %}']),
+    postMixInProperties: function postMixInProperties() {
+      this.inherited(arguments);
+      this.cls = ' card-layout';
+      this.rowTemplate = new Simplate(['{%! $$.itemRowContainerTemplate %}']);
+      this.createIndicatorLayout();
+    },
+    placeAt: function placeAt() {
+      this.inherited(arguments);
+      this._intFooter();
+    },
+    show: function show(options) {
+      if (options &amp;&amp; options.simpleMode &amp;&amp; options.simpleMode === true) {
+        this.itemFooterTemplate = new Simplate([]);
+      }
+      this.inherited(arguments);
+    },
+    _intFooter: function _intFooter() {
+      if (!this.actions.length) {
+        this.itemFooterTemplate = new Simplate(['']);
+      }
+    },
+    getItemActionKey: function getItemActionKey(entry) {
+      return entry.$key || entry[this.idProperty];
+    },
+    getItemDescriptor: function getItemDescriptor(entry) {
+      return entry.$descriptor || entry[this.labelProperty];
+    },
+    getItemIconClass: function getItemIconClass() {
+      return this.itemIconClass;
+    },
+    getItemIconSource: function getItemIconSource() {
+      return this.itemIcon || this.icon || this.selectIcon;
+    },
+    getItemIconAlt: function getItemIconAlt() {
+      return this.itemIconAltText;
+    },
+    createIndicators: function createIndicators(topIndicatorsNode, bottomIndicatorsNode, indicators, entry) {
+      var self = this;
+      for (var i = 0; i &lt; indicators.length; i++) {
+        var indicator = indicators[i];
+        var iconPath = indicator.iconPath || self.itemIndicatorIconPath;
+        if (indicator.onApply) {
+          try {
+            indicator.onApply(entry, self);
+          } catch (err) {
+            indicator.isEnabled = false;
+          }
         }
-    });
+        var options = {
+          indicatorIndex: i,
+          indicatorIcon: indicator.icon ? iconPath + indicator.icon : '',
+          iconCls: indicator.cls || ''
+        };
 
-    lang.setObject('Mobile.SalesLogix.Views._CardLayoutListMixin', __class);
-    return __class;
+        var indicatorTemplate = indicator.template || self.itemIndicatorTemplate;
+
+        _lang['default'].mixin(indicator, options);
+
+        if (indicator.isEnabled === false) {
+          indicator.label = '';
+          if (indicator.cls) {
+            indicator.iconCls = indicator.cls + ' disabled';
+          } else {
+            indicator.indicatorIcon = indicator.icon ? iconPath + 'disabled_' + indicator.icon : '';
+          }
+        } else {
+          indicator.indicatorIcon = indicator.icon ? iconPath + indicator.icon : '';
+        }
+
+        if (indicator.isEnabled === false &amp;&amp; indicator.showIcon === false) {
+          return;
+        }
+
+        if (self.itemIndicatorShowDisabled || indicator.isEnabled) {
+          if (indicator.isEnabled === false &amp;&amp; indicator.showIcon === false) {
+            return;
+          }
+          var indicatorHTML = indicatorTemplate.apply(indicator, indicator.id);
+          if (indicator.location === 'top') {
+            _domConstruct['default'].place(indicatorHTML, topIndicatorsNode, 'last');
+          } else {
+            _domConstruct['default'].place(indicatorHTML, bottomIndicatorsNode, 'last');
+          }
+        }
+      }
+    },
+    onApplyRowTemplate: function onApplyRowTemplate(entry, rowNode) {
+      if (this.options &amp;&amp; this.options.simpleMode &amp;&amp; this.options.simpleMode === true) {
+        return;
+      }
+
+      this.applyRowIndicators(entry, rowNode);
+      this.inherited(arguments);
+    },
+    applyRowIndicators: function applyRowIndicators(entry, rowNode) {
+      if (this.itemIndicators &amp;&amp; this.itemIndicators.length &gt; 0) {
+        var topIndicatorsNode = (0, _query['default'])('&gt; #top_item_indicators', rowNode);
+        var bottomIndicatorsNode = (0, _query['default'])('&gt; #bottom_item_indicators', rowNode);
+        if (bottomIndicatorsNode[0] &amp;&amp; topIndicatorsNode[0]) {
+          if (bottomIndicatorsNode[0].childNodes.length === 0 &amp;&amp; topIndicatorsNode[0].childNodes.length === 0) {
+            this.createIndicators(topIndicatorsNode[0], bottomIndicatorsNode[0], this._createCustomizedLayout(this.itemIndicators, 'indicators'), entry);
+          }
+        }
+      }
+    },
+    createIndicatorLayout: function createIndicatorLayout() {
+      return this.itemIndicators || (this.itemIndicators = [{
+        id: 'touched',
+        cls: 'fa fa-hand-o-up fa-lg',
+        onApply: function onApply(entry, parent) {
+          this.isEnabled = parent.hasBeenTouched(entry);
+        }
+      }]);
+    },
+    hasBeenTouched: function hasBeenTouched(entry) {
+      if (entry.ModifyDate) {
+        var modifiedDate = moment(_convert['default'].toDateFromString(entry.ModifyDate));
+        var currentDate = moment().endOf('day');
+        var weekAgo = moment().subtract(1, 'weeks');
+
+        return modifiedDate.isAfter(weekAgo) &amp;&amp; modifiedDate.isBefore(currentDate);
+      }
+      return false;
+    },
+    requestData: function requestData() {
+      if (this.searchWidget) {
+        this.currentSearchExpression = this.searchWidget.getSearchExpression() || resource.allRecordsText;
+      }
+
+      this.inherited(arguments);
+    },
+<span id='crm-Views-_CardLayoutListMixin-method-getContextSnapShot'>    /**
+</span>     * Returns a rendered html snap shot of the entry.
+     */
+    getContextSnapShot: function getContextSnapShot(options) {
+      var entry = this.entries[options.key];
+      var snapShot = undefined;
+      if (entry) {
+        snapShot = this.itemRowContainerTemplate.apply(entry, this);
+      }
+
+      return snapShot;
+    }
+  });
+
+  _lang['default'].setObject('Mobile.SalesLogix.Views._CardLayoutListMixin', __class);
+  module.exports = __class;
 });
-
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInNyYy9WaWV3cy9fQ2FyZExheW91dExpc3RNaXhpbi5qcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7Ozs7Ozs7QUFPQSxNQUFNLFFBQVEsR0FBRyw2QkFBWSxxQkFBcUIsQ0FBQyxDQUFDOzs7Ozs7Ozs7Ozs7QUFZcEQsTUFBTSxPQUFPLEdBQUcseUJBQVEsZ0NBQWdDLEVBQUUsSUFBSSxFQUFFO0FBQzlELFlBQVEsRUFBRSxnQ0FBZ0M7QUFDMUMsbUJBQWUsRUFBRSxRQUFRLENBQUMsZUFBZTtBQUN6QyxpQkFBYSxFQUFFLEVBQUU7QUFDakIsa0JBQWMsRUFBRSxRQUFRLENBQUMsY0FBYztBQUN2QyxrQkFBYyxFQUFFLElBQUk7QUFDcEIsWUFBUSxFQUFFLElBQUk7QUFDZCx5QkFBcUIsRUFBRSx1QkFBdUI7QUFDOUMsNkJBQXlCLEVBQUUsSUFBSTtBQUMvQiwyQkFBdUIsRUFBRSxFQUFFO0FBQzNCLHlCQUFxQixFQUFFLElBQUksUUFBUSxDQUFDLENBQ2xDLCtEQUErRCxFQUMvRCxtQ0FBbUMsRUFDbkMsb0JBQW9CLEVBQ3BCLG1EQUFtRCxFQUNuRCwyREFBMkQsRUFDM0QsU0FBUyxFQUNULFNBQVMsQ0FDVixDQUFDO0FBQ0YsbUJBQWUsRUFBRSxJQUFJLFFBQVEsQ0FBQyxDQUM1QiwwRUFBMEUsQ0FDM0UsQ0FBQztBQUNGLDRCQUF3QixFQUFFLElBQUksUUFBUSxDQUFDLENBQ3JDLDRIQUE0SCxFQUM1SCxrQ0FBa0MsRUFDbEMsT0FBTyxDQUNSLENBQUM7QUFDRixzQkFBa0IsRUFBRSxJQUFJLFFBQVEsQ0FBQyxDQUMvQixzREFBc0QsRUFDdEQsUUFBUSxDQUNULENBQUM7QUFDRixvQkFBZ0IsRUFBRSxJQUFJLFFBQVEsQ0FBQyxDQUM3QixzRUFBc0UsRUFDdEUscUNBQXFDLEVBQ3JDLHFEQUFxRCxFQUNyRCxnQkFBZ0IsRUFDaEIsZ0lBQWdJLEVBQ2hJLFNBQVMsRUFDVCxXQUFXLENBQ1osQ0FBQztBQUNGLDBCQUFzQixFQUFFLElB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O0FBQ2xDLFVBQUksSUFBSSxDQUFDLFlBQVksRUFBRTtBQUNyQixZQUFJLENBQUMsdUJBQXVCLEdBQUcsSUFBSSxDQUFDLFlBQVksQ0FBQyxtQkFBbUIsRUFBRSxJQUFJLFFBQVEsQ0FBQyxjQUFjLENBQUM7T0FDbkc7O0FBRUQsVUFBSSxDQUFDLFNBQVMsQ0FBQyxTQUFTLENBQUMsQ0FBQztLQUMzQjs7OztBQUlELHNCQUFrQixFQUFFLFNBQVMsa0JBQWtCLENBQUMsT0FBTyxFQUFFO0FBQ3ZELFVBQU0sS0FBSyxHQUFHLElBQUksQ0FBQyxPQUFPLENBQUMsT0FBTyxDQUFDLEdBQUcsQ0FBQyxDQUFDO0FBQ3hDLFVBQUksUUFBUSxZQUFBLENBQUM7QUFDYixVQUFJLEtBQUssRUFBRTtBQUNULGdCQUFRLEdBQUcsSUFBSSxDQUFDLHdCQUF3QixDQUFDLEtBQUssQ0FBQyxLQUFLLEVBQUUsSUFBSSxDQUFDLENBQUM7T0FDN0Q7O0FBRUQsYUFBTyxRQUFRLENBQUM7S0FDakI7R0FDRixDQUFDLENBQUM7O0FBRUgsbUJBQUssU0FBUyxDQUFDLDhDQUE4QyxFQUFFLE9BQU8sQ0FBQyxDQUFDO21CQUN6RCxPQUFPIiwiZmlsZSI6InNyYy9WaWV3cy9fQ2FyZExheW91dExpc3RNaXhpbi5qcyIsInNvdXJjZVJvb3QiOiJzcmMiLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgZGVjbGFyZSBmcm9tICdkb2pvL19iYXNlL2RlY2xhcmUnO1xyXG5pbXBvcnQgbGFuZyBmcm9tICdkb2pvL19iYXNlL2xhbmcnO1xyXG5pbXBvcnQgZG9tQ29uc3RydWN0IGZyb20gJ2Rvam8vZG9tLWNvbnN0cnVjdCc7XHJcbmltcG9ydCBxdWVyeSBmcm9tICdkb2pvL3F1ZXJ5JztcclxuaW1wb3J0IGNvbnZlcnQgZnJvbSAnYXJnb3MvQ29udmVydCc7XHJcbmltcG9ydCBnZXRSZXNvdXJjZSBmcm9tICdhcmdvcy9JMThuJztcclxuXHJcbmNvbnN0IHJlc291cmNlID0gZ2V0UmVzb3VyY2UoJ2NhcmRMYXlvdXRMaXN0TWl4aW4nKTtcclxuXHJcbi8qKlxyXG4gKiBAY2xhc3MgY3JtLlZpZXdzLl9DYXJkTGF5b3V0TGlzdE1peGluXHJcbiAqXHJcbiAqIE1peGluIGZvciBjYXJkIGxpc3QgbGF5b3V0cy5cclxuICpcclxuICogQHNpbmNlIDMuMFxyXG4gKlxyXG4gKiBAcmVxdWlyZXMgYXJnb3MuQ29udmVydFxyXG4gKlxyXG4gKi9cclxuY29uc3QgX19jbGFzcyA9IGRlY2xhcmUoJ2NybS5WaWV3cy5fQ2FyZExheW91dExpc3RNaXhpbicsIG51bGwsIHtcclxuICBpdGVtSWNvbjogJ2NvbnRlbnQvaW1hZ2VzL2ljb25zL21hbl8xLnBuZycsXHJcbiAgaXRlbUljb25BbHRUZXh0OiByZXNvdXJjZS5pdGVtSWNvbkFsdFRleHQsXHJcbiAgaXRlbUljb25DbGFzczogJycsXHJcbiAgYWxsUmVjb3Jkc1RleHQ6IHJlc291cmNlLmFsbFJlY29yZHNUZXh0LFxyXG4gIGl0ZW1JbmRpY2F0b3JzOiBudWxsLFxyXG4gIGl0ZW1FeHRzOiBudWxsLFxyXG4gIGl0ZW1JbmRpY2F0b3JJY29uUGF0aDogJ2NvbnRlbnQvaW1hZ2VzL2ljb25zLycsXHJcbiAgaXRlbUluZGljYXRvclNob3dEaXNhYmxlZDogdHJ1ZSxcclxuICBjdXJyZW50U2VhcmNoRXhwcmVzc2lvbjogJycsXHJcbiAgaXRlbUluZGljYXRvclRlbXBsYXRlOiBuZXcgU2ltcGxhdGUoW1xyXG4gICAgJzxzcGFueyUgaWYgKCQuaWNvbkNscykgeyAlfSBjbGFzcz1cInslPSAkLmljb25DbHMgJX1cIiB7JSB9ICV9PicsXHJcbiAgICAneyUgaWYgKCQuc2hvd0ljb24gPT09IGZhbHNlKSB7ICV9JyxcclxuICAgICd7JTogJC52YWx1ZVRleHQgJX0nLFxyXG4gICAgJ3slIH0gZWxzZSBpZiAoJC5pbmRpY2F0b3JJY29uICYmICEkLmljb25DbHMpIHsgJX0nLFxyXG4gICAgJzxpbWcgc3JjPVwieyU9ICQuaW5kaWNhdG9ySWNvbiAlfVwiIGFsdD1cInslPSAkLmxhYmVsICV9XCIgLz4nLFxyXG4gICAgJ3slIH0gJX0nLFxyXG4gICAgJzwvc3Bhbj4nLFxyXG4gIF0pLFxyXG4gIGl0ZW1FeHRUZW1wbGF0ZTogbmV3IFNpbXBsYXRlKFtcclxuICAgICc8bGkgZGF0YS1kb2pvLWF0dGFjaC1wb2ludD1cIml0ZW1FeHROb2RlXCIgY2xhc3M9XCJjYXJkLWl0ZW0tZXh0LXJvd1wiPjwvbGk+JyxcclxuICBdKSxcclxuICBpdGVtUm93Q29udGFpbmVyVGVtcGxhdGU6IG5ldyBTaW1wbGF0ZShbXHJcbiAgICAnPGxpIGRhdGEtYWN0aW9uPVwiYWN0aXZhdGVFbnRyeVwiIGRhdGEta2V5PVwieyU9ICQkLmdldEl0ZW1BY3Rpb25LZXkoJCkgJX1cIiBkYXRhLWRlc2NyaXB0b3I9XCJ7JTogJCQuZ2V0SXRlbURlc2NyaXB0b3IoJCkgJX1cIj4nLFxyXG4gICAgJ3slISAkJC5pdGVtUm93Q29udGVudFRlbXBsYXRlICV9JyxcclxuICAgICc8L2xpPicsXHJcbiAgXSksXHJcbiAgaXRlbUZvb3RlclRlbXBsYXRlOiBuZXcgU2ltcGxhdGUoW1xyXG4gICAgJzxkaXYgaWQ9XCJsaXN0LWl0ZW0tZm9vdGVyXCIgY2xhc3M9XCJsaXN0LWl0ZW0tZm9vdGVyXCI+JyxcclxuICAgICc8L2Rpdj4nLFxyXG4gIF0pLFxyXG4gIGl0ZW1JY29uVGVtcGxhdGU6IG5ldyBTaW1wbGF0ZShbXHJcbiAgICAnPGJ1dHRvbiBkYXRhLWFjdGlvbj1cInNlbGVjdEVudHJ5XCIgY2xhc3M9XCJsaXN0LWl0ZW0tc2VsZWN0b3IgYnV0dG9uXCI+JyxcclxuICAgICd7JSBpZiAoJCQuZ2V0SXRlbUljb25DbGFzcygkKSkgeyAlfScsXHJcbiAgICAnPHNwYW4gY2xhc3M9XCJ7JT0gJCQuZ2V0SXRlbUljb25DbGFzcygkKSAlfVwiPjwvc3Bhbj4nLFxyXG4gICAgJ3slIH0gZWxzZSB7ICV9JyxcclxuICAgICc8aW1nIGlkPVwibGlzdC1pdGVtLWltYWdlX3slOiAkLiRrZXkgJX1cIiBzcmM9XCJ7JTogJCQuZ2V0SXRlbUljb25Tb3VyY2UoJCkgJX1cIiBhbHQ9XCJ7JTogJCQuZ2V0SXRlbUljb25BbHQoJCkgJX1cIiBjbGFzcz1cImljb25cIiAvPicsXHJcbiAgICAneyUgfSAlfScsXHJcbiAgICAnPC9idXR0b24+JyxcclxuICBdKSxcclxuICBpdGVtUm93Q29udGVudFRlbXBsYXRlOiBuZXcgU2ltcGxhdGUoW1xyXG4gICAgJzxkaXYgaWQ9XCJ0b3BfaXRlbV9pbmRpY2F0b3JzXCIgY2xhc3M9XCJsaXN0LWl0ZW0taW5kaWNhdG9yLWNvbnRlbnRcIj48L2Rpdj4nLFxyXG4gICAgJ3slISAkJC5pdGVtSWNvblRlbXBsYXRlICV9JyxcclxuICAgICc8ZGl2IGNsYXNzPVwibGlzdC1pdGVtLWNvbnRlbnRcIiBkYXRhLXNuYXAtaWdub3JlPVwidHJ1ZVwiPnslISAkJC5pdGVtVGVtcGxhdGUgJX08L2Rpdj4nLFxyXG4gICAgJzxkaXYgaWQ9XCJib3R0b21faXRlbV9pbmRpY2F0b3JzXCIgY2xhc3M9XCJsaXN0LWl0ZW0taW5kaWNhdG9yLWNvbnRlbnRcIj48L2Rpdj4nLFxyXG4gICAgJzxkaXYgaWQ9XCJsaXN0LWl0ZW0tY29udGVudC1yZWxhdGVkXCI+PC9kaXY+JyxcclxuICAgICd7JSEgJCQuaXRlbUZvb3RlclRlbXBsYXRlICV9JyxcclxuICBdKSxcclxuICBwb3N0TWl4SW5Qcm9wZXJ0aWVzOiBmdW5jdGlvbiBwb3N0TWl4SW5Qcm9wZXJ0aWVzKCkge1xyXG4gICAgdGhpcy5pbmhlcml0ZWQoYXJndW1lbnRzKTtcclxuICAgIHRoaXMuY2xzID0gJyBjYXJkLWxheW91dCc7XHJcbiAgICB0aGlzLnJvd1RlbXBsYXRlID0gbmV3IFNpbXBsYXRlKFtcclxuICAgICAgJ3slISAkJC5pdGVtUm93Q29udGFpbmVyVGVtcGxhdGUgJX0nLFxyXG4gICAgXSk7XHJcbiAgICB0aGlzLmNyZWF0ZUluZGljYXRvckxheW91dCgpO1xyXG4gIH0sXHJcbiAgcGxhY2VBdDogZnVuY3Rpb24gcGxhY2VBdCgpIHtcclxuICAgIHRoaXMuaW5oZXJpdGVkKGFyZ3VtZW50cyk7XHJcbiAgICB0aGlzLl9pbnRGb290ZXIoKTtcclxuICB9LFxyXG4gIHNob3c6IGZ1bmN0aW9uIHNob3cob3B0aW9ucykge1xyXG4gICAgaWYgKG9wdGlvbnMgJiYgb3B0aW9ucy5zaW1wbGVNb2RlICYmIChvcHRpb25zLnNpbXBsZU1vZGUgPT09IHRydWUpKSB7XHJcbiAgICAgIHRoaXMuaXRlbUZvb3RlclRlbXBsYXRlID0gbmV3IFNpbXBsYXRlKFtdKTtcclxuICAgIH1cclxuICAgIHRoaXMuaW5oZXJpdGVkKGFyZ3VtZW50cyk7XHJcbiAgfSxcclxuICBfaW50Rm9vdGVyOiBmdW5jdGlvbiBfaW50Rm9vdGVyKCkge1xyXG4gICAgaWYgKCF0aGlzLmFjdGlvbnMubGVuZ3RoKSB7XHJcbiAgICAgIHRoaXMuaXRlbUZvb3RlclRlbXBsYXRlID0gbmV3IFNpbXBsYXRlKFsnJ10pO1xyXG4gICAgfVxyXG4gIH0sXHJcbiAgZ2V0SXRlbUFjdGlvbktleTogZnVuY3Rpb24gZ2V0SXRlbUFjdGlvbktleShlbnRyeSkge1xyXG4gICAgcmV0dXJuIGVudHJ5LiRrZXkgfHwgZW50cnlbdGhpcy5pZFByb3BlcnR5XTtcclxuICB9LFxyXG4gIGdldEl0ZW1EZXNjcmlwdG9yOiBmdW5jdGlvbiBnZXRJdGVtRGVzY3JpcHRvcihlbnRyeSkge1xyXG4gICAgcmV0dXJuIGVudHJ5LiRkZXNjcmlwdG9yIHx8IGVudHJ5W3RoaXMubGFiZWxQcm9wZXJ0eV07XHJcbiAgfSxcclxuICBnZXRJdGVtSWNvbkNsYXNzOiBmdW5jdGlvbiBnZXRJdGVtSWNvbkNsYXNzKCkge1xyXG4gICAgcmV0dXJuIHRoaXMuaXRlbUljb25DbGFzcztcclxuICB9LFxyXG4gIGdldEl0ZW1JY29uU291cmNlOiBmdW5jdGlvbiBnZXRJdGVtSWNvblNvdXJjZSgpIHtcclxuICAgIHJldHVybiB0aGlzLml0ZW1JY29uIHx8IHRoaXMuaWNvbiB8fCB0aGlzLnNlbGVjdEljb247XHJcbiAgfSxcclxuICBnZXRJdGVtSWNvbkFsdDogZnVuY3Rpb24gZ2V0SXRlbUljb25BbHQoKSB7XHJcbiAgICByZXR1cm4gdGhpcy5pdGVtSWNvbkFsdFRleHQ7XHJcbiAgfSxcclxuICBjcmVhdGVJbmRpY2F0b3JzOiBmdW5jdGlvbiBjcmVhdGVJbmRpY2F0b3JzKHRvcEluZGljYXRvcnNOb2RlLCBib3R0b21JbmRpY2F0b3JzTm9kZSwgaW5kaWNhdG9ycywgZW50cnkpIHtcclxuICAgIGNvbnN0IHNlbGYgPSB0aGlzO1xyXG4gICAgZm9yIChsZXQgaSA9IDA7IGkgPCBpbmRpY2F0b3JzLmxlbmd0aDsgaSsrKSB7XHJcbiAgICAgIGNvbnN0IGluZGljYXRvciA9IGluZGljYXRvcnNbaV07XHJcbiAgICAgIGNvbnN0IGljb25QYXRoID0gaW5kaWNhdG9yLmljb25QYXRoIHx8IHNlbGYuaXRlbUluZGljYXRvckljb25QYXRoO1xyXG4gICAgICBpZiAoaW5kaWNhdG9yLm9uQXBwbHkpIHtcclxuICAgICAgICB0cnkge1xyXG4gICAgICAgICAgaW5kaWNhdG9yLm9uQXBwbHkoZW50cnksIHNlbGYpO1xyXG4gICAgICAgIH0gY2F0Y2ggKGVycikge1xyXG4gICAgICAgICAgaW5kaWNhdG9yLmlzRW5hYmxlZCA9IGZhbHNlO1xyXG4gICAgICAgIH1cclxuICAgICAgfVxyXG4gICAgICBjb25zdCBvcHRpb25zID0ge1xyXG4gICAgICAgIGluZGljYXRvckluZGV4OiBpLFxyXG4gICAgICAgIGluZGljYXRvckljb246IGluZGljYXRvci5pY29uID8gaWNvblBhdGggKyBpbmRpY2F0b3IuaWNvbiA6ICcnLFxyXG4gICAgICAgIGljb25DbHM6IGluZGljYXRvci5jbHMgfHwgJycsXHJcbiAgICAgIH07XHJcblxyXG4gICAgICBjb25zdCBpbmRpY2F0b3JUZW1wbGF0ZSA9IGluZGljYXRvci50ZW1wbGF0ZSB8fCBzZWxmLml0ZW1JbmRpY2F0b3JUZW1wbGF0ZTtcclxuXHJcbiAgICAgIGxhbmcubWl4aW4oaW5kaWNhdG9yLCBvcHRpb25zKTtcclxuXHJcbiAgICAgIGlmIChpbmRpY2F0b3IuaXNFbmFibGVkID09PSBmYWxzZSkge1xyXG4gICAgICAgIGluZGljYXRvci5sYWJlbCA9ICcnO1xyXG4gICAgICAgIGlmIChpbmRpY2F0b3IuY2xzKSB7XHJcbiAgICAgICAgICBpbmRpY2F0b3IuaWNvbkNscyA9IGluZGljYXRvci5jbHMgKyAnIGRpc2FibGVkJztcclxuICAgICAgICB9IGVsc2Uge1xyXG4gICAgICAgICAgaW5kaWNhdG9yLmluZGljYXRvckljb24gPSBpbmRpY2F0b3IuaWNvbiA/IGljb25QYXRoICsgJ2Rpc2FibGVkXycgKyBpbmRpY2F0b3IuaWNvbiA6ICcnO1xyXG4gICAgICAgIH1cclxuICAgICAgfSBlbHNlIHtcclxuICAgICAgICBpbmRpY2F0b3IuaW5kaWNhdG9ySWNvbiA9IGluZGljYXRvci5pY29uID8gaWNvblBhdGggKyBpbmRpY2F0b3IuaWNvbiA6ICcnO1xyXG4gICAgICB9XHJcblxyXG4gICAgICBpZiAoaW5kaWNhdG9yLmlzRW5hYmxlZCA9PT0gZmFsc2UgJiYgaW5kaWNhdG9yLnNob3dJY29uID09PSBmYWxzZSkge1xyXG4gICAgICAgIHJldHVybjtcclxuICAgICAgfVxyXG5cclxuICAgICAgaWYgKHNlbGYuaXRlbUluZGljYXRvclNob3dEaXNhYmxlZCB8fCBpbmRpY2F0b3IuaXNFbmFibGVkKSB7XHJcbiAgICAgICAgaWYgKGluZGljYXRvci5pc0VuYWJsZWQgPT09IGZhbHNlICYmIGluZGljYXRvci5zaG93SWNvbiA9PT0gZmFsc2UpIHtcclxuICAgICAgICAgIHJldHVybjtcclxuICAgICAgICB9XHJcbiAgICAgICAgY29uc3QgaW5kaWNhdG9ySFRNTCA9IGluZGljYXRvclRlbXBsYXRlLmFwcGx5KGluZGljYXRvciwgaW5kaWNhdG9yLmlkKTtcclxuICAgICAgICBpZiAoaW5kaWNhdG9yLmxvY2F0aW9uID09PSAndG9wJykge1xyXG4gICAgICAgICAgZG9tQ29uc3RydWN0LnBsYWNlKGluZGljYXRvckhUTUwsIHRvcEluZGljYXRvcnNOb2RlLCAnbGFzdCcpO1xyXG4gICAgICAgIH0gZWxzZSB7XHJcbiAgICAgICAgICBkb21Db25zdHJ1Y3QucGxhY2UoaW5kaWNhdG9ySFRNTCwgYm90dG9tSW5kaWNhdG9yc05vZGUsICdsYXN0Jyk7XHJcbiAgICAgICAgfVxyXG4gICAgICB9XHJcbiAgICB9XHJcbiAgfSxcclxuICBvbkFwcGx5Um93VGVtcGxhdGU6IGZ1bmN0aW9uIG9uQXBwbHlSb3dUZW1wbGF0ZShlbnRyeSwgcm93Tm9kZSkge1xyXG4gICAgaWYgKHRoaXMub3B0aW9ucyAmJiB0aGlzLm9wdGlvbnMuc2ltcGxlTW9kZSAmJiAodGhpcy5vcHRpb25zLnNpbXBsZU1vZGUgPT09IHRydWUpKSB7XHJcbiAgICAgIHJldHVybjtcclxuICAgIH1cclxuXHJcbiAgICB0aGlzLmFwcGx5Um93SW5kaWNhdG9ycyhlbnRyeSwgcm93Tm9kZSk7XHJcbiAgICB0aGlzLmluaGVyaXRlZChhcmd1bWVudHMpO1xyXG4gIH0sXHJcbiAgYXBwbHlSb3dJbmRpY2F0b3JzOiBmdW5jdGlvbiBhcHBseVJvd0luZGljYXRvcnMoZW50cnksIHJvd05vZGUpIHtcclxuICAgIGlmICh0aGlzLml0ZW1JbmRpY2F0b3JzICYmIHRoaXMuaXRlbUluZGljYXRvcnMubGVuZ3RoID4gMCkge1xyXG4gICAgICBjb25zdCB0b3BJbmRpY2F0b3JzTm9kZSA9IHF1ZXJ5KCc+ICN0b3BfaXRlbV9pbmRpY2F0b3JzJywgcm93Tm9kZSk7XHJcbiAgICAgIGNvbnN0IGJvdHRvbUluZGljYXRvcnNOb2RlID0gcXVlcnkoJz4gI2JvdHRvbV9pdGVtX2luZGljYXRvcnMnLCByb3dOb2RlKTtcclxuICAgICAgaWYgKGJvdHRvbUluZGljYXRvcnNOb2RlWzBdICYmIHRvcEluZGljYXRvcnNOb2RlWzBdKSB7XHJcbiAgICAgICAgaWYgKGJvdHRvbUluZGljYXRvcnNOb2RlWzBdLmNoaWxkTm9kZXMubGVuZ3RoID09PSAwICYmIHRvcEluZGljYXRvcnNOb2RlWzBdLmNoaWxkTm9kZXMubGVuZ3RoID09PSAwKSB7XHJcbiAgICAgICAgICB0aGlzLmNyZWF0ZUluZGljYXRvcnModG9wSW5kaWNhdG9yc05vZGVbMF0sIGJvdHRvbUluZGljYXRvcnNOb2RlWzBdLCB0aGlzLl9jcmVhdGVDdXN0b21pemVkTGF5b3V0KHRoaXMuaXRlbUluZGljYXRvcnMsICdpbmRpY2F0b3JzJyksIGVudHJ5KTtcclxuICAgICAgICB9XHJcbiAgICAgIH1cclxuICAgIH1cclxuICB9LFxyXG4gIGNyZWF0ZUluZGljYXRvckxheW91dDogZnVuY3Rpb24gY3JlYXRlSW5kaWNhdG9yTGF5b3V0KCkge1xyXG4gICAgcmV0dXJuIHRoaXMuaXRlbUluZGljYXRvcnMgfHwgKHRoaXMuaXRlbUluZGljYXRvcnMgPSBbe1xyXG4gICAgICBpZDogJ3RvdWNoZWQnLFxyXG4gICAgICBjbHM6ICdmYSBmYS1oYW5kLW8tdXAgZmEtbGcnLFxyXG4gICAgICBvbkFwcGx5OiBmdW5jdGlvbiBvbkFwcGx5KGVudHJ5LCBwYXJlbnQpIHtcclxuICAgICAgICB0aGlzLmlzRW5hYmxlZCA9IHBhcmVudC5oYXNCZWVuVG91Y2hlZChlbnRyeSk7XHJcbiAgICAgIH0sXHJcbiAgICB9XSk7XHJcbiAgfSxcclxuICBoYXNCZWVuVG91Y2hlZDogZnVuY3Rpb24gaGFzQmVlblRvdWNoZWQoZW50cnkpIHtcclxuICAgIGlmIChlbnRyeS5Nb2RpZnlEYXRlKSB7XHJcbiAgICAgIGNvbnN0IG1vZGlmaWVkRGF0ZSA9IG1vbWVudChjb252ZXJ0LnRvRGF0ZUZyb21TdHJpbmcoZW50cnkuTW9kaWZ5RGF0ZSkpO1xyXG4gICAgICBjb25zdCBjdXJyZW50RGF0ZSA9IG1vbWVudCgpLmVuZE9mKCdkYXknKTtcclxuICAgICAgY29uc3Qgd2Vla0FnbyA9IG1vbWVudCgpLnN1YnRyYWN0KDEsICd3ZWVrcycpO1xyXG5cclxuICAgICAgcmV0dXJuIG1vZGlmaWVkRGF0ZS5pc0FmdGVyKHdlZWtBZ28pICYmXHJcbiAgICAgICAgbW9kaWZpZWREYXRlLmlzQmVmb3JlKGN1cnJlbnREYXRlKTtcclxuICAgIH1cclxuICAgIHJldHVybiBmYWxzZTtcclxuICB9LFxyXG4gIHJlcXVlc3REYXRhOiBmdW5jdGlvbiByZXF1ZXN0RGF0YSgpIHtcclxuICAgIGlmICh0aGlzLnNlYXJjaFdpZGdldCkge1xyXG4gICAgICB0aGlzLmN1cnJlbnRTZWFyY2hFeHByZXNzaW9uID0gdGhpcy5zZWFyY2hXaWRnZXQuZ2V0U2VhcmNoRXhwcmVzc2lvbigpIHx8IHJlc291cmNlLmFsbFJlY29yZHNUZXh0O1xyXG4gICAgfVxyXG5cclxuICAgIHRoaXMuaW5oZXJpdGVkKGFyZ3VtZW50cyk7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBSZXR1cm5zIGEgcmVuZGVyZWQgaHRtbCBzbmFwIHNob3Qgb2YgdGhlIGVudHJ5LlxyXG4gICAqL1xyXG4gIGdldENvbnRleHRTbmFwU2hvdDogZnVuY3Rpb24gZ2V0Q29udGV4dFNuYXBTaG90KG9wdGlvbnMpIHtcclxuICAgIGNvbnN0IGVudHJ5ID0gdGhpcy5lbnRyaWVzW29wdGlvbnMua2V5XTtcclxuICAgIGxldCBzbmFwU2hvdDtcclxuICAgIGlmIChlbnRyeSkge1xyXG4gICAgICBzbmFwU2hvdCA9IHRoaXMuaXRlbVJvd0NvbnRhaW5lclRlbXBsYXRlLmFwcGx5KGVudHJ5LCB0aGlzKTtcclxuICAgIH1cclxuXHJcbiAgICByZXR1cm4gc25hcFNob3Q7XHJcbiAgfSxcclxufSk7XHJcblxyXG5sYW5nLnNldE9iamVjdCgnTW9iaWxlLlNhbGVzTG9naXguVmlld3MuX0NhcmRMYXlvdXRMaXN0TWl4aW4nLCBfX2NsYXNzKTtcclxuZXhwb3J0IGRlZmF1bHQgX19jbGFzcztcclxuIl19
 </pre>
 </body>
 </html>

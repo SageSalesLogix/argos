@@ -15,121 +15,165 @@
   </script>
 </head>
 <body onload="prettyPrint(); highlight();">
-  <pre class="prettyprint lang-js">/*
- * Copyright (c) 1997-2013, SalesLogix, NA., LLC. All rights reserved.
- */
+  <pre class="prettyprint lang-js">define('crm/Views/Help', ['exports', 'module', 'dojo/_base/declare', 'dojo/_base/lang', 'dojo/string', 'dojo/dom-construct', 'argos/_DetailBase', 'argos/ErrorManager', 'argos/I18n', 'dojo/NodeList-manipulate'], function (exports, module, _dojo_baseDeclare, _dojo_baseLang, _dojoString, _dojoDomConstruct, _argos_DetailBase, _argosErrorManager, _argosI18n, _dojoNodeListManipulate) {
+  function _interopRequireDefault(obj) { return obj &amp;&amp; obj.__esModule ? obj : { 'default': obj }; }
 
-<span id='crm-Views-Help'>/**
-</span> * @class crm.Views.Help
- *
- *
- * @extends argos.Detail
- * @mixins argos._LegacySDataDetailMixin
- *
- */
-define('crm/Views/Help', [
-    'dojo/_base/declare',
-    'dojo/_base/lang',
-    'dojo/string',
-    'dojo/dom-class',
-    'dojo/dom-construct',
-    'argos/ErrorManager',
-    'argos/Detail',
-    'dojo/NodeList-manipulate',
-    'argos/_LegacySDataDetailMixin'
-], function(
-    declare,
-    lang,
-    string,
-    domClass,
-    domConstruct,
-    ErrorManager,
-    Detail,
-    _LegacySDataDetailMixin
-) {
+  var _declare = _interopRequireDefault(_dojo_baseDeclare);
 
-    var __class = declare('crm.Views.Help', [Detail, _LegacySDataDetailMixin], {
-        //Templates
-        errorTemplate: new Simplate([
-            '&lt;div data-dojo-attach-point=&quot;errorNode&quot; class=&quot;panel-validation-summary&quot;&gt;',
-            '&lt;h2&gt;{%: $.errorText %}&lt;/h2&gt;',
-            '&lt;ul&gt;',
-            '&lt;li&gt;{%: $.errorMessageText %}&lt;/li&gt;',
-            '&lt;/ul&gt;',
-            '&lt;/div&gt;'
-        ]),
+  var _lang = _interopRequireDefault(_dojo_baseLang);
 
-        //Localization
-        titleText: 'Help',
-        errorText: 'Error',
-        errorMessageText: 'Unable to load the help document.',
+  var _string = _interopRequireDefault(_dojoString);
 
-        //View Properties
-        id: 'help',
-        url: 'help/help.html',
-        expose: false,
+  var _domConstruct = _interopRequireDefault(_dojoDomConstruct);
 
-        createToolLayout: function() {
-            return this.tools &amp;&amp; (this.tools.tbar = []);
-        },
-        onRequestFailure: function(response, o) {
-            domConstruct.place(this.errorTemplate.apply(this), this.contentNode, 'last');
-            domClass.remove(this.domNode, 'panel-loading');
+  var _DetailBase2 = _interopRequireDefault(_argos_DetailBase);
 
-            ErrorManager.addError(response, o, this.options, 'failure');
-        },
-        onLocalizedRequestFirstFailure: function() {
-            Sage.SData.Client.Ajax.request({
-                url: this.resolveGenericLocalizedUrl(),
-                cache: true,
-                success: this.onRequestSuccess,
-                failure: this.onLocalizedRequestSecondFailure,
-                scope: this
+  var _ErrorManager = _interopRequireDefault(_argosErrorManager);
+
+  var _getResource = _interopRequireDefault(_argosI18n);
+
+  var resource = (0, _getResource['default'])('help');
+
+<span id='crm-Views-Help'>  /**
+</span>   * @class crm.Views.Help
+   *
+   *
+   * @extends argos.Detail
+   * @mixins argos._LegacySDataDetailMixin
+   *
+   */
+  var __class = (0, _declare['default'])('crm.Views.Help', [_DetailBase2['default']], {
+    // Templates
+    errorTemplate: new Simplate(['&lt;div data-dojo-attach-point=&quot;errorNode&quot;&gt;', '&lt;h2&gt;{%: $.errorText %}&lt;/h2&gt;', '&lt;ul&gt;', '&lt;li&gt;{%: $.errorMessageText %}&lt;/li&gt;', '&lt;/ul&gt;', '&lt;/div&gt;']),
+
+    // Localization
+    titleText: resource.titleText,
+    errorText: resource.errorText,
+    errorMessageText: resource.errorMessageText,
+    sectionTitleText: resource.sectionTitleText,
+
+    // View Properties
+    id: 'help',
+    expose: false,
+    promises: null,
+    placeDetailHeader: function placeDetailHeader() {},
+    constructor: function constructor() {
+      this.promises = [];
+    },
+    createToolLayout: function createToolLayout() {
+      return this.tools &amp;&amp; (this.tools.tbar = []);
+    },
+    resolveLocalizedUrl: function resolveLocalizedUrl(baseUrl, fileName) {
+      var localizedUrl = _string['default'].substitute('${0}/${1}/${2}', [baseUrl, Mobile.CultureInfo.name, fileName]);
+      return localizedUrl;
+    },
+    resolveGenericLocalizedUrl: function resolveGenericLocalizedUrl(baseUrl, fileName) {
+      var languageSpec = Mobile.CultureInfo.name;
+      var languageGen = languageSpec.indexOf('-') !== -1 ? languageSpec.split('-')[0] : languageSpec;
+      var localizedUrl = _string['default'].substitute('${0}/${1}/${2}', [baseUrl, languageGen, fileName]);
+      return localizedUrl;
+    },
+    _sanitizeUrl: function _sanitizeUrl() {
+      var url = arguments.length &lt;= 0 || arguments[0] === undefined ? '' : arguments[0];
+
+      // Remove trailing slashes
+      return url.replace(/[\/|\\]*$/, '');
+    },
+    requestData: function requestData() {
+      this.processEntry({});
+    },
+    processEntry: function processEntry() {
+      this.inherited(arguments);
+      // Processing the layout should be done now
+      var self = this;
+      Promise.all(this.promises).then(function (results) {
+        results.forEach(function (result) {
+          self.processContent(result.response, result.domNode);
+        });
+      }, function (e) {
+        self.processContent({ responseText: self.errorTemplate.apply(self) }, e.domNode);
+      });
+      this.promises = [];
+    },
+    processContent: function processContent(xhr, domNode) {
+      _domConstruct['default'].place(xhr.responseText, domNode, 'only');
+    },
+    getHelp: function getHelp(_ref, domNode) {
+      var baseUrl = _ref.baseUrl;
+      var fileName = _ref.fileName;
+      var defaultUrl = _ref.defaultUrl;
+
+      var req = Sage.SData.Client.Ajax.request;
+      var cleanBaseUrl = this._sanitizeUrl(baseUrl);
+      return new Promise((function helpPromise(resolve, reject) {
+        var _this = this;
+
+        req({
+          url: this.resolveLocalizedUrl(cleanBaseUrl, fileName),
+          cache: true,
+          success: function success(response) {
+            return resolve({ response: response, domNode: domNode });
+          },
+          failure: function failure() {
+            // First failure, try to get the parent locale
+            req({
+              url: _this.resolveGenericLocalizedUrl(cleanBaseUrl, fileName),
+              cache: true,
+              success: function success(response) {
+                return resolve({ response: response, domNode: domNode });
+              },
+              failure: function failure() {
+                // Second failure, use the default url
+                req({
+                  url: defaultUrl,
+                  cache: true,
+                  success: function success(response) {
+                    return resolve({ response: response, domNode: domNode });
+                  },
+                  failure: function failure(response, o) {
+                    // The default help failed. Log the error, as something is
+                    // probably wrong with the layout.
+                    _ErrorManager['default'].addError(response, o, _this.options, 'failure');
+                    reject({ response: response, o: o, domNode: domNode });
+                  }
+                });
+              }
             });
-        },
-        onLocalizedRequestSecondFailure: function() {
-            Sage.SData.Client.Ajax.request({
-                url: this.url,
-                cache: true,
-                success: this.onRequestSuccess,
-                failure: this.onRequestFailure,
-                scope: this
-            });
-        },
-        onRequestSuccess: function(response, o) {
-            this.processContent(response, o);
-            domClass.remove(this.domNode, 'panel-loading');
-        },
-        resolveLocalizedUrl: function() {
-            var localizedUrl = string.substitute('help/help_${0}.html', [Mobile.CultureInfo['name']]);
-            return localizedUrl;
-        },
-        resolveGenericLocalizedUrl: function() {
-            var languageSpec = Mobile.CultureInfo['name'],
-                languageGen = (languageSpec.indexOf('-') !== -1) ? languageSpec.split('-')[0] : languageSpec,
-                localizedUrl = string.substitute('help/help_${0}.html', [languageGen]);
-            return localizedUrl;
-        },
-        requestData: function() {
-            domClass.add(this.domNode, 'panel-loading');
+          }
+        });
+      }).bind(this));
+    },
+    onHelpRowCreated: function onHelpRowCreated(layoutRow, domNode) {
+      this.promises.push(this.getHelp(layoutRow, domNode));
+    },
+    createLayout: function createLayout() {
+      if (this.layout) {
+        return this.layout;
+      }
 
-            Sage.SData.Client.Ajax.request({
-                url: this.resolveLocalizedUrl(),
-                cache: true,
-                success: this.onRequestSuccess,
-                failure: this.onLocalizedRequestFirstFailure,
-                scope: this
-            });
-        },
-        processContent: function(xhr) {
-            domConstruct.place(xhr.responseText, this.contentNode, 'last');
-        }
-    });
+      var layout = [];
 
-    lang.setObject('Mobile.SalesLogix.Views.Help', __class);
-    return __class;
+      layout.push({
+        title: this.sectionTitleText,
+        name: 'HelpSection',
+        children: [{
+          name: 'CRMHelp',
+          baseUrl: 'help/locales/crm',
+          fileName: 'help.html',
+          defaultUrl: 'help/locales/crm/en/help.html',
+          onCreate: this.onHelpRowCreated
+        }]
+      });
+
+      this.layout = layout;
+      return layout;
+    }
+  });
+
+  _lang['default'].setObject('Mobile.SalesLogix.Views.Help', __class);
+  module.exports = __class;
 });
-
+//# sourceMappingURL=data:application/json;base64,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Qjs7QUFFRCxVQUFNLE1BQU0sR0FBRyxFQUFFLENBQUM7O0FBRWxCLFlBQU0sQ0FBQyxJQUFJLENBQUM7QUFDVixhQUFLLEVBQUUsSUFBSSxDQUFDLGdCQUFnQjtBQUM1QixZQUFJLEVBQUUsYUFBYTtBQUNuQixnQkFBUSxFQUFFLENBQUM7QUFDVCxjQUFJLEVBQUUsU0FBUztBQUNmLGlCQUFPLEVBQUUsa0JBQWtCO0FBQzNCLGtCQUFRLEVBQUUsV0FBVztBQUNyQixvQkFBVSxFQUFFLCtCQUErQjtBQUMzQyxrQkFBUSxFQUFFLElBQUksQ0FBQyxnQkFBZ0I7U0FDaEMsQ0FBQztPQUNILENBQUMsQ0FBQzs7QUFFSCxVQUFJLENBQUMsTUFBTSxHQUFHLE1BQU0sQ0FBQztBQUNyQixhQUFPLE1BQU0sQ0FBQztLQUNmO0dBQ0YsQ0FBQyxDQUFDOztBQUVILG1CQUFLLFNBQVMsQ0FBQyw4QkFBOEIsRUFBRSxPQUFPLENBQUMsQ0FBQzttQkFDekMsT0FBTyIsImZpbGUiOiJzcmMvVmlld3MvSGVscC5qcyIsInNvdXJjZVJvb3QiOiJzcmMiLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgZGVjbGFyZSBmcm9tICdkb2pvL19iYXNlL2RlY2xhcmUnO1xyXG5pbXBvcnQgbGFuZyBmcm9tICdkb2pvL19iYXNlL2xhbmcnO1xyXG5pbXBvcnQgc3RyaW5nIGZyb20gJ2Rvam8vc3RyaW5nJztcclxuaW1wb3J0IGRvbUNvbnN0cnVjdCBmcm9tICdkb2pvL2RvbS1jb25zdHJ1Y3QnO1xyXG5pbXBvcnQgX0RldGFpbEJhc2UgZnJvbSAnYXJnb3MvX0RldGFpbEJhc2UnO1xyXG5pbXBvcnQgRXJyb3JNYW5hZ2VyIGZyb20gJ2FyZ29zL0Vycm9yTWFuYWdlcic7XHJcbmltcG9ydCBnZXRSZXNvdXJjZSBmcm9tICdhcmdvcy9JMThuJztcclxuaW1wb3J0ICdkb2pvL05vZGVMaXN0LW1hbmlwdWxhdGUnO1xyXG5cclxuY29uc3QgcmVzb3VyY2UgPSBnZXRSZXNvdXJjZSgnaGVscCcpO1xyXG5cclxuLyoqXHJcbiAqIEBjbGFzcyBjcm0uVmlld3MuSGVscFxyXG4gKlxyXG4gKlxyXG4gKiBAZXh0ZW5kcyBhcmdvcy5EZXRhaWxcclxuICogQG1peGlucyBhcmdvcy5fTGVnYWN5U0RhdGFEZXRhaWxNaXhpblxyXG4gKlxyXG4gKi9cclxuY29uc3QgX19jbGFzcyA9IGRlY2xhcmUoJ2NybS5WaWV3cy5IZWxwJywgW19EZXRhaWxCYXNlXSwge1xyXG4gIC8vIFRlbXBsYXRlc1xyXG4gIGVycm9yVGVtcGxhdGU6IG5ldyBTaW1wbGF0ZShbXHJcbiAgICAnPGRpdiBkYXRhLWRvam8tYXR0YWNoLXBvaW50PVwiZXJyb3JOb2RlXCI+JyxcclxuICAgICc8aDI+eyU6ICQuZXJyb3JUZXh0ICV9PC9oMj4nLFxyXG4gICAgJzx1bD4nLFxyXG4gICAgJzxsaT57JTogJC5lcnJvck1lc3NhZ2VUZXh0ICV9PC9saT4nLFxyXG4gICAgJzwvdWw+JyxcclxuICAgICc8L2Rpdj4nLFxyXG4gIF0pLFxyXG5cclxuICAvLyBMb2NhbGl6YXRpb25cclxuICB0aXRsZVRleHQ6IHJlc291cmNlLnRpdGxlVGV4dCxcclxuICBlcnJvclRleHQ6IHJlc291cmNlLmVycm9yVGV4dCxcclxuICBlcnJvck1lc3NhZ2VUZXh0OiByZXNvdXJjZS5lcnJvck1lc3NhZ2VUZXh0LFxyXG4gIHNlY3Rpb25UaXRsZVRleHQ6IHJlc291cmNlLnNlY3Rpb25UaXRsZVRleHQsXHJcblxyXG4gIC8vIFZpZXcgUHJvcGVydGllc1xyXG4gIGlkOiAnaGVscCcsXHJcbiAgZXhwb3NlOiBmYWxzZSxcclxuICBwcm9taXNlczogbnVsbCxcclxuICBwbGFjZURldGFpbEhlYWRlcjogZnVuY3Rpb24gcGxhY2VEZXRhaWxIZWFkZXIoKSB7XHJcbiAgfSxcclxuICBjb25zdHJ1Y3RvcjogZnVuY3Rpb24gY29uc3RydWN0b3IoKSB7XHJcbiAgICB0aGlzLnByb21pc2VzID0gW107XHJcbiAgfSxcclxuICBjcmVhdGVUb29sTGF5b3V0OiBmdW5jdGlvbiBjcmVhdGVUb29sTGF5b3V0KCkge1xyXG4gICAgcmV0dXJuIHRoaXMudG9vbHMgJiYgKHRoaXMudG9vbHMudGJhciA9IFtdKTtcclxuICB9LFxyXG4gIHJlc29sdmVMb2NhbGl6ZWRVcmw6IGZ1bmN0aW9uIHJlc29sdmVMb2NhbGl6ZWRVcmwoYmFzZVVybCwgZmlsZU5hbWUpIHtcclxuICAgIGNvbnN0IGxvY2FsaXplZFVybCA9IHN0cmluZy5zdWJzdGl0dXRlKCckezB9LyR7MX0vJHsyfScsIFtiYXNlVXJsLCBNb2JpbGUuQ3VsdHVyZUluZm8ubmFtZSwgZmlsZU5hbWVdKTtcclxuICAgIHJldHVybiBsb2NhbGl6ZWRVcmw7XHJcbiAgfSxcclxuICByZXNvbHZlR2VuZXJpY0xvY2FsaXplZFVybDogZnVuY3Rpb24gcmVzb2x2ZUdlbmVyaWNMb2NhbGl6ZWRVcmwoYmFzZVVybCwgZmlsZU5hbWUpIHtcclxuICAgIGNvbnN0IGxhbmd1YWdlU3BlYyA9IE1vYmlsZS5DdWx0dXJlSW5mby5uYW1lO1xyXG4gICAgY29uc3QgbGFuZ3VhZ2VHZW4gPSAobGFuZ3VhZ2VTcGVjLmluZGV4T2YoJy0nKSAhPT0gLTEpID8gbGFuZ3VhZ2VTcGVjLnNwbGl0KCctJylbMF0gOiBsYW5ndWFnZVNwZWM7XHJcbiAgICBjb25zdCBsb2NhbGl6ZWRVcmwgPSBzdHJpbmcuc3Vic3RpdHV0ZSgnJHswfS8kezF9LyR7Mn0nLCBbYmFzZVVybCwgbGFuZ3VhZ2VHZW4sIGZpbGVOYW1lXSk7XHJcbiAgICByZXR1cm4gbG9jYWxpemVkVXJsO1xyXG4gIH0sXHJcbiAgX3Nhbml0aXplVXJsOiBmdW5jdGlvbiBfc2FuaXRpemVVcmwodXJsID0gJycpIHtcclxuICAgIC8vIFJlbW92ZSB0cmFpbGluZyBzbGFzaGVzXHJcbiAgICByZXR1cm4gdXJsLnJlcGxhY2UoL1tcXC98XFxcXF0qJC8sICcnKTtcclxuICB9LFxyXG4gIHJlcXVlc3REYXRhOiBmdW5jdGlvbiByZXF1ZXN0RGF0YSgpIHtcclxuICAgIHRoaXMucHJvY2Vzc0VudHJ5KHt9KTtcclxuICB9LFxyXG4gIHByb2Nlc3NFbnRyeTogZnVuY3Rpb24gcHJvY2Vzc0VudHJ5KCkge1xyXG4gICAgdGhpcy5pbmhlcml0ZWQoYXJndW1lbnRzKTtcclxuICAgIC8vIFByb2Nlc3NpbmcgdGhlIGxheW91dCBzaG91bGQgYmUgZG9uZSBub3dcclxuICAgIGNvbnN0IHNlbGYgPSB0aGlzO1xyXG4gICAgUHJvbWlzZS5hbGwodGhpcy5wcm9taXNlcykudGhlbigocmVzdWx0cykgPT4ge1xyXG4gICAgICByZXN1bHRzLmZvckVhY2goKHJlc3VsdCkgPT4ge1xyXG4gICAgICAgIHNlbGYucHJvY2Vzc0NvbnRlbnQocmVzdWx0LnJlc3BvbnNlLCByZXN1bHQuZG9tTm9kZSk7XHJcbiAgICAgIH0pO1xyXG4gICAgfSwgKGUpID0+IHtcclxuICAgICAgc2VsZi5wcm9jZXNzQ29udGVudCh7cmVzcG9uc2VUZXh0OiBzZWxmLmVycm9yVGVtcGxhdGUuYXBwbHkoc2VsZil9LCBlLmRvbU5vZGUpO1xyXG4gICAgfSk7XHJcbiAgICB0aGlzLnByb21pc2VzID0gW107XHJcbiAgfSxcclxuICBwcm9jZXNzQ29udGVudDogZnVuY3Rpb24gcHJvY2Vzc0NvbnRlbnQoeGhyLCBkb21Ob2RlKSB7XHJcbiAgICBkb21Db25zdHJ1Y3QucGxhY2UoeGhyLnJlc3BvbnNlVGV4dCwgZG9tTm9kZSwgJ29ubHknKTtcclxuICB9LFxyXG4gIGdldEhlbHA6IGZ1bmN0aW9uIGdldEhlbHAoe2Jhc2VVcmwsIGZpbGVOYW1lLCBkZWZhdWx0VXJsfSwgZG9tTm9kZSkge1xyXG4gICAgY29uc3QgcmVxID0gU2FnZS5TRGF0YS5DbGllbnQuQWpheC5yZXF1ZXN0O1xyXG4gICAgY29uc3QgY2xlYW5CYXNlVXJsID0gdGhpcy5fc2FuaXRpemVVcmwoYmFzZVVybCk7XHJcbiAgICByZXR1cm4gbmV3IFByb21pc2UoZnVuY3Rpb24gaGVscFByb21pc2UocmVzb2x2ZSwgcmVqZWN0KSB7XHJcbiAgICAgIHJlcSh7XHJcbiAgICAgICAgdXJsOiB0aGlzLnJlc29sdmVMb2NhbGl6ZWRVcmwoY2xlYW5CYXNlVXJsLCBmaWxlTmFtZSksXHJcbiAgICAgICAgY2FjaGU6IHRydWUsXHJcbiAgICAgICAgc3VjY2VzczogKHJlc3BvbnNlKSA9PiByZXNvbHZlKHtyZXNwb25zZSwgZG9tTm9kZX0pLFxyXG4gICAgICAgIGZhaWx1cmU6ICgpID0+IHtcclxuICAgICAgICAgIC8vIEZpcnN0IGZhaWx1cmUsIHRyeSB0byBnZXQgdGhlIHBhcmVudCBsb2NhbGVcclxuICAgICAgICAgIHJlcSh7XHJcbiAgICAgICAgICAgIHVybDogdGhpcy5yZXNvbHZlR2VuZXJpY0xvY2FsaXplZFVybChjbGVhbkJhc2VVcmwsIGZpbGVOYW1lKSxcclxuICAgICAgICAgICAgY2FjaGU6IHRydWUsXHJcbiAgICAgICAgICAgIHN1Y2Nlc3M6IChyZXNwb25zZSkgPT4gcmVzb2x2ZSh7cmVzcG9uc2UsIGRvbU5vZGV9KSxcclxuICAgICAgICAgICAgZmFpbHVyZTogKCkgPT4ge1xyXG4gICAgICAgICAgICAgIC8vIFNlY29uZCBmYWlsdXJlLCB1c2UgdGhlIGRlZmF1bHQgdXJsXHJcbiAgICAgICAgICAgICAgcmVxKHtcclxuICAgICAgICAgICAgICAgIHVybDogZGVmYXVsdFVybCxcclxuICAgICAgICAgICAgICAgIGNhY2hlOiB0cnVlLFxyXG4gICAgICAgICAgICAgICAgc3VjY2VzczogKHJlc3BvbnNlKSA9PiByZXNvbHZlKHtyZXNwb25zZSwgZG9tTm9kZX0pLFxyXG4gICAgICAgICAgICAgICAgZmFpbHVyZTogKHJlc3BvbnNlLCBvKSA9PiB7XHJcbiAgICAgICAgICAgICAgICAgIC8vIFRoZSBkZWZhdWx0IGhlbHAgZmFpbGVkLiBMb2cgdGhlIGVycm9yLCBhcyBzb21ldGhpbmcgaXNcclxuICAgICAgICAgICAgICAgICAgLy8gcHJvYmFibHkgd3Jvbmcgd2l0aCB0aGUgbGF5b3V0LlxyXG4gICAgICAgICAgICAgICAgICBFcnJvck1hbmFnZXIuYWRkRXJyb3IocmVzcG9uc2UsIG8sIHRoaXMub3B0aW9ucywgJ2ZhaWx1cmUnKTtcclxuICAgICAgICAgICAgICAgICAgcmVqZWN0KHtyZXNwb25zZSwgbywgZG9tTm9kZX0pO1xyXG4gICAgICAgICAgICAgICAgfSxcclxuICAgICAgICAgICAgICB9KTtcclxuICAgICAgICAgICAgfSxcclxuICAgICAgICAgIH0pO1xyXG4gICAgICAgIH0sXHJcbiAgICAgIH0pO1xyXG4gICAgfS5iaW5kKHRoaXMpKTtcclxuICB9LFxyXG4gIG9uSGVscFJvd0NyZWF0ZWQ6IGZ1bmN0aW9uIG9uSGVscFJvd0NyZWF0ZWQobGF5b3V0Um93LCBkb21Ob2RlKSB7XHJcbiAgICB0aGlzLnByb21pc2VzLnB1c2godGhpcy5nZXRIZWxwKGxheW91dFJvdywgZG9tTm9kZSkpO1xyXG4gIH0sXHJcbiAgY3JlYXRlTGF5b3V0OiBmdW5jdGlvbiBjcmVhdGVMYXlvdXQoKSB7XHJcbiAgICBpZiAodGhpcy5sYXlvdXQpIHtcclxuICAgICAgcmV0dXJuIHRoaXMubGF5b3V0O1xyXG4gICAgfVxyXG5cclxuICAgIGNvbnN0IGxheW91dCA9IFtdO1xyXG5cclxuICAgIGxheW91dC5wdXNoKHtcclxuICAgICAgdGl0bGU6IHRoaXMuc2VjdGlvblRpdGxlVGV4dCxcclxuICAgICAgbmFtZTogJ0hlbHBTZWN0aW9uJyxcclxuICAgICAgY2hpbGRyZW46IFt7XHJcbiAgICAgICAgbmFtZTogJ0NSTUhlbHAnLFxyXG4gICAgICAgIGJhc2VVcmw6ICdoZWxwL2xvY2FsZXMvY3JtJyxcclxuICAgICAgICBmaWxlTmFtZTogJ2hlbHAuaHRtbCcsXHJcbiAgICAgICAgZGVmYXVsdFVybDogJ2hlbHAvbG9jYWxlcy9jcm0vZW4vaGVscC5odG1sJyxcclxuICAgICAgICBvbkNyZWF0ZTogdGhpcy5vbkhlbHBSb3dDcmVhdGVkLFxyXG4gICAgICB9XSxcclxuICAgIH0pO1xyXG5cclxuICAgIHRoaXMubGF5b3V0ID0gbGF5b3V0O1xyXG4gICAgcmV0dXJuIGxheW91dDtcclxuICB9LFxyXG59KTtcclxuXHJcbmxhbmcuc2V0T2JqZWN0KCdNb2JpbGUuU2FsZXNMb2dpeC5WaWV3cy5IZWxwJywgX19jbGFzcyk7XHJcbmV4cG9ydCBkZWZhdWx0IF9fY2xhc3M7XHJcbiJdfQ==
 </pre>
 </body>
 </html>

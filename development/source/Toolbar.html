@@ -15,217 +15,212 @@
   </script>
 </head>
 <body onload="prettyPrint(); highlight();">
-  <pre class="prettyprint lang-js">/* Copyright (c) 2010, Sage Software, Inc. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+  <pre class="prettyprint lang-js">define('argos/Toolbar', ['exports', 'module', 'dojo/_base/declare', 'dojo/_base/lang', 'dojo/dom-style', 'dojo/dom-class', 'dijit/_Widget', './_ActionMixin', './_Templated'], function (exports, module, _dojo_baseDeclare, _dojo_baseLang, _dojoDomStyle, _dojoDomClass, _dijit_Widget, _ActionMixin2, _Templated2) {
+  function _interopRequireDefault(obj) { return obj &amp;&amp; obj.__esModule ? obj : { 'default': obj }; }
 
-<span id='argos-Toolbar'>/**
-</span> * @class argos.Toolbar
- * Toolbar is a base toolbar class that provides basic rendering of the bar, adding toolbar items and binding their invokacations.
- *
- * Inherits dijit _Widget.
- *
- * @alternateClassName Toolbar
- * @mixins argos._ActionMixin
- * @mixins argos._Templated
- */
-define('argos/Toolbar', [
-    'dojo/_base/declare',
-    'dojo/_base/lang',
-    'dojo/dom-style',
-    'dojo/dom-class',
-    'dijit/_Widget',
-    './_ActionMixin',
-    './_Templated'
-], function(
-    declare,
-    lang,
-    domStyle,
-    domClass,
-    _Widget,
-    _ActionMixin,
-    _Templated
-) {
-    var __class = declare('argos.Toolbar', [_Widget, _ActionMixin, _Templated], {
-<span id='argos-Toolbar-property-widgetTemplate'>        /**
-</span>         * @property {Simplate}
-         * HTML markup of the toolbar
-         */
-        widgetTemplate: new Simplate([
-            '&lt;div class=&quot;toolbar&quot;&gt;',
-            '&lt;/div&gt;'
-        ]),
-<span id='argos-Toolbar-property-enabled'>        /**
-</span>         * @property {Boolean}
-         * State of toolbar
-         */
-        enabled: true,
-        managed: true,
-<span id='argos-Toolbar-method-expandExpression'>        /**
-</span>         * Expands the passed expression if it is a function.
-         * @param {String/Function} expression Returns string directly, if function it is called and the result returned.
-         * @return {String} String expression.
-         */
-        expandExpression: function(expression) {
-            if (typeof expression === 'function') {
-                return expression.apply(this, Array.prototype.slice.call(arguments, 1));
-            } else {
-                return expression;
-            }
-        },
-<span id='argos-Toolbar-method-init'>        /**
-</span>         * Called upon application startup.
-         */
-        init: function() {
-        },
-<span id='argos-Toolbar-method-invokeTool'>        /**
-</span>         * When a tool is clicked on this function handles matching the node to toolbar item instance and performs the actual action
-         * @param {Object} parameters An object of all the `data-` attributes of the node.
-         * @param {Event} evt The event object
-         * @param {HTMLElement} node The html element that was clicked.
-         */
-        invokeTool: function(parameters, evt, node) {
-            var id = parameters &amp;&amp; parameters.tool,
-                tool = this.tools &amp;&amp; this.tools[id],
-                view,
-                source = tool &amp;&amp; tool.source;
-            if (source &amp;&amp; tool.enabled) {
-                if (source.fn) {
-                    source.fn.call(source.scope || this, source);
-                } else if (source.action) {
-                    view = App.getPrimaryActiveView();
-                    if (view &amp;&amp; view.hasAction(source.action)) {
-                        view.invokeAction(source.action, lang.mixin(parameters, {'$tool': source}), evt, node);
-                    }
-                }
-            }
-        },
-<span id='argos-Toolbar-method-show'>        /**
-</span>         * Sets the toolbar style to block (visibile)
-         */
-        show: function() {
-            domStyle.set(this.domNode, 'display', 'block');
-        },
-<span id='argos-Toolbar-method-hide'>        /**
-</span>         * Sets the toolbar style to none (hidden)
-         */
-        hide: function() {
-            domStyle.set(this.domNode, 'display', 'none');
-        },
-<span id='argos-Toolbar-method-clear'>        /**
-</span>         * Empties the toolbar item collection and sets enabled to true
-         */
-        clear: function() {
-            this.tools = {};
-            domClass.remove(this.domNode, 'toolbar-disabled');
-            this.enabled = true;
-        },
-<span id='argos-Toolbar-method-enable'>        /**
-</span>         * Removes the disabled style and sets enabled to true
-         */
-        enable: function() {
-            domClass.remove(this.domNode, 'toolbar-disabled');
-            this.enabled = true;
-        },
-<span id='argos-Toolbar-method-disable'>        /**
-</span>         * Adds a disabled style class and sets enabled to false
-         */
-        disable: function() {
-            domClass.add(this.domNode, 'toolbar-disabled');
-            this.enabled = false;
-        },
-<span id='argos-Toolbar-method-enableTool'>        /**
-</span>         * Sets enabled to true of the toolbar item that matches the passed id
-         * @param {String} id The id of the tool to enable
-         */
-        enableTool: function(id) {
-            var tool = this.tools &amp;&amp; this.tools[id];
-            if (tool) {
-                tool.enabled = true;
-            }
-        },
-<span id='argos-Toolbar-method-disableTool'>        /**
-</span>         * Sets enabled to false of the toolbar item that matches the passed id
-         * @param {String} id The id of the tool to disable
-         */
-        disableTool: function(id) {
-            var tool = this.tools &amp;&amp; this.tools[id];
-            if (tool) {
-                tool.enabled = false;
-            }
-        },
-<span id='argos-Toolbar-method-indicateToolBusy'>        /**
-</span>         * Sets busy to true of the toolbar item that matches the passed id
-         * @param {String} id The id of the tool to indicate busy
-         */
-        indicateToolBusy: function(id) {
-            var tool = this.tools &amp;&amp; this.tools[id];
-            if (tool) {
-                tool.busy = true;
-            }
-        },
-<span id='argos-Toolbar-method-clearToolBusy'>        /**
-</span>         * Sets busy to false of the toolbar item that matches the passed id
-         * @param {String} id The id of the tool to set as not busy
-         */
-        clearToolBusy: function(id) {
-            var tool = this.tools &amp;&amp; this.tools[id];
-            if (tool) {
-                tool.busy = false;
-            }
-        },
-<span id='argos-Toolbar-method-isToolEnabled'>        /**
-</span>         * Checks the enabled property of the toolbar item that matches the passed id
-         * @param {String} id The id of the tool
-         * @return {Boolean} True if the toolbar item is enabled
-         */
-        isToolEnabled: function(id) {
-            return this.tools &amp;&amp; this.tools[id] &amp;&amp; this.tools[id].enabled;
-        },
-<span id='argos-Toolbar-method-showTools'>        /**
-</span>         * Replaces the existing toolbar item collection with the passed array of toolbar items and also checks toolbar security
-         * @param {Object[]} tools Toolbar item array to store.
-         */
-        showTools: function(tools) {
-            var tool, i;
+  /* Copyright (c) 2010, Sage Software, Inc. All rights reserved.
+   *
+   * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   * you may not use this file except in compliance with the License.
+   * You may obtain a copy of the License at
+   *
+   *     http://www.apache.org/licenses/LICENSE-2.0
+   *
+   * Unless required by applicable law or agreed to in writing, software
+   * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   * See the License for the specific language governing permissions and
+   * limitations under the License.
+   */
 
-            this.tools = {};
+  var _declare = _interopRequireDefault(_dojo_baseDeclare);
 
-            if (typeof tools === 'undefined') {
-                return;
-            }
+  var _lang = _interopRequireDefault(_dojo_baseLang);
 
-            for (i = 0; i &lt; tools.length; i++) {
-                tool = {
-                    busy: false,
-                    enabled: typeof tools[i].enabled !== 'undefined' ? tools[i].enabled : true,
-                    source: tools[i]
-                };
+  var _domStyle = _interopRequireDefault(_dojoDomStyle);
 
-                // if tool is enabled, check security
-                if (tool.enabled &amp;&amp; tools[i].security) {
-                    tool.enabled = App.hasAccessTo(this.expandExpression(tools[i].security));
-                }
+  var _domClass = _interopRequireDefault(_dojoDomClass);
 
-                this.tools[tools[i].id] = tool;
-            }
+  var _Widget2 = _interopRequireDefault(_dijit_Widget);
+
+  var _ActionMixin3 = _interopRequireDefault(_ActionMixin2);
+
+  var _Templated3 = _interopRequireDefault(_Templated2);
+
+<span id='argos-Toolbar'>  /**
+</span>   * @class argos.Toolbar
+   * Toolbar is a base toolbar class that provides basic rendering of the bar, adding toolbar items and binding their invokacations.
+   *
+   * Inherits dijit _Widget.
+   *
+   * @alternateClassName Toolbar
+   * @mixins argos._ActionMixin
+   * @mixins argos._Templated
+   */
+  var __class = (0, _declare['default'])('argos.Toolbar', [_Widget2['default'], _ActionMixin3['default'], _Templated3['default']], {
+<span id='argos-Toolbar-property-widgetTemplate'>    /**
+</span>     * @property {Simplate}
+     * HTML markup of the toolbar
+     */
+    widgetTemplate: new Simplate(['&lt;div class=&quot;toolbar&quot;&gt;', '&lt;/div&gt;']),
+<span id='argos-Toolbar-property-enabled'>    /**
+</span>     * @property {Boolean}
+     * State of toolbar
+     */
+    enabled: true,
+    managed: true,
+<span id='argos-Toolbar-method-expandExpression'>    /**
+</span>     * Expands the passed expression if it is a function.
+     * @param {String/Function} expression Returns string directly, if function it is called and the result returned.
+     * @return {String} String expression.
+     */
+    expandExpression: function expandExpression(expression) {
+      if (typeof expression === 'function') {
+        return expression.apply(this, Array.prototype.slice.call(arguments, 1));
+      }
+      return expression;
+    },
+<span id='argos-Toolbar-method-init'>    /**
+</span>     * Called upon application startup.
+     */
+    init: function init() {},
+<span id='argos-Toolbar-method-invokeTool'>    /**
+</span>     * When a tool is clicked on this function handles matching the node to toolbar item instance and performs the actual action
+     * @param {Object} parameters An object of all the `data-` attributes of the node.
+     * @param {Event} evt The event object
+     * @param {HTMLElement} node The html element that was clicked.
+     */
+    invokeTool: function invokeTool(parameters, evt, node) {
+      var id = parameters &amp;&amp; parameters.tool;
+      var tool = this.tools &amp;&amp; this.tools[id];
+      var source = tool &amp;&amp; tool.source;
+      if (source &amp;&amp; tool.enabled) {
+        if (source.fn) {
+          source.fn.call(source.scope || this, source);
+        } else if (source.action) {
+          var view = App.getPrimaryActiveView();
+          if (view &amp;&amp; view.hasAction(source.action)) {
+            view.invokeAction(source.action, _lang['default'].mixin(parameters, {
+              '$tool': source
+            }), evt, node);
+          }
         }
-    });
+      }
+    },
+<span id='argos-Toolbar-method-show'>    /**
+</span>     * Sets the toolbar style to block (visibile)
+     */
+    show: function show() {
+      _domStyle['default'].set(this.domNode, 'display', 'block');
+    },
+<span id='argos-Toolbar-method-hide'>    /**
+</span>     * Sets the toolbar style to none (hidden)
+     */
+    hide: function hide() {
+      _domStyle['default'].set(this.domNode, 'display', 'none');
+    },
+<span id='argos-Toolbar-method-clear'>    /**
+</span>     * Empties the toolbar item collection and sets enabled to true
+     */
+    clear: function clear() {
+      this.tools = {};
+      _domClass['default'].remove(this.domNode, 'toolbar-disabled');
+      this.enabled = true;
+    },
+<span id='argos-Toolbar-method-enable'>    /**
+</span>     * Removes the disabled style and sets enabled to true
+     */
+    enable: function enable() {
+      _domClass['default'].remove(this.domNode, 'toolbar-disabled');
+      this.enabled = true;
+    },
+<span id='argos-Toolbar-method-disable'>    /**
+</span>     * Adds a disabled style class and sets enabled to false
+     */
+    disable: function disable() {
+      _domClass['default'].add(this.domNode, 'toolbar-disabled');
+      this.enabled = false;
+    },
+<span id='argos-Toolbar-method-enableTool'>    /**
+</span>     * Sets enabled to true of the toolbar item that matches the passed id
+     * @param {String} id The id of the tool to enable
+     */
+    enableTool: function enableTool(id) {
+      var tool = this.tools &amp;&amp; this.tools[id];
+      if (tool) {
+        tool.enabled = true;
+      }
+    },
+<span id='argos-Toolbar-method-disableTool'>    /**
+</span>     * Sets enabled to false of the toolbar item that matches the passed id
+     * @param {String} id The id of the tool to disable
+     */
+    disableTool: function disableTool(id) {
+      var tool = this.tools &amp;&amp; this.tools[id];
+      if (tool) {
+        tool.enabled = false;
+      }
+    },
+<span id='argos-Toolbar-method-indicateToolBusy'>    /**
+</span>     * Sets busy to true of the toolbar item that matches the passed id
+     * @param {String} id The id of the tool to indicate busy
+     */
+    indicateToolBusy: function indicateToolBusy(id) {
+      var tool = this.tools &amp;&amp; this.tools[id];
+      if (tool) {
+        tool.busy = true;
+      }
+    },
+<span id='argos-Toolbar-method-clearToolBusy'>    /**
+</span>     * Sets busy to false of the toolbar item that matches the passed id
+     * @param {String} id The id of the tool to set as not busy
+     */
+    clearToolBusy: function clearToolBusy(id) {
+      var tool = this.tools &amp;&amp; this.tools[id];
+      if (tool) {
+        tool.busy = false;
+      }
+    },
+<span id='argos-Toolbar-method-isToolEnabled'>    /**
+</span>     * Checks the enabled property of the toolbar item that matches the passed id
+     * @param {String} id The id of the tool
+     * @return {Boolean} True if the toolbar item is enabled
+     */
+    isToolEnabled: function isToolEnabled(id) {
+      return this.tools &amp;&amp; this.tools[id] &amp;&amp; this.tools[id].enabled;
+    },
+<span id='argos-Toolbar-method-showTools'>    /**
+</span>     * Replaces the existing toolbar item collection with the passed array of toolbar items and also checks toolbar security
+     * @param {Object[]} tools Toolbar item array to store.
+     */
+    showTools: function showTools(tools) {
+      this.tools = {};
 
-    lang.setObject('Sage.Platform.Mobile.Toolbar', __class);
-    return __class;
+      if (typeof tools === 'undefined') {
+        return;
+      }
+
+      for (var i = 0; i &lt; tools.length; i++) {
+        var tool = {
+          busy: false,
+          enabled: typeof tools[i].enabled !== 'undefined' ? tools[i].enabled : true,
+          source: tools[i]
+        };
+
+        // if tool is enabled, check security
+        if (tool.enabled &amp;&amp; tools[i].security) {
+          tool.enabled = App.hasAccessTo(this.expandExpression(tools[i].security));
+        }
+
+        this.tools[tools[i].id] = tool;
+      }
+    }
+  });
+
+  _lang['default'].setObject('Sage.Platform.Mobile.Toolbar', __class);
+  module.exports = __class;
 });
+//# sourceMappingURL=data:application/json;base64,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dCI6InNyYyIsInNvdXJjZXNDb250ZW50IjpbIi8qIENvcHlyaWdodCAoYykgMjAxMCwgU2FnZSBTb2Z0d2FyZSwgSW5jLiBBbGwgcmlnaHRzIHJlc2VydmVkLlxyXG4gKlxyXG4gKiBMaWNlbnNlZCB1bmRlciB0aGUgQXBhY2hlIExpY2Vuc2UsIFZlcnNpb24gMi4wICh0aGUgXCJMaWNlbnNlXCIpO1xyXG4gKiB5b3UgbWF5IG5vdCB1c2UgdGhpcyBmaWxlIGV4Y2VwdCBpbiBjb21wbGlhbmNlIHdpdGggdGhlIExpY2Vuc2UuXHJcbiAqIFlvdSBtYXkgb2J0YWluIGEgY29weSBvZiB0aGUgTGljZW5zZSBhdFxyXG4gKlxyXG4gKiAgICAgaHR0cDovL3d3dy5hcGFjaGUub3JnL2xpY2Vuc2VzL0xJQ0VOU0UtMi4wXHJcbiAqXHJcbiAqIFVubGVzcyByZXF1aXJlZCBieSBhcHBsaWNhYmxlIGxhdyBvciBhZ3JlZWQgdG8gaW4gd3JpdGluZywgc29mdHdhcmVcclxuICogZGlzdHJpYnV0ZWQgdW5kZXIgdGhlIExpY2Vuc2UgaXMgZGlzdHJpYnV0ZWQgb24gYW4gXCJBUyBJU1wiIEJBU0lTLFxyXG4gKiBXSVRIT1VUIFdBUlJBTlRJRVMgT1IgQ09ORElUSU9OUyBPRiBBTlkgS0lORCwgZWl0aGVyIGV4cHJlc3Mgb3IgaW1wbGllZC5cclxuICogU2VlIHRoZSBMaWNlbnNlIGZvciB0aGUgc3BlY2lmaWMgbGFuZ3VhZ2UgZ292ZXJuaW5nIHBlcm1pc3Npb25zIGFuZFxyXG4gKiBsaW1pdGF0aW9ucyB1bmRlciB0aGUgTGljZW5zZS5cclxuICovXHJcbmltcG9ydCBkZWNsYXJlIGZyb20gJ2Rvam8vX2Jhc2UvZGVjbGFyZSc7XHJcbmltcG9ydCBsYW5nIGZyb20gJ2Rvam8vX2Jhc2UvbGFuZyc7XHJcbmltcG9ydCBkb21TdHlsZSBmcm9tICdkb2pvL2RvbS1zdHlsZSc7XHJcbmltcG9ydCBkb21DbGFzcyBmcm9tICdkb2pvL2RvbS1jbGFzcyc7XHJcbmltcG9ydCBfV2lkZ2V0IGZyb20gJ2Rpaml0L19XaWRnZXQnO1xyXG5pbXBvcnQgX0FjdGlvbk1peGluIGZyb20gJy4vX0FjdGlvbk1peGluJztcclxuaW1wb3J0IF9UZW1wbGF0ZWQgZnJvbSAnLi9fVGVtcGxhdGVkJztcclxuXHJcbi8qKlxyXG4gKiBAY2xhc3MgYXJnb3MuVG9vbGJhclxyXG4gKiBUb29sYmFyIGlzIGEgYmFzZSB0b29sYmFyIGNsYXNzIHRoYXQgcHJvdmlkZXMgYmFzaWMgcmVuZGVyaW5nIG9mIHRoZSBiYXIsIGFkZGluZyB0b29sYmFyIGl0ZW1zIGFuZCBiaW5kaW5nIHRoZWlyIGludm9rYWNhdGlvbnMuXHJcbiAqXHJcbiAqIEluaGVyaXRzIGRpaml0IF9XaWRnZXQuXHJcbiAqXHJcbiAqIEBhbHRlcm5hdGVDbGFzc05hbWUgVG9vbGJhclxyXG4gKiBAbWl4aW5zIGFyZ29zLl9BY3Rpb25NaXhpblxyXG4gKiBAbWl4aW5zIGFyZ29zLl9UZW1wbGF0ZWRcclxuICovXHJcbmNvbnN0IF9fY2xhc3MgPSBkZWNsYXJlKCdhcmdvcy5Ub29sYmFyJywgW19XaWRnZXQsIF9BY3Rpb25NaXhpbiwgX1RlbXBsYXRlZF0sIHtcclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge1NpbXBsYXRlfVxyXG4gICAqIEhUTUwgbWFya3VwIG9mIHRoZSB0b29sYmFyXHJcbiAgICovXHJcbiAgd2lkZ2V0VGVtcGxhdGU6IG5ldyBTaW1wbGF0ZShbXHJcbiAgICAnPGRpdiBjbGFzcz1cInRvb2xiYXJcIj4nLFxyXG4gICAgJzwvZGl2PicsXHJcbiAgXSksXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtCb29sZWFufVxyXG4gICAqIFN0YXRlIG9mIHRvb2xiYXJcclxuICAgKi9cclxuICBlbmFibGVkOiB0cnVlLFxyXG4gIG1hbmFnZWQ6IHRydWUsXHJcbiAgLyoqXHJcbiAgICogRXhwYW5kcyB0aGUgcGFzc2VkIGV4cHJlc3Npb24gaWYgaXQgaXMgYSBmdW5jdGlvbi5cclxuICAgKiBAcGFyYW0ge1N0cmluZy9GdW5jdGlvbn0gZXhwcmVzc2lvbiBSZXR1cm5zIHN0cmluZyBkaXJlY3RseSwgaWYgZnVuY3Rpb24gaXQgaXMgY2FsbGVkIGFuZCB0aGUgcmVzdWx0IHJldHVybmVkLlxyXG4gICAqIEByZXR1cm4ge1N0cmluZ30gU3RyaW5nIGV4cHJlc3Npb24uXHJcbiAgICovXHJcbiAgZXhwYW5kRXhwcmVzc2lvbjogZnVuY3Rpb24gZXhwYW5kRXhwcmVzc2lvbihleHByZXNzaW9uKSB7XHJcbiAgICBpZiAodHlwZW9mIGV4cHJlc3Npb24gPT09ICdmdW5jdGlvbicpIHtcclxuICAgICAgcmV0dXJuIGV4cHJlc3Npb24uYXBwbHkodGhpcywgQXJyYXkucHJvdG90eXBlLnNsaWNlLmNhbGwoYXJndW1lbnRzLCAxKSk7XHJcbiAgICB9XHJcbiAgICByZXR1cm4gZXhwcmVzc2lvbjtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIENhbGxlZCB1cG9uIGFwcGxpY2F0aW9uIHN0YXJ0dXAuXHJcbiAgICovXHJcbiAgaW5pdDogZnVuY3Rpb24gaW5pdCgpIHt9LFxyXG4gIC8qKlxyXG4gICAqIFdoZW4gYSB0b29sIGlzIGNsaWNrZWQgb24gdGhpcyBmdW5jdGlvbiBoYW5kbGVzIG1hdGNoaW5nIHRoZSBub2RlIHRvIHRvb2xiYXIgaXRlbSBpbnN0YW5jZSBhbmQgcGVyZm9ybXMgdGhlIGFjdHVhbCBhY3Rpb25cclxuICAgKiBAcGFyYW0ge09iamVjdH0gcGFyYW1ldGVycyBBbiBvYmplY3Qgb2YgYWxsIHRoZSBgZGF0YS1gIGF0dHJpYnV0ZXMgb2YgdGhlIG5vZGUuXHJcbiAgICogQHBhcmFtIHtFdmVudH0gZXZ0IFRoZSBldmVudCBvYmplY3RcclxuICAgKiBAcGFyYW0ge0hUTUxFbGVtZW50fSBub2RlIFRoZSBodG1sIGVsZW1lbnQgdGhhdCB3YXMgY2xpY2tlZC5cclxuICAgKi9cclxuICBpbnZva2VUb29sOiBmdW5jdGlvbiBpbnZva2VUb29sKHBhcmFtZXRlcnMsIGV2dCwgbm9kZSkge1xyXG4gICAgY29uc3QgaWQgPSBwYXJhbWV0ZXJzICYmIHBhcmFtZXRlcnMudG9vbDtcclxuICAgIGNvbnN0IHRvb2wgPSB0aGlzLnRvb2xzICYmIHRoaXMudG9vbHNbaWRdO1xyXG4gICAgY29uc3Qgc291cmNlID0gdG9vbCAmJiB0b29sLnNvdXJjZTtcclxuICAgIGlmIChzb3VyY2UgJiYgdG9vbC5lbmFibGVkKSB7XHJcbiAgICAgIGlmIChzb3VyY2UuZm4pIHtcclxuICAgICAgICBzb3VyY2UuZm4uY2FsbChzb3VyY2Uuc2NvcGUgfHwgdGhpcywgc291cmNlKTtcclxuICAgICAgfSBlbHNlIGlmIChzb3VyY2UuYWN0aW9uKSB7XHJcbiAgICAgICAgY29uc3QgdmlldyA9IEFwcC5nZXRQcmltYXJ5QWN0aXZlVmlldygpO1xyXG4gICAgICAgIGlmICh2aWV3ICYmIHZpZXcuaGFzQWN0aW9uKHNvdXJjZS5hY3Rpb24pKSB7XHJcbiAgICAgICAgICB2aWV3Lmludm9rZUFjdGlvbihzb3VyY2UuYWN0aW9uLCBsYW5nLm1peGluKHBhcmFtZXRlcnMsIHtcclxuICAgICAgICAgICAgJyR0b29sJzogc291cmNlLFxyXG4gICAgICAgICAgfSksIGV2dCwgbm9kZSk7XHJcbiAgICAgICAgfVxyXG4gICAgICB9XHJcbiAgICB9XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBTZXRzIHRoZSB0b29sYmFyIHN0eWxlIHRvIGJsb2NrICh2aXNpYmlsZSlcclxuICAgKi9cclxuICBzaG93OiBmdW5jdGlvbiBzaG93KCkge1xyXG4gICAgZG9tU3R5bGUuc2V0KHRoaXMuZG9tTm9kZSwgJ2Rpc3BsYXknLCAnYmxvY2snKTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIFNldHMgdGhlIHRvb2xiYXIgc3R5bGUgdG8gbm9uZSAoaGlkZGVuKVxyXG4gICAqL1xyXG4gIGhpZGU6IGZ1bmN0aW9uIGhpZGUoKSB7XHJcbiAgICBkb21TdHlsZS5zZXQodGhpcy5kb21Ob2RlLCAnZGlzcGxheScsICdub25lJyk7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBFbXB0aWVzIHRoZSB0b29sYmFyIGl0ZW0gY29sbGVjdGlvbiBhbmQgc2V0cyBlbmFibGVkIHRvIHRydWVcclxuICAgKi9cclxuICBjbGVhcjogZnVuY3Rpb24gY2xlYXIoKSB7XHJcbiAgICB0aGlzLnRvb2xzID0ge307XHJcbiAgICBkb21DbGFzcy5yZW1vdmUodGhpcy5kb21Ob2RlLCAndG9vbGJhci1kaXNhYmxlZCcpO1xyXG4gICAgdGhpcy5lbmFibGVkID0gdHJ1ZTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIFJlbW92ZXMgdGhlIGRpc2FibGVkIHN0eWxlIGFuZCBzZXRzIGVuYWJsZWQgdG8gdHJ1ZVxyXG4gICAqL1xyXG4gIGVuYWJsZTogZnVuY3Rpb24gZW5hYmxlKCkge1xyXG4gICAgZG9tQ2xhc3MucmVtb3ZlKHRoaXMuZG9tTm9kZSwgJ3Rvb2xiYXItZGlzYWJsZWQnKTtcclxuICAgIHRoaXMuZW5hYmxlZCA9IHRydWU7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBBZGRzIGEgZGlzYWJsZWQgc3R5bGUgY2xhc3MgYW5kIHNldHMgZW5hYmxlZCB0byBmYWxzZVxyXG4gICAqL1xyXG4gIGRpc2FibGU6IGZ1bmN0aW9uIGRpc2FibGUoKSB7XHJcbiAgICBkb21DbGFzcy5hZGQodGhpcy5kb21Ob2RlLCAndG9vbGJhci1kaXNhYmxlZCcpO1xyXG4gICAgdGhpcy5lbmFibGVkID0gZmFsc2U7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBTZXRzIGVuYWJsZWQgdG8gdHJ1ZSBvZiB0aGUgdG9vbGJhciBpdGVtIHRoYXQgbWF0Y2hlcyB0aGUgcGFzc2VkIGlkXHJcbiAgICogQHBhcmFtIHtTdHJpbmd9IGlkIFRoZSBpZCBvZiB0aGUgdG9vbCB0byBlbmFibGVcclxuICAgKi9cclxuICBlbmFibGVUb29sOiBmdW5jdGlvbiBlbmFibGVUb29sKGlkKSB7XHJcbiAgICBjb25zdCB0b29sID0gdGhpcy50b29scyAmJiB0aGlzLnRvb2xzW2lkXTtcclxuICAgIGlmICh0b29sKSB7XHJcbiAgICAgIHRvb2wuZW5hYmxlZCA9IHRydWU7XHJcbiAgICB9XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBTZXRzIGVuYWJsZWQgdG8gZmFsc2Ugb2YgdGhlIHRvb2xiYXIgaXRlbSB0aGF0IG1hdGNoZXMgdGhlIHBhc3NlZCBpZFxyXG4gICAqIEBwYXJhbSB7U3RyaW5nfSBpZCBUaGUgaWQgb2YgdGhlIHRvb2wgdG8gZGlzYWJsZVxyXG4gICAqL1xyXG4gIGRpc2FibGVUb29sOiBmdW5jdGlvbiBkaXNhYmxlVG9vbChpZCkge1xyXG4gICAgY29uc3QgdG9vbCA9IHRoaXMudG9vbHMgJiYgdGhpcy50b29sc1tpZF07XHJcbiAgICBpZiAodG9vbCkge1xyXG4gICAgICB0b29sLmVuYWJsZWQgPSBmYWxzZTtcclxuICAgIH1cclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIFNldHMgYnVzeSB0byB0cnVlIG9mIHRoZSB0b29sYmFyIGl0ZW0gdGhhdCBtYXRjaGVzIHRoZSBwYXNzZWQgaWRcclxuICAgKiBAcGFyYW0ge1N0cmluZ30gaWQgVGhlIGlkIG9mIHRoZSB0b29sIHRvIGluZGljYXRlIGJ1c3lcclxuICAgKi9cclxuICBpbmRpY2F0ZVRvb2xCdXN5OiBmdW5jdGlvbiBpbmRpY2F0ZVRvb2xCdXN5KGlkKSB7XHJcbiAgICBjb25zdCB0b29sID0gdGhpcy50b29scyAmJiB0aGlzLnRvb2xzW2lkXTtcclxuICAgIGlmICh0b29sKSB7XHJcbiAgICAgIHRvb2wuYnVzeSA9IHRydWU7XHJcbiAgICB9XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBTZXRzIGJ1c3kgdG8gZmFsc2Ugb2YgdGhlIHRvb2xiYXIgaXRlbSB0aGF0IG1hdGNoZXMgdGhlIHBhc3NlZCBpZFxyXG4gICAqIEBwYXJhbSB7U3RyaW5nfSBpZCBUaGUgaWQgb2YgdGhlIHRvb2wgdG8gc2V0IGFzIG5vdCBidXN5XHJcbiAgICovXHJcbiAgY2xlYXJUb29sQnVzeTogZnVuY3Rpb24gY2xlYXJUb29sQnVzeShpZCkge1xyXG4gICAgY29uc3QgdG9vbCA9IHRoaXMudG9vbHMgJiYgdGhpcy50b29sc1tpZF07XHJcbiAgICBpZiAodG9vbCkge1xyXG4gICAgICB0b29sLmJ1c3kgPSBmYWxzZTtcclxuICAgIH1cclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIENoZWNrcyB0aGUgZW5hYmxlZCBwcm9wZXJ0eSBvZiB0aGUgdG9vbGJhciBpdGVtIHRoYXQgbWF0Y2hlcyB0aGUgcGFzc2VkIGlkXHJcbiAgICogQHBhcmFtIHtTdHJpbmd9IGlkIFRoZSBpZCBvZiB0aGUgdG9vbFxyXG4gICAqIEByZXR1cm4ge0Jvb2xlYW59IFRydWUgaWYgdGhlIHRvb2xiYXIgaXRlbSBpcyBlbmFibGVkXHJcbiAgICovXHJcbiAgaXNUb29sRW5hYmxlZDogZnVuY3Rpb24gaXNUb29sRW5hYmxlZChpZCkge1xyXG4gICAgcmV0dXJuIHRoaXMudG9vbHMgJiYgdGhpcy50b29sc1tpZF0gJiYgdGhpcy50b29sc1tpZF0uZW5hYmxlZDtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIFJlcGxhY2VzIHRoZSBleGlzdGluZyB0b29sYmFyIGl0ZW0gY29sbGVjdGlvbiB3aXRoIHRoZSBwYXNzZWQgYXJyYXkgb2YgdG9vbGJhciBpdGVtcyBhbmQgYWxzbyBjaGVja3MgdG9vbGJhciBzZWN1cml0eVxyXG4gICAqIEBwYXJhbSB7T2JqZWN0W119IHRvb2xzIFRvb2xiYXIgaXRlbSBhcnJheSB0byBzdG9yZS5cclxuICAgKi9cclxuICBzaG93VG9vbHM6IGZ1bmN0aW9uIHNob3dUb29scyh0b29scykge1xyXG4gICAgdGhpcy50b29scyA9IHt9O1xyXG5cclxuICAgIGlmICh0eXBlb2YgdG9vbHMgPT09ICd1bmRlZmluZWQnKSB7XHJcbiAgICAgIHJldHVybjtcclxuICAgIH1cclxuXHJcbiAgICBmb3IgKGxldCBpID0gMDsgaSA8IHRvb2xzLmxlbmd0aDsgaSsrKSB7XHJcbiAgICAgIGNvbnN0IHRvb2wgPSB7XHJcbiAgICAgICAgYnVzeTogZmFsc2UsXHJcbiAgICAgICAgZW5hYmxlZDogdHlwZW9mIHRvb2xzW2ldLmVuYWJsZWQgIT09ICd1bmRlZmluZWQnID8gdG9vbHNbaV0uZW5hYmxlZCA6IHRydWUsXHJcbiAgICAgICAgc291cmNlOiB0b29sc1tpXSxcclxuICAgICAgfTtcclxuXHJcbiAgICAgIC8vIGlmIHRvb2wgaXMgZW5hYmxlZCwgY2hlY2sgc2VjdXJpdHlcclxuICAgICAgaWYgKHRvb2wuZW5hYmxlZCAmJiB0b29sc1tpXS5zZWN1cml0eSkge1xyXG4gICAgICAgIHRvb2wuZW5hYmxlZCA9IEFwcC5oYXNBY2Nlc3NUbyh0aGlzLmV4cGFuZEV4cHJlc3Npb24odG9vbHNbaV0uc2VjdXJpdHkpKTtcclxuICAgICAgfVxyXG5cclxuICAgICAgdGhpcy50b29sc1t0b29sc1tpXS5pZF0gPSB0b29sO1xyXG4gICAgfVxyXG4gIH0sXHJcbn0pO1xyXG5cclxubGFuZy5zZXRPYmplY3QoJ1NhZ2UuUGxhdGZvcm0uTW9iaWxlLlRvb2xiYXInLCBfX2NsYXNzKTtcclxuZXhwb3J0IGRlZmF1bHQgX19jbGFzcztcclxuIl19
 </pre>
 </body>
 </html>

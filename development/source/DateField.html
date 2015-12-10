@@ -15,199 +15,280 @@
   </script>
 </head>
 <body onload="prettyPrint(); highlight();">
-  <pre class="prettyprint lang-js">/* Copyright (c) 2010, Sage Software, Inc. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+  <pre class="prettyprint lang-js">define('argos/Fields/DateField', ['exports', 'module', 'dojo/_base/declare', 'dojo/_base/lang', 'dojo/_base/event', 'dojo/string', 'dojo/dom-class', '../Format', '../FieldManager', './EditorField', '../DateTimePicker', '../RelativeDateTimePicker', '../I18n'], function (exports, module, _dojo_baseDeclare, _dojo_baseLang, _dojo_baseEvent, _dojoString, _dojoDomClass, _Format, _FieldManager, _EditorField, _DateTimePicker, _RelativeDateTimePicker, _I18n) {
+  function _interopRequireDefault(obj) { return obj &amp;&amp; obj.__esModule ? obj : { 'default': obj }; }
 
+  /* Copyright (c) 2010, Sage Software, Inc. All rights reserved.
+   *
+   * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   * you may not use this file except in compliance with the License.
+   * You may obtain a copy of the License at
+   *
+   *     http://www.apache.org/licenses/LICENSE-2.0
+   *
+   * Unless required by applicable law or agreed to in writing, software
+   * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   * See the License for the specific language governing permissions and
+   * limitations under the License.
+   */
 
-define('argos/Fields/DateField', [
-    'dojo/_base/declare',
-    'dojo/_base/lang',
-    'dojo/string',
-    'dojo/dom-class',
-    '../Format',
-    '../FieldManager',
-    './EditorField',
-    '../Calendar'
-], function(
-    declare,
-    lang,
-    string,
-    domClass,
-    format,
-    FieldManager,
-    EditorField
-) {
-<span id='argos-Fields-DateField'>    /**
-</span>     * @class argos.Fields.DateField
-     * The DateField is an extension of the {@link EditorField EditorField} by accepting Date Objects
-     * for values and using the {@link Calendar Calendar} view for user input.
-     *
-     * ###Example
-     *
-     *     {
-     *         name: 'StartDate',
-     *         property: 'StartDate',
-     *         label: this.startDateText,
-     *         type: 'date',
-     *         dateFormatText: 'MM/DD HH:mm:ss',
-     *         showTimerPicker: true
-     *     }
-     *
-     * @alternateClassName DateField
-     * @extends argos.Fields.EditorField
-     * @requires argos.Calendar
-     * @requires argos.FieldManager
-     * @requires argos.Format
+  var _declare = _interopRequireDefault(_dojo_baseDeclare);
+
+  var _lang = _interopRequireDefault(_dojo_baseLang);
+
+  var _event = _interopRequireDefault(_dojo_baseEvent);
+
+  var _string = _interopRequireDefault(_dojoString);
+
+  var _domClass = _interopRequireDefault(_dojoDomClass);
+
+  var _format = _interopRequireDefault(_Format);
+
+  var _FieldManager2 = _interopRequireDefault(_FieldManager);
+
+  var _EditorField2 = _interopRequireDefault(_EditorField);
+
+  var _DateTimePicker2 = _interopRequireDefault(_DateTimePicker);
+
+  var _RelativeDateTimePicker2 = _interopRequireDefault(_RelativeDateTimePicker);
+
+  var _getResource = _interopRequireDefault(_I18n);
+
+  var resource = (0, _getResource['default'])('dateField');
+
+<span id='argos-Fields-DateField'>  /**
+</span>   * @class argos.Fields.DateField
+   * The DateField is an extension of the {@link EditorField EditorField} by accepting Date Objects
+   * for values and using the {@link Calendar Calendar} view for user input.
+   *
+   * ###Example
+   *
+   *     {
+   *         name: 'StartDate',
+   *         property: 'StartDate',
+   *         label: this.startDateText,
+   *         type: 'date',
+   *         dateFormatText: 'MM/DD HH:mm:ss',
+   *         showTimerPicker: true,
+   *         showRelativeDateTime: true
+   *     }
+   *
+   * @alternateClassName DateField
+   * @extends argos.Fields.EditorField
+   * @requires argos.Calendar
+   * @requires argos.FieldManager
+   * @requires argos.Format
+   */
+  var control = (0, _declare['default'])('argos.Fields.DateField', [_EditorField2['default']], {
+    // Localization
+<span id='argos-Fields-DateField-cfg-emptyText'>    /**
+</span>     * @cfg {String}
+     * The text shown when no value (or null/undefined) is set to the field.
      */
-    var control = declare('argos.Fields.DateField', [EditorField], {
-        // Localization
-<span id='argos-Fields-DateField-cfg-emptyText'>        /**
-</span>         * @cfg {String}
-         * The text shown when no value (or null/undefined) is set to the field.
-         */
-        emptyText: '',
-        dateFormatText: 'MM/DD/YYYY',
-<span id='argos-Fields-DateField-property-invalidDateFormatErrorText'>        /**
-</span>         * @property {String}
-         * The error validation message for this field.
-         *
-         * `${0}` =&gt; Label
-         */
-        invalidDateFormatErrorText: &quot;Field '${0}' has Invalid date format.&quot;,
+    emptyText: resource.emptyText,
+    dateFormatText: resource.dateFormatText,
+<span id='argos-Fields-DateField-property-invalidDateFormatErrorText'>    /**
+</span>     * @property {String}
+     * The error validation message for this field.
+     *
+     * `${0}` =&gt; Label
+     */
+    invalidDateFormatErrorText: resource.invalidDateFormatErrorText,
 
-<span id='argos-Fields-DateField-property-widgetTemplate'>        /**
-</span>         * @property {Simplate}
-         * Simplate that defines the fields HTML Markup
-         *
-         * * `$` =&gt; Field instance
-         * * `$$` =&gt; Owner View instance
-         *
-         */
-        widgetTemplate: new Simplate([
-            '&lt;label for=&quot;{%= $.name %}&quot;&gt;{%: $.label %}&lt;/label&gt;',
-            '&lt;button data-dojo-attach-point=&quot;triggerNode&quot; data-action=&quot;navigateToEditView&quot; class=&quot;button whiteButton {% if ($$.iconClass) { %} {%: $$.iconClass %}{% } %}&quot; aria-label=&quot;{%: $.lookupLabelText %}&quot;&gt;&lt;span&gt;{%: $.lookupText %}&lt;/span&gt;&lt;/button&gt;',
-            '&lt;input data-dojo-attach-point=&quot;inputNode&quot; data-dojo-attach-event=&quot;onchange:_onChange&quot; type=&quot;text&quot; /&gt;'
-        ]),
+<span id='argos-Fields-DateField-property-widgetTemplate'>    /**
+</span>     * @property {Simplate}
+     * Simplate that defines the fields HTML Markup
+     *
+     * * `$` =&gt; Field instance
+     * * `$$` =&gt; Owner View instance
+     *
+     */
+    widgetTemplate: new Simplate(['&lt;label for=&quot;{%= $.name %}&quot;&gt;{%: $.label %}&lt;/label&gt;', '&lt;button data-dojo-attach-point=&quot;triggerNode&quot; data-action=&quot;showModal&quot; class=&quot;button whiteButton {% if ($$.iconClass) { %} {%: $$.iconClass %}{% } %}&quot; aria-label=&quot;{%: $.lookupLabelText %}&quot;&gt;&lt;span&gt;{%: $.lookupText %}&lt;/span&gt;&lt;/button&gt;', '&lt;input data-dojo-attach-point=&quot;inputNode&quot; data-dojo-attach-event=&quot;onchange:_onChange&quot; type=&quot;text&quot; /&gt;']),
 
-        iconClass: 'fa fa-calendar fa-lg',
+    iconClass: 'fa fa-calendar fa-lg',
 
-<span id='argos-Fields-DateField-property-view'>        /**
-</span>         * @property {String}
-         * The target view id that will provide the user input, this should always be to set to the
-         * {@link Calendar Calendars} view id.
-         */
-        view: 'generic_calendar',
-<span id='argos-Fields-DateField-cfg-showTimePicker'>        /**
-</span>         * @cfg {Boolean}
-         * Sent as part of navigation options to {@link Calendar Calendar}, where it controls the
-         * display of the hour/minute inputs.
-         */
-        showTimePicker: false,
-<span id='argos-Fields-DateField-cfg-timeless'>        /**
-</span>         * @cfg {Boolean}
-         * Used in formatted and sent as part of navigation options to {@link Calendar Calendar},
-         * where it controls the the conversion to/from UTC and setting the hour:min:sec to 00:00:05.
-         */
-        timeless: false,
+<span id='argos-Fields-DateField-property-view'>    /**
+</span>     * @property {String}
+     * The target view id that will provide the user input, this should always be to set to the
+     * {@link Calendar Calendars} view id.
+     */
+    view: 'generic_calendar',
+<span id='argos-Fields-DateField-cfg-showTimePicker'>    /**
+</span>     * @cfg {Boolean}
+     * Sent as part of navigation options to {@link Calendar Calendar}, where it controls the
+     * display of the hour/minute inputs.
+     */
+    showTimePicker: false,
+<span id='argos-Fields-DateField-cfg-showRelativeDateTime'>    /**
+</span>     * @cfg {Boolean}
+     * Sent as part of navigation options to {@link Calendar Calendar}, where it controls the
+     * display of the relative date time picker.
+     */
+    showRelativeDateTime: true,
+<span id='argos-Fields-DateField-cfg-timeless'>    /**
+</span>     * @cfg {Boolean}
+     * Used in formatted and sent as part of navigation options to {@link Calendar Calendar},
+     * where it controls the the conversion to/from UTC and setting the hour:min:sec to 00:00:05.
+     */
+    timeless: false,
+    modal: null,
+    dateTimePicker: null,
+    _modalListener: null,
+<span id='argos-Fields-DateField-method-formatValue'>    /**
+</span>     * Takes a date object and calls {@link format#date format.date} passing the current
+     * `dateFormatText` and `timeless` values, formatting the date into a string representation.
+     * @param {Date} value Date to be converted
+     * @return {String}
+     */
+    formatValue: function formatValue(value) {
+      return _format['default'].date(value, this.dateFormatText, this.timeless);
+    },
+<span id='argos-Fields-DateField-method-_onChange'>    /**
+</span>     * When a value changes it checks that the text in the input field matches the defined
+     * `dateFormatText` by using it to parse it back into a Date Object. If this succeeds then
+     * sets the current value to the Date object and removes any validation warnings. If it
+     * doesn't then current value is empties and the validation styling is added.
+     * @param {Event} evt Event that caused change to fire.
+     */
+    _onChange: function _onChange() /*evt*/{
+      var jsDate = new Date(this.inputNode.value);
+      var date = moment(this.inputNode.value, this.dateFormatText, true);
+      if (moment(jsDate).isValid() &amp;&amp; !date.isValid()) {
+        date = moment(jsDate);
+      }
+      var val = date.isValid();
 
-<span id='argos-Fields-DateField-method-formatValue'>        /**
-</span>         * Takes a date object and calls {@link format#date format.date} passing the current
-         * `dateFormatText` and `timeless` values, formatting the date into a string representation.
-         * @param {Date} value Date to be converted
-         * @return {String}
-         */
-        formatValue: function(value) {
-            return format.date(value, this.dateFormatText, this.timeless);
-        },
-<span id='argos-Fields-DateField-method-_onChange'>        /**
-</span>         * When a value changes it checks that the text in the input field matches the defined
-         * `dateFormatText` by using it to parse it back into a Date Object. If this succeeds then
-         * sets the current value to the Date object and removes any validation warnings. If it
-         * doesn't then current value is empties and the validation styling is added.
-         * @param {Event} evt Event that caused change to fire.
-         */
-        _onChange: function(evt) {
-            var val = Date.parseExact(this.inputNode.value, this.dateFormatText);
-
-            if (val) {
-                this.validationValue = this.currentValue = val;
-                domClass.remove(this.containerNode, 'row-error'); // todo: not the right spot for this, add validation eventing
-            } else {
-                this.validationValue = this.currentValue = null;
-                domClass.add(this.containerNode, 'row-error'); // todo: not the right spot for this, add validation eventing
-            }
-        },
-<span id='argos-Fields-DateField-method-createNavigationOptions'>        /**
-</span>         * Extends the parent {@link EditorField#createNavigationOptions createNavigationOptions} to
-         * also include the properties `date`, `showTimePicker` and `timeless` with `date` being the current value
-         * @return {Object} Navigation options
-         */
-        createNavigationOptions: function() {
-            var options = this.inherited(arguments);
-
-            options.date = this.currentValue;
-            options.showTimePicker = this.showTimePicker;
-            options.timeless = this.timeless;
-
-            return options;
-        },
-<span id='argos-Fields-DateField-method-getValuesFromView'>        /**
-</span>         * Retrieves the date from the {@link Calendar#getDateTime Calendar} view and sets it to currentValue.
-         */
-        getValuesFromView: function() {
-            var view = App.getPrimaryActiveView();
-            if (view) {
-                this.currentValue = this.validationValue = view.getDateTime();
-                domClass.remove(this.containerNode, 'row-error'); // todo: not the right spot for this, add validation eventing
-            }
-        },
-<span id='argos-Fields-DateField-method-isDirty'>        /**
-</span>         * Determines if the current value has been modified from the original value.
-         * @return {Boolean}
-         */
-        isDirty: function() {
-            return this.originalValue instanceof Date &amp;&amp; this.currentValue instanceof Date
-                ? this.originalValue.getTime() !== this.currentValue.getTime()
-                : this.originalValue !== this.currentValue;
-        },
-<span id='argos-Fields-DateField-method-clearValue'>        /**
-</span>         * Extends the parent {@link EditorField#clearValue clearValue} to also include removing the
-         * error validation styling.
-         */
-        clearValue: function() {
-            this.inherited(arguments);
-            domClass.remove(this.containerNode, 'row-error'); // todo: not the right spot for this, add validation eventing
-        },
-<span id='argos-Fields-DateField-method-validate'>        /**
-</span>         * Extends the parent {@link EditorField#validate validate} with a check that makes sure if
-         * the user has inputted a date manually into the input field that it had successfully validated
-         * in the {@link #_onChange _onChange} function.
-         * @return {Boolean/Object} False for no errors. True/Object for invalid.
-         */
-        validate: function() {
-            if (this.inputNode.value !== '' &amp;&amp; !this.currentValue) {
-                return string.substitute(this.invalidDateFormatErrorText, [this.label]);
-            }
-
-            return this.inherited(arguments);
+      if (val) {
+        this.validationValue = this.currentValue = date.toDate();
+        if (this.inputNode.value !== date.format(this.dateFormatText)) {
+          this.inputNode.value = date.format(this.dateFormatText);
         }
-    });
+        _domClass['default'].remove(this.containerNode, 'row-error'); // todo: not the right spot for this, add validation eventing
+      } else {
+          this.validationValue = this.currentValue = null;
+          _domClass['default'].add(this.containerNode, 'row-error'); // todo: not the right spot for this, add validation eventing
+        }
+    },
+<span id='argos-Fields-DateField-method-createNavigationOptions'>    /**
+</span>     * Extends the parent {@link EditorField#createNavigationOptions createNavigationOptions} to
+     * also include the properties `date`, `showTimePicker` and `timeless` with `date` being the current value
+     * @return {Object} Navigation options
+     */
+    createNavigationOptions: function createNavigationOptions() {
+      var options = this.inherited(arguments);
 
-    lang.setObject('Sage.Platform.Mobile.Fields.DateField', control);
-    return FieldManager.register('date', control);
+      if (this.currentValue !== '' &amp;&amp; this.currentValue !== null) {
+        options.date = this.currentValue;
+      } else {
+        options.date = moment();
+      }
+      options.showTimePicker = this.showTimePicker;
+      options.timeless = this.timeless;
+
+      return options;
+    },
+<span id='argos-Fields-DateField-method-getValuesFromView'>    /**
+</span>     * Retrieves the date from the {@link Calendar#getDateTime Calendar} view and sets it to currentValue.
+     */
+    getValuesFromView: function getValuesFromView() {
+      var view = App.getPrimaryActiveView();
+      if (view) {
+        this.currentValue = this.validationValue = view.getDateTime();
+        _domClass['default'].remove(this.containerNode, 'row-error'); // todo: not the right spot for this, add validation eventing
+      }
+    },
+    getValuesFromModal: function getValuesFromModal() {
+      var data = arguments.length &lt;= 0 || arguments[0] === undefined ? {} : arguments[0];
+
+      if (data.calendar.selectedDateMoment) {
+        // This is the case where the DateTimePicker was used to select the date
+        var date = data.calendar.selectedDateMoment.clone();
+        if (data.time) {
+          date.hours(data.time.hours);
+          date.minutes(data.time.minutes);
+          date.seconds(data.time.seconds);
+        }
+        this.currentValue = this.validationValue = date.toDate();
+        this.inputNode.value = this.formatValue(this.currentValue);
+      } else {
+        this.currentValue = this.validationValue = data.toDate();
+        this.inputNode.value = this.formatValue(this.currentValue);
+      }
+      _domClass['default'].remove(this.containerNode, 'row-error'); // todo: not the right spot for this, add validation eventing
+    },
+<span id='argos-Fields-DateField-method-isDirty'>    /**
+</span>     * Determines if the current value has been modified from the original value.
+     * @return {Boolean}
+     */
+    isDirty: function isDirty() {
+      return this.originalValue instanceof Date &amp;&amp; this.currentValue instanceof Date ? this.originalValue.getTime() !== this.currentValue.getTime() : this.originalValue !== this.currentValue;
+    },
+<span id='argos-Fields-DateField-method-clearValue'>    /**
+</span>     * Extends the parent {@link EditorField#clearValue clearValue} to also include removing the
+     * error validation styling.
+     */
+    clearValue: function clearValue() {
+      this.inherited(arguments);
+      _domClass['default'].remove(this.containerNode, 'row-error'); // todo: not the right spot for this, add validation eventing
+    },
+    showModal: function showModal() {
+      if (this.isDisabled()) {
+        return;
+      }
+
+      var options = this.createNavigationOptions();
+
+      var toolbar = undefined;
+      if (this.showRelativeDateTime) {
+        this.dateTimePicker = new _RelativeDateTimePicker2['default']({ id: 'relative-datetime-picker-modal ' + this.id, isModal: true });
+        toolbar = [{
+          action: 'cancel',
+          className: 'button--flat button--flat--split',
+          text: resource.cancelText
+        }, {
+          action: this.dateTimePicker.toDateTimePicker,
+          className: 'button--flat button--flat--split',
+          text: resource.advancedText,
+          context: this.dateTimePicker
+        }];
+      } else {
+        this.dateTimePicker = new _DateTimePicker2['default']({ id: 'datetime-picker-modal ' + this.id, isModal: true });
+        toolbar = [{
+          action: 'cancel',
+          className: 'button--flat button--flat--split',
+          text: resource.cancelText
+        }, {
+          action: 'resolve',
+          className: 'button--flat button--flat--split',
+          text: resource.confirmText
+        }];
+      }
+
+      App.modal.add(this.dateTimePicker, toolbar, options).then(this.getValuesFromModal.bind(this));
+    },
+    _onClick: function _onClick(evt) {
+      _event['default'].stop(evt);
+    },
+<span id='argos-Fields-DateField-method-validate'>    /**
+</span>     * Extends the parent {@link EditorField#validate validate} with a check that makes sure if
+     * the user has inputted a date manually into the input field that it had successfully validated
+     * in the {@link #_onChange _onChange} function.
+     * @return {Boolean/Object} False for no errors. True/Object for invalid.
+     */
+    validate: function validate() {
+      if (this.inputNode.value !== '' &amp;&amp; !this.currentValue) {
+        return _string['default'].substitute(this.invalidDateFormatErrorText, [this.label]);
+      }
+
+      return this.inherited(arguments);
+    }
+  });
+
+  _lang['default'].setObject('Sage.Platform.Mobile.Fields.DateField', control);
+  module.exports = _FieldManager2['default'].register('date', control);
 });
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInNyYy9GaWVsZHMvRGF0ZUZpZWxkLmpzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiI7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7QUEwQkEsTUFBTSxRQUFRLEdBQUcsNkJBQVksV0FBVyxDQUFDLENBQUM7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7QUF5QjFDLE1BQU0sT0FBTyxHQUFHLHlCQUFRLHdCQUF3QixFQUFFLDBCQUFhLEVBQUU7Ozs7OztBQU0vRCxhQUFTLEVBQUUsUUFBUSxDQUFDLFNBQVM7QUFDN0Isa0JBQWMsRUFBRSxRQUFRLENBQUMsY0FBYzs7Ozs7OztBQU92Qyw4QkFBMEIsRUFBRSxRQUFRLENBQUMsMEJBQTBCOzs7Ozs7Ozs7O0FBVS9ELGtCQUFjLEVBQUUsSUFBSSxRQUFRLENBQUMsQ0FDM0IsbURBQW1ELEVBQ25ELHNPQUFzTyxFQUN0TyxzR0FBc0csQ0FDdkcsQ0FBQzs7QUFFRixhQUFTLEVBQUUsc0JBQXNCOzs7Ozs7O0FBT2pDLFFBQUksRUFBRSxrQkFBa0I7Ozs7OztBQU14QixrQkFBYyxFQUFFLEtBQUs7Ozs7OztBQU1yQix3QkFBb0IsRUFBRSxJQUFJOzs7Ozs7QUFNMUIsWUFBUSxFQUFFLEtBQUs7QUFDZixTQUFLLEVBQUUsSUFBSTtBQUNYLGtCQUFjLEVBQUUsSUFBSTtBQUNwQixrQkFBYyxFQUFFLElBQUk7Ozs7Ozs7QUFPcEIsZUFBVyxFQUFFLFNBQVMsV0FBVyxDQUFDLEtBQUssRUFBRTtBQUN2QyxhQUFPLG1CQUFPLElBQUksQ0FBQyxLQUFLLEVBQUUsSUFBSSxDQUFDLGNBQWMsRUFBRSxJQUFJLENBQUMsUUFBUSxDQUFDLENBQUM7S0FDL0Q7Ozs7Ozs7O0FBUUQsYUFBUyxFQUFFLFNBQVMsU0FBUyxVQUFVO0FBQ3JDLFVBQU0sTUFBTSxHQUFHLElBQUksSUFBSSxDQUFDLElBQUksQ0FBQyxTQUFTLENBQUMsS0FBSyxDQUFDLENBQUM7QUFDOUMsVUFBSSxJQUFJLEdBQUcsTUFBTSxDQUFD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QUM1QixVQUFJLElBQUksQ0FBQyxTQUFTLENBQUMsS0FBSyxLQUFLLEVBQUUsSUFBSSxDQUFDLElBQUksQ0FBQyxZQUFZLEVBQUU7QUFDckQsZUFBTyxtQkFBTyxVQUFVLENBQUMsSUFBSSxDQUFDLDBCQUEwQixFQUFFLENBQUMsSUFBSSxDQUFDLEtBQUssQ0FBQyxDQUFDLENBQUM7T0FDekU7O0FBRUQsYUFBTyxJQUFJLENBQUMsU0FBUyxDQUFDLFNBQVMsQ0FBQyxDQUFDO0tBQ2xDO0dBQ0YsQ0FBQyxDQUFDOztBQUVILG1CQUFLLFNBQVMsQ0FBQyx1Q0FBdUMsRUFBRSxPQUFPLENBQUMsQ0FBQzttQkFDbEQsMEJBQWEsUUFBUSxDQUFDLE1BQU0sRUFBRSxPQUFPLENBQUMiLCJmaWxlIjoic3JjL0ZpZWxkcy9EYXRlRmllbGQuanMiLCJzb3VyY2VSb290Ijoic3JjIiwic291cmNlc0NvbnRlbnQiOlsiLyogQ29weXJpZ2h0IChjKSAyMDEwLCBTYWdlIFNvZnR3YXJlLCBJbmMuIEFsbCByaWdodHMgcmVzZXJ2ZWQuXHJcbiAqXHJcbiAqIExpY2Vuc2VkIHVuZGVyIHRoZSBBcGFjaGUgTGljZW5zZSwgVmVyc2lvbiAyLjAgKHRoZSBcIkxpY2Vuc2VcIik7XHJcbiAqIHlvdSBtYXkgbm90IHVzZSB0aGlzIGZpbGUgZXhjZXB0IGluIGNvbXBsaWFuY2Ugd2l0aCB0aGUgTGljZW5zZS5cclxuICogWW91IG1heSBvYnRhaW4gYSBjb3B5IG9mIHRoZSBMaWNlbnNlIGF0XHJcbiAqXHJcbiAqICAgICBodHRwOi8vd3d3LmFwYWNoZS5vcmcvbGljZW5zZXMvTElDRU5TRS0yLjBcclxuICpcclxuICogVW5sZXNzIHJlcXVpcmVkIGJ5IGFwcGxpY2FibGUgbGF3IG9yIGFncmVlZCB0byBpbiB3cml0aW5nLCBzb2Z0d2FyZVxyXG4gKiBkaXN0cmlidXRlZCB1bmRlciB0aGUgTGljZW5zZSBpcyBkaXN0cmlidXRlZCBvbiBhbiBcIkFTIElTXCIgQkFTSVMsXHJcbiAqIFdJVEhPVVQgV0FSUkFOVElFUyBPUiBDT05ESVRJT05TIE9GIEFOWSBLSU5ELCBlaXRoZXIgZXhwcmVzcyBvciBpbXBsaWVkLlxyXG4gKiBTZWUgdGhlIExpY2Vuc2UgZm9yIHRoZSBzcGVjaWZpYyBsYW5ndWFnZSBnb3Zlcm5pbmcgcGVybWlzc2lvbnMgYW5kXHJcbiAqIGxpbWl0YXRpb25zIHVuZGVyIHRoZSBMaWNlbnNlLlxyXG4gKi9cclxuaW1wb3J0IGRlY2xhcmUgZnJvbSAnZG9qby9fYmFzZS9kZWNsYXJlJztcclxuaW1wb3J0IGxhbmcgZnJvbSAnZG9qby9fYmFzZS9sYW5nJztcclxuaW1wb3J0IGV2ZW50IGZyb20gJ2Rvam8vX2Jhc2UvZXZlbnQnO1xyXG5pbXBvcnQgc3RyaW5nIGZyb20gJ2Rvam8vc3RyaW5nJztcclxuaW1wb3J0IGRvbUNsYXNzIGZyb20gJ2Rvam8vZG9tLWNsYXNzJztcclxuaW1wb3J0IGZvcm1hdCBmcm9tICcuLi9Gb3JtYXQnO1xyXG5pbXBvcnQgRmllbGRNYW5hZ2VyIGZyb20gJy4uL0ZpZWxkTWFuYWdlcic7XHJcbmltcG9ydCBFZGl0b3JGaWVsZCBmcm9tICcuL0VkaXRvckZpZWxkJztcclxuaW1wb3J0IERhdGVUaW1lUGlja2VyIGZyb20gJy4uL0RhdGVUaW1lUGlja2VyJztcclxuaW1wb3J0IFJlbGF0aXZlRGF0ZVRpbWVQaWNrZXIgZnJvbSAnLi4vUmVsYXRpdmVEYXRlVGltZVBpY2tlcic7XHJcbmltcG9ydCBnZXRSZXNvdXJjZSBmcm9tICcuLi9JMThuJztcclxuXHJcbmNvbnN0IHJlc291cmNlID0gZ2V0UmVzb3VyY2UoJ2RhdGVGaWVsZCcpO1xyXG5cclxuLyoqXHJcbiAqIEBjbGFzcyBhcmdvcy5GaWVsZHMuRGF0ZUZpZWxkXHJcbiAqIFRoZSBEYXRlRmllbGQgaXMgYW4gZXh0ZW5zaW9uIG9mIHRoZSB7QGxpbmsgRWRpdG9yRmllbGQgRWRpdG9yRmllbGR9IGJ5IGFjY2VwdGluZyBEYXRlIE9iamVjdHNcclxuICogZm9yIHZhbHVlcyBhbmQgdXNpbmcgdGhlIHtAbGluayBDYWxlbmRhciBDYWxlbmRhcn0gdmlldyBmb3IgdXNlciBpbnB1dC5cclxuICpcclxuICogIyMjRXhhbXBsZVxyXG4gKlxyXG4gKiAgICAge1xyXG4gKiAgICAgICAgIG5hbWU6ICdTdGFydERhdGUnLFxyXG4gKiAgICAgICAgIHByb3BlcnR5OiAnU3RhcnREYXRlJyxcclxuICogICAgICAgICBsYWJlbDogdGhpcy5zdGFydERhdGVUZXh0LFxyXG4gKiAgICAgICAgIHR5cGU6ICdkYXRlJyxcclxuICogICAgICAgICBkYXRlRm9ybWF0VGV4dDogJ01NL0REIEhIOm1tOnNzJyxcclxuICogICAgICAgICBzaG93VGltZXJQaWNrZXI6IHRydWUsXHJcbiAqICAgICAgICAgc2hvd1JlbGF0aXZlRGF0ZVRpbWU6IHRydWVcclxuICogICAgIH1cclxuICpcclxuICogQGFsdGVybmF0ZUNsYXNzTmFtZSBEYXRlRmllbGRcclxuICogQGV4dGVuZHMgYXJnb3MuRmllbGRzLkVkaXRvckZpZWxkXHJcbiAqIEByZXF1aXJlcyBhcmdvcy5DYWxlbmRhclxyXG4gKiBAcmVxdWlyZXMgYXJnb3MuRmllbGRNYW5hZ2VyXHJcbiAqIEByZXF1aXJlcyBhcmdvcy5Gb3JtYXRcclxuICovXHJcbmNvbnN0IGNvbnRyb2wgPSBkZWNsYXJlKCdhcmdvcy5GaWVsZHMuRGF0ZUZpZWxkJywgW0VkaXRvckZpZWxkXSwge1xyXG4gIC8vIExvY2FsaXphdGlvblxyXG4gIC8qKlxyXG4gICAqIEBjZmcge1N0cmluZ31cclxuICAgKiBUaGUgdGV4dCBzaG93biB3aGVuIG5vIHZhbHVlIChvciBudWxsL3VuZGVmaW5lZCkgaXMgc2V0IHRvIHRoZSBmaWVsZC5cclxuICAgKi9cclxuICBlbXB0eVRleHQ6IHJlc291cmNlLmVtcHR5VGV4dCxcclxuICBkYXRlRm9ybWF0VGV4dDogcmVzb3VyY2UuZGF0ZUZvcm1hdFRleHQsXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtTdHJpbmd9XHJcbiAgICogVGhlIGVycm9yIHZhbGlkYXRpb24gbWVzc2FnZSBmb3IgdGhpcyBmaWVsZC5cclxuICAgKlxyXG4gICAqIGAkezB9YCA9PiBMYWJlbFxyXG4gICAqL1xyXG4gIGludmFsaWREYXRlRm9ybWF0RXJyb3JUZXh0OiByZXNvdXJjZS5pbnZhbGlkRGF0ZUZvcm1hdEVycm9yVGV4dCxcclxuXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtTaW1wbGF0ZX1cclxuICAgKiBTaW1wbGF0ZSB0aGF0IGRlZmluZXMgdGhlIGZpZWxkcyBIVE1MIE1hcmt1cFxyXG4gICAqXHJcbiAgICogKiBgJGAgPT4gRmllbGQgaW5zdGFuY2VcclxuICAgKiAqIGAkJGAgPT4gT3duZXIgVmlldyBpbnN0YW5jZVxyXG4gICAqXHJcbiAgICovXHJcbiAgd2lkZ2V0VGVtcGxhdGU6IG5ldyBTaW1wbGF0ZShbXHJcbiAgICAnPGxhYmVsIGZvcj1cInslPSAkLm5hbWUgJX1cIj57JTogJC5sYWJlbCAlfTwvbGFiZWw+JyxcclxuICAgICc8YnV0dG9uIGRhdGEtZG9qby1hdHRhY2gtcG9pbnQ9XCJ0cmlnZ2VyTm9kZVwiIGRhdGEtYWN0aW9uPVwic2hvd01vZGFsXCIgY2xhc3M9XCJidXR0b24gd2hpdGVCdXR0b24geyUgaWYgKCQkLmljb25DbGFzcykgeyAlfSB7JTogJCQuaWNvbkNsYXNzICV9eyUgfSAlfVwiIGFyaWEtbGFiZWw9XCJ7JTogJC5sb29rdXBMYWJlbFRleHQgJX1cIj48c3Bhbj57JTogJC5sb29rdXBUZXh0ICV9PC9zcGFuPjwvYnV0dG9uPicsXHJcbiAgICAnPGlucHV0IGRhdGEtZG9qby1hdHRhY2gtcG9pbnQ9XCJpbnB1dE5vZGVcIiBkYXRhLWRvam8tYXR0YWNoLWV2ZW50PVwib25jaGFuZ2U6X29uQ2hhbmdlXCIgdHlwZT1cInRleHRcIiAvPicsXHJcbiAgXSksXHJcblxyXG4gIGljb25DbGFzczogJ2ZhIGZhLWNhbGVuZGFyIGZhLWxnJyxcclxuXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtTdHJpbmd9XHJcbiAgICogVGhlIHRhcmdldCB2aWV3IGlkIHRoYXQgd2lsbCBwcm92aWRlIHRoZSB1c2VyIGlucHV0LCB0aGlzIHNob3VsZCBhbHdheXMgYmUgdG8gc2V0IHRvIHRoZVxyXG4gICAqIHtAbGluayBDYWxlbmRhciBDYWxlbmRhcnN9IHZpZXcgaWQuXHJcbiAgICovXHJcbiAgdmlldzogJ2dlbmVyaWNfY2FsZW5kYXInLFxyXG4gIC8qKlxyXG4gICAqIEBjZmcge0Jvb2xlYW59XHJcbiAgICogU2VudCBhcyBwYXJ0IG9mIG5hdmlnYXRpb24gb3B0aW9ucyB0byB7QGxpbmsgQ2FsZW5kYXIgQ2FsZW5kYXJ9LCB3aGVyZSBpdCBjb250cm9scyB0aGVcclxuICAgKiBkaXNwbGF5IG9mIHRoZSBob3VyL21pbnV0ZSBpbnB1dHMuXHJcbiAgICovXHJcbiAgc2hvd1RpbWVQaWNrZXI6IGZhbHNlLFxyXG4gIC8qKlxyXG4gICAqIEBjZmcge0Jvb2xlYW59XHJcbiAgICogU2VudCBhcyBwYXJ0IG9mIG5hdmlnYXRpb24gb3B0aW9ucyB0byB7QGxpbmsgQ2FsZW5kYXIgQ2FsZW5kYXJ9LCB3aGVyZSBpdCBjb250cm9scyB0aGVcclxuICAgKiBkaXNwbGF5IG9mIHRoZSByZWxhdGl2ZSBkYXRlIHRpbWUgcGlja2VyLlxyXG4gICAqL1xyXG4gIHNob3dSZWxhdGl2ZURhdGVUaW1lOiB0cnVlLFxyXG4gIC8qKlxyXG4gICAqIEBjZmcge0Jvb2xlYW59XHJcbiAgICogVXNlZCBpbiBmb3JtYXR0ZWQgYW5kIHNlbnQgYXMgcGFydCBvZiBuYXZpZ2F0aW9uIG9wdGlvbnMgdG8ge0BsaW5rIENhbGVuZGFyIENhbGVuZGFyfSxcclxuICAgKiB3aGVyZSBpdCBjb250cm9scyB0aGUgdGhlIGNvbnZlcnNpb24gdG8vZnJvbSBVVEMgYW5kIHNldHRpbmcgdGhlIGhvdXI6bWluOnNlYyB0byAwMDowMDowNS5cclxuICAgKi9cclxuICB0aW1lbGVzczogZmFsc2UsXHJcbiAgbW9kYWw6IG51bGwsXHJcbiAgZGF0ZVRpbWVQaWNrZXI6IG51bGwsXHJcbiAgX21vZGFsTGlzdGVuZXI6IG51bGwsXHJcbiAgLyoqXHJcbiAgICogVGFrZXMgYSBkYXRlIG9iamVjdCBhbmQgY2FsbHMge0BsaW5rIGZvcm1hdCNkYXRlIGZvcm1hdC5kYXRlfSBwYXNzaW5nIHRoZSBjdXJyZW50XHJcbiAgICogYGRhdGVGb3JtYXRUZXh0YCBhbmQgYHRpbWVsZXNzYCB2YWx1ZXMsIGZvcm1hdHRpbmcgdGhlIGRhdGUgaW50byBhIHN0cmluZyByZXByZXNlbnRhdGlvbi5cclxuICAgKiBAcGFyYW0ge0RhdGV9IHZhbHVlIERhdGUgdG8gYmUgY29udmVydGVkXHJcbiAgICogQHJldHVybiB7U3RyaW5nfVxyXG4gICAqL1xyXG4gIGZvcm1hdFZhbHVlOiBmdW5jdGlvbiBmb3JtYXRWYWx1ZSh2YWx1ZSkge1xyXG4gICAgcmV0dXJuIGZvcm1hdC5kYXRlKHZhbHVlLCB0aGlzLmRhdGVGb3JtYXRUZXh0LCB0aGlzLnRpbWVsZXNzKTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIFdoZW4gYSB2YWx1ZSBjaGFuZ2VzIGl0IGNoZWNrcyB0aGF0IHRoZSB0ZXh0IGluIHRoZSBpbnB1dCBmaWVsZCBtYXRjaGVzIHRoZSBkZWZpbmVkXHJcbiAgICogYGRhdGVGb3JtYXRUZXh0YCBieSB1c2luZyBpdCB0byBwYXJzZSBpdCBiYWNrIGludG8gYSBEYXRlIE9iamVjdC4gSWYgdGhpcyBzdWNjZWVkcyB0aGVuXHJcbiAgICogc2V0cyB0aGUgY3VycmVudCB2YWx1ZSB0byB0aGUgRGF0ZSBvYmplY3QgYW5kIHJlbW92ZXMgYW55IHZhbGlkYXRpb24gd2FybmluZ3MuIElmIGl0XHJcbiAgICogZG9lc24ndCB0aGVuIGN1cnJlbnQgdmFsdWUgaXMgZW1wdGllcyBhbmQgdGhlIHZhbGlkYXRpb24gc3R5bGluZyBpcyBhZGRlZC5cclxuICAgKiBAcGFyYW0ge0V2ZW50fSBldnQgRXZlbnQgdGhhdCBjYXVzZWQgY2hhbmdlIHRvIGZpcmUuXHJcbiAgICovXHJcbiAgX29uQ2hhbmdlOiBmdW5jdGlvbiBfb25DaGFuZ2UoLypldnQqLykge1xyXG4gICAgY29uc3QganNEYXRlID0gbmV3IERhdGUodGhpcy5pbnB1dE5vZGUudmFsdWUpO1xyXG4gICAgbGV0IGRhdGUgPSBtb21lbnQodGhpcy5pbnB1dE5vZGUudmFsdWUsIHRoaXMuZGF0ZUZvcm1hdFRleHQsIHRydWUpO1xyXG4gICAgaWYgKG1vbWVudChqc0RhdGUpLmlzVmFsaWQoKSAmJiAhZGF0ZS5pc1ZhbGlkKCkpIHtcclxuICAgICAgZGF0ZSA9IG1vbWVudChqc0RhdGUpO1xyXG4gICAgfVxyXG4gICAgY29uc3QgdmFsID0gZGF0ZS5pc1ZhbGlkKCk7XHJcblxyXG4gICAgaWYgKHZhbCkge1xyXG4gICAgICB0aGlzLnZhbGlkYXRpb25WYWx1ZSA9IHRoaXMuY3VycmVudFZhbHVlID0gZGF0ZS50b0RhdGUoKTtcclxuICAgICAgaWYgKHRoaXMuaW5wdXROb2RlLnZhbHVlICE9PSBkYXRlLmZvcm1hdCh0aGlzLmRhdGVGb3JtYXRUZXh0KSkge1xyXG4gICAgICAgIHRoaXMuaW5wdXROb2RlLnZhbHVlID0gZGF0ZS5mb3JtYXQodGhpcy5kYXRlRm9ybWF0VGV4dCk7XHJcbiAgICAgIH1cclxuICAgICAgZG9tQ2xhc3MucmVtb3ZlKHRoaXMuY29udGFpbmVyTm9kZSwgJ3Jvdy1lcnJvcicpOyAvLyB0b2RvOiBub3QgdGhlIHJpZ2h0IHNwb3QgZm9yIHRoaXMsIGFkZCB2YWxpZGF0aW9uIGV2ZW50aW5nXHJcbiAgICB9IGVsc2Uge1xyXG4gICAgICB0aGlzLnZhbGlkYXRpb25WYWx1ZSA9IHRoaXMuY3VycmVudFZhbHVlID0gbnVsbDtcclxuICAgICAgZG9tQ2xhc3MuYWRkKHRoaXMuY29udGFpbmVyTm9kZSwgJ3Jvdy1lcnJvcicpOyAvLyB0b2RvOiBub3QgdGhlIHJpZ2h0IHNwb3QgZm9yIHRoaXMsIGFkZCB2YWxpZGF0aW9uIGV2ZW50aW5nXHJcbiAgICB9XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBFeHRlbmRzIHRoZSBwYXJlbnQge0BsaW5rIEVkaXRvckZpZWxkI2NyZWF0ZU5hdmlnYXRpb25PcHRpb25zIGNyZWF0ZU5hdmlnYXRpb25PcHRpb25zfSB0b1xyXG4gICAqIGFsc28gaW5jbHVkZSB0aGUgcHJvcGVydGllcyBgZGF0ZWAsIGBzaG93VGltZVBpY2tlcmAgYW5kIGB0aW1lbGVzc2Agd2l0aCBgZGF0ZWAgYmVpbmcgdGhlIGN1cnJlbnQgdmFsdWVcclxuICAgKiBAcmV0dXJuIHtPYmplY3R9IE5hdmlnYXRpb24gb3B0aW9uc1xyXG4gICAqL1xyXG4gIGNyZWF0ZU5hdmlnYXRpb25PcHRpb25zOiBmdW5jdGlvbiBjcmVhdGVOYXZpZ2F0aW9uT3B0aW9ucygpIHtcclxuICAgIGNvbnN0IG9wdGlvbnMgPSB0aGlzLmluaGVyaXRlZChhcmd1bWVudHMpO1xyXG5cclxuICAgIGlmICh0aGlzLmN1cnJlbnRWYWx1ZSAhPT0gJycgJiYgdGhpcy5jdXJyZW50VmFsdWUgIT09IG51bGwpIHtcclxuICAgICAgb3B0aW9ucy5kYXRlID0gdGhpcy5jdXJyZW50VmFsdWU7XHJcbiAgICB9IGVsc2Uge1xyXG4gICAgICBvcHRpb25zLmRhdGUgPSBtb21lbnQoKTtcclxuICAgIH1cclxuICAgIG9wdGlvbnMuc2hvd1RpbWVQaWNrZXIgPSB0aGlzLnNob3dUaW1lUGlja2VyO1xyXG4gICAgb3B0aW9ucy50aW1lbGVzcyA9IHRoaXMudGltZWxlc3M7XHJcblxyXG4gICAgcmV0dXJuIG9wdGlvbnM7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBSZXRyaWV2ZXMgdGhlIGRhdGUgZnJvbSB0aGUge0BsaW5rIENhbGVuZGFyI2dldERhdGVUaW1lIENhbGVuZGFyfSB2aWV3IGFuZCBzZXRzIGl0IHRvIGN1cnJlbnRWYWx1ZS5cclxuICAgKi9cclxuICBnZXRWYWx1ZXNGcm9tVmlldzogZnVuY3Rpb24gZ2V0VmFsdWVzRnJvbVZpZXcoKSB7XHJcbiAgICBjb25zdCB2aWV3ID0gQXBwLmdldFByaW1hcnlBY3RpdmVWaWV3KCk7XHJcbiAgICBpZiAodmlldykge1xyXG4gICAgICB0aGlzLmN1cnJlbnRWYWx1ZSA9IHRoaXMudmFsaWRhdGlvblZhbHVlID0gdmlldy5nZXREYXRlVGltZSgpO1xyXG4gICAgICBkb21DbGFzcy5yZW1vdmUodGhpcy5jb250YWluZXJOb2RlLCAncm93LWVycm9yJyk7IC8vIHRvZG86IG5vdCB0aGUgcmlnaHQgc3BvdCBmb3IgdGhpcywgYWRkIHZhbGlkYXRpb24gZXZlbnRpbmdcclxuICAgIH1cclxuICB9LFxyXG4gIGdldFZhbHVlc0Zyb21Nb2RhbDogZnVuY3Rpb24gZ2V0VmFsdWVzRnJvbU1vZGFsKGRhdGEgPSB7fSkge1xyXG4gICAgaWYgKGRhdGEuY2FsZW5kYXIuc2VsZWN0ZWREYXRlTW9tZW50KSB7XHJcbiAgICAgIC8vIFRoaXMgaXMgdGhlIGNhc2Ugd2hlcmUgdGhlIERhdGVUaW1lUGlja2VyIHdhcyB1c2VkIHRvIHNlbGVjdCB0aGUgZGF0ZVxyXG4gICAgICBjb25zdCBkYXRlID0gZGF0YS5jYWxlbmRhci5zZWxlY3RlZERhdGVNb21lbnQuY2xvbmUoKTtcclxuICAgICAgaWYgKGRhdGEudGltZSkge1xyXG4gICAgICAgIGRhdGUuaG91cnMoZGF0YS50aW1lLmhvdXJzKTtcclxuICAgICAgICBkYXRlLm1pbnV0ZXMoZGF0YS50aW1lLm1pbnV0ZXMpO1xyXG4gICAgICAgIGRhdGUuc2Vjb25kcyhkYXRhLnRpbWUuc2Vjb25kcyk7XHJcbiAgICAgIH1cclxuICAgICAgdGhpcy5jdXJyZW50VmFsdWUgPSB0aGlzLnZhbGlkYXRpb25WYWx1ZSA9IGRhdGUudG9EYXRlKCk7XHJcbiAgICAgIHRoaXMuaW5wdXROb2RlLnZhbHVlID0gdGhpcy5mb3JtYXRWYWx1ZSh0aGlzLmN1cnJlbnRWYWx1ZSk7XHJcbiAgICB9IGVsc2Uge1xyXG4gICAgICB0aGlzLmN1cnJlbnRWYWx1ZSA9IHRoaXMudmFsaWRhdGlvblZhbHVlID0gZGF0YS50b0RhdGUoKTtcclxuICAgICAgdGhpcy5pbnB1dE5vZGUudmFsdWUgPSB0aGlzLmZvcm1hdFZhbHVlKHRoaXMuY3VycmVudFZhbHVlKTtcclxuICAgIH1cclxuICAgIGRvbUNsYXNzLnJlbW92ZSh0aGlzLmNvbnRhaW5lck5vZGUsICdyb3ctZXJyb3InKTsgLy8gdG9kbzogbm90IHRoZSByaWdodCBzcG90IGZvciB0aGlzLCBhZGQgdmFsaWRhdGlvbiBldmVudGluZ1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogRGV0ZXJtaW5lcyBpZiB0aGUgY3VycmVudCB2YWx1ZSBoYXMgYmVlbiBtb2RpZmllZCBmcm9tIHRoZSBvcmlnaW5hbCB2YWx1ZS5cclxuICAgKiBAcmV0dXJuIHtCb29sZWFufVxyXG4gICAqL1xyXG4gIGlzRGlydHk6IGZ1bmN0aW9uIGlzRGlydHkoKSB7XHJcbiAgICByZXR1cm4gdGhpcy5vcmlnaW5hbFZhbHVlIGluc3RhbmNlb2YgRGF0ZSAmJiB0aGlzLmN1cnJlbnRWYWx1ZSBpbnN0YW5jZW9mIERhdGUgPyB0aGlzLm9yaWdpbmFsVmFsdWUuZ2V0VGltZSgpICE9PSB0aGlzLmN1cnJlbnRWYWx1ZS5nZXRUaW1lKCkgOiB0aGlzLm9yaWdpbmFsVmFsdWUgIT09IHRoaXMuY3VycmVudFZhbHVlO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogRXh0ZW5kcyB0aGUgcGFyZW50IHtAbGluayBFZGl0b3JGaWVsZCNjbGVhclZhbHVlIGNsZWFyVmFsdWV9IHRvIGFsc28gaW5jbHVkZSByZW1vdmluZyB0aGVcclxuICAgKiBlcnJvciB2YWxpZGF0aW9uIHN0eWxpbmcuXHJcbiAgICovXHJcbiAgY2xlYXJWYWx1ZTogZnVuY3Rpb24gY2xlYXJWYWx1ZSgpIHtcclxuICAgIHRoaXMuaW5oZXJpdGVkKGFyZ3VtZW50cyk7XHJcbiAgICBkb21DbGFzcy5yZW1vdmUodGhpcy5jb250YWluZXJOb2RlLCAncm93LWVycm9yJyk7IC8vIHRvZG86IG5vdCB0aGUgcmlnaHQgc3BvdCBmb3IgdGhpcywgYWRkIHZhbGlkYXRpb24gZXZlbnRpbmdcclxuICB9LFxyXG4gIHNob3dNb2RhbDogZnVuY3Rpb24gc2hvd01vZGFsKCkge1xyXG4gICAgaWYgKHRoaXMuaXNEaXNhYmxlZCgpKSB7XHJcbiAgICAgIHJldHVybjtcclxuICAgIH1cclxuXHJcbiAgICBjb25zdCBvcHRpb25zID0gdGhpcy5jcmVhdGVOYXZpZ2F0aW9uT3B0aW9ucygpO1xyXG5cclxuICAgIGxldCB0b29sYmFyO1xyXG4gICAgaWYgKHRoaXMuc2hvd1JlbGF0aXZlRGF0ZVRpbWUpIHtcclxuICAgICAgdGhpcy5kYXRlVGltZVBpY2tlciA9IG5ldyBSZWxhdGl2ZURhdGVUaW1lUGlja2VyKHsgaWQ6ICdyZWxhdGl2ZS1kYXRldGltZS1waWNrZXItbW9kYWwgJyArIHRoaXMuaWQsIGlzTW9kYWw6IHRydWUgfSk7XHJcbiAgICAgIHRvb2xiYXIgPSBbXHJcbiAgICAgICAge1xyXG4gICAgICAgICAgYWN0aW9uOiAnY2FuY2VsJyxcclxuICAgICAgICAgIGNsYXNzTmFtZTogJ2J1dHRvbi0tZmxhdCBidXR0b24tLWZsYXQtLXNwbGl0JyxcclxuICAgICAgICAgIHRleHQ6IHJlc291cmNlLmNhbmNlbFRleHQsXHJcbiAgICAgICAgfSwge1xyXG4gICAgICAgICAgYWN0aW9uOiB0aGlzLmRhdGVUaW1lUGlja2VyLnRvRGF0ZVRpbWVQaWNrZXIsXHJcbiAgICAgICAgICBjbGFzc05hbWU6ICdidXR0b24tLWZsYXQgYnV0dG9uLS1mbGF0LS1zcGxpdCcsXHJcbiAgICAgICAgICB0ZXh0OiByZXNvdXJjZS5hZHZhbmNlZFRleHQsXHJcbiAgICAgICAgICBjb250ZXh0OiB0aGlzLmRhdGVUaW1lUGlja2VyLFxyXG4gICAgICAgIH0sXHJcbiAgICAgIF07XHJcbiAgICB9IGVsc2Uge1xyXG4gICAgICB0aGlzLmRhdGVUaW1lUGlja2VyID0gbmV3IERhdGVUaW1lUGlja2VyKHsgaWQ6ICdkYXRldGltZS1waWNrZXItbW9kYWwgJyArIHRoaXMuaWQsIGlzTW9kYWw6IHRydWUgfSk7XHJcbiAgICAgIHRvb2xiYXIgPSBbXHJcbiAgICAgICAge1xyXG4gICAgICAgICAgYWN0aW9uOiAnY2FuY2VsJyxcclxuICAgICAgICAgIGNsYXNzTmFtZTogJ2J1dHRvbi0tZmxhdCBidXR0b24tLWZsYXQtLXNwbGl0JyxcclxuICAgICAgICAgIHRleHQ6IHJlc291cmNlLmNhbmNlbFRleHQsXHJcbiAgICAgICAgfSwge1xyXG4gICAgICAgICAgYWN0aW9uOiAncmVzb2x2ZScsXHJcbiAgICAgICAgICBjbGFzc05hbWU6ICdidXR0b24tLWZsYXQgYnV0dG9uLS1mbGF0LS1zcGxpdCcsXHJcbiAgICAgICAgICB0ZXh0OiByZXNvdXJjZS5jb25maXJtVGV4dCxcclxuICAgICAgICB9LFxyXG4gICAgICBdO1xyXG4gICAgfVxyXG5cclxuICAgIEFwcC5tb2RhbC5hZGQodGhpcy5kYXRlVGltZVBpY2tlciwgdG9vbGJhciwgb3B0aW9ucykudGhlbih0aGlzLmdldFZhbHVlc0Zyb21Nb2RhbC5iaW5kKHRoaXMpKTtcclxuICB9LFxyXG4gIF9vbkNsaWNrOiBmdW5jdGlvbiBfb25DbGljayhldnQpIHtcclxuICAgIGV2ZW50LnN0b3AoZXZ0KTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIEV4dGVuZHMgdGhlIHBhcmVudCB7QGxpbmsgRWRpdG9yRmllbGQjdmFsaWRhdGUgdmFsaWRhdGV9IHdpdGggYSBjaGVjayB0aGF0IG1ha2VzIHN1cmUgaWZcclxuICAgKiB0aGUgdXNlciBoYXMgaW5wdXR0ZWQgYSBkYXRlIG1hbnVhbGx5IGludG8gdGhlIGlucHV0IGZpZWxkIHRoYXQgaXQgaGFkIHN1Y2Nlc3NmdWxseSB2YWxpZGF0ZWRcclxuICAgKiBpbiB0aGUge0BsaW5rICNfb25DaGFuZ2UgX29uQ2hhbmdlfSBmdW5jdGlvbi5cclxuICAgKiBAcmV0dXJuIHtCb29sZWFuL09iamVjdH0gRmFsc2UgZm9yIG5vIGVycm9ycy4gVHJ1ZS9PYmplY3QgZm9yIGludmFsaWQuXHJcbiAgICovXHJcbiAgdmFsaWRhdGU6IGZ1bmN0aW9uIHZhbGlkYXRlKCkge1xyXG4gICAgaWYgKHRoaXMuaW5wdXROb2RlLnZhbHVlICE9PSAnJyAmJiAhdGhpcy5jdXJyZW50VmFsdWUpIHtcclxuICAgICAgcmV0dXJuIHN0cmluZy5zdWJzdGl0dXRlKHRoaXMuaW52YWxpZERhdGVGb3JtYXRFcnJvclRleHQsIFt0aGlzLmxhYmVsXSk7XHJcbiAgICB9XHJcblxyXG4gICAgcmV0dXJuIHRoaXMuaW5oZXJpdGVkKGFyZ3VtZW50cyk7XHJcbiAgfSxcclxufSk7XHJcblxyXG5sYW5nLnNldE9iamVjdCgnU2FnZS5QbGF0Zm9ybS5Nb2JpbGUuRmllbGRzLkRhdGVGaWVsZCcsIGNvbnRyb2wpO1xyXG5leHBvcnQgZGVmYXVsdCBGaWVsZE1hbmFnZXIucmVnaXN0ZXIoJ2RhdGUnLCBjb250cm9sKTtcclxuIl19
 </pre>
 </body>
 </html>

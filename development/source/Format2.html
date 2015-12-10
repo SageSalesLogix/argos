@@ -15,608 +15,580 @@
   </script>
 </head>
 <body onload="prettyPrint(); highlight();">
-  <pre class="prettyprint lang-js">/* Copyright (c) 2010, Sage Software, Inc. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+  <pre class="prettyprint lang-js">define('argos/Format', ['exports', 'module', 'dojo/_base/json', 'dojo/_base/lang', 'dojo/_base/array', 'dojo/dom-construct', 'dojo/string', 'dojo/number', './Convert', './Utility', './I18n'], function (exports, module, _dojo_baseJson, _dojo_baseLang, _dojo_baseArray, _dojoDomConstruct, _dojoString, _dojoNumber, _Convert, _Utility, _I18n) {
+  function _interopRequireDefault(obj) { return obj &amp;&amp; obj.__esModule ? obj : { 'default': obj }; }
 
-<span id='argos-Format'>/**
-</span> * @class argos.Format
- * Format is a singleton that provides various formatting functions.
- * @alternateClassName format
- * @requires argos.Convert
- * @singleton
- */
-define('argos/Format', [
-    'dojo/_base/json',
-    'dojo/_base/lang',
-    'dojo/_base/array',
-    'dojo/dom-construct',
-    'dojo/string',
-    'dojo/number',
-    './Convert',
-    './Utility',
-    'moment'
-], function(
-    json,
-    lang,
-    array,
-    domConstruct,
-    string,
-    dNumber,
-    convert,
-    utility,
-    moment
-) {
-    var getVectorMaxSize,
-        phoneLettersMap,
-        __class;
+  /* Copyright (c) 2010, Sage Software, Inc. All rights reserved.
+   *
+   * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   * you may not use this file except in compliance with the License.
+   * You may obtain a copy of the License at
+   *
+   *     http://www.apache.org/licenses/LICENSE-2.0
+   *
+   * Unless required by applicable law or agreed to in writing, software
+   * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   * See the License for the specific language governing permissions and
+   * limitations under the License.
+   */
 
-    getVectorMaxSize = function(v) {
-        var w = 1,
-            h = 1,
-            i,
-            j;
+  var _json = _interopRequireDefault(_dojo_baseJson);
 
-        for (i = 0; i &lt; v.length; i++) {
-            for (j = 0; j &lt; v[i].length; j++) {
-                if (w &lt; v[i][j][0]) {
-                    w = v[i][j][0];
-                }
+  var _lang = _interopRequireDefault(_dojo_baseLang);
 
-                if (h &lt; v[i][j][1]) {
-                    h = v[i][j][1];
-                }
-            }
+  var _array = _interopRequireDefault(_dojo_baseArray);
+
+  var _domConstruct = _interopRequireDefault(_dojoDomConstruct);
+
+  var _string = _interopRequireDefault(_dojoString);
+
+  var _dNumber = _interopRequireDefault(_dojoNumber);
+
+  var _convert = _interopRequireDefault(_Convert);
+
+  var _utility = _interopRequireDefault(_Utility);
+
+  var _getResource = _interopRequireDefault(_I18n);
+
+  var resource = (0, _getResource['default'])('format');
+
+  var getVectorMaxSize = function getVectorMaxSize(v) {
+    var w = 1;
+    var h = 1;
+
+    for (var i = 0; i &lt; v.length; i++) {
+      for (var j = 0; j &lt; v[i].length; j++) {
+        if (w &lt; v[i][j][0]) {
+          w = v[i][j][0];
         }
-        // maybe should return bounding box? (x,y,w,h)
-        return { width: w, height: h };
+
+        if (h &lt; v[i][j][1]) {
+          h = v[i][j][1];
+        }
+      }
+    }
+    // maybe should return bounding box? (x,y,w,h)
+    return {
+      width: w,
+      height: h
     };
+  };
 
-    phoneLettersMap = [
-        {
-            test: /[ABC]/gi,
-            val: '2'
-        }, {
-            test: /[DEF]/gi,
-            val: '3'
-        }, {
-            test: /[GHI]/gi,
-            val: '4'
-        }, {
-            test: /[JKL]/gi,
-            val: '5'
-        }, {
-            test: /[MNO]/gi,
-            val: '6'
-        }, {
-            test: /[PQRS]/gi,
-            val: '7'
-        }, {
-            test: /[TUV]/gi,
-            val: '8'
-        }, {
-            test: /[WXYZwyz]/g, // Note lowercase 'x' should stay for extensions
-            val: '9'
-        }
-    ];
+  var phoneLettersMap = [{
+    test: /[ABC]/gi,
+    val: '2'
+  }, {
+    test: /[DEF]/gi,
+    val: '3'
+  }, {
+    test: /[GHI]/gi,
+    val: '4'
+  }, {
+    test: /[JKL]/gi,
+    val: '5'
+  }, {
+    test: /[MNO]/gi,
+    val: '6'
+  }, {
+    test: /[PQRS]/gi,
+    val: '7'
+  }, {
+    test: /[TUV]/gi,
+    val: '8'
+  }, {
+    test: /[WXYZwyz]/g, // Note lowercase 'x' should stay for extensions
+    val: '9'
+  }];
 
-
-    function isEmpty(val) {
-        if (typeof val !== 'string') {
-            return !val;
-        }
-
-        return (val.length &lt;= 0);
+  function isEmpty(val) {
+    if (typeof val !== 'string') {
+      return !val;
     }
 
-    function encode(val) {
-        if (typeof val !== 'string') {
-            return val;
-        }
+    return val.length &lt;= 0;
+  }
 
-        return val
-            .replace(/&amp;/g, '&amp;amp;')
-            .replace(/&lt;/g, '&amp;lt;')
-            .replace(/&gt;/g, '&amp;gt;')
-            .replace(/&quot;/g, '&amp;quot;');
+  function encode(val) {
+    if (typeof val !== 'string') {
+      return val;
     }
 
-    function decode(val) {
-        if (typeof val !== 'string') {
-            return val;
-        }
+    return val.replace(/&amp;/g, '&amp;amp;').replace(/&lt;/g, '&amp;lt;').replace(/&gt;/g, '&amp;gt;').replace(/&quot;/g, '&amp;quot;');
+  }
 
-        return val
-            .replace(/&amp;amp;/g, '&amp;')
-            .replace(/&amp;lt;/g, '&lt;')
-            .replace(/&amp;gt;/g, '&gt;')
-            .replace(/&amp;quot;/g, '&quot;');
+  function decode(val) {
+    if (typeof val !== 'string') {
+      return val;
     }
 
-    __class = lang.setObject('argos.Format', {
-<span id='argos-Format-property-yesText'>        /**
-</span>         * @property {String}
-         * Text used in {@link #yesNo yesNo} formatter for true values
-         */
-        yesText: 'Yes',
-<span id='argos-Format-property-noText'>        /**
-</span>         * @property {String}
-         * Text used in {@link #yesNo yesNo} formatter for false values
-         */
-        noText: 'No',
-<span id='argos-Format-property-trueText'>        /**
-</span>         * @property {String}
-         * Text used in {@link #bool bool} formatter for true values
-         */
-        trueText: 'T',
-<span id='argos-Format-property-falseText'>        /**
-</span>         * @property {String}
-         * Text used in {@link #bool bool} formatter for false values
-         */
-        falseText: 'F',
-<span id='argos-Format-property-hoursText'>        /**
-</span>         * @property {String}
-         * Text used in {@link #timespan timespan} formatter for more than one hour
-         */
-        hoursText: 'hours',
-<span id='argos-Format-property-hourText'>        /**
-</span>         * @property {String}
-         * Text used in {@link #timespan timespan} formatter for exactly one hour
-         */
-        hourText: 'hour',
-<span id='argos-Format-property-minutesText'>        /**
-</span>         * @property {String}
-         * Text used in {@link #timespan timespan} formatter for more than one minute
-         */
-        minutesText: 'minutes',
-<span id='argos-Format-property-minuteText'>        /**
-</span>         * @property {String}
-         * Text used in {@link #timespan timespan} formatter for exactly one minute
-         */
-        minuteText: 'minute',
+    return val.replace(/&amp;amp;/g, '&amp;').replace(/&amp;lt;/g, '&lt;').replace(/&amp;gt;/g, '&gt;').replace(/&amp;quot;/g, '&quot;');
+  }
 
-        shortDateFormatText: 'M/D/YYYY',
+  var __class = undefined;
+<span id='argos-Format'>  /**
+</span>   * @class argos.Format
+   * Format is a singleton that provides various formatting functions.
+   * @alternateClassName format
+   * @requires argos.Convert
+   * @singleton
+   */
+  __class = _lang['default'].setObject('argos.Format', {
+<span id='argos-Format-property-yesText'>    /**
+</span>     * @property {String}
+     * Text used in {@link #yesNo yesNo} formatter for true values
+     */
+    yesText: resource.yesText,
+<span id='argos-Format-property-noText'>    /**
+</span>     * @property {String}
+     * Text used in {@link #yesNo yesNo} formatter for false values
+     */
+    noText: resource.noText,
+<span id='argos-Format-property-trueText'>    /**
+</span>     * @property {String}
+     * Text used in {@link #bool bool} formatter for true values
+     */
+    trueText: resource.trueText,
+<span id='argos-Format-property-falseText'>    /**
+</span>     * @property {String}
+     * Text used in {@link #bool bool} formatter for false values
+     */
+    falseText: resource.falseText,
+<span id='argos-Format-property-hoursText'>    /**
+</span>     * @property {String}
+     * Text used in {@link #timespan timespan} formatter for more than one hour
+     */
+    hoursText: resource.hoursText,
+<span id='argos-Format-property-hourText'>    /**
+</span>     * @property {String}
+     * Text used in {@link #timespan timespan} formatter for exactly one hour
+     */
+    hourText: resource.hourText,
+<span id='argos-Format-property-minutesText'>    /**
+</span>     * @property {String}
+     * Text used in {@link #timespan timespan} formatter for more than one minute
+     */
+    minutesText: resource.minutesText,
+<span id='argos-Format-property-minuteText'>    /**
+</span>     * @property {String}
+     * Text used in {@link #timespan timespan} formatter for exactly one minute
+     */
+    minuteText: resource.minuteText,
 
-<span id='argos-Format-property-percentFormatText'>        /**
-</span>        * @property {String}
-        * format string for percent
-         * * `${0}` - percent value
-         * * `${1}` - percent synmbol &quot;%&quot;
-        */
-        percentFormatText: '${0}${1}',
-<span id='argos-Format-method-encode'>        /**
-</span>         * Takes a String and encodes `&amp;`, `&lt;`, `&gt;`, `&quot;` to HTML entities
-         * @param {String} String to encode
-         * @return {String} Html encoded string
-         */
-        encode: encode,
-<span id='argos-Format-method-decode'>        /**
-</span>         * Takes a String and decodes `&amp;`, `&lt;`, `&gt;`, `&quot;` from HTML entities back to the character
-         * @param {String} String to decode
-         * @return {String} Html decoded string
-         */
-        decode: decode,
-<span id='argos-Format-method-isEmpty'>        /**
-</span>         * Determines if the given item is an empty string or empty arry
-         * @param {String/Array} Item to check if empty
-         * @return {Boolean} If passed item is empty
-         */
-        isEmpty: isEmpty,
-<span id='argos-Format-property-bytesText'>        /**
-</span>         * @property {String}
-         * Text used in file size  formatter
-         */
-        bytesText: 'bytes',
-<span id='argos-Format-property-phoneFormat'>        /**
-</span>         * @property {Object[]}
-         * Array of objects that have the keys `test` and `format` where `test` is a RegExp that
-         * matches the phone grouping and `format` is the string format to be replaced.
-         *
-         * The RegExp may have capture groups but when you are defining the format strings use:
-         *
-         * * `${0}` - original value
-         * * `${1}` - cleaned value
-         * * `${2}` - entire match (against clean value)
-         * * `${3..n}` - match groups (against clean value)
-         *
-         * The `clean value` is taking the inputted numbers/text and removing any non-number
-         * and non-&quot;x&quot; and it replaces A-Z to their respective phone number character.
-         *
-         * The three default formatters are:
-         * * `nnn-nnnn`
-         * * `(nnn)-nnn-nnnn`
-         * * `(nnn)-nnn-nnnxnnnn`
-         *
-         * If you plan to override this value make sure you include the default ones provided.
-         *
-         */
-        phoneFormat: [{
-            test: /^\+.*/,
-            format: '${0}'
-        }, {
-            test: /^(\d{3})(\d{3,4})$/,
-            format: '${3}-${4}'
-        }, {
-            test: /^(\d{3})(\d{3})(\d{2,4})$/, // 555 555 5555
-            format: '(${3})-${4}-${5}'
-        }, {
-            test: /^(\d{3})(\d{3})(\d{2,4})([^0-9]{1,}.*)$/, // 555 555 5555x
-            format: '(${3})-${4}-${5}${6}'
-        }, {
-            test: /^(\d{11,})(.*)$/,
-            format: '${1}'
-        }],
-<span id='argos-Format-method-link'>        /**
-</span>         * Takes a url string and wraps it with an `&lt;a&gt;` element with `href=` pointing to the url.
-         * @param {String} val Url string to be wrapped
-         * @return {String} An `&lt;a&gt;` element as a string.
-         */
-        link: function(val) {
-            if (typeof val !== 'string') {
-                return val;
-            }
+    shortDateFormatText: resource.shortDateFormatText,
 
-            // Check if the user specified a URI scheme,
-            // does not include all URI Schemes, such as tel:, etc.
-            var schemes = ['://', 'mailto:'], hasURIScheme;
+<span id='argos-Format-property-percentFormatText'>    /**
+</span>     * @property {String}
+     * format string for percent
+     * * `${0}` - percent value
+     * * `${1}` - percent synmbol &quot;%&quot;
+     */
+    percentFormatText: resource.percentFormatText,
+<span id='argos-Format-method-encode'>    /**
+</span>     * Takes a String and encodes `&amp;`, `&lt;`, `&gt;`, `&quot;` to HTML entities
+     * @param {String} String to encode
+     * @return {String} Html encoded string
+     */
+    encode: encode,
+<span id='argos-Format-method-decode'>    /**
+</span>     * Takes a String and decodes `&amp;`, `&lt;`, `&gt;`, `&quot;` from HTML entities back to the character
+     * @param {String} String to decode
+     * @return {String} Html decoded string
+     */
+    decode: decode,
+<span id='argos-Format-method-isEmpty'>    /**
+</span>     * Determines if the given item is an empty string or empty arry
+     * @param {String/Array} Item to check if empty
+     * @return {Boolean} If passed item is empty
+     */
+    isEmpty: isEmpty,
+<span id='argos-Format-property-bytesText'>    /**
+</span>     * @property {String}
+     * Text used in file size  formatter
+     */
+    bytesText: resource.bytesText,
+<span id='argos-Format-property-phoneFormat'>    /**
+</span>     * @property {Object[]}
+     * Array of objects that have the keys `test` and `format` where `test` is a RegExp that
+     * matches the phone grouping and `format` is the string format to be replaced.
+     *
+     * The RegExp may have capture groups but when you are defining the format strings use:
+     *
+     * * `${0}` - original value
+     * * `${1}` - cleaned value
+     * * `${2}` - entire match (against clean value)
+     * * `${3..n}` - match groups (against clean value)
+     *
+     * The `clean value` is taking the inputted numbers/text and removing any non-number
+     * and non-&quot;x&quot; and it replaces A-Z to their respective phone number character.
+     *
+     * The three default formatters are:
+     * * `nnn-nnnn`
+     * * `(nnn)-nnn-nnnn`
+     * * `(nnn)-nnn-nnnxnnnn`
+     *
+     * If you plan to override this value make sure you include the default ones provided.
+     *
+     */
+    phoneFormat: [{
+      test: /^\+.*/,
+      format: '${0}'
+    }, {
+      test: /^(\d{3})(\d{3,4})$/,
+      format: '${3}-${4}'
+    }, {
+      test: /^(\d{3})(\d{3})(\d{2,4})$/, // 555 555 5555
+      format: '(${3})-${4}-${5}'
+    }, {
+      test: /^(\d{3})(\d{3})(\d{2,4})([^0-9]{1,}.*)$/, // 555 555 5555x
+      format: '(${3})-${4}-${5}${6}'
+    }, {
+      test: /^(\d{11,})(.*)$/,
+      format: '${1}'
+    }],
+<span id='argos-Format-method-link'>    /**
+</span>     * Takes a url string and wraps it with an `&lt;a&gt;` element with `href=` pointing to the url.
+     * @param {String} val Url string to be wrapped
+     * @return {String} An `&lt;a&gt;` element as a string.
+     */
+    link: function link(val) {
+      if (typeof val !== 'string') {
+        return val;
+      }
 
-            hasURIScheme = array.some(schemes, function(scheme) {
-                return val.indexOf(scheme) &gt; -1;
-            });
+      // Check if the user specified a URI scheme,
+      // does not include all URI Schemes, such as tel:, etc.
+      var schemes = ['://', 'mailto:'];
+      var hasURIScheme = _array['default'].some(schemes, function some(scheme) {
+        return val.indexOf(scheme) &gt; -1;
+      });
 
-            if (hasURIScheme) {
-                return string.substitute('&lt;a target=&quot;_blank&quot; href=&quot;${0}&quot;&gt;${0}&lt;/a&gt;', [val]);
-            }
+      if (hasURIScheme) {
+        return _string['default'].substitute('&lt;a target=&quot;_blank&quot; href=&quot;${0}&quot;&gt;${0}&lt;/a&gt;', [val]);
+      }
 
-            // Specify a default URI scheme of http
-            return string.substitute('&lt;a target=&quot;_blank&quot; href=&quot;http://${0}&quot;&gt;${0}&lt;/a&gt;', [val]);
-        },
-<span id='argos-Format-method-mail'>        /**
-</span>         * Takes an email string and wraps it with an `&lt;a&gt;` element with `href=&quot;mailto:&quot;` pointing to the email.
-         * @param {String} val Email string to be wrapped
-         * @return {String} An `&lt;a&gt;` element as a string.
-         */
-        mail: function(val) {
-            if (typeof val !== 'string') {
-                return val;
-            }
+      // Specify a default URI scheme of http
+      return _string['default'].substitute('&lt;a target=&quot;_blank&quot; href=&quot;http://${0}&quot;&gt;${0}&lt;/a&gt;', [val]);
+    },
+<span id='argos-Format-method-mail'>    /**
+</span>     * Takes an email string and wraps it with an `&lt;a&gt;` element with `href=&quot;mailto:&quot;` pointing to the email.
+     * @param {String} val Email string to be wrapped
+     * @return {String} An `&lt;a&gt;` element as a string.
+     */
+    mail: function mail(val) {
+      if (typeof val !== 'string') {
+        return val;
+      }
 
-            return string.substitute('&lt;a href=&quot;mailto:${0}&quot;&gt;${0}&lt;/a&gt;', [val]);
-        },
-<span id='argos-Format-method-trim'>        /**
-</span>         * Removes whitespace from from and end of string
-         * @param {String} val String to be trimmed
-         * @return {String} String without space on either end
-         */
-        trim: function(val) {
-            return val.replace(/^\s+|\s+$/g, '');
-        },
-<span id='argos-Format-method-date'>        /**
-</span>         * Takes a date and format string and returns the formatted date as a string.
-         * @param {Date/String} val Date to be converted. If string is passed it is converted to a date using {@link convert#toDateFromString Converts toDateFromString}.
-         * @param {String} fmt Format string following [datejs formatting](http://code.google.com/p/datejs/wiki/FormatSpecifiers).
-         * @param {Boolean} utc If a date should be in UTC time set this flag to true to counter-act javascripts built-in timezone applier.
-         * @return {String} Date formatted as a string.
-         */
-        date: function(val, fmt, utc) {
-            var date = val instanceof Date
-                ? val
-                : convert.isDateString(val)
-                    ? convert.toDateFromString(val)
-                    : null;
+      return _string['default'].substitute('&lt;a href=&quot;mailto:${0}&quot;&gt;${0}&lt;/a&gt;', [val]);
+    },
+<span id='argos-Format-method-trim'>    /**
+</span>     * Removes whitespace from from and end of string
+     * @param {String} val String to be trimmed
+     * @return {String} String without space on either end
+     */
+    trim: function trim(val) {
+      return val.replace(/^\s+|\s+$/g, '');
+    },
+<span id='argos-Format-method-date'>    /**
+</span>     * Takes a date and format string and returns the formatted date as a string.
+     * @param {Date/String} val Date to be converted. If string is passed it is converted to a date using {@link convert#toDateFromString Converts toDateFromString}.
+     * @param {String} fmt Format string following [datejs formatting](http://code.google.com/p/datejs/wiki/FormatSpecifiers).
+     * @param {Boolean} utc If a date should be in UTC time set this flag to true to counter-act javascripts built-in timezone applier.
+     * @return {String} Date formatted as a string.
+     */
+    date: function date(val, fmt, utc) {
+      var dateValue = undefined;
+      if (val instanceof Date) {
+        dateValue = val;
+      } else if (_convert['default'].isDateString(val)) {
+        dateValue = _convert['default'].toDateFromString(val);
+      } else {
+        dateValue = null;
+      }
 
-            if (date) {
-                date = moment(date);
-                if (utc) {
-                    date = date.add({minutes: date.zone()});
-                }
-
-                return date.format(fmt || argos.Format.shortDateFormatText);
-            }
-
-            return val;
-        },
-<span id='argos-Format-method-fixed'>        /**
-</span>         * Takes a number and decimal place and floors the number to that place:
-         *
-         * `fixed(5.555, 0)` =&gt; `5`
-         * `fixed(5.555, 2)` =&gt; `5.55`
-         * `fixed(5.555, 5)` =&gt; `5.555`
-         *
-         * @param {Number/String} val The value will be `parseFloat` before operating.
-         * @param {Number} d Number of decimals places to keep, defaults to 2 if not provided.
-         * @return {Number} Fixed number.
-         */
-        fixed: function(val, d) {
-            if (typeof val !== 'number' &amp;&amp; typeof val !== 'string') {
-                return val;
-            }
-
-            if (typeof d !== 'number') {
-                d = 2;
-            }
-
-            var m = Math.pow(10, d),
-                v = Math.floor(parseFloat(val) * m) / m;
-
-            return v;
-        },
-<span id='argos-Format-method-percent'>        /**
-</span>         * Takes a decimal number, multiplies by 100 and adds the % sign with the number of palces to the right.
-         *
-         * `perecent(0.35)` =&gt; `'35.00%'`
-         * `perecent(0.35, 0)` =&gt; `'35%'`
-         * `percent(2.9950)` =&gt; `'299.50%'`
-         * `percent(2.9950,0)` =&gt; `'300%'`
-         *
-         * @param {Number/String} val The value will be `parseFloat` before operating.
-         * @param {Number/String} places If no value is given the default value will be set to 2.
-         * @return {String} Number as a percentage with % sign.
-         */
-        percent: function(val, places) {
-            var intVal, v, dp, wp, numberFormated;
-
-            if (typeof places !== 'number') {
-                places = 2;
-            }
-
-            places = Math.floor(places);
-            intVal = 100 * (parseFloat(val) || 0.00);
-            v = utility.roundNumberTo(intVal, places);
-
-            //get the whole number part
-            wp = (Math.floor(v)).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1' + Mobile.CultureInfo.numberFormat.percentGroupSeparator.replace('\\.', '.'));
-
-            if (places &lt; 1) { // format with out decimal part
-                numberFormated = string.substitute('${0}', [wp]).replace(/ /g, '\u00A0'); //keep numbers from breaking
-            } else {
-                dp = v % 1; //get the decimal part
-                dp = dp.toPrecision(places + 1); // round to significant pecsion
-                dp = dp.toString();
-                dp = dp.substr(2, places); //get the whole decimal part
-                numberFormated = string.substitute(
-                    '${0}'
-                    + Mobile.CultureInfo.numberFormat.percentDecimalSeparator
-                    + '${1}', [wp, dp]
-                ).replace(/ /g, '\u00A0'); //keep numbers from breaking
-            }
-
-            return string.substitute(argos.Format.percentFormatText, [numberFormated, Mobile.CultureInfo.numberFormat.percentSymbol]);
-        },
-<span id='argos-Format-method-yesNo'>        /**
-</span>         * Takes a boolean value and returns the string Yes or No for true or false
-         * @param {Boolean/String} val If string it tests if the string is `true` for true, else assumes false
-         * @return {String} Yes for true, No for false.
-         */
-        yesNo: function(val) {
-            if (typeof val === 'string') {
-                val = /^true$/i.test(val);
-            }
-
-            return val ? argos.Format.yesText || 'Yes'
-                : argos.Format.noText || 'No';
-        },
-<span id='argos-Format-method-bool'>        /**
-</span>         * Takes a boolean value and returns the string T or F for true or false
-         * @param {Boolean/String} val If string it tests if the string is `true` for true, else assumes false
-         * @return {String} T for true, F for false.
-         */
-        bool: function(val) {
-            if (typeof val === 'string') {
-                val = /^true$/i.test(val);
-            }
-
-            return val
-                ? argos.Format.trueText || 'T'
-                : argos.Format.falseText || 'F';
-        },
-<span id='argos-Format-method-nl2br'>        /**
-</span>         * Takes a string and converts all new lines `\n` to HTML `&lt;br&gt;` elements.
-         * @param {String} val String with newlines
-         * @return {String} String with replaced `\n` with `&lt;br&gt;`
-         */
-        nl2br: function(val) {
-            if (typeof val !== 'string') {
-                return val;
-            }
-
-            return val.replace(/\n/g, '&lt;br /&gt;');
-        },
-<span id='argos-Format-method-timespan'>        /**
-</span>         * Takes a number of minutes and turns it into the string: `'n hours m minutes'`
-         * @param {Number/String} val Number of minutes, will be `parseFloat` before operations and fixed to 2 decimal places
-         * @return {String} A string representation of the minutes as `'n hours m minutes'`
-         */
-        timespan: function(val) {
-            var v, hrs, mins;
-
-            v = argos.Format.fixed(val);
-            if (isNaN(v) || !v) {
-                return '';
-            }
-
-            hrs = Math.floor(v / 60);
-            mins  = v % 60;
-
-            if (hrs) {
-                hrs = hrs &gt; 1 ? string.substitute('${0} ${1}', [hrs, (argos.Format.hoursText || 'hours')])
-                              : string.substitute('${0} ${1}', [hrs, (argos.Format.hourText || 'hour')]);
-            }
-
-            if (mins) {
-                mins = mins &gt; 1 ? string.substitute('${0} ${1}', [mins, (argos.Format.minutesText || 'minutes')])
-                                : string.substitute('${0} ${1}', [mins, (argos.Format.minuteText || 'minute')]);
-            }
-
-            return (hrs &amp;&amp; mins) ? hrs + ' ' + mins
-                                 : hrs === 0 ? mins : hrs;
-        },
-<span id='argos-Format-method-canvasDraw'>        /**
-</span>         * Takes a 2D array of `[[x,y],[x,y]]` number coordinates and draws them onto the provided canvas
-         * The first point marks where the &quot;pen&quot; starts, each sequential point is then &quot;drawn to&quot; as if holding a
-         * pen on paper and moving the pen to the new point.
-         * @param {Number[][]} vector A series of x,y coordinates in the format of: `[[0,0],[1,5]]`
-         * @param {HTMLElement} canvas The `&lt;canvas&gt;` element to be drawn on
-         * @param {Object} options Canvas options: scale, lineWidth and penColor.
-         */
-        canvasDraw: function(vector, canvas, options) {
-            var scale, x, y,
-                trace,
-                i,
-                context = canvas.getContext('2d');
-
-            // Paint canvas white vs. clearing as on Android imageFromVector alpha pixels blacken
-            // context.clearRect(0, 0, context.canvas.width, context.canvas.height);
-            context.fillStyle = 'rgb(255,255,255)';
-            context.fillRect(0, 0, context.canvas.width, context.canvas.height);
-
-            scale               = options &amp;&amp; options.scale     ? options.scale     : 1;
-            context.lineWidth   = options &amp;&amp; options.lineWidth ? options.lineWidth : 1;
-            context.strokeStyle = options &amp;&amp; options.penColor  ? options.penColor  : 'black';
-
-            for (trace in vector) {
-                if ( 1 &lt; vector[trace].length) {
-                    context.beginPath();
-                    context.moveTo(vector[trace][0][0] * scale, vector[trace][0][1] * scale);
-                    for (i = 1; i &lt; vector[trace].length; i++) {
-                        x = vector[trace][i][0] * scale;
-                        y = vector[trace][i][1] * scale;
-                        context.lineTo(x, y);
-                    }
-                    context.stroke();
-                }
-            }
-        },
-<span id='argos-Format-method-imageFromVector'>        /**
-</span>         * Returns the image data (or img element) for a series of vectors
-         * @param {Number[][]} vector A series of x,y coordinates in the format of: `[[0,0],[1,5]]`. These will be drawn sequentially as one line.
-         * @param {Object} options Canvas options: scale, lineWidth and penColor.
-         * @param {Boolean} html Flag for returning image as a data-uri or as a stringified `&lt;img&gt;` element.
-         * @return {String} The encoded data of the drawn image, optionally wrapped in `&lt;img&gt;` if html was passed as true
-         */
-        imageFromVector: function(vector, options, html) {
-            var img,
-                size,
-                canvasNode = domConstruct.create('canvas');
-
-            options = options || {};
-
-            if (typeof vector === 'string' || vector instanceof String) {
-                try {
-                    vector = json.fromJson(vector);
-                } catch(e) {}
-            }
-
-            if (!(vector instanceof Array) || 0 === vector.length) {
-                vector = [[]]; // blank image.
-            }
-
-            size = getVectorMaxSize(vector);
-
-            canvasNode.width  = options.width  || size.width;
-            canvasNode.height = options.height || size.height;
-
-            options.scale = Math.min(
-                canvasNode.width  / size.width,
-                canvasNode.height / size.height
-            );
-
-            argos.Format.canvasDraw(vector, canvasNode, options);
-
-            img = canvasNode.toDataURL('image/png');
-            if (img.indexOf('data:image/png') !== 0) {
-                img = Canvas2Image.saveAsBMP(canvasNode, true).src;
-            }
-
-            return html
-                ? string.substitute(
-                    '&lt;img src=&quot;${0}&quot; width=&quot;${1}&quot; height=&quot;${2}&quot; alt=&quot;${3}&quot; /&gt;',
-                    [img, options.width, options.height, options.title || ''])
-                : img;
-        },
-<span id='argos-Format-method-phone'>        /**
-</span>         * Takes a string phone input and attempts to match it against the predefined
-         * phone formats - if a match is found it is returned formatted if not it is returned
-         * as is.
-         * @param val {String} String inputted phone number to format
-         * @param asLink {Boolean} True to put the phone in an anchor element pointing to a tel: uri
-         * @returns {String}
-         */
-        phone: function(val, asLink) {
-            if (typeof val !== 'string') {
-                return val;
-            }
-
-            val = argos.Format.alphaToPhoneNumeric(val);
-
-            var formatters = argos.Format.phoneFormat,
-                i,
-                formatter,
-                match,
-                clean = /^\+/.test(val)
-                    ? val
-                    : val.replace(/[^0-9x]/ig, ''),
-                formattedMatch;
-
-            for (i = 0; i &lt; formatters.length; i++) {
-                formatter = formatters[i];
-
-                if ((match = formatter.test.exec(clean))) {
-                    formattedMatch = string.substitute(formatter.format, [val, clean].concat(match));
-                }
-            }
-
-            if (formattedMatch) {
-                return asLink ? string.substitute('&lt;a href=&quot;tel:${0}&quot;&gt;${1}&lt;/a&gt;', [clean, formattedMatch]) : formattedMatch;
-            }
-
-            return val;
-        },
-<span id='argos-Format-method-alphaToPhoneNumeric'>        /**
-</span>         * Takes a string input and converts A-Z to their respective phone number character
-         * `1800CALLME` -&gt; `1800225563`
-         * @param val
-         * @returns {String}
-         */
-        alphaToPhoneNumeric: function(val) {
-            for (var i = 0; i &lt; phoneLettersMap.length; i++) {
-                val = val.replace(phoneLettersMap[i].test, phoneLettersMap[i].val);
-            }
-            return val;
-        },
-        fileSize: function(size) {
-            size = parseInt(size, 10);
-            if (size === 0) {
-                return '0 KB';
-            }
-            if (!size || size &lt; 0) {
-                return 'Unknown';
-            }
-            if (size &lt; 1024) {
-                return dNumber.format(Math.round(size)) + ' ' + argos.Format.bytesText;
-            }
-            else if ((1024 &lt; size) &amp;&amp; (size &lt; (1024 * 1000))) {
-                return dNumber.format(Math.round(size / 1024)) + ' KB';
-            } else {
-                return dNumber.format(Math.round(size / (1024 * 1000))) + ' MB';
-            }
+      if (dateValue) {
+        dateValue = moment(dateValue);
+        if (utc) {
+          dateValue = dateValue.subtract({
+            minutes: dateValue.utcOffset()
+          });
         }
-    });
 
-    lang.setObject('Sage.Platform.Mobile.Format', __class);
-    return __class;
+        return dateValue.format(fmt || argos.Format.shortDateFormatText);
+      }
+
+      return val;
+    },
+<span id='argos-Format-method-fixed'>    /**
+</span>     * Takes a number and decimal place and floors the number to that place:
+     *
+     * `fixed(5.555, 0)` =&gt; `5`
+     * `fixed(5.555, 2)` =&gt; `5.55`
+     * `fixed(5.555, 5)` =&gt; `5.555`
+     *
+     * @param {Number/String} val The value will be `parseFloat` before operating.
+     * @param {Number} d Number of decimals places to keep, defaults to 2 if not provided.
+     * @return {Number} Fixed number.
+     */
+    fixed: function fixed(val, d) {
+      if (typeof val !== 'number' &amp;&amp; typeof val !== 'string') {
+        return val;
+      }
+
+      var decimals = 2;
+      if (typeof d === 'number') {
+        decimals = d;
+      }
+
+      var m = Math.pow(10, decimals);
+      var v = Math.floor(parseFloat(val) * m) / m;
+
+      return v;
+    },
+<span id='argos-Format-method-percent'>    /**
+</span>     * Takes a decimal number, multiplies by 100 and adds the % sign with the number of palces to the right.
+     *
+     * `perecent(0.35)` =&gt; `'35.00%'`
+     * `perecent(0.35, 0)` =&gt; `'35%'`
+     * `percent(2.9950)` =&gt; `'299.50%'`
+     * `percent(2.9950,0)` =&gt; `'300%'`
+     *
+     * @param {Number/String} val The value will be `parseFloat` before operating.
+     * @param {Number/String} places If no value is given the default value will be set to 2.
+     * @return {String} Number as a percentage with % sign.
+     */
+    percent: function percent(val, places) {
+      var decimalPlaces = 2;
+      if (typeof places === 'number') {
+        decimalPlaces = places;
+      }
+
+      decimalPlaces = Math.floor(decimalPlaces);
+      var intVal = 100 * (parseFloat(val) || 0.00);
+      var v = _utility['default'].roundNumberTo(intVal, decimalPlaces);
+
+      // get the whole number part
+      var wp = Math.floor(v).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1' + Mobile.CultureInfo.numberFormat.percentGroupSeparator.replace('\\.', '.'));
+      var numberFormated = undefined;
+      if (decimalPlaces &lt; 1) {
+        // format with out decimal part
+        numberFormated = _string['default'].substitute('${0}', [wp]).replace(/ /g, ' '); // keep numbers from breaking
+      } else {
+          var dp = v % 1; // get the decimal part
+          dp = dp.toPrecision(decimalPlaces + 1); // round to significant pecsion
+          dp = dp.toString();
+          dp = dp.substr(2, decimalPlaces); // get the whole decimal part
+          numberFormated = _string['default'].substitute('${0}' + Mobile.CultureInfo.numberFormat.percentDecimalSeparator + '${1}', [wp, dp]).replace(/ /g, ' '); // keep numbers from breaking
+        }
+
+      return _string['default'].substitute(argos.Format.percentFormatText, [numberFormated, Mobile.CultureInfo.numberFormat.percentSymbol]);
+    },
+<span id='argos-Format-method-yesNo'>    /**
+</span>     * Takes a boolean value and returns the string Yes or No for true or false
+     * @param {Boolean/String} val If string it tests if the string is `true` for true, else assumes false
+     * @return {String} Yes for true, No for false.
+     */
+    yesNo: function yesNo(val) {
+      var results = val;
+      if (typeof val === 'string') {
+        results = /^true$/i.test(val);
+      }
+
+      return results ? argos.Format.yesText || 'Yes' : argos.Format.noText || 'No';
+    },
+<span id='argos-Format-method-bool'>    /**
+</span>     * Takes a boolean value and returns the string T or F for true or false
+     * @param {Boolean/String} val If string it tests if the string is `true` for true, else assumes false
+     * @return {String} T for true, F for false.
+     */
+    bool: function bool(val) {
+      var results = val;
+      if (typeof val === 'string') {
+        results = /^true$/i.test(val);
+      }
+
+      return results ? argos.Format.trueText || 'T' : argos.Format.falseText || 'F';
+    },
+<span id='argos-Format-method-nl2br'>    /**
+</span>     * Takes a string and converts all new lines `\n` to HTML `&lt;br&gt;` elements.
+     * @param {String} val String with newlines
+     * @return {String} String with replaced `\n` with `&lt;br&gt;`
+     */
+    nl2br: function nl2br(val) {
+      if (typeof val !== 'string') {
+        return val;
+      }
+
+      return val.replace(/\n/g, '&lt;br /&gt;');
+    },
+<span id='argos-Format-method-timespan'>    /**
+</span>     * Takes a number of minutes and turns it into the string: `'n hours m minutes'`
+     * @param {Number/String} val Number of minutes, will be `parseFloat` before operations and fixed to 2 decimal places
+     * @return {String} A string representation of the minutes as `'n hours m minutes'`
+     */
+    timespan: function timespan(val) {
+      var v = argos.Format.fixed(val);
+      if (isNaN(v) || !v) {
+        return '';
+      }
+
+      var hrs = Math.floor(v / 60);
+      var mins = v % 60;
+
+      if (hrs) {
+        hrs = hrs &gt; 1 ? _string['default'].substitute('${0} ${1}', [hrs, argos.Format.hoursText || 'hours']) : _string['default'].substitute('${0} ${1}', [hrs, argos.Format.hourText || 'hour']);
+      }
+
+      if (mins) {
+        mins = mins &gt; 1 ? _string['default'].substitute('${0} ${1}', [mins, argos.Format.minutesText || 'minutes']) : _string['default'].substitute('${0} ${1}', [mins, argos.Format.minuteText || 'minute']);
+      }
+
+      if (hrs &amp;&amp; mins) {
+        return hrs + ' ' + mins;
+      } else if (hrs === 0) {
+        return mins;
+      }
+
+      return hrs;
+    },
+<span id='argos-Format-method-canvasDraw'>    /**
+</span>     * Takes a 2D array of `[[x,y],[x,y]]` number coordinates and draws them onto the provided canvas
+     * The first point marks where the &quot;pen&quot; starts, each sequential point is then &quot;drawn to&quot; as if holding a
+     * pen on paper and moving the pen to the new point.
+     * @param {Number[][]} vector A series of x,y coordinates in the format of: `[[0,0],[1,5]]`
+     * @param {HTMLElement} canvas The `&lt;canvas&gt;` element to be drawn on
+     * @param {Object} options Canvas options: scale, lineWidth and penColor.
+     */
+    canvasDraw: function canvasDraw(vector, canvas, options) {
+      var context = canvas.getContext('2d');
+
+      // Paint canvas white vs. clearing as on Android imageFromVector alpha pixels blacken
+      // context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+      context.fillStyle = 'rgb(255,255,255)';
+      context.fillRect(0, 0, context.canvas.width, context.canvas.height);
+
+      var scale = options &amp;&amp; options.scale ? options.scale : 1;
+      context.lineWidth = options &amp;&amp; options.lineWidth ? options.lineWidth : 1;
+      context.strokeStyle = options &amp;&amp; options.penColor ? options.penColor : 'black';
+
+      for (var trace in vector) {
+        if (vector[trace].length &gt; 1) {
+          context.beginPath();
+          context.moveTo(vector[trace][0][0] * scale, vector[trace][0][1] * scale);
+          for (var i = 1; i &lt; vector[trace].length; i++) {
+            var x = vector[trace][i][0] * scale;
+            var y = vector[trace][i][1] * scale;
+            context.lineTo(x, y);
+          }
+          context.stroke();
+        }
+      }
+    },
+<span id='argos-Format-method-imageFromVector'>    /**
+</span>     * Returns the image data (or img element) for a series of vectors
+     * @param {Number[][]} vector A series of x,y coordinates in the format of: `[[0,0],[1,5]]`. These will be drawn sequentially as one line.
+     * @param {Object} options Canvas options: scale, lineWidth and penColor.
+     * @param {Boolean} html Flag for returning image as a data-uri or as a stringified `&lt;img&gt;` element.
+     * @return {String} The encoded data of the drawn image, optionally wrapped in `&lt;img&gt;` if html was passed as true
+     */
+    imageFromVector: function imageFromVector(vector, options, html) {
+      if (options === undefined) options = {};
+
+      var canvasNode = _domConstruct['default'].create('canvas');
+      var _vector = undefined;
+      if (typeof vector === 'string' || vector instanceof String) {
+        try {
+          _vector = _json['default'].fromJson(vector);
+        } catch (e) {} //eslint-disable-line
+      }
+
+      if (!(_vector instanceof Array) || _vector.length === 0) {
+        _vector = [[]]; // blank image.
+      }
+
+      var size = getVectorMaxSize(_vector);
+
+      canvasNode.width = options.width || size.width;
+      canvasNode.height = options.height || size.height;
+
+      options.scale = Math.min(canvasNode.width / size.width, canvasNode.height / size.height);
+
+      argos.Format.canvasDraw(_vector, canvasNode, options);
+
+      var img = canvasNode.toDataURL('image/png');
+      if (img.indexOf('data:image/png') !== 0) {
+        img = Canvas2Image.saveAsBMP(canvasNode, true).src;
+      }
+
+      return html ? _string['default'].substitute('&lt;img src=&quot;${0}&quot; width=&quot;${1}&quot; height=&quot;${2}&quot; alt=&quot;${3}&quot; /&gt;', [img, options.width, options.height, options.title || '']) : img;
+    },
+<span id='argos-Format-method-phone'>    /**
+</span>     * Takes a string phone input and attempts to match it against the predefined
+     * phone formats - if a match is found it is returned formatted if not it is returned
+     * as is.
+     * @param val {String} String inputted phone number to format
+     * @param asLink {Boolean} True to put the phone in an anchor element pointing to a tel: uri
+     * @returns {String}
+     */
+    phone: function phone(val, asLink) {
+      if (typeof val !== 'string') {
+        return val;
+      }
+
+      var phoneVal = argos.Format.alphaToPhoneNumeric(val);
+      var formatters = argos.Format.phoneFormat;
+      var clean = /^\+/.test(phoneVal) ? phoneVal : phoneVal.replace(/[^0-9x]/ig, '');
+      var formattedMatch = undefined;
+
+      for (var i = 0; i &lt; formatters.length; i++) {
+        var formatter = formatters[i];
+        var match = undefined;
+        if (match = formatter.test.exec(clean)) {
+          formattedMatch = _string['default'].substitute(formatter.format, [phoneVal, clean].concat(match));
+        }
+      }
+
+      if (formattedMatch) {
+        return asLink ? _string['default'].substitute('&lt;a href=&quot;tel:${0}&quot;&gt;${1}&lt;/a&gt;', [clean, formattedMatch]) : formattedMatch;
+      }
+
+      return phoneVal;
+    },
+<span id='argos-Format-method-alphaToPhoneNumeric'>    /**
+</span>     * Takes a string input and converts A-Z to their respective phone number character
+     * `1800CALLME` -&gt; `1800225563`
+     * @param val
+     * @returns {String}
+     */
+    alphaToPhoneNumeric: function alphaToPhoneNumeric(val) {
+      var phoneVal = val;
+      for (var i = 0; i &lt; phoneLettersMap.length; i++) {
+        phoneVal = phoneVal.replace(phoneLettersMap[i].test, phoneLettersMap[i].val);
+      }
+      return phoneVal;
+    },
+    fileSize: function fileSize(size) {
+      var parsedSize = parseInt(size, 10);
+      if (parsedSize === 0) {
+        return '0 KB';
+      }
+      if (!parsedSize || parsedSize &lt; 0) {
+        return 'Unknown';
+      }
+      if (parsedSize &lt; 1024) {
+        return _dNumber['default'].format(Math.round(parsedSize)) + ' ' + argos.Format.bytesText;
+      } else if (parsedSize &gt; 1024 &amp;&amp; parsedSize &lt; 1024 * 1000) {
+        return _dNumber['default'].format(Math.round(parsedSize / 1024)) + ' KB';
+      }
+      return _dNumber['default'].format(Math.round(parsedSize / (1024 * 1000))) + ' MB';
+    }
+  });
+
+  _lang['default'].setObject('Sage.Platform.Mobile.Format', __class);
+  module.exports = __class;
 });
+//# sourceMappingURL=data:application/json;base64,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Ijoic3JjL0Zvcm1hdC5qcyIsInNvdXJjZVJvb3QiOiJzcmMiLCJzb3VyY2VzQ29udGVudCI6WyIvKiBDb3B5cmlnaHQgKGMpIDIwMTAsIFNhZ2UgU29mdHdhcmUsIEluYy4gQWxsIHJpZ2h0cyByZXNlcnZlZC5cclxuICpcclxuICogTGljZW5zZWQgdW5kZXIgdGhlIEFwYWNoZSBMaWNlbnNlLCBWZXJzaW9uIDIuMCAodGhlIFwiTGljZW5zZVwiKTtcclxuICogeW91IG1heSBub3QgdXNlIHRoaXMgZmlsZSBleGNlcHQgaW4gY29tcGxpYW5jZSB3aXRoIHRoZSBMaWNlbnNlLlxyXG4gKiBZb3UgbWF5IG9idGFpbiBhIGNvcHkgb2YgdGhlIExpY2Vuc2UgYXRcclxuICpcclxuICogICAgIGh0dHA6Ly93d3cuYXBhY2hlLm9yZy9saWNlbnNlcy9MSUNFTlNFLTIuMFxyXG4gKlxyXG4gKiBVbmxlc3MgcmVxdWlyZWQgYnkgYXBwbGljYWJsZSBsYXcgb3IgYWdyZWVkIHRvIGluIHdyaXRpbmcsIHNvZnR3YXJlXHJcbiAqIGRpc3RyaWJ1dGVkIHVuZGVyIHRoZSBMaWNlbnNlIGlzIGRpc3RyaWJ1dGVkIG9uIGFuIFwiQVMgSVNcIiBCQVNJUyxcclxuICogV0lUSE9VVCBXQVJSQU5USUVTIE9SIENPTkRJVElPTlMgT0YgQU5ZIEtJTkQsIGVpdGhlciBleHByZXNzIG9yIGltcGxpZWQuXHJcbiAqIFNlZSB0aGUgTGljZW5zZSBmb3IgdGhlIHNwZWNpZmljIGxhbmd1YWdlIGdvdmVybmluZyBwZXJtaXNzaW9ucyBhbmRcclxuICogbGltaXRhdGlvbnMgdW5kZXIgdGhlIExpY2Vuc2UuXHJcbiAqL1xyXG5pbXBvcnQganNvbiBmcm9tICdkb2pvL19iYXNlL2pzb24nO1xyXG5pbXBvcnQgbGFuZyBmcm9tICdkb2pvL19iYXNlL2xhbmcnO1xyXG5pbXBvcnQgYXJyYXkgZnJvbSAnZG9qby9fYmFzZS9hcnJheSc7XHJcbmltcG9ydCBkb21Db25zdHJ1Y3QgZnJvbSAnZG9qby9kb20tY29uc3RydWN0JztcclxuaW1wb3J0IHN0cmluZyBmcm9tICdkb2pvL3N0cmluZyc7XHJcbmltcG9ydCBkTnVtYmVyIGZyb20gJ2Rvam8vbnVtYmVyJztcclxuaW1wb3J0IGNvbnZlcnQgZnJvbSAnLi9Db252ZXJ0JztcclxuaW1wb3J0IHV0aWxpdHkgZnJvbSAnLi9VdGlsaXR5JztcclxuaW1wb3J0IGdldFJlc291cmNlIGZyb20gJy4vSTE4bic7XHJcblxyXG5jb25zdCByZXNvdXJjZSA9IGdldFJlc291cmNlKCdmb3JtYXQnKTtcclxuXHJcbmNvbnN0IGdldFZlY3Rvck1heFNpemUgPSBmdW5jdGlvbiBnZXRWZWN0b3JNYXhTaXplKHYpIHtcclxuICBsZXQgdyA9IDE7XHJcbiAgbGV0IGggPSAxO1xyXG5cclxuICBmb3IgKGxldCBpID0gMDsgaSA8IHYubGVuZ3RoOyBpKyspIHtcclxuICAgIGZvciAobGV0IGogPSAwOyBqIDwgdltpXS5sZW5ndGg7IGorKykge1xyXG4gICAgICBpZiAodyA8IHZbaV1bal1bMF0pIHtcclxuICAgICAgICB3ID0gdltpXVtqXVswXTtcclxuICAgICAgfVxyXG5cclxuICAgICAgaWYgKGggPCB2W2ldW2pdWzFdKSB7XHJcbiAgICAgICAgaCA9IHZbaV1bal1bMV07XHJcbiAgICAgIH1cclxuICAgIH1cclxuICB9XHJcbiAgLy8gbWF5YmUgc2hvdWxkIHJldHVybiBib3VuZGluZyBib3g/ICh4LHksdyxoKVxyXG4gIHJldHVybiB7XHJcbiAgICB3aWR0aDogdyxcclxuICAgIGhlaWdodDogaCxcclxuICB9O1xyXG59O1xyXG5cclxuY29uc3QgcGhvbmVMZXR0ZXJzTWFwID0gW3tcclxuICB0ZXN0OiAvW0FCQ10vZ2ksXHJcbiAgdmFsOiAnMicsXHJcbn0sIHtcclxuICB0ZXN0OiAvW0RFRl0vZ2ksXHJcbiAgdmFsOiAnMycsXHJcbn0sIHtcclxuICB0ZXN0OiAvW0dISV0vZ2ksXHJcbiAgdmFsOiAnNCcsXHJcbn0sIHtcclxuICB0ZXN0OiAvW0pLTF0vZ2ksXHJcbiAgdmFsOiAnNScsXHJcbn0sIHtcclxuICB0ZXN0OiAvW01OT10vZ2ksXHJcbiAgdmFsOiAnNicsXHJcbn0sIHtcclxuICB0ZXN0OiAvW1BRUlNdL2dpLFxyXG4gIHZhbDogJzcnLFxyXG59LCB7XHJcbiAgdGVzdDogL1tUVVZdL2dpLFxyXG4gIHZhbDogJzgnLFxyXG59LCB7XHJcbiAgdGVzdDogL1tXWFlad3l6XS9nLCAvLyBOb3RlIGxvd2VyY2FzZSAneCcgc2hvdWxkIHN0YXkgZm9yIGV4dGVuc2lvbnNcclxuICB2YWw6ICc5JyxcclxufV07XHJcblxyXG5cclxuZnVuY3Rpb24gaXNFbXB0eSh2YWwpIHtcclxuICBpZiAodHlwZW9mIHZhbCAhPT0gJ3N0cmluZycpIHtcclxuICAgIHJldHVybiAhdmFsO1xyXG4gIH1cclxuXHJcbiAgcmV0dXJuICh2YWwubGVuZ3RoIDw9IDApO1xyXG59XHJcblxyXG5mdW5jdGlvbiBlbmNvZGUodmFsKSB7XHJcbiAgaWYgKHR5cGVvZiB2YWwgIT09ICdzdHJpbmcnKSB7XHJcbiAgICByZXR1cm4gdmFsO1xyXG4gIH1cclxuXHJcbiAgcmV0dXJuIHZhbFxyXG4gICAgLnJlcGxhY2UoLyYvZywgJyZhbXA7JylcclxuICAgIC5yZXBsYWNlKC88L2csICcmbHQ7JylcclxuICAgIC5yZXBsYWNlKC8+L2csICcmZ3Q7JylcclxuICAgIC5yZXBsYWNlKC9cIi9nLCAnJnF1b3Q7Jyk7XHJcbn1cclxuXHJcbmZ1bmN0aW9uIGRlY29kZSh2YWwpIHtcclxuICBpZiAodHlwZW9mIHZhbCAhPT0gJ3N0cmluZycpIHtcclxuICAgIHJldHVybiB2YWw7XHJcbiAgfVxyXG5cclxuICByZXR1cm4gdmFsXHJcbiAgICAucmVwbGFjZSgvJmFtcDsvZywgJyYnKVxyXG4gICAgLnJlcGxhY2UoLyZsdDsvZywgJzwnKVxyXG4gICAgLnJlcGxhY2UoLyZndDsvZywgJz4nKVxyXG4gICAgLnJlcGxhY2UoLyZxdW90Oy9nLCAnXCInKTtcclxufVxyXG5cclxubGV0IF9fY2xhc3M7XHJcbi8qKlxyXG4gKiBAY2xhc3MgYXJnb3MuRm9ybWF0XHJcbiAqIEZvcm1hdCBpcyBhIHNpbmdsZXRvbiB0aGF0IHByb3ZpZGVzIHZhcmlvdXMgZm9ybWF0dGluZyBmdW5jdGlvbnMuXHJcbiAqIEBhbHRlcm5hdGVDbGFzc05hbWUgZm9ybWF0XHJcbiAqIEByZXF1aXJlcyBhcmdvcy5Db252ZXJ0XHJcbiAqIEBzaW5nbGV0b25cclxuICovXHJcbl9fY2xhc3MgPSBsYW5nLnNldE9iamVjdCgnYXJnb3MuRm9ybWF0Jywge1xyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7U3RyaW5nfVxyXG4gICAqIFRleHQgdXNlZCBpbiB7QGxpbmsgI3llc05vIHllc05vfSBmb3JtYXR0ZXIgZm9yIHRydWUgdmFsdWVzXHJcbiAgICovXHJcbiAgeWVzVGV4dDogcmVzb3VyY2UueWVzVGV4dCxcclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge1N0cmluZ31cclxuICAgKiBUZXh0IHVzZWQgaW4ge0BsaW5rICN5ZXNObyB5ZXNOb30gZm9ybWF0dGVyIGZvciBmYWxzZSB2YWx1ZXNcclxuICAgKi9cclxuICBub1RleHQ6IHJlc291cmNlLm5vVGV4dCxcclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge1N0cmluZ31cclxuICAgKiBUZXh0IHVzZWQgaW4ge0BsaW5rICNib29sIGJvb2x9IGZvcm1hdHRlciBmb3IgdHJ1ZSB2YWx1ZXNcclxuICAgKi9cclxuICB0cnVlVGV4dDogcmVzb3VyY2UudHJ1ZVRleHQsXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtTdHJpbmd9XHJcbiAgICogVGV4dCB1c2VkIGluIHtAbGluayAjYm9vbCBib29sfSBmb3JtYXR0ZXIgZm9yIGZhbHNlIHZhbHVlc1xyXG4gICAqL1xyXG4gIGZhbHNlVGV4dDogcmVzb3VyY2UuZmFsc2VUZXh0LFxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7U3RyaW5nfVxyXG4gICAqIFRleHQgdXNlZCBpbiB7QGxpbmsgI3RpbWVzcGFuIHRpbWVzcGFufSBmb3JtYXR0ZXIgZm9yIG1vcmUgdGhhbiBvbmUgaG91clxyXG4gICAqL1xyXG4gIGhvdXJzVGV4dDogcmVzb3VyY2UuaG91cnNUZXh0LFxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7U3RyaW5nfVxyXG4gICAqIFRleHQgdXNlZCBpbiB7QGxpbmsgI3RpbWVzcGFuIHRpbWVzcGFufSBmb3JtYXR0ZXIgZm9yIGV4YWN0bHkgb25lIGhvdXJcclxuICAgKi9cclxuICBob3VyVGV4dDogcmVzb3VyY2UuaG91clRleHQsXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtTdHJpbmd9XHJcbiAgICogVGV4dCB1c2VkIGluIHtAbGluayAjdGltZXNwYW4gdGltZXNwYW59IGZvcm1hdHRlciBmb3IgbW9yZSB0aGFuIG9uZSBtaW51dGVcclxuICAgKi9cclxuICBtaW51dGVzVGV4dDogcmVzb3VyY2UubWludXRlc1RleHQsXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtTdHJpbmd9XHJcbiAgICogVGV4dCB1c2VkIGluIHtAbGluayAjdGltZXNwYW4gdGltZXNwYW59IGZvcm1hdHRlciBmb3IgZXhhY3RseSBvbmUgbWludXRlXHJcbiAgICovXHJcbiAgbWludXRlVGV4dDogcmVzb3VyY2UubWludXRlVGV4dCxcclxuXHJcbiAgc2hvcnREYXRlRm9ybWF0VGV4dDogcmVzb3VyY2Uuc2hvcnREYXRlRm9ybWF0VGV4dCxcclxuXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtTdHJpbmd9XHJcbiAgICogZm9ybWF0IHN0cmluZyBmb3IgcGVyY2VudFxyXG4gICAqICogYCR7MH1gIC0gcGVyY2VudCB2YWx1ZVxyXG4gICAqICogYCR7MX1gIC0gcGVyY2VudCBzeW5tYm9sIFwiJVwiXHJcbiAgICovXHJcbiAgcGVyY2VudEZvcm1hdFRleHQ6IHJlc291cmNlLnBlcmNlbnRGb3JtYXRUZXh0LFxyXG4gIC8qKlxyXG4gICAqIFRha2VzIGEgU3RyaW5nIGFuZCBlbmNvZGVzIGAmYCwgYDxgLCBgPmAsIGBcImAgdG8gSFRNTCBlbnRpdGllc1xyXG4gICAqIEBwYXJhbSB7U3RyaW5nfSBTdHJpbmcgdG8gZW5jb2RlXHJcbiAgICogQHJldHVybiB7U3RyaW5nfSBIdG1sIGVuY29kZWQgc3RyaW5nXHJcbiAgICovXHJcbiAgZW5jb2RlOiBlbmNvZGUsXHJcbiAgLyoqXHJcbiAgICogVGFrZXMgYSBTdHJpbmcgYW5kIGRlY29kZXMgYCZgLCBgPGAsIGA+YCwgYFwiYCBmcm9tIEhUTUwgZW50aXRpZXMgYmFjayB0byB0aGUgY2hhcmFjdGVyXHJcbiAgICogQHBhcmFtIHtTdHJpbmd9IFN0cmluZyB0byBkZWNvZGVcclxuICAgKiBAcmV0dXJuIHtTdHJpbmd9IEh0bWwgZGVjb2RlZCBzdHJpbmdcclxuICAgKi9cclxuICBkZWNvZGU6IGRlY29kZSxcclxuICAvKipcclxuICAgKiBEZXRlcm1pbmVzIGlmIHRoZSBnaXZlbiBpdGVtIGlzIGFuIGVtcHR5IHN0cmluZyBvciBlbXB0eSBhcnJ5XHJcbiAgICogQHBhcmFtIHtTdHJpbmcvQXJyYXl9IEl0ZW0gdG8gY2hlY2sgaWYgZW1wdHlcclxuICAgKiBAcmV0dXJuIHtCb29sZWFufSBJZiBwYXNzZWQgaXRlbSBpcyBlbXB0eVxyXG4gICAqL1xyXG4gIGlzRW1wdHk6IGlzRW1wdHksXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtTdHJpbmd9XHJcbiAgICogVGV4dCB1c2VkIGluIGZpbGUgc2l6ZSAgZm9ybWF0dGVyXHJcbiAgICovXHJcbiAgYnl0ZXNUZXh0OiByZXNvdXJjZS5ieXRlc1RleHQsXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtPYmplY3RbXX1cclxuICAgKiBBcnJheSBvZiBvYmplY3RzIHRoYXQgaGF2ZSB0aGUga2V5cyBgdGVzdGAgYW5kIGBmb3JtYXRgIHdoZXJlIGB0ZXN0YCBpcyBhIFJlZ0V4cCB0aGF0XHJcbiAgICogbWF0Y2hlcyB0aGUgcGhvbmUgZ3JvdXBpbmcgYW5kIGBmb3JtYXRgIGlzIHRoZSBzdHJpbmcgZm9ybWF0IHRvIGJlIHJlcGxhY2VkLlxyXG4gICAqXHJcbiAgICogVGhlIFJlZ0V4cCBtYXkgaGF2ZSBjYXB0dXJlIGdyb3VwcyBidXQgd2hlbiB5b3UgYXJlIGRlZmluaW5nIHRoZSBmb3JtYXQgc3RyaW5ncyB1c2U6XHJcbiAgICpcclxuICAgKiAqIGAkezB9YCAtIG9yaWdpbmFsIHZhbHVlXHJcbiAgICogKiBgJHsxfWAgLSBjbGVhbmVkIHZhbHVlXHJcbiAgICogKiBgJHsyfWAgLSBlbnRpcmUgbWF0Y2ggKGFnYWluc3QgY2xlYW4gdmFsdWUpXHJcbiAgICogKiBgJHszLi5ufWAgLSBtYXRjaCBncm91cHMgKGFnYWluc3QgY2xlYW4gdmFsdWUpXHJcbiAgICpcclxuICAgKiBUaGUgYGNsZWFuIHZhbHVlYCBpcyB0YWtpbmcgdGhlIGlucHV0dGVkIG51bWJlcnMvdGV4dCBhbmQgcmVtb3ZpbmcgYW55IG5vbi1udW1iZXJcclxuICAgKiBhbmQgbm9uLVwieFwiIGFuZCBpdCByZXBsYWNlcyBBLVogdG8gdGhlaXIgcmVzcGVjdGl2ZSBwaG9uZSBudW1iZXIgY2hhcmFjdGVyLlxyXG4gICAqXHJcbiAgICogVGhlIHRocmVlIGRlZmF1bHQgZm9ybWF0dGVycyBhcmU6XHJcbiAgICogKiBgbm5uLW5ubm5gXHJcbiAgICogKiBgKG5ubiktbm5uLW5ubm5gXHJcbiAgICogKiBgKG5ubiktbm5uLW5ubnhubm5uYFxyXG4gICAqXHJcbiAgICogSWYgeW91IHBsYW4gdG8gb3ZlcnJpZGUgdGhpcyB2YWx1ZSBtYWtlIHN1cmUgeW91IGluY2x1ZGUgdGhlIGRlZmF1bHQgb25lcyBwcm92aWRlZC5cclxuICAgKlxyXG4gICAqL1xyXG4gIHBob25lRm9ybWF0OiBbe1xyXG4gICAgdGVzdDogL15cXCsuKi8sXHJcbiAgICBmb3JtYXQ6ICckezB9JyxcclxuICB9LCB7XHJcbiAgICB0ZXN0OiAvXihcXGR7M30pKFxcZHszLDR9KSQvLFxyXG4gICAgZm9ybWF0OiAnJHszfS0kezR9JyxcclxuICB9LCB7XHJcbiAgICB0ZXN0OiAvXihcXGR7M30pKFxcZHszfSkoXFxkezIsNH0pJC8sIC8vIDU1NSA1NTUgNTU1NVxyXG4gICAgZm9ybWF0OiAnKCR7M30pLSR7NH0tJHs1fScsXHJcbiAgfSwge1xyXG4gICAgdGVzdDogL14oXFxkezN9KShcXGR7M30pKFxcZHsyLDR9KShbXjAtOV17MSx9LiopJC8sIC8vIDU1NSA1NTUgNTU1NXhcclxuICAgIGZvcm1hdDogJygkezN9KS0kezR9LSR7NX0kezZ9JyxcclxuICB9LCB7XHJcbiAgICB0ZXN0OiAvXihcXGR7MTEsfSkoLiopJC8sXHJcbiAgICBmb3JtYXQ6ICckezF9JyxcclxuICB9XSxcclxuICAvKipcclxuICAgKiBUYWtlcyBhIHVybCBzdHJpbmcgYW5kIHdyYXBzIGl0IHdpdGggYW4gYDxhPmAgZWxlbWVudCB3aXRoIGBocmVmPWAgcG9pbnRpbmcgdG8gdGhlIHVybC5cclxuICAgKiBAcGFyYW0ge1N0cmluZ30gdmFsIFVybCBzdHJpbmcgdG8gYmUgd3JhcHBlZFxyXG4gICAqIEByZXR1cm4ge1N0cmluZ30gQW4gYDxhPmAgZWxlbWVudCBhcyBhIHN0cmluZy5cclxuICAgKi9cclxuICBsaW5rOiBmdW5jdGlvbiBsaW5rKHZhbCkge1xyXG4gICAgaWYgKHR5cGVvZiB2YWwgIT09ICdzdHJpbmcnKSB7XHJcbiAgICAgIHJldHVybiB2YWw7XHJcbiAgICB9XHJcblxyXG4gICAgLy8gQ2hlY2sgaWYgdGhlIHVzZXIgc3BlY2lmaWVkIGEgVVJJIHNjaGVtZSxcclxuICAgIC8vIGRvZXMgbm90IGluY2x1ZGUgYWxsIFVSSSBTY2hlbWVzLCBzdWNoIGFzIHRlbDosIGV0Yy5cclxuICAgIGNvbnN0IHNjaGVtZXMgPSBbJzovLycsICdtYWlsdG86J107XHJcbiAgICBjb25zdCBoYXNVUklTY2hlbWUgPSBhcnJheS5zb21lKHNjaGVtZXMsIGZ1bmN0aW9uIHNvbWUoc2NoZW1lKSB7XHJcbiAgICAgIHJldHVybiB2YWwuaW5kZXhPZihzY2hlbWUpID4gLTE7XHJcbiAgICB9KTtcclxuXHJcbiAgICBpZiAoaGFzVVJJU2NoZW1lKSB7XHJcbiAgICAgIHJldHVybiBzdHJpbmcuc3Vic3RpdHV0ZSgnPGEgdGFyZ2V0PVwiX2JsYW5rXCIgaHJlZj1cIiR7MH1cIj4kezB9PC9hPicsIFt2YWxdKTtcclxuICAgIH1cclxuXHJcbiAgICAvLyBTcGVjaWZ5IGEgZGVmYXVsdCBVUkkgc2NoZW1lIG9mIGh0dHBcclxuICAgIHJldHVybiBzdHJpbmcuc3Vic3RpdHV0ZSgnPGEgdGFyZ2V0PVwiX2JsYW5rXCIgaHJlZj1cImh0dHA6Ly8kezB9XCI+JHswfTwvYT4nLCBbdmFsXSk7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBUYWtlcyBhbiBlbWFpbCBzdHJpbmcgYW5kIHdyYXBzIGl0IHdpdGggYW4gYDxhPmAgZWxlbWVudCB3aXRoIGBocmVmPVwibWFpbHRvOlwiYCBwb2ludGluZyB0byB0aGUgZW1haWwuXHJcbiAgICogQHBhcmFtIHtTdHJpbmd9IHZhbCBFbWFpbCBzdHJpbmcgdG8gYmUgd3JhcHBlZFxyXG4gICAqIEByZXR1cm4ge1N0cmluZ30gQW4gYDxhPmAgZWxlbWVudCBhcyBhIHN0cmluZy5cclxuICAgKi9cclxuICBtYWlsOiBmdW5jdGlvbiBtYWlsKHZhbCkge1xyXG4gICAgaWYgKHR5cGVvZiB2YWwgIT09ICdzdHJpbmcnKSB7XHJcbiAgICAgIHJldHVybiB2YWw7XHJcbiAgICB9XHJcblxyXG4gICAgcmV0dXJuIHN0cmluZy5zdWJzdGl0dXRlKCc8YSBocmVmPVwibWFpbHRvOiR7MH1cIj4kezB9PC9hPicsIFt2YWxdKTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIFJlbW92ZXMgd2hpdGVzcGFjZSBmcm9tIGZyb20gYW5kIGVuZCBvZiBzdHJpbmdcclxuICAgKiBAcGFyYW0ge1N0cmluZ30gdmFsIFN0cmluZyB0byBiZSB0cmltbWVkXHJcbiAgICogQHJldHVybiB7U3RyaW5nfSBTdHJpbmcgd2l0aG91dCBzcGFjZSBvbiBlaXRoZXIgZW5kXHJcbiAgICovXHJcbiAgdHJpbTogZnVuY3Rpb24gdHJpbSh2YWwpIHtcclxuICAgIHJldHVybiB2YWwucmVwbGFjZSgvXlxccyt8XFxzKyQvZywgJycpO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogVGFrZXMgYSBkYXRlIGFuZCBmb3JtYXQgc3RyaW5nIGFuZCByZXR1cm5zIHRoZSBmb3JtYXR0ZWQgZGF0ZSBhcyBhIHN0cmluZy5cclxuICAgKiBAcGFyYW0ge0RhdGUvU3RyaW5nfSB2YWwgRGF0ZSB0byBiZSBjb252ZXJ0ZWQuIElmIHN0cmluZyBpcyBwYXNzZWQgaXQgaXMgY29udmVydGVkIHRvIGEgZGF0ZSB1c2luZyB7QGxpbmsgY29udmVydCN0b0RhdGVGcm9tU3RyaW5nIENvbnZlcnRzIHRvRGF0ZUZyb21TdHJpbmd9LlxyXG4gICAqIEBwYXJhbSB7U3RyaW5nfSBmbXQgRm9ybWF0IHN0cmluZyBmb2xsb3dpbmcgW2RhdGVqcyBmb3JtYXR0aW5nXShodHRwOi8vY29kZS5nb29nbGUuY29tL3AvZGF0ZWpzL3dpa2kvRm9ybWF0U3BlY2lmaWVycykuXHJcbiAgICogQHBhcmFtIHtCb29sZWFufSB1dGMgSWYgYSBkYXRlIHNob3VsZCBiZSBpbiBVVEMgdGltZSBzZXQgdGhpcyBmbGFnIHRvIHRydWUgdG8gY291bnRlci1hY3QgamF2YXNjcmlwdHMgYnVpbHQtaW4gdGltZXpvbmUgYXBwbGllci5cclxuICAgKiBAcmV0dXJuIHtTdHJpbmd9IERhdGUgZm9ybWF0dGVkIGFzIGEgc3RyaW5nLlxyXG4gICAqL1xyXG4gIGRhdGU6IGZ1bmN0aW9uIGRhdGUodmFsLCBmbXQsIHV0Yykge1xyXG4gICAgbGV0IGRhdGVWYWx1ZTtcclxuICAgIGlmICh2YWwgaW5zdGFuY2VvZiBEYXRlKSB7XHJcbiAgICAgIGRhdGVWYWx1ZSA9IHZhbDtcclxuICAgIH0gZWxzZSBpZiAoY29udmVydC5pc0RhdGVTdHJpbmcodmFsKSkge1xyXG4gICAgICBkYXRlVmFsdWUgPSBjb252ZXJ0LnRvRGF0ZUZyb21TdHJpbmcodmFsKTtcclxuICAgIH0gZWxzZSB7XHJcbiAgICAgIGRhdGVWYWx1ZSA9IG51bGw7XHJcbiAgICB9XHJcblxyXG4gICAgaWYgKGRhdGVWYWx1ZSkge1xyXG4gICAgICBkYXRlVmFsdWUgPSBtb21lbnQoZGF0ZVZhbHVlKTtcclxuICAgICAgaWYgKHV0Yykge1xyXG4gICAgICAgIGRhdGVWYWx1ZSA9IGRhdGVWYWx1ZS5zdWJ0cmFjdCh7XHJcbiAgICAgICAgICBtaW51dGVzOiBkYXRlVmFsdWUudXRjT2Zmc2V0KCksXHJcbiAgICAgICAgfSk7XHJcbiAgICAgIH1cclxuXHJcbiAgICAgIHJldHVybiBkYXRlVmFsdWUuZm9ybWF0KGZtdCB8fCBhcmdvcy5Gb3JtYXQuc2hvcnREYXRlRm9ybWF0VGV4dCk7XHJcbiAgICB9XHJcblxyXG4gICAgcmV0dXJuIHZhbDtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIFRha2VzIGEgbnVtYmVyIGFuZCBkZWNpbWFsIHBsYWNlIGFuZCBmbG9vcnMgdGhlIG51bWJlciB0byB0aGF0IHBsYWNlOlxyXG4gICAqXHJcbiAgICogYGZpeGVkKDUuNTU1LCAwKWAgPT4gYDVgXHJcbiAgICogYGZpeGVkKDUuNTU1LCAyKWAgPT4gYDUuNTVgXHJcbiAgICogYGZpeGVkKDUuNTU1LCA1KWAgPT4gYDUuNTU1YFxyXG4gICAqXHJcbiAgICogQHBhcmFtIHtOdW1iZXIvU3RyaW5nfSB2YWwgVGhlIHZhbHVlIHdpbGwgYmUgYHBhcnNlRmxvYXRgIGJlZm9yZSBvcGVyYXRpbmcuXHJcbiAgICogQHBhcmFtIHtOdW1iZXJ9IGQgTnVtYmVyIG9mIGRlY2ltYWxzIHBsYWNlcyB0byBrZWVwLCBkZWZhdWx0cyB0byAyIGlmIG5vdCBwcm92aWRlZC5cclxuICAgKiBAcmV0dXJuIHtOdW1iZXJ9IEZpeGVkIG51bWJlci5cclxuICAgKi9cclxuICBmaXhlZDogZnVuY3Rpb24gZml4ZWQodmFsLCBkKSB7XHJcbiAgICBpZiAodHlwZW9mIHZhbCAhPT0gJ251bWJlcicgJiYgdHlwZW9mIHZhbCAhPT0gJ3N0cmluZycpIHtcclxuICAgICAgcmV0dXJuIHZhbDtcclxuICAgIH1cclxuXHJcbiAgICBsZXQgZGVjaW1hbHMgPSAyO1xyXG4gICAgaWYgKHR5cGVvZiBkID09PSAnbnVtYmVyJykge1xyXG4gICAgICBkZWNpbWFscyA9IGQ7XHJcbiAgICB9XHJcblxyXG4gICAgY29uc3QgbSA9IE1hdGgucG93KDEwLCBkZWNpbWFscyk7XHJcbiAgICBjb25zdCB2ID0gTWF0aC5mbG9vcihwYXJzZUZsb2F0KHZhbCkgKiBtKSAvIG07XHJcblxyXG4gICAgcmV0dXJuIHY7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBUYWtlcyBhIGRlY2ltYWwgbnVtYmVyLCBtdWx0aXBsaWVzIGJ5IDEwMCBhbmQgYWRkcyB0aGUgJSBzaWduIHdpdGggdGhlIG51bWJlciBvZiBwYWxjZXMgdG8gdGhlIHJpZ2h0LlxyXG4gICAqXHJcbiAgICogYHBlcmVjZW50KDAuMzUpYCA9PiBgJzM1LjAwJSdgXHJcbiAgICogYHBlcmVjZW50KDAuMzUsIDApYCA9PiBgJzM1JSdgXHJcbiAgICogYHBlcmNlbnQoMi45OTUwKWAgPT4gYCcyOTkuNTAlJ2BcclxuICAgKiBgcGVyY2VudCgyLjk5NTAsMClgID0+IGAnMzAwJSdgXHJcbiAgICpcclxuICAgKiBAcGFyYW0ge051bWJlci9TdHJpbmd9IHZhbCBUaGUgdmFsdWUgd2lsbCBiZSBgcGFyc2VGbG9hdGAgYmVmb3JlIG9wZXJhdGluZy5cclxuICAgKiBAcGFyYW0ge051bWJlci9TdHJpbmd9IHBsYWNlcyBJZiBubyB2YWx1ZSBpcyBnaXZlbiB0aGUgZGVmYXVsdCB2YWx1ZSB3aWxsIGJlIHNldCB0byAyLlxyXG4gICAqIEByZXR1cm4ge1N0cmluZ30gTnVtYmVyIGFzIGEgcGVyY2VudGFnZSB3aXRoICUgc2lnbi5cclxuICAgKi9cclxuICBwZXJjZW50OiBmdW5jdGlvbiBwZXJjZW50KHZhbCwgcGxhY2VzKSB7XHJcbiAgICBsZXQgZGVjaW1hbFBsYWNlcyA9IDI7XHJcbiAgICBpZiAodHlwZW9mIHBsYWNlcyA9PT0gJ251bWJlcicpIHtcclxuICAgICAgZGVjaW1hbFBsYWNlcyA9IHBsYWNlcztcclxuICAgIH1cclxuXHJcbiAgICBkZWNpbWFsUGxhY2VzID0gTWF0aC5mbG9vcihkZWNpbWFsUGxhY2VzKTtcclxuICAgIGNvbnN0IGludFZhbCA9IDEwMCAqIChwYXJzZUZsb2F0KHZhbCkgfHwgMC4wMCk7XHJcbiAgICBjb25zdCB2ID0gdXRpbGl0eS5yb3VuZE51bWJlclRvKGludFZhbCwgZGVjaW1hbFBsYWNlcyk7XHJcblxyXG4gICAgLy8gZ2V0IHRoZSB3aG9sZSBudW1iZXIgcGFydFxyXG4gICAgY29uc3Qgd3AgPSAoTWF0aC5mbG9vcih2KSkudG9TdHJpbmcoKS5yZXBsYWNlKC8oXFxkKSg/PShcXGR7M30pKyg/IVxcZCkpL2csICckMScgKyBNb2JpbGUuQ3VsdHVyZUluZm8ubnVtYmVyRm9ybWF0LnBlcmNlbnRHcm91cFNlcGFyYXRvci5yZXBsYWNlKCdcXFxcLicsICcuJykpO1xyXG4gICAgbGV0IG51bWJlckZvcm1hdGVkO1xyXG4gICAgaWYgKGRlY2ltYWxQbGFjZXMgPCAxKSB7IC8vIGZvcm1hdCB3aXRoIG91dCBkZWNpbWFsIHBhcnRcclxuICAgICAgbnVtYmVyRm9ybWF0ZWQgPSBzdHJpbmcuc3Vic3RpdHV0ZSgnJHswfScsIFt3cF0pLnJlcGxhY2UoLyAvZywgJ1xcdTAwQTAnKTsgLy8ga2VlcCBudW1iZXJzIGZyb20gYnJlYWtpbmdcclxuICAgIH0gZWxzZSB7XHJcbiAgICAgIGxldCBkcCA9IHYgJSAxOyAvLyBnZXQgdGhlIGRlY2ltYWwgcGFydFxyXG4gICAgICBkcCA9IGRwLnRvUHJlY2lzaW9uKGRlY2ltYWxQbGFjZXMgKyAxKTsgLy8gcm91bmQgdG8gc2lnbmlmaWNhbnQgcGVjc2lvblxyXG4gICAgICBkcCA9IGRwLnRvU3RyaW5nKCk7XHJcbiAgICAgIGRwID0gZHAuc3Vic3RyKDIsIGRlY2ltYWxQbGFjZXMpOyAvLyBnZXQgdGhlIHdob2xlIGRlY2ltYWwgcGFydFxyXG4gICAgICBudW1iZXJGb3JtYXRlZCA9IHN0cmluZy5zdWJzdGl0dXRlKFxyXG4gICAgICAgICckezB9JyArIE1vYmlsZS5DdWx0dXJlSW5mby5udW1iZXJGb3JtYXQucGVyY2VudERlY2ltYWxTZXBhcmF0b3IgKyAnJHsxfScsIFt3cCwgZHBdXHJcbiAgICAgICkucmVwbGFjZSgvIC9nLCAnXFx1MDBBMCcpOyAvLyBrZWVwIG51bWJlcnMgZnJvbSBicmVha2luZ1xyXG4gICAgfVxyXG5cclxuICAgIHJldHVybiBzdHJpbmcuc3Vic3RpdHV0ZShhcmdvcy5Gb3JtYXQucGVyY2VudEZvcm1hdFRleHQsIFtudW1iZXJGb3JtYXRlZCwgTW9iaWxlLkN1bHR1cmVJbmZvLm51bWJlckZvcm1hdC5wZXJjZW50U3ltYm9sXSk7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBUYWtlcyBhIGJvb2xlYW4gdmFsdWUgYW5kIHJldHVybnMgdGhlIHN0cmluZyBZZXMgb3IgTm8gZm9yIHRydWUgb3IgZmFsc2VcclxuICAgKiBAcGFyYW0ge0Jvb2xlYW4vU3RyaW5nfSB2YWwgSWYgc3RyaW5nIGl0IHRlc3RzIGlmIHRoZSBzdHJpbmcgaXMgYHRydWVgIGZvciB0cnVlLCBlbHNlIGFzc3VtZXMgZmFsc2VcclxuICAgKiBAcmV0dXJuIHtTdHJpbmd9IFllcyBmb3IgdHJ1ZSwgTm8gZm9yIGZhbHNlLlxyXG4gICAqL1xyXG4gIHllc05vOiBmdW5jdGlvbiB5ZXNObyh2YWwpIHtcclxuICAgIGxldCByZXN1bHRzID0gdmFsO1xyXG4gICAgaWYgKHR5cGVvZiB2YWwgPT09ICdzdHJpbmcnKSB7XHJcbiAgICAgIHJlc3VsdHMgPSAvXnRydWUkL2kudGVzdCh2YWwpO1xyXG4gICAgfVxyXG5cclxuICAgIHJldHVybiByZXN1bHRzID8gYXJnb3MuRm9ybWF0Lnllc1RleHQgfHwgJ1llcycgOiBhcmdvcy5Gb3JtYXQubm9UZXh0IHx8ICdObyc7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBUYWtlcyBhIGJvb2xlYW4gdmFsdWUgYW5kIHJldHVybnMgdGhlIHN0cmluZyBUIG9yIEYgZm9yIHRydWUgb3IgZmFsc2VcclxuICAgKiBAcGFyYW0ge0Jvb2xlYW4vU3RyaW5nfSB2YWwgSWYgc3RyaW5nIGl0IHRlc3RzIGlmIHRoZSBzdHJpbmcgaXMgYHRydWVgIGZvciB0cnVlLCBlbHNlIGFzc3VtZXMgZmFsc2VcclxuICAgKiBAcmV0dXJuIHtTdHJpbmd9IFQgZm9yIHRydWUsIEYgZm9yIGZhbHNlLlxyXG4gICAqL1xyXG4gIGJvb2w6IGZ1bmN0aW9uIGJvb2wodmFsKSB7XHJcbiAgICBsZXQgcmVzdWx0cyA9IHZhbDtcclxuICAgIGlmICh0eXBlb2YgdmFsID09PSAnc3RyaW5nJykge1xyXG4gICAgICByZXN1bHRzID0gL150cnVlJC9pLnRlc3QodmFsKTtcclxuICAgIH1cclxuXHJcbiAgICByZXR1cm4gcmVzdWx0cyA/IGFyZ29zLkZvcm1hdC50cnVlVGV4dCB8fCAnVCcgOiBhcmdvcy5Gb3JtYXQuZmFsc2VUZXh0IHx8ICdGJztcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIFRha2VzIGEgc3RyaW5nIGFuZCBjb252ZXJ0cyBhbGwgbmV3IGxpbmVzIGBcXG5gIHRvIEhUTUwgYDxicj5gIGVsZW1lbnRzLlxyXG4gICAqIEBwYXJhbSB7U3RyaW5nfSB2YWwgU3RyaW5nIHdpdGggbmV3bGluZXNcclxuICAgKiBAcmV0dXJuIHtTdHJpbmd9IFN0cmluZyB3aXRoIHJlcGxhY2VkIGBcXG5gIHdpdGggYDxicj5gXHJcbiAgICovXHJcbiAgbmwyYnI6IGZ1bmN0aW9uIG5sMmJyKHZhbCkge1xyXG4gICAgaWYgKHR5cGVvZiB2YWwgIT09ICdzdHJpbmcnKSB7XHJcbiAgICAgIHJldHVybiB2YWw7XHJcbiAgICB9XHJcblxyXG4gICAgcmV0dXJuIHZhbC5yZXBsYWNlKC9cXG4vZywgJzxiciAvPicpO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogVGFrZXMgYSBudW1iZXIgb2YgbWludXRlcyBhbmQgdHVybnMgaXQgaW50byB0aGUgc3RyaW5nOiBgJ24gaG91cnMgbSBtaW51dGVzJ2BcclxuICAgKiBAcGFyYW0ge051bWJlci9TdHJpbmd9IHZhbCBOdW1iZXIgb2YgbWludXRlcywgd2lsbCBiZSBgcGFyc2VGbG9hdGAgYmVmb3JlIG9wZXJhdGlvbnMgYW5kIGZpeGVkIHRvIDIgZGVjaW1hbCBwbGFjZXNcclxuICAgKiBAcmV0dXJuIHtTdHJpbmd9IEEgc3RyaW5nIHJlcHJlc2VudGF0aW9uIG9mIHRoZSBtaW51dGVzIGFzIGAnbiBob3VycyBtIG1pbnV0ZXMnYFxyXG4gICAqL1xyXG4gIHRpbWVzcGFuOiBmdW5jdGlvbiB0aW1lc3Bhbih2YWwpIHtcclxuICAgIGNvbnN0IHYgPSBhcmdvcy5Gb3JtYXQuZml4ZWQodmFsKTtcclxuICAgIGlmIChpc05hTih2KSB8fCAhdikge1xyXG4gICAgICByZXR1cm4gJyc7XHJcbiAgICB9XHJcblxyXG4gICAgbGV0IGhycyA9IE1hdGguZmxvb3IodiAvIDYwKTtcclxuICAgIGxldCBtaW5zID0gdiAlIDYwO1xyXG5cclxuICAgIGlmIChocnMpIHtcclxuICAgICAgaHJzID0gaHJzID4gMSA/IHN0cmluZy5zdWJzdGl0dXRlKCckezB9ICR7MX0nLCBbaHJzLCAoYXJnb3MuRm9ybWF0LmhvdXJzVGV4dCB8fCAnaG91cnMnKV0pIDogc3RyaW5nLnN1YnN0aXR1dGUoJyR7MH0gJHsxfScsIFtocnMsIChhcmdvcy5Gb3JtYXQuaG91clRleHQgfHwgJ2hvdXInKV0pO1xyXG4gICAgfVxyXG5cclxuICAgIGlmIChtaW5zKSB7XHJcbiAgICAgIG1pbnMgPSBtaW5zID4gMSA/IHN0cmluZy5zdWJzdGl0dXRlKCckezB9ICR7MX0nLCBbbWlucywgKGFyZ29zLkZvcm1hdC5taW51dGVzVGV4dCB8fCAnbWludXRlcycpXSkgOiBzdHJpbmcuc3Vic3RpdHV0ZSgnJHswfSAkezF9JywgW21pbnMsIChhcmdvcy5Gb3JtYXQubWludXRlVGV4dCB8fCAnbWludXRlJyldKTtcclxuICAgIH1cclxuXHJcbiAgICBpZiAoaHJzICYmIG1pbnMpIHtcclxuICAgICAgcmV0dXJuIGAke2hyc30gJHttaW5zfWA7XHJcbiAgICB9IGVsc2UgaWYgKGhycyA9PT0gMCkge1xyXG4gICAgICByZXR1cm4gbWlucztcclxuICAgIH1cclxuXHJcbiAgICByZXR1cm4gaHJzO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogVGFrZXMgYSAyRCBhcnJheSBvZiBgW1t4LHldLFt4LHldXWAgbnVtYmVyIGNvb3JkaW5hdGVzIGFuZCBkcmF3cyB0aGVtIG9udG8gdGhlIHByb3ZpZGVkIGNhbnZhc1xyXG4gICAqIFRoZSBmaXJzdCBwb2ludCBtYXJrcyB3aGVyZSB0aGUgXCJwZW5cIiBzdGFydHMsIGVhY2ggc2VxdWVudGlhbCBwb2ludCBpcyB0aGVuIFwiZHJhd24gdG9cIiBhcyBpZiBob2xkaW5nIGFcclxuICAgKiBwZW4gb24gcGFwZXIgYW5kIG1vdmluZyB0aGUgcGVuIHRvIHRoZSBuZXcgcG9pbnQuXHJcbiAgICogQHBhcmFtIHtOdW1iZXJbXVtdfSB2ZWN0b3IgQSBzZXJpZXMgb2YgeCx5IGNvb3JkaW5hdGVzIGluIHRoZSBmb3JtYXQgb2Y6IGBbWzAsMF0sWzEsNV1dYFxyXG4gICAqIEBwYXJhbSB7SFRNTEVsZW1lbnR9IGNhbnZhcyBUaGUgYDxjYW52YXM+YCBlbGVtZW50IHRvIGJlIGRyYXduIG9uXHJcbiAgICogQHBhcmFtIHtPYmplY3R9IG9wdGlvbnMgQ2FudmFzIG9wdGlvbnM6IHNjYWxlLCBsaW5lV2lkdGggYW5kIHBlbkNvbG9yLlxyXG4gICAqL1xyXG4gIGNhbnZhc0RyYXc6IGZ1bmN0aW9uIGNhbnZhc0RyYXcodmVjdG9yLCBjYW52YXMsIG9wdGlvbnMpIHtcclxuICAgIGNvbnN0IGNvbnRleHQgPSBjYW52YXMuZ2V0Q29udGV4dCgnMmQnKTtcclxuXHJcbiAgICAvLyBQYWludCBjYW52YXMgd2hpdGUgdnMuIGNsZWFyaW5nIGFzIG9uIEFuZHJvaWQgaW1hZ2VGcm9tVmVjdG9yIGFscGhhIHBpeGVscyBibGFja2VuXHJcbiAgICAvLyBjb250ZXh0LmNsZWFyUmVjdCgwLCAwLCBjb250ZXh0LmNhbnZhcy53aWR0aCwgY29udGV4dC5jYW52YXMuaGVpZ2h0KTtcclxuICAgIGNvbnRleHQuZmlsbFN0eWxlID0gJ3JnYigyNTUsMjU1LDI1NSknO1xyXG4gICAgY29udGV4dC5maWxsUmVjdCgwLCAwLCBjb250ZXh0LmNhbnZhcy53aWR0aCwgY29udGV4dC5jYW52YXMuaGVpZ2h0KTtcclxuXHJcbiAgICBjb25zdCBzY2FsZSA9IG9wdGlvbnMgJiYgb3B0aW9ucy5zY2FsZSA/IG9wdGlvbnMuc2NhbGUgOiAxO1xyXG4gICAgY29udGV4dC5saW5lV2lkdGggPSBvcHRpb25zICYmIG9wdGlvbnMubGluZVdpZHRoID8gb3B0aW9ucy5saW5lV2lkdGggOiAxO1xyXG4gICAgY29udGV4dC5zdHJva2VTdHlsZSA9IG9wdGlvbnMgJiYgb3B0aW9ucy5wZW5Db2xvciA/IG9wdGlvbnMucGVuQ29sb3IgOiAnYmxhY2snO1xyXG5cclxuICAgIGZvciAoY29uc3QgdHJhY2UgaW4gdmVjdG9yKSB7XHJcbiAgICAgIGlmICh2ZWN0b3JbdHJhY2VdLmxlbmd0aCA+IDEpIHtcclxuICAgICAgICBjb250ZXh0LmJlZ2luUGF0aCgpO1xyXG4gICAgICAgIGNvbnRleHQubW92ZVRvKHZlY3Rvclt0cmFjZV1bMF1bMF0gKiBzY2FsZSwgdmVjdG9yW3RyYWNlXVswXVsxXSAqIHNjYWxlKTtcclxuICAgICAgICBmb3IgKGxldCBpID0gMTsgaSA8IHZlY3Rvclt0cmFjZV0ubGVuZ3RoOyBpKyspIHtcclxuICAgICAgICAgIGNvbnN0IHggPSB2ZWN0b3JbdHJhY2VdW2ldWzBdICogc2NhbGU7XHJcbiAgICAgICAgICBjb25zdCB5ID0gdmVjdG9yW3RyYWNlXVtpXVsxXSAqIHNjYWxlO1xyXG4gICAgICAgICAgY29udGV4dC5saW5lVG8oeCwgeSk7XHJcbiAgICAgICAgfVxyXG4gICAgICAgIGNvbnRleHQuc3Ryb2tlKCk7XHJcbiAgICAgIH1cclxuICAgIH1cclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIFJldHVybnMgdGhlIGltYWdlIGRhdGEgKG9yIGltZyBlbGVtZW50KSBmb3IgYSBzZXJpZXMgb2YgdmVjdG9yc1xyXG4gICAqIEBwYXJhbSB7TnVtYmVyW11bXX0gdmVjdG9yIEEgc2VyaWVzIG9mIHgseSBjb29yZGluYXRlcyBpbiB0aGUgZm9ybWF0IG9mOiBgW1swLDBdLFsxLDVdXWAuIFRoZXNlIHdpbGwgYmUgZHJhd24gc2VxdWVudGlhbGx5IGFzIG9uZSBsaW5lLlxyXG4gICAqIEBwYXJhbSB7T2JqZWN0fSBvcHRpb25zIENhbnZhcyBvcHRpb25zOiBzY2FsZSwgbGluZVdpZHRoIGFuZCBwZW5Db2xvci5cclxuICAgKiBAcGFyYW0ge0Jvb2xlYW59IGh0bWwgRmxhZyBmb3IgcmV0dXJuaW5nIGltYWdlIGFzIGEgZGF0YS11cmkgb3IgYXMgYSBzdHJpbmdpZmllZCBgPGltZz5gIGVsZW1lbnQuXHJcbiAgICogQHJldHVybiB7U3RyaW5nfSBUaGUgZW5jb2RlZCBkYXRhIG9mIHRoZSBkcmF3biBpbWFnZSwgb3B0aW9uYWxseSB3cmFwcGVkIGluIGA8aW1nPmAgaWYgaHRtbCB3YXMgcGFzc2VkIGFzIHRydWVcclxuICAgKi9cclxuICBpbWFnZUZyb21WZWN0b3I6IGZ1bmN0aW9uIGltYWdlRnJvbVZlY3Rvcih2ZWN0b3IsIG9wdGlvbnMgPSB7fSwgaHRtbCkge1xyXG4gICAgY29uc3QgY2FudmFzTm9kZSA9IGRvbUNvbnN0cnVjdC5jcmVhdGUoJ2NhbnZhcycpO1xyXG4gICAgbGV0IF92ZWN0b3I7XHJcbiAgICBpZiAodHlwZW9mIHZlY3RvciA9PT0gJ3N0cmluZycgfHwgdmVjdG9yIGluc3RhbmNlb2YgU3RyaW5nKSB7XHJcbiAgICAgIHRyeSB7XHJcbiAgICAgICAgX3ZlY3RvciA9IGpzb24uZnJvbUpzb24odmVjdG9yKTtcclxuICAgICAgfSBjYXRjaCAoZSkge30vL2VzbGludC1kaXNhYmxlLWxpbmVcclxuICAgIH1cclxuXHJcbiAgICBpZiAoIShfdmVjdG9yIGluc3RhbmNlb2YgQXJyYXkpIHx8IF92ZWN0b3IubGVuZ3RoID09PSAwKSB7XHJcbiAgICAgIF92ZWN0b3IgPSBbXHJcbiAgICAgICAgW10sXHJcbiAgICAgIF07IC8vIGJsYW5rIGltYWdlLlxyXG4gICAgfVxyXG5cclxuICAgIGNvbnN0IHNpemUgPSBnZXRWZWN0b3JNYXhTaXplKF92ZWN0b3IpO1xyXG5cclxuICAgIGNhbnZhc05vZGUud2lkdGggPSBvcHRpb25zLndpZHRoIHx8IHNpemUud2lkdGg7XHJcbiAgICBjYW52YXNOb2RlLmhlaWdodCA9IG9wdGlvbnMuaGVpZ2h0IHx8IHNpemUuaGVpZ2h0O1xyXG5cclxuICAgIG9wdGlvbnMuc2NhbGUgPSBNYXRoLm1pbihcclxuICAgICAgY2FudmFzTm9kZS53aWR0aCAvIHNpemUud2lkdGgsXHJcbiAgICAgIGNhbnZhc05vZGUuaGVpZ2h0IC8gc2l6ZS5oZWlnaHRcclxuICAgICk7XHJcblxyXG4gICAgYXJnb3MuRm9ybWF0LmNhbnZhc0RyYXcoX3ZlY3RvciwgY2FudmFzTm9kZSwgb3B0aW9ucyk7XHJcblxyXG4gICAgbGV0IGltZyA9IGNhbnZhc05vZGUudG9EYXRhVVJMKCdpbWFnZS9wbmcnKTtcclxuICAgIGlmIChpbWcuaW5kZXhPZignZGF0YTppbWFnZS9wbmcnKSAhPT0gMCkge1xyXG4gICAgICBpbWcgPSBDYW52YXMySW1hZ2Uuc2F2ZUFzQk1QKGNhbnZhc05vZGUsIHRydWUpLnNyYztcclxuICAgIH1cclxuXHJcbiAgICByZXR1cm4gaHRtbCA/IHN0cmluZy5zdWJzdGl0dXRlKFxyXG4gICAgICAnPGltZyBzcmM9XCIkezB9XCIgd2lkdGg9XCIkezF9XCIgaGVpZ2h0PVwiJHsyfVwiIGFsdD1cIiR7M31cIiAvPicsIFtpbWcsIG9wdGlvbnMud2lkdGgsIG9wdGlvbnMuaGVpZ2h0LCBvcHRpb25zLnRpdGxlIHx8ICcnXSkgOiBpbWc7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBUYWtlcyBhIHN0cmluZyBwaG9uZSBpbnB1dCBhbmQgYXR0ZW1wdHMgdG8gbWF0Y2ggaXQgYWdhaW5zdCB0aGUgcHJlZGVmaW5lZFxyXG4gICAqIHBob25lIGZvcm1hdHMgLSBpZiBhIG1hdGNoIGlzIGZvdW5kIGl0IGlzIHJldHVybmVkIGZvcm1hdHRlZCBpZiBub3QgaXQgaXMgcmV0dXJuZWRcclxuICAgKiBhcyBpcy5cclxuICAgKiBAcGFyYW0gdmFsIHtTdHJpbmd9IFN0cmluZyBpbnB1dHRlZCBwaG9uZSBudW1iZXIgdG8gZm9ybWF0XHJcbiAgICogQHBhcmFtIGFzTGluayB7Qm9vbGVhbn0gVHJ1ZSB0byBwdXQgdGhlIHBob25lIGluIGFuIGFuY2hvciBlbGVtZW50IHBvaW50aW5nIHRvIGEgdGVsOiB1cmlcclxuICAgKiBAcmV0dXJucyB7U3RyaW5nfVxyXG4gICAqL1xyXG4gIHBob25lOiBmdW5jdGlvbiBwaG9uZSh2YWwsIGFzTGluaykge1xyXG4gICAgaWYgKHR5cGVvZiB2YWwgIT09ICdzdHJpbmcnKSB7XHJcbiAgICAgIHJldHVybiB2YWw7XHJcbiAgICB9XHJcblxyXG4gICAgY29uc3QgcGhvbmVWYWwgPSBhcmdvcy5Gb3JtYXQuYWxwaGFUb1Bob25lTnVtZXJpYyh2YWwpO1xyXG4gICAgY29uc3QgZm9ybWF0dGVycyA9IGFyZ29zLkZvcm1hdC5waG9uZUZvcm1hdDtcclxuICAgIGNvbnN0IGNsZWFuID0gL15cXCsvLnRlc3QocGhvbmVWYWwpID8gcGhvbmVWYWwgOiBwaG9uZVZhbC5yZXBsYWNlKC9bXjAtOXhdL2lnLCAnJyk7XHJcbiAgICBsZXQgZm9ybWF0dGVkTWF0Y2g7XHJcblxyXG4gICAgZm9yIChsZXQgaSA9IDA7IGkgPCBmb3JtYXR0ZXJzLmxlbmd0aDsgaSsrKSB7XHJcbiAgICAgIGNvbnN0IGZvcm1hdHRlciA9IGZvcm1hdHRlcnNbaV07XHJcbiAgICAgIGxldCBtYXRjaDtcclxuICAgICAgaWYgKChtYXRjaCA9IGZvcm1hdHRlci50ZXN0LmV4ZWMoY2xlYW4pKSkge1xyXG4gICAgICAgIGZvcm1hdHRlZE1hdGNoID0gc3RyaW5nLnN1YnN0aXR1dGUoZm9ybWF0dGVyLmZvcm1hdCwgW3Bob25lVmFsLCBjbGVhbl0uY29uY2F0KG1hdGNoKSk7XHJcbiAgICAgIH1cclxuICAgIH1cclxuXHJcbiAgICBpZiAoZm9ybWF0dGVkTWF0Y2gpIHtcclxuICAgICAgcmV0dXJuIGFzTGluayA/IHN0cmluZy5zdWJzdGl0dXRlKCc8YSBocmVmPVwidGVsOiR7MH1cIj4kezF9PC9hPicsIFtjbGVhbiwgZm9ybWF0dGVkTWF0Y2hdKSA6IGZvcm1hdHRlZE1hdGNoO1xyXG4gICAgfVxyXG5cclxuICAgIHJldHVybiBwaG9uZVZhbDtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIFRha2VzIGEgc3RyaW5nIGlucHV0IGFuZCBjb252ZXJ0cyBBLVogdG8gdGhlaXIgcmVzcGVjdGl2ZSBwaG9uZSBudW1iZXIgY2hhcmFjdGVyXHJcbiAgICogYDE4MDBDQUxMTUVgIC0+IGAxODAwMjI1NTYzYFxyXG4gICAqIEBwYXJhbSB2YWxcclxuICAgKiBAcmV0dXJucyB7U3RyaW5nfVxyXG4gICAqL1xyXG4gIGFscGhhVG9QaG9uZU51bWVyaWM6IGZ1bmN0aW9uIGFscGhhVG9QaG9uZU51bWVyaWModmFsKSB7XHJcbiAgICBsZXQgcGhvbmVWYWwgPSB2YWw7XHJcbiAgICBmb3IgKGxldCBpID0gMDsgaSA8IHBob25lTGV0dGVyc01hcC5sZW5ndGg7IGkrKykge1xyXG4gICAgICBwaG9uZVZhbCA9IHBob25lVmFsLnJlcGxhY2UocGhvbmVMZXR0ZXJzTWFwW2ldLnRlc3QsIHBob25lTGV0dGVyc01hcFtpXS52YWwpO1xyXG4gICAgfVxyXG4gICAgcmV0dXJuIHBob25lVmFsO1xyXG4gIH0sXHJcbiAgZmlsZVNpemU6IGZ1bmN0aW9uIGZpbGVTaXplKHNpemUpIHtcclxuICAgIGNvbnN0IHBhcnNlZFNpemUgPSBwYXJzZUludChzaXplLCAxMCk7XHJcbiAgICBpZiAocGFyc2VkU2l6ZSA9PT0gMCkge1xyXG4gICAgICByZXR1cm4gJzAgS0InO1xyXG4gICAgfVxyXG4gICAgaWYgKCFwYXJzZWRTaXplIHx8IHBhcnNlZFNpemUgPCAwKSB7XHJcbiAgICAgIHJldHVybiAnVW5rbm93bic7XHJcbiAgICB9XHJcbiAgICBpZiAocGFyc2VkU2l6ZSA8IDEwMjQpIHtcclxuICAgICAgcmV0dXJuIGROdW1iZXIuZm9ybWF0KE1hdGgucm91bmQocGFyc2VkU2l6ZSkpICsgJyAnICsgYXJnb3MuRm9ybWF0LmJ5dGVzVGV4dDtcclxuICAgIH0gZWxzZSBpZiAoKHBhcnNlZFNpemUgPiAxMDI0KSAmJiAocGFyc2VkU2l6ZSA8ICgxMDI0ICogMTAwMCkpKSB7XHJcbiAgICAgIHJldHVybiBkTnVtYmVyLmZvcm1hdChNYXRoLnJvdW5kKHBhcnNlZFNpemUgLyAxMDI0KSkgKyAnIEtCJztcclxuICAgIH1cclxuICAgIHJldHVybiBkTnVtYmVyLmZvcm1hdChNYXRoLnJvdW5kKHBhcnNlZFNpemUgLyAoMTAyNCAqIDEwMDApKSkgKyAnIE1CJztcclxuICB9LFxyXG59KTtcclxuXHJcbmxhbmcuc2V0T2JqZWN0KCdTYWdlLlBsYXRmb3JtLk1vYmlsZS5Gb3JtYXQnLCBfX2NsYXNzKTtcclxuZXhwb3J0IGRlZmF1bHQgX19jbGFzcztcclxuIl19
 </pre>
 </body>
 </html>

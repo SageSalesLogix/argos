@@ -15,288 +15,283 @@
   </script>
 </head>
 <body onload="prettyPrint(); highlight();">
-  <pre class="prettyprint lang-js">/*
- * Copyright (c) 1997-2013, SalesLogix, NA., LLC. All rights reserved.
- */
+  <pre class="prettyprint lang-js">define('crm/FileManager', ['exports', 'module', 'dojo/_base/lang', 'dojo/_base/declare', 'dojo/number', 'dojo/has', 'argos/I18n'], function (exports, module, _dojo_baseLang, _dojo_baseDeclare, _dojoNumber, _dojoHas, _argosI18n) {
+  function _interopRequireDefault(obj) { return obj &amp;&amp; obj.__esModule ? obj : { 'default': obj }; }
 
-<span id='crm-FileManager'>/**
-</span> * @class crm.FileManager
- *
- */
-define('crm/FileManager', [
-    'dojo/_base/lang',
-    'dojo/_base/declare',
-    'dojo/number',
-    'dojo/has'
-], function(
-    lang,
-    declare,
-    dNumber,
-    has
-) {
-    var __class = declare('crm.FileManager', null, {
-        unableToUploadText: 'This browser does not support HTML5 File API.',
-        unknownSizeText: 'unknown',
-        unknownErrorText: 'Warning: An error occured and the file failed to upload.',
-        largeFileWarningText: 'Warning: This request exceeds the size limit set by your administrator and failed to upload.',
-        largeFileWarningTitle: 'Warning',
-        percentCompleteText: 'Uploading, please wait...',
-        fileUploadOptions: { maxFileSize: 4000000 },
-        _store: false,
-        _totalProgress: 0,
-        _files: null,
-        _fileCount: 0,
-        _filesUploadedCount: 0,
-        _isUploading: false,
+  var _lang = _interopRequireDefault(_dojo_baseLang);
 
-<span id='crm-FileManager-method-constructor'>        /**
-</span>         * @constructor
-         */
-        constructor: function() {
-            this._files = [];
-            this.fileUploadOptions.maxFileSize = App.maxUploadFileSize;
-        },
-<span id='crm-FileManager-method-isHTML5Supported'>        /**
-</span>         * Checks if the HTML5 file api is supported.
-         * @returns {Boolean}
-         */
-        isHTML5Supported: function() {
-            var results = has('html5-file-api');
-            return results;
-        },
-<span id='crm-FileManager-method-isFileSizeAllowed'>        /**
-</span>         * Checks the {@link crm.Application}'s maxFileSize to determine
-         * if the file size being added exeeds this limit.
-         * @param {Array}
-         * @returns {Boolean}
-         */
-        isFileSizeAllowed: function(files) {
-            var len = 0, maxfileSize, title, msg, i;
-            maxfileSize = this.fileUploadOptions.maxFileSize;
-            title = this.largeFileWarningTitle;
-            msg = this.largeFileWarningText;
+  var _declare = _interopRequireDefault(_dojo_baseDeclare);
 
-            for (i = 0; i &lt; files.length; i++) {
-                if (files[i].size === 0) {
-                    // do nothing.
-                } else {
-                    len += files[i].size || files[i].blob.length;
-                }
-            }
+  var _dNumber = _interopRequireDefault(_dojoNumber);
 
-            if (len &gt; (maxfileSize)) {
-                return false;
-            }
+  var _has = _interopRequireDefault(_dojoHas);
 
-            return true;
-        },
-<span id='crm-FileManager-method-uploadFile'>        /**
-</span>         * Uploads a file to a URL.
-         * @param {File} file
-         * @param {String} url
-         * @param {Function} progress Progress callback
-         * @param {Event} progress.e
-         * @param {Function} complete Complete callback
-         * @param {Object} complete.request
-         * @param {Function} error Error callback
-         * @param {Function} error.errorText
-         * @param {Object} scope
-         * @param {Boolean} asPut
-         */
-        uploadFile: function(file, url, progress, complete, error, scope, asPut) {
-            this.uploadFileHTML5(file, url, progress, complete, error, scope, asPut);
-        },
-        uploadFileHTML5: function(file, url, progress, complete, error, scope, asPut) {
-            if (!this.isFileSizeAllowed([file])) {
-                this._onUnableToUploadError(this.largeFileWarningText, error);
-                return;
-            }
-            if (this.isHTML5Supported()) {
-                this._uploadFileHTML5_asBinary(file, url, progress, complete, error, scope, asPut);
-            } else {
-                this._onUnableToUploadError(this.unableToUploadText, error);
-            }
-        },
-        _uploadFileHTML5_asBinary: function(file, url, progress, complete, error, scope, asPut) {
-            window.BlobBuilder = window.BlobBuilder ||
-                         window.WebKitBlobBuilder ||
-                         window.MozBlobBuilder ||
-                         window.MSBlobBuilder;
-            if (!url) {
-                //assume Attachment SData url
-                url = 'slxdata.ashx/slx/system/-/attachments/file';// TODO: Remove this assumption from SDK
-            }
+  var _getResource = _interopRequireDefault(_argosI18n);
 
-            var request = new XMLHttpRequest(), service = App.getService(), reader;
-            request.open((asPut) ? 'PUT' : 'POST', url);
-            request.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+  var resource = (0, _getResource['default'])('fileManager');
 
-            if (service) {
-                request.setRequestHeader('Authorization', service.createBasicAuthToken());
-                request.setRequestHeader('X-Authorization', service.createBasicAuthToken());
-                request.setRequestHeader('X-Authorization-Mode', 'no-challenge');
-            }
+<span id='crm-FileManager'>  /**
+</span>   * @class crm.FileManager
+   *
+   */
+  var __class = (0, _declare['default'])('crm.FileManager', null, {
+    unableToUploadText: resource.unableToUploadText,
+    unknownSizeText: resource.unknownSizeText,
+    unknownErrorText: resource.unknownErrorText,
+    largeFileWarningText: resource.largeFileWarningText,
+    largeFileWarningTitle: resource.largeFileWarningTitle,
+    percentCompleteText: resource.percentCompleteText,
+    fileUploadOptions: {
+      maxFileSize: 4000000
+    },
+    _store: false,
+    _totalProgress: 0,
+    _files: null,
+    _fileCount: 0,
+    _filesUploadedCount: 0,
+    _isUploading: false,
 
-            reader = new FileReader();
-            reader.onload = lang.hitch(this, function(evt) {
-                var binary, boundary, dashdash, crlf, bb, unknownErrorText, usingBlobBuilder, blobReader, blobData;
-                unknownErrorText = this.unknownErrorText;
-                blobReader = new FileReader();// read the blob as an ArrayBuffer to work around this android issue: https://code.google.com/p/android/issues/detail?id=39882
+<span id='crm-FileManager-method-constructor'>    /**
+</span>     * @constructor
+     */
+    constructor: function constructor() {
+      this._files = [];
+      this.fileUploadOptions.maxFileSize = App.maxUploadFileSize;
+    },
+<span id='crm-FileManager-method-isHTML5Supported'>    /**
+</span>     * Checks if the HTML5 file api is supported.
+     * @returns {Boolean}
+     */
+    isHTML5Supported: function isHTML5Supported() {
+      var results = (0, _has['default'])('html5-file-api');
+      return results;
+    },
+<span id='crm-FileManager-method-isFileSizeAllowed'>    /**
+</span>     * Checks the {@link crm.Application}'s maxFileSize to determine
+     * if the file size being added exeeds this limit.
+     * @param {Array}
+     * @returns {Boolean}
+     */
+    isFileSizeAllowed: function isFileSizeAllowed(files) {
+      var len = 0;
+      var maxfileSize = this.fileUploadOptions.maxFileSize;
 
-                try {
-                    bb = new Blob();// This will throw an exception if it is not supported (android)
-                    bb = [];
-                } catch(e) {
-                    bb = new window.BlobBuilder();
-                    usingBlobBuilder = true;
-                }
+      for (var i = 0; i &lt; files.length; i++) {
+        if (files[i].size === 0) {// eslint-disable-line
+          // do nothing.
+        } else {
+            len += files[i].size || files[i].blob.length;
+          }
+      }
 
-                binary = evt.target.result;
-                boundary = '---------------------------' + (new Date()).getTime();
-                dashdash = '--';
-                crlf = '\r\n';
+      if (len &gt; maxfileSize) {
+        return false;
+      }
 
-                this._append(bb, dashdash + boundary + crlf);
-                this._append(bb, 'Content-Disposition: attachment; ');
-                this._append(bb, 'name=&quot;file_&quot;; ');
-                this._append(bb, 'filename*=&quot;' + encodeURI(file.name) + '&quot; ');
-                this._append(bb, crlf);
-                this._append(bb, 'Content-Type: ' + file.type);
-                this._append(bb, crlf + crlf);
-                this._append(bb, binary);
-                this._append(bb, crlf);
-                this._append(bb, dashdash + boundary + dashdash + crlf);
+      return true;
+    },
+<span id='crm-FileManager-method-uploadFile'>    /**
+</span>     * Uploads a file to a URL.
+     * @param {File} file
+     * @param {String} url
+     * @param {Function} progress Progress callback
+     * @param {Event} progress.e
+     * @param {Function} complete Complete callback
+     * @param {Object} complete.request
+     * @param {Function} error Error callback
+     * @param {Function} error.errorText
+     * @param {Object} scope
+     * @param {Boolean} asPut
+     */
+    uploadFile: function uploadFile(file, url, progress, complete, error, scope, asPut) {
+      this.uploadFileHTML5(file, url, progress, complete, error, scope, asPut);
+    },
+    uploadFileHTML5: function uploadFileHTML5(file, url, progress, complete, error, scope, asPut) {
+      if (!this.isFileSizeAllowed([file])) {
+        this._onUnableToUploadError(this.largeFileWarningText, error);
+        return;
+      }
+      if (this.isHTML5Supported()) {
+        this._uploadFileHTML5_asBinary(file, url, progress, complete, error, scope, asPut);
+      } else {
+        this._onUnableToUploadError(this.unableToUploadText, error);
+      }
+    },
+    _uploadFileHTML5_asBinary: function _uploadFileHTML5_asBinary(file, _url, progress, complete, error, scope, asPut) {
+      // eslint-disable-line
+      var url = _url;
+      var request = new XMLHttpRequest();
+      var service = App.getService();
+      window.BlobBuilder = window.BlobBuilder || window.WebKitBlobBuilder || window.MozBlobBuilder || window.MSBlobBuilder;
+      if (!url) {
+        // assume Attachment SData url
+        url = 'slxdata.ashx/slx/system/-/attachments/file'; // TODO: Remove this assumption from SDK
+      }
 
-                if (complete) {
-                    request.onreadystatechange = function() {
-                        if (request.readyState === 4) {
-                            if (Math.floor(request.status / 100) !== 2) {
-                                if (error) {
-                                    error.call(scope || this, unknownErrorText);
-                                    console.warn(unknownErrorText + ' ' + request.responseText);
-                                }
-                            } else {
-                                complete.call(scope || this, request);
-                            }
-                        }
-                    };
-                }
+      request.open(asPut ? 'PUT' : 'POST', url);
+      request.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
 
-                if (progress) {
-                    request.upload.addEventListener('progress', function(e) {
-                        progress.call(scope || this, e);
-                    });
-                }
+      if (service) {
+        request.setRequestHeader('Authorization', service.createBasicAuthToken());
+        request.setRequestHeader('X-Authorization', service.createBasicAuthToken());
+        request.setRequestHeader('X-Authorization-Mode', 'no-challenge');
+      }
 
-                request.setRequestHeader('Content-Type', 'multipart/attachment; boundary=' + boundary);
+      var reader = new FileReader();
+      reader.onload = _lang['default'].hitch(this, function readerOnLoad(evt) {
+        var unknownErrorText = this.unknownErrorText;
+        var blobReader = new FileReader(); // read the blob as an ArrayBuffer to work around this android issue: https://code.google.com/p/android/issues/detail?id=39882
+        var bb = undefined;
+        var usingBlobBuilder = undefined;
+        var blobData = undefined;
 
-                if (usingBlobBuilder) {
-                    blobData = bb.getBlob(file.type);
-                } else {
-                    blobData = new Blob(bb);
-                }
-
-                // Read the blob back as an ArrayBuffer to work around this android issue:
-                // https://code.google.com/p/android/issues/detail?id=39882
-                blobReader.onload = function(e) {
-                    request.send(e.target.result);
-                };
-
-                blobReader.readAsArrayBuffer(blobData);
-            });
-
-            reader.readAsArrayBuffer(file);
-        },
-        _append: function(arrayOrBlobBuilder, data) {
-            if (arrayOrBlobBuilder &amp;&amp; arrayOrBlobBuilder.constructor === Array) {
-                arrayOrBlobBuilder.push(data);
-            } else {
-                arrayOrBlobBuilder.append(data);
-            }
-        },
-        _onUnableToUploadError: function(msg, onError) {
-            if (!msg) {
-                msg = this.unableToUploadText;
-            }
-            if (onError) {
-                onError([msg]);
-            } else {
-                console.warn([msg]);
-            }
-        },
-<span id='crm-FileManager-method-formatFileSize'>        /**
-</span>         * Formats the file size formatted in KB.
-         * @param {Number} size
-         * @returns {String}
-         */
-        formatFileSize: function(size) {
-            size = parseInt(size, 10);
-            if (size === 0) {
-                return '0 KB';
-            }
-            if (!size || size &lt; 0) {
-                return this.unknownSizeText;
-            }
-            if (size &lt; 1024) {
-                return '1 KB';
-            }
-            return dNumber.format(Math.round(size / 1024)) + ' KB';
-        },
-<span id='crm-FileManager-method-getFile'>        /**
-</span>         * Loads a remote file.
-         * @param {String} fileUrl
-         * @param {String} responseType
-         * @param {Function} onSuccess
-         * @param {Object} onSuccess.responseInfo
-         */
-        getFile: function(fileUrl, responseType, onSuccess) {
-            var request, service, self;
-
-            request = new XMLHttpRequest();
-            service = App.getService();
-            self = this;
-
-            request.open('GET', fileUrl, true);
-
-            if (responseType) {
-                request.responseType = responseType;
-            }
-            request.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-
-            if (service) {
-                request.setRequestHeader('Authorization', service.createBasicAuthToken());
-                request.setRequestHeader('X-Authorization', service.createBasicAuthToken());
-                request.setRequestHeader('X-Authorization-Mode', 'no-challenge');
-            }
-
-            request.addEventListener('load', function() {
-                var data, contentType, contentInfo, responseInfo, fileName;
-
-                data = this.response;
-                contentType = this.getResponseHeader('Content-Type');
-                contentInfo = this.getResponseHeader('Content-Disposition');
-                responseInfo = {};
-                fileName = contentInfo.split('=')[1];
-
-                responseInfo = {
-                    request: this,
-                    responseType: responseType,
-                    response: this.response,
-                    contentType: contentType,
-                    fileName: fileName
-                };
-                if (onSuccess) {
-                    onSuccess(responseInfo);
-                }
-            }, false);
-            request.send(null);
+        try {
+          bb = new Blob(); // This will throw an exception if it is not supported (android)
+          bb = [];
+        } catch (e) {
+          bb = new window.BlobBuilder();
+          usingBlobBuilder = true;
         }
-    });
 
-    lang.setObject('Mobile.SalesLogix.FileManager', __class);
-    return __class;
+        var binary = evt.target.result;
+        var boundary = '---------------------------' + new Date().getTime();
+        var dashdash = '--';
+        var crlf = '\r\n';
+
+        this._append(bb, dashdash + boundary + crlf);
+        this._append(bb, 'Content-Disposition: attachment; ');
+        this._append(bb, 'name=&quot;file_&quot;; ');
+        this._append(bb, 'filename*=&quot;' + encodeURI(file.name) + '&quot; ');
+        this._append(bb, crlf);
+        this._append(bb, 'Content-Type: ' + file.type);
+        this._append(bb, crlf + crlf);
+        this._append(bb, binary);
+        this._append(bb, crlf);
+        this._append(bb, dashdash + boundary + dashdash + crlf);
+
+        if (complete) {
+          request.onreadystatechange = function onReadyStateChange() {
+            if (request.readyState === 4) {
+              if (Math.floor(request.status / 100) !== 2) {
+                if (error) {
+                  error.call(scope || this, unknownErrorText);
+                  console.warn(unknownErrorText + ' ' + request.responseText); // eslint-disable-line
+                }
+              } else {
+                  complete.call(scope || this, request);
+                }
+            }
+          };
+        }
+
+        if (progress) {
+          request.upload.addEventListener('progress', function uploadProgress(e) {
+            progress.call(scope || this, e);
+          });
+        }
+
+        request.setRequestHeader('Content-Type', 'multipart/attachment; boundary=' + boundary);
+
+        if (usingBlobBuilder) {
+          blobData = bb.getBlob(file.type);
+        } else {
+          blobData = new Blob(bb);
+        }
+
+        // Read the blob back as an ArrayBuffer to work around this android issue:
+        // https://code.google.com/p/android/issues/detail?id=39882
+        blobReader.onload = function blobReaderOnLoad(e) {
+          request.send(e.target.result);
+        };
+
+        blobReader.readAsArrayBuffer(blobData);
+      });
+
+      reader.readAsArrayBuffer(file);
+    },
+    _append: function _append(arrayOrBlobBuilder, data) {
+      if (arrayOrBlobBuilder &amp;&amp; arrayOrBlobBuilder.constructor === Array) {
+        arrayOrBlobBuilder.push(data);
+      } else {
+        arrayOrBlobBuilder.append(data);
+      }
+    },
+    _onUnableToUploadError: function _onUnableToUploadError(_msg, onError) {
+      var msg = _msg;
+      if (!msg) {
+        msg = this.unableToUploadText;
+      }
+      if (onError) {
+        onError([msg]);
+      } else {
+        console.warn([msg]); // eslint-disable-line
+      }
+    },
+<span id='crm-FileManager-method-formatFileSize'>    /**
+</span>     * Formats the file size formatted in KB.
+     * @param {Number} size
+     * @returns {String}
+     */
+    formatFileSize: function formatFileSize(_size) {
+      var size = _size;
+      size = parseInt(size, 10);
+      if (size === 0) {
+        return '0 KB';
+      }
+      if (!size || size &lt; 0) {
+        return this.unknownSizeText;
+      }
+      if (size &lt; 1024) {
+        return '1 KB';
+      }
+      return _dNumber['default'].format(Math.round(size / 1024)) + ' KB';
+    },
+<span id='crm-FileManager-method-getFile'>    /**
+</span>     * Loads a remote file.
+     * @param {String} fileUrl
+     * @param {String} responseType
+     * @param {Function} onSuccess
+     * @param {Object} onSuccess.responseInfo
+     */
+    getFile: function getFile(fileUrl, responseType, onSuccess) {
+      var request = new XMLHttpRequest();
+      var service = App.getService();
+      request.open('GET', fileUrl, true);
+
+      if (responseType) {
+        request.responseType = responseType;
+      }
+      request.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+
+      if (service) {
+        request.setRequestHeader('Authorization', service.createBasicAuthToken());
+        request.setRequestHeader('X-Authorization', service.createBasicAuthToken());
+        request.setRequestHeader('X-Authorization-Mode', 'no-challenge');
+      }
+
+      request.addEventListener('load', function load() {
+        var contentType = this.getResponseHeader('Content-Type');
+        var contentInfo = this.getResponseHeader('Content-Disposition');
+        var fileName = contentInfo.split('=')[1];
+        var responseInfo = {
+          request: this,
+          responseType: responseType,
+          response: this.response,
+          contentType: contentType,
+          fileName: fileName
+        };
+        if (onSuccess) {
+          onSuccess(responseInfo);
+        }
+      }, false);
+      request.send(null);
+    }
+  });
+
+  _lang['default'].setObject('Mobile.SalesLogix.FileManager', __class);
+  module.exports = __class;
 });
-
+//# sourceMappingURL=data:application/json;base64,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Iiwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IGxhbmcgZnJvbSAnZG9qby9fYmFzZS9sYW5nJztcclxuaW1wb3J0IGRlY2xhcmUgZnJvbSAnZG9qby9fYmFzZS9kZWNsYXJlJztcclxuaW1wb3J0IGROdW1iZXIgZnJvbSAnZG9qby9udW1iZXInO1xyXG5pbXBvcnQgaGFzIGZyb20gJ2Rvam8vaGFzJztcclxuaW1wb3J0IGdldFJlc291cmNlIGZyb20gJ2FyZ29zL0kxOG4nO1xyXG5cclxuY29uc3QgcmVzb3VyY2UgPSBnZXRSZXNvdXJjZSgnZmlsZU1hbmFnZXInKTtcclxuXHJcbi8qKlxyXG4gKiBAY2xhc3MgY3JtLkZpbGVNYW5hZ2VyXHJcbiAqXHJcbiAqL1xyXG5jb25zdCBfX2NsYXNzID0gZGVjbGFyZSgnY3JtLkZpbGVNYW5hZ2VyJywgbnVsbCwge1xyXG4gIHVuYWJsZVRvVXBsb2FkVGV4dDogcmVzb3VyY2UudW5hYmxlVG9VcGxvYWRUZXh0LFxyXG4gIHVua25vd25TaXplVGV4dDogcmVzb3VyY2UudW5rbm93blNpemVUZXh0LFxyXG4gIHVua25vd25FcnJvclRleHQ6IHJlc291cmNlLnVua25vd25FcnJvclRleHQsXHJcbiAgbGFyZ2VGaWxlV2FybmluZ1RleHQ6IHJlc291cmNlLmxhcmdlRmlsZVdhcm5pbmdUZXh0LFxyXG4gIGxhcmdlRmlsZVdhcm5pbmdUaXRsZTogcmVzb3VyY2UubGFyZ2VGaWxlV2FybmluZ1RpdGxlLFxyXG4gIHBlcmNlbnRDb21wbGV0ZVRleHQ6IHJlc291cmNlLnBlcmNlbnRDb21wbGV0ZVRleHQsXHJcbiAgZmlsZVVwbG9hZE9wdGlvbnM6IHtcclxuICAgIG1heEZpbGVTaXplOiA0MDAwMDAwLFxyXG4gIH0sXHJcbiAgX3N0b3JlOiBmYWxzZSxcclxuICBfdG90YWxQcm9ncmVzczogMCxcclxuICBfZmlsZXM6IG51bGwsXHJcbiAgX2ZpbGVDb3VudDogMCxcclxuICBfZmlsZXNVcGxvYWRlZENvdW50OiAwLFxyXG4gIF9pc1VwbG9hZGluZzogZmFsc2UsXHJcblxyXG4gIC8qKlxyXG4gICAqIEBjb25zdHJ1Y3RvclxyXG4gICAqL1xyXG4gIGNvbnN0cnVjdG9yOiBmdW5jdGlvbiBjb25zdHJ1Y3RvcigpIHtcclxuICAgIHRoaXMuX2ZpbGVzID0gW107XHJcbiAgICB0aGlzLmZpbGVVcGxvYWRPcHRpb25zLm1heEZpbGVTaXplID0gQXBwLm1heFVwbG9hZEZpbGVTaXplO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogQ2hlY2tzIGlmIHRoZSBIVE1MNSBmaWxlIGFwaSBpcyBzdXBwb3J0ZWQuXHJcbiAgICogQHJldHVybnMge0Jvb2xlYW59XHJcbiAgICovXHJcbiAgaXNIVE1MNVN1cHBvcnRlZDogZnVuY3Rpb24gaXNIVE1MNVN1cHBvcnRlZCgpIHtcclxuICAgIGNvbnN0IHJlc3VsdHMgPSBoYXMoJ2h0bWw1LWZpbGUtYXBpJyk7XHJcbiAgICByZXR1cm4gcmVzdWx0cztcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIENoZWNrcyB0aGUge0BsaW5rIGNybS5BcHBsaWNhdGlvbn0ncyBtYXhGaWxlU2l6ZSB0byBkZXRlcm1pbmVcclxuICAgKiBpZiB0aGUgZmlsZSBzaXplIGJlaW5nIGFkZGVkIGV4ZWVkcyB0aGlzIGxpbWl0LlxyXG4gICAqIEBwYXJhbSB7QXJyYXl9XHJcbiAgICogQHJldHVybnMge0Jvb2xlYW59XHJcbiAgICovXHJcbiAgaXNGaWxlU2l6ZUFsbG93ZWQ6IGZ1bmN0aW9uIGlzRmlsZVNpemVBbGxvd2VkKGZpbGVzKSB7XHJcbiAgICBsZXQgbGVuID0gMDtcclxuICAgIGNvbnN0IG1heGZpbGVTaXplID0gdGhpcy5maWxlVXBsb2FkT3B0aW9ucy5tYXhGaWxlU2l6ZTtcclxuXHJcbiAgICBmb3IgKGxldCBpID0gMDsgaSA8IGZpbGVzLmxlbmd0aDsgaSsrKSB7XHJcbiAgICAgIGlmIChmaWxlc1tpXS5zaXplID09PSAwKSB7Ly8gZXNsaW50LWRpc2FibGUtbGluZVxyXG4gICAgICAgIC8vIGRvIG5vdGhpbmcuXHJcbiAgICAgIH0gZWxzZSB7XHJcbiAgICAgICAgbGVuICs9IGZpbGVzW2ldLnNpemUgfHwgZmlsZXNbaV0uYmxvYi5sZW5ndGg7XHJcbiAgICAgIH1cclxuICAgIH1cclxuXHJcbiAgICBpZiAobGVuID4gKG1heGZpbGVTaXplKSkge1xyXG4gICAgICByZXR1cm4gZmFsc2U7XHJcbiAgICB9XHJcblxyXG4gICAgcmV0dXJuIHRydWU7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBVcGxvYWRzIGEgZmlsZSB0byBhIFVSTC5cclxuICAgKiBAcGFyYW0ge0ZpbGV9IGZpbGVcclxuICAgKiBAcGFyYW0ge1N0cmluZ30gdXJsXHJcbiAgICogQHBhcmFtIHtGdW5jdGlvbn0gcHJvZ3Jlc3MgUHJvZ3Jlc3MgY2FsbGJhY2tcclxuICAgKiBAcGFyYW0ge0V2ZW50fSBwcm9ncmVzcy5lXHJcbiAgICogQHBhcmFtIHtGdW5jdGlvbn0gY29tcGxldGUgQ29tcGxldGUgY2FsbGJhY2tcclxuICAgKiBAcGFyYW0ge09iamVjdH0gY29tcGxldGUucmVxdWVzdFxyXG4gICAqIEBwYXJhbSB7RnVuY3Rpb259IGVycm9yIEVycm9yIGNhbGxiYWNrXHJcbiAgICogQHBhcmFtIHtGdW5jdGlvbn0gZXJyb3IuZXJyb3JUZXh0XHJcbiAgICogQHBhcmFtIHtPYmplY3R9IHNjb3BlXHJcbiAgICogQHBhcmFtIHtCb29sZWFufSBhc1B1dFxyXG4gICAqL1xyXG4gIHVwbG9hZEZpbGU6IGZ1bmN0aW9uIHVwbG9hZEZpbGUoZmlsZSwgdXJsLCBwcm9ncmVzcywgY29tcGxldGUsIGVycm9yLCBzY29wZSwgYXNQdXQpIHtcclxuICAgIHRoaXMudXBsb2FkRmlsZUhUTUw1KGZpbGUsIHVybCwgcHJvZ3Jlc3MsIGNvbXBsZXRlLCBlcnJvciwgc2NvcGUsIGFzUHV0KTtcclxuICB9LFxyXG4gIHVwbG9hZEZpbGVIVE1MNTogZnVuY3Rpb24gdXBsb2FkRmlsZUhUTUw1KGZpbGUsIHVybCwgcHJvZ3Jlc3MsIGNvbXBsZXRlLCBlcnJvciwgc2NvcGUsIGFzUHV0KSB7XHJcbiAgICBpZiAoIXRoaXMuaXNGaWxlU2l6ZUFsbG93ZWQoW2ZpbGVdKSkge1xyXG4gICAgICB0aGlzLl9vblVuYWJsZVRvVXBsb2FkRXJyb3IodGhpcy5sYXJnZUZpbGVXYXJuaW5nVGV4dCwgZXJyb3IpO1xyXG4gICAgICByZXR1cm47XHJcbiAgICB9XHJcbiAgICBpZiAodGhpcy5pc0hUTUw1U3VwcG9ydGVkKCkpIHtcclxuICAgICAgdGhpcy5fdXBsb2FkRmlsZUhUTUw1X2FzQmluYXJ5KGZpbGUsIHVybCwgcHJvZ3Jlc3MsIGNvbXBsZXRlLCBlcnJvciwgc2NvcGUsIGFzUHV0KTtcclxuICAgIH0gZWxzZSB7XHJcbiAgICAgIHRoaXMuX29uVW5hYmxlVG9VcGxvYWRFcnJvcih0aGlzLnVuYWJsZVRvVXBsb2FkVGV4dCwgZXJyb3IpO1xyXG4gICAgfVxyXG4gIH0sXHJcbiAgX3VwbG9hZEZpbGVIVE1MNV9hc0JpbmFyeTogZnVuY3Rpb24gX3VwbG9hZEZpbGVIVE1MNV9hc0JpbmFyeShmaWxlLCBfdXJsLCBwcm9ncmVzcywgY29tcGxldGUsIGVycm9yLCBzY29wZSwgYXNQdXQpIHsvLyBlc2xpbnQtZGlzYWJsZS1saW5lXHJcbiAgICBsZXQgdXJsID0gX3VybDtcclxuICAgIGNvbnN0IHJlcXVlc3QgPSBuZXcgWE1MSHR0cFJlcXVlc3QoKTtcclxuICAgIGNvbnN0IHNlcnZpY2UgPSBBcHAuZ2V0U2VydmljZSgpO1xyXG4gICAgd2luZG93LkJsb2JCdWlsZGVyID0gd2luZG93LkJsb2JCdWlsZGVyIHx8XHJcbiAgICAgIHdpbmRvdy5XZWJLaXRCbG9iQnVpbGRlciB8fFxyXG4gICAgICB3aW5kb3cuTW96QmxvYkJ1aWxkZXIgfHxcclxuICAgICAgd2luZG93Lk1TQmxvYkJ1aWxkZXI7XHJcbiAgICBpZiAoIXVybCkge1xyXG4gICAgICAvLyBhc3N1bWUgQXR0YWNobWVudCBTRGF0YSB1cmxcclxuICAgICAgdXJsID0gJ3NseGRhdGEuYXNoeC9zbHgvc3lzdGVtLy0vYXR0YWNobWVudHMvZmlsZSc7IC8vIFRPRE86IFJlbW92ZSB0aGlzIGFzc3VtcHRpb24gZnJvbSBTREtcclxuICAgIH1cclxuXHJcbiAgICByZXF1ZXN0Lm9wZW4oKGFzUHV0KSA/ICdQVVQnIDogJ1BPU1QnLCB1cmwpO1xyXG4gICAgcmVxdWVzdC5zZXRSZXF1ZXN0SGVhZGVyKCdYLVJlcXVlc3RlZC1XaXRoJywgJ1hNTEh0dHBSZXF1ZXN0Jyk7XHJcblxyXG4gICAgaWYgKHNlcnZpY2UpIHtcclxuICAgICAgcmVxdWVzdC5zZXRSZXF1ZXN0SGVhZGVyKCdBdXRob3JpemF0aW9uJywgc2VydmljZS5jcmVhdGVCYXNpY0F1dGhUb2tlbigpKTtcclxuICAgICAgcmVxdWVzdC5zZXRSZXF1ZXN0SGVhZGVyKCdYLUF1dGhvcml6YXRpb24nLCBzZXJ2aWNlLmNyZWF0ZUJhc2ljQXV0aFRva2VuKCkpO1xyXG4gICAgICByZXF1ZXN0LnNldFJlcXVlc3RIZWFkZXIoJ1gtQXV0aG9yaXphdGlvbi1Nb2RlJywgJ25vLWNoYWxsZW5nZScpO1xyXG4gICAgfVxyXG5cclxuICAgIGNvbnN0IHJlYWRlciA9IG5ldyBGaWxlUmVhZGVyKCk7XHJcbiAgICByZWFkZXIub25sb2FkID0gbGFuZy5oaXRjaCh0aGlzLCBmdW5jdGlvbiByZWFkZXJPbkxvYWQoZXZ0KSB7XHJcbiAgICAgIGNvbnN0IHVua25vd25FcnJvclRleHQgPSB0aGlzLnVua25vd25FcnJvclRleHQ7XHJcbiAgICAgIGNvbnN0IGJsb2JSZWFkZXIgPSBuZXcgRmlsZVJlYWRlcigpOyAvLyByZWFkIHRoZSBibG9iIGFzIGFuIEFycmF5QnVmZmVyIHRvIHdvcmsgYXJvdW5kIHRoaXMgYW5kcm9pZCBpc3N1ZTogaHR0cHM6Ly9jb2RlLmdvb2dsZS5jb20vcC9hbmRyb2lkL2lzc3Vlcy9kZXRhaWw/aWQ9Mzk4ODJcclxuICAgICAgbGV0IGJiO1xyXG4gICAgICBsZXQgdXNpbmdCbG9iQnVpbGRlcjtcclxuICAgICAgbGV0IGJsb2JEYXRhO1xyXG5cclxuICAgICAgdHJ5IHtcclxuICAgICAgICBiYiA9IG5ldyBCbG9iKCk7IC8vIFRoaXMgd2lsbCB0aHJvdyBhbiBleGNlcHRpb24gaWYgaXQgaXMgbm90IHN1cHBvcnRlZCAoYW5kcm9pZClcclxuICAgICAgICBiYiA9IFtdO1xyXG4gICAgICB9IGNhdGNoIChlKSB7XHJcbiAgICAgICAgYmIgPSBuZXcgd2luZG93LkJsb2JCdWlsZGVyKCk7XHJcbiAgICAgICAgdXNpbmdCbG9iQnVpbGRlciA9IHRydWU7XHJcbiAgICAgIH1cclxuXHJcbiAgICAgIGNvbnN0IGJpbmFyeSA9IGV2dC50YXJnZXQucmVzdWx0O1xyXG4gICAgICBjb25zdCBib3VuZGFyeSA9ICctLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0nICsgKG5ldyBEYXRlKCkpLmdldFRpbWUoKTtcclxuICAgICAgY29uc3QgZGFzaGRhc2ggPSAnLS0nO1xyXG4gICAgICBjb25zdCBjcmxmID0gJ1xcclxcbic7XHJcblxyXG4gICAgICB0aGlzLl9hcHBlbmQoYmIsIGRhc2hkYXNoICsgYm91bmRhcnkgKyBjcmxmKTtcclxuICAgICAgdGhpcy5fYXBwZW5kKGJiLCAnQ29udGVudC1EaXNwb3NpdGlvbjogYXR0YWNobWVudDsgJyk7XHJcbiAgICAgIHRoaXMuX2FwcGVuZChiYiwgJ25hbWU9XCJmaWxlX1wiOyAnKTtcclxuICAgICAgdGhpcy5fYXBwZW5kKGJiLCAnZmlsZW5hbWUqPVwiJyArIGVuY29kZVVSSShmaWxlLm5hbWUpICsgJ1wiICcpO1xyXG4gICAgICB0aGlzLl9hcHBlbmQoYmIsIGNybGYpO1xyXG4gICAgICB0aGlzLl9hcHBlbmQoYmIsICdDb250ZW50LVR5cGU6ICcgKyBmaWxlLnR5cGUpO1xyXG4gICAgICB0aGlzLl9hcHBlbmQoYmIsIGNybGYgKyBjcmxmKTtcclxuICAgICAgdGhpcy5fYXBwZW5kKGJiLCBiaW5hcnkpO1xyXG4gICAgICB0aGlzLl9hcHBlbmQoYmIsIGNybGYpO1xyXG4gICAgICB0aGlzLl9hcHBlbmQoYmIsIGRhc2hkYXNoICsgYm91bmRhcnkgKyBkYXNoZGFzaCArIGNybGYpO1xyXG5cclxuICAgICAgaWYgKGNvbXBsZXRlKSB7XHJcbiAgICAgICAgcmVxdWVzdC5vbnJlYWR5c3RhdGVjaGFuZ2UgPSBmdW5jdGlvbiBvblJlYWR5U3RhdGVDaGFuZ2UoKSB7XHJcbiAgICAgICAgICBpZiAocmVxdWVzdC5yZWFkeVN0YXRlID09PSA0KSB7XHJcbiAgICAgICAgICAgIGlmIChNYXRoLmZsb29yKHJlcXVlc3Quc3RhdHVzIC8gMTAwKSAhPT0gMikge1xyXG4gICAgICAgICAgICAgIGlmIChlcnJvcikge1xyXG4gICAgICAgICAgICAgICAgZXJyb3IuY2FsbChzY29wZSB8fCB0aGlzLCB1bmtub3duRXJyb3JUZXh0KTtcclxuICAgICAgICAgICAgICAgIGNvbnNvbGUud2Fybih1bmtub3duRXJyb3JUZXh0ICsgJyAnICsgcmVxdWVzdC5yZXNwb25zZVRleHQpOy8vIGVzbGludC1kaXNhYmxlLWxpbmVcclxuICAgICAgICAgICAgICB9XHJcbiAgICAgICAgICAgIH0gZWxzZSB7XHJcbiAgICAgICAgICAgICAgY29tcGxldGUuY2FsbChzY29wZSB8fCB0aGlzLCByZXF1ZXN0KTtcclxuICAgICAgICAgICAgfVxyXG4gICAgICAgICAgfVxyXG4gICAgICAgIH07XHJcbiAgICAgIH1cclxuXHJcbiAgICAgIGlmIChwcm9ncmVzcykge1xyXG4gICAgICAgIHJlcXVlc3QudXBsb2FkLmFkZEV2ZW50TGlzdGVuZXIoJ3Byb2dyZXNzJywgZnVuY3Rpb24gdXBsb2FkUHJvZ3Jlc3MoZSkge1xyXG4gICAgICAgICAgcHJvZ3Jlc3MuY2FsbChzY29wZSB8fCB0aGlzLCBlKTtcclxuICAgICAgICB9KTtcclxuICAgICAgfVxyXG5cclxuICAgICAgcmVxdWVzdC5zZXRSZXF1ZXN0SGVhZGVyKCdDb250ZW50LVR5cGUnLCAnbXVsdGlwYXJ0L2F0dGFjaG1lbnQ7IGJvdW5kYXJ5PScgKyBib3VuZGFyeSk7XHJcblxyXG4gICAgICBpZiAodXNpbmdCbG9iQnVpbGRlcikge1xyXG4gICAgICAgIGJsb2JEYXRhID0gYmIuZ2V0QmxvYihmaWxlLnR5cGUpO1xyXG4gICAgICB9IGVsc2Uge1xyXG4gICAgICAgIGJsb2JEYXRhID0gbmV3IEJsb2IoYmIpO1xyXG4gICAgICB9XHJcblxyXG4gICAgICAvLyBSZWFkIHRoZSBibG9iIGJhY2sgYXMgYW4gQXJyYXlCdWZmZXIgdG8gd29yayBhcm91bmQgdGhpcyBhbmRyb2lkIGlzc3VlOlxyXG4gICAgICAvLyBodHRwczovL2NvZGUuZ29vZ2xlLmNvbS9wL2FuZHJvaWQvaXNzdWVzL2RldGFpbD9pZD0zOTg4MlxyXG4gICAgICBibG9iUmVhZGVyLm9ubG9hZCA9IGZ1bmN0aW9uIGJsb2JSZWFkZXJPbkxvYWQoZSkge1xyXG4gICAgICAgIHJlcXVlc3Quc2VuZChlLnRhcmdldC5yZXN1bHQpO1xyXG4gICAgICB9O1xyXG5cclxuICAgICAgYmxvYlJlYWRlci5yZWFkQXNBcnJheUJ1ZmZlcihibG9iRGF0YSk7XHJcbiAgICB9KTtcclxuXHJcbiAgICByZWFkZXIucmVhZEFzQXJyYXlCdWZmZXIoZmlsZSk7XHJcbiAgfSxcclxuICBfYXBwZW5kOiBmdW5jdGlvbiBfYXBwZW5kKGFycmF5T3JCbG9iQnVpbGRlciwgZGF0YSkge1xyXG4gICAgaWYgKGFycmF5T3JCbG9iQnVpbGRlciAmJiBhcnJheU9yQmxvYkJ1aWxkZXIuY29uc3RydWN0b3IgPT09IEFycmF5KSB7XHJcbiAgICAgIGFycmF5T3JCbG9iQnVpbGRlci5wdXNoKGRhdGEpO1xyXG4gICAgfSBlbHNlIHtcclxuICAgICAgYXJyYXlPckJsb2JCdWlsZGVyLmFwcGVuZChkYXRhKTtcclxuICAgIH1cclxuICB9LFxyXG4gIF9vblVuYWJsZVRvVXBsb2FkRXJyb3I6IGZ1bmN0aW9uIF9vblVuYWJsZVRvVXBsb2FkRXJyb3IoX21zZywgb25FcnJvcikge1xyXG4gICAgbGV0IG1zZyA9IF9tc2c7XHJcbiAgICBpZiAoIW1zZykge1xyXG4gICAgICBtc2cgPSB0aGlzLnVuYWJsZVRvVXBsb2FkVGV4dDtcclxuICAgIH1cclxuICAgIGlmIChvbkVycm9yKSB7XHJcbiAgICAgIG9uRXJyb3IoW21zZ10pO1xyXG4gICAgfSBlbHNlIHtcclxuICAgICAgY29uc29sZS53YXJuKFttc2ddKTsgLy8gZXNsaW50LWRpc2FibGUtbGluZVxyXG4gICAgfVxyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogRm9ybWF0cyB0aGUgZmlsZSBzaXplIGZvcm1hdHRlZCBpbiBLQi5cclxuICAgKiBAcGFyYW0ge051bWJlcn0gc2l6ZVxyXG4gICAqIEByZXR1cm5zIHtTdHJpbmd9XHJcbiAgICovXHJcbiAgZm9ybWF0RmlsZVNpemU6IGZ1bmN0aW9uIGZvcm1hdEZpbGVTaXplKF9zaXplKSB7XHJcbiAgICBsZXQgc2l6ZSA9IF9zaXplO1xyXG4gICAgc2l6ZSA9IHBhcnNlSW50KHNpemUsIDEwKTtcclxuICAgIGlmIChzaXplID09PSAwKSB7XHJcbiAgICAgIHJldHVybiAnMCBLQic7XHJcbiAgICB9XHJcbiAgICBpZiAoIXNpemUgfHwgc2l6ZSA8IDApIHtcclxuICAgICAgcmV0dXJuIHRoaXMudW5rbm93blNpemVUZXh0O1xyXG4gICAgfVxyXG4gICAgaWYgKHNpemUgPCAxMDI0KSB7XHJcbiAgICAgIHJldHVybiAnMSBLQic7XHJcbiAgICB9XHJcbiAgICByZXR1cm4gZE51bWJlci5mb3JtYXQoTWF0aC5yb3VuZChzaXplIC8gMTAyNCkpICsgJyBLQic7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBMb2FkcyBhIHJlbW90ZSBmaWxlLlxyXG4gICAqIEBwYXJhbSB7U3RyaW5nfSBmaWxlVXJsXHJcbiAgICogQHBhcmFtIHtTdHJpbmd9IHJlc3BvbnNlVHlwZVxyXG4gICAqIEBwYXJhbSB7RnVuY3Rpb259IG9uU3VjY2Vzc1xyXG4gICAqIEBwYXJhbSB7T2JqZWN0fSBvblN1Y2Nlc3MucmVzcG9uc2VJbmZvXHJcbiAgICovXHJcbiAgZ2V0RmlsZTogZnVuY3Rpb24gZ2V0RmlsZShmaWxlVXJsLCByZXNwb25zZVR5cGUsIG9uU3VjY2Vzcykge1xyXG4gICAgY29uc3QgcmVxdWVzdCA9IG5ldyBYTUxIdHRwUmVxdWVzdCgpO1xyXG4gICAgY29uc3Qgc2VydmljZSA9IEFwcC5nZXRTZXJ2aWNlKCk7XHJcbiAgICByZXF1ZXN0Lm9wZW4oJ0dFVCcsIGZpbGVVcmwsIHRydWUpO1xyXG5cclxuICAgIGlmIChyZXNwb25zZVR5cGUpIHtcclxuICAgICAgcmVxdWVzdC5yZXNwb25zZVR5cGUgPSByZXNwb25zZVR5cGU7XHJcbiAgICB9XHJcbiAgICByZXF1ZXN0LnNldFJlcXVlc3RIZWFkZXIoJ1gtUmVxdWVzdGVkLVdpdGgnLCAnWE1MSHR0cFJlcXVlc3QnKTtcclxuXHJcbiAgICBpZiAoc2VydmljZSkge1xyXG4gICAgICByZXF1ZXN0LnNldFJlcXVlc3RIZWFkZXIoJ0F1dGhvcml6YXRpb24nLCBzZXJ2aWNlLmNyZWF0ZUJhc2ljQXV0aFRva2VuKCkpO1xyXG4gICAgICByZXF1ZXN0LnNldFJlcXVlc3RIZWFkZXIoJ1gtQXV0aG9yaXphdGlvbicsIHNlcnZpY2UuY3JlYXRlQmFzaWNBdXRoVG9rZW4oKSk7XHJcbiAgICAgIHJlcXVlc3Quc2V0UmVxdWVzdEhlYWRlcignWC1BdXRob3JpemF0aW9uLU1vZGUnLCAnbm8tY2hhbGxlbmdlJyk7XHJcbiAgICB9XHJcblxyXG4gICAgcmVxdWVzdC5hZGRFdmVudExpc3RlbmVyKCdsb2FkJywgZnVuY3Rpb24gbG9hZCgpIHtcclxuICAgICAgY29uc3QgY29udGVudFR5cGUgPSB0aGlzLmdldFJlc3BvbnNlSGVhZGVyKCdDb250ZW50LVR5cGUnKTtcclxuICAgICAgY29uc3QgY29udGVudEluZm8gPSB0aGlzLmdldFJlc3BvbnNlSGVhZGVyKCdDb250ZW50LURpc3Bvc2l0aW9uJyk7XHJcbiAgICAgIGNvbnN0IGZpbGVOYW1lID0gY29udGVudEluZm8uc3BsaXQoJz0nKVsxXTtcclxuICAgICAgY29uc3QgcmVzcG9uc2VJbmZvID0ge1xyXG4gICAgICAgIHJlcXVlc3Q6IHRoaXMsXHJcbiAgICAgICAgcmVzcG9uc2VUeXBlOiByZXNwb25zZVR5cGUsXHJcbiAgICAgICAgcmVzcG9uc2U6IHRoaXMucmVzcG9uc2UsXHJcbiAgICAgICAgY29udGVudFR5cGU6IGNvbnRlbnRUeXBlLFxyXG4gICAgICAgIGZpbGVOYW1lOiBmaWxlTmFtZSxcclxuICAgICAgfTtcclxuICAgICAgaWYgKG9uU3VjY2Vzcykge1xyXG4gICAgICAgIG9uU3VjY2VzcyhyZXNwb25zZUluZm8pO1xyXG4gICAgICB9XHJcbiAgICB9LCBmYWxzZSk7XHJcbiAgICByZXF1ZXN0LnNlbmQobnVsbCk7XHJcbiAgfSxcclxufSk7XHJcblxyXG5sYW5nLnNldE9iamVjdCgnTW9iaWxlLlNhbGVzTG9naXguRmlsZU1hbmFnZXInLCBfX2NsYXNzKTtcclxuZXhwb3J0IGRlZmF1bHQgX19jbGFzcztcclxuIl19
 </pre>
 </body>
 </html>

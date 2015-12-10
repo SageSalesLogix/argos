@@ -15,261 +15,352 @@
   </script>
 </head>
 <body onload="prettyPrint(); highlight();">
-  <pre class="prettyprint lang-js">/* Copyright (c) 2010, Sage Software, Inc. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+  <pre class="prettyprint lang-js">define('argos/_SDataEditMixin', ['exports', 'module', 'dojo/_base/declare', 'dojo/_base/lang', 'dojo/dom-class', './Convert', './_SDataDetailMixin', 'argos/Models/Types'], function (exports, module, _dojo_baseDeclare, _dojo_baseLang, _dojoDomClass, _Convert, _SDataDetailMixin2, _argosModelsTypes) {
+  function _interopRequireDefault(obj) { return obj &amp;&amp; obj.__esModule ? obj : { 'default': obj }; }
 
-<span id='argos-_SDataEditMixin'>/**
-</span> * @class argos._SDataEditMixin
- *
- * Enables SData for the Edit view.
- * Extends the SDataDetail Mixin by providing functions for $template requests.
- *
- * @alternateClassName _SDataEditMixin
- * @extends argos._SDataDetailMixin
- * @requires argos.SData
- */
-define('argos/_SDataEditMixin', [
-    'dojo/_base/declare',
-    'dojo/_base/lang',
-    'dojo/string',
-    'dojo/dom-class',
-    'dojo/_base/connect',
-    './Store/SData',
-    './ErrorManager',
-    './Convert',
-    './_SDataDetailMixin'
-], function(
-    declare,
-    lang,
-    string,
-    domClass,
-    connect,
-    SData,
-    ErrorManager,
-    convert,
-    _SDataDetailMixin
-) {
-    var __class = declare('argos._SDataEditMixin', [_SDataDetailMixin], {
-<span id='argos-_SDataEditMixin-property-entry'>        /**
-</span>         * @property {Object}
-         * The saved SData response.
-         */
-        entry: null,
+  /* Copyright (c) 2010, Sage Software, Inc. All rights reserved.
+   *
+   * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   * you may not use this file except in compliance with the License.
+   * You may obtain a copy of the License at
+   *
+   *     http://www.apache.org/licenses/LICENSE-2.0
+   *
+   * Unless required by applicable law or agreed to in writing, software
+   * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   * See the License for the specific language governing permissions and
+   * limitations under the License.
+   */
 
-<span id='argos-_SDataEditMixin-property-templateEntry'>        /**
-</span>         * @property {Object}
-         * The saved template SData response.
-         */
-        templateEntry: null,
-        diffPropertyIgnores: [
-            '$etag',
-            '$updated'
-        ],
+<span id='argos-_SDataEditMixin'>  /**
+</span>   * @class argos._SDataEditMixin
+   *
+   * Enables SData for the Edit view.
+   * Extends the SDataDetail Mixin by providing functions for $template requests.
+   *
+   * @alternateClassName _SDataEditMixin
+   * @extends argos._SDataDetailMixin
+   * @requires argos.SData
+   */
 
-        _buildRefreshMessage: function(entry, result) {
-            var message = this.inherited(arguments);
+  var _declare = _interopRequireDefault(_dojo_baseDeclare);
 
-            return lang.mixin(message, {
-                resourceKind: this.resourceKind
-            });
-        },
-        onRefresh: function() {
-            this.entry = false;
-        },
-        onRefreshInsert: function() {
-            if (this.options.template) {
-                this.processTemplateEntry(this.options.template);
-            } else {
-                this.requestTemplate();
-            }
-        },
-        createEntryForUpdate: function(values) {
-            values = this.inherited(arguments);
-            values = lang.mixin(values, {
-                '$key': this.entry['$key'],
-                '$etag': this.entry['$etag'],
-                '$name': this.entry['$name']
-            });
+  var _lang = _interopRequireDefault(_dojo_baseLang);
 
-            if (!this._isConcurrencyCheckEnabled()) {
-                delete values['$etag'];
-            }
+  var _domClass = _interopRequireDefault(_dojoDomClass);
 
-            return values;
-        },
-        createEntryForInsert: function(values) {
-            values = this.inherited(arguments);
-            return lang.mixin(values, {
-                '$name': this.entityName
-            });
-        },
-<span id='argos-_SDataEditMixin-method-applyContext'>        /**
-</span>         * ApplyContext is called during {@link #processTemplateEntry processTemplateEntry} and is
-         * intended as a hook for when you are inserting a new entry (not editing) and wish to apply
-         * values from context, ie, from a view in the history.
-         *
-         * The cycle of a template values is (first to last, last being the one that overwrites all)
-         *
-         * 1\. Set the values of the template SData response
-         * 2\. Set any field defaults (the fields `default` property)
-         * 3\. ApplyContext is called
-         * 4\. If `this.options.entry` is defined, apply those values
-         *
-         * @param templateEntry
-         */
-        applyContext: function(templateEntry) {
-        },
-<span id='argos-_SDataEditMixin-method-createTemplateRequest'>        /**
-</span>         * Creates Sage.SData.Client.SDataTemplateResourceRequest instance and sets a number of known properties.
-         *
-         * List of properties used `this.property/this.options.property`:
-         *
-         * `resourceKind`, `querySelect`, `queryInclude`
-         *
-         * @return {Object} Sage.SData.Client.SDataTemplateResourceRequest instance.
-         */
-        createTemplateRequest: function() {
-            var request = new Sage.SData.Client.SDataTemplateResourceRequest(this.getService());
+  var _convert = _interopRequireDefault(_Convert);
 
-            if (this.resourceKind) {
-                request.setResourceKind(this.resourceKind);
-            }
+  var _SDataDetailMixin3 = _interopRequireDefault(_SDataDetailMixin2);
 
-            if (this.querySelect) {
-                request.setQueryArg(Sage.SData.Client.SDataUri.QueryArgNames.Select, this.querySelect.join(','));
-            }
+  var _MODEL_TYPES = _interopRequireDefault(_argosModelsTypes);
 
-            if (this.queryInclude) {
-                request.setQueryArg(Sage.SData.Client.SDataUri.QueryArgNames.Include, this.queryInclude.join(','));
-            }
+  var __class = (0, _declare['default'])('argos._SDataEditMixin', [_SDataDetailMixin3['default']], {
+<span id='argos-_SDataEditMixin-property-entry'>    /**
+</span>     * @property {Object}
+     * The saved SData response.
+     */
+    entry: null,
 
-            if (this.contractName) {
-                request.setContractName(this.contractName);
-            }
+<span id='argos-_SDataEditMixin-property-templateEntry'>    /**
+</span>     * @property {Object}
+     * The saved template SData response.
+     */
+    templateEntry: null,
+    diffPropertyIgnores: ['$etag', '$updated'],
 
-            return request;
-        },
-<span id='argos-_SDataEditMixin-method-requestTemplate'>        /**
-</span>         * Initiates the SData request for the template (default values).
-         */
-        requestTemplate: function() {
-            var request = this.createTemplateRequest();
-            if (request) {
-                request.read({
-                    success: this.onRequestTemplateSuccess,
-                    failure: this.onRequestTemplateFailure,
-                    scope: this
-                });
-            }
-        },
-<span id='argos-_SDataEditMixin-method-onRequestTemplateFailure'>        /**
-</span>         * Handler when an error occurs while request data from the SData endpoint.
-         * @param {Object} response The response object.
-         * @param {Object} o The options that were passed when creating the Ajax request.
-         */
-        onRequestTemplateFailure: function(response, o) {
-            this.handleError(response);
-        },
-<span id='argos-_SDataEditMixin-method-onRequestTemplateSuccess'>        /**
-</span>         * Handler when a request to SData is successful, calls processTemplateEntry
-         * @param {Object} entry The SData response
-         */
-        onRequestTemplateSuccess: function(entry) {
-            this.processTemplateEntry(entry);
-        },
-<span id='argos-_SDataEditMixin-method-processTemplateEntry'>        /**
-</span>         * Processes the returned SData template entry by saving it to `this.templateEntry` and applies
-         * the default values to fields by:
-         *
-         * The cycle of a template values is (first to last, last being the one that overwrites all)
-         *
-         * 1\. Set the values of the template SData response
-         * 2\. Set any field defaults (the fields `default` property)
-         * 3\. ApplyContext is called
-         * 4\. If `this.options.entry` is defined, apply those values
-         *
-         * @param {Object} templateEntry SData template entry
-         */
-        processTemplateEntry: function(templateEntry) {
-            this.templateEntry = this.convertEntry(templateEntry || {});
+    _buildRefreshMessage: function _buildRefreshMessage() {
+      var message = this.inherited(arguments);
 
-            this.setValues(this.templateEntry, true);
-            this.applyFieldDefaults();
-            this.applyContext(this.templateEntry);
+      return _lang['default'].mixin(message, {
+        resourceKind: this.resourceKind
+      });
+    },
+    onRefresh: function onRefresh() {
+      this.entry = false;
+    },
+    onRefreshInsert: function onRefreshInsert() {
+      if (this.options.template) {
+        this.processTemplateEntry(this.options.template);
+      } else {
+        this.requestTemplate();
+      }
+    },
+    createEntryForUpdate: function createEntryForUpdate(v) {
+      var values = v;
+      values = this.inherited(arguments);
+      values = _lang['default'].mixin(values, {
+        '$key': this.entry.$key,
+        '$etag': this.entry.$etag,
+        '$name': this.entry.$name
+      });
 
-            // if an entry has been passed through options, apply it here, now that the template has been applied.
-            // in this case, since we are doing an insert (only time template is used), the entry is applied as modified data.
-            if (this.options.entry) {
-                this.entry = this.convertEntry(this.options.entry);
-                this.setValues(this.entry);
-            }
+      if (!this._isConcurrencyCheckEnabled()) {
+        delete values.$etag;
+      }
 
-            domClass.remove(this.domNode, 'panel-loading');
-        },
-<span id='argos-_SDataEditMixin-method-convertValues'>        /**
-</span>         * Does the reverse of {@link #convertEntry convertEntry} in that it loops the payload being
-         * sent back to SData and converts Date objects into SData date strings
-         * @param {Object} values Payload
-         * @return {Object} Entry with string dates
-         */
-        convertValues: function(values) {
-            for (var n in values) {
-                if (values[n] instanceof Date) {
-                    values[n] = this.getService().isJsonEnabled()
-                        ? convert.toJsonStringFromDate(values[n])
-                        : convert.toIsoStringFromDate(values[n]);
-                }
-            }
+      return values;
+    },
+    createEntryForInsert: function createEntryForInsert(v) {
+      var values = v;
+      values = this.inherited(arguments);
+      return _lang['default'].mixin(values, {
+        '$name': this.entityName
+      });
+    },
+<span id='argos-_SDataEditMixin-method-applyContext'>    /**
+</span>     * ApplyContext is called during {@link #processTemplateEntry processTemplateEntry} and is
+     * intended as a hook for when you are inserting a new entry (not editing) and wish to apply
+     * values from context, ie, from a view in the history.
+     *
+     * The cycle of a template values is (first to last, last being the one that overwrites all)
+     *
+     * 1\. Set the values of the template SData response
+     * 2\. Set any field defaults (the fields `default` property)
+     * 3\. ApplyContext is called
+     * 4\. If `this.options.entry` is defined, apply those values
+     *
+     * @param templateEntry
+     */
+    applyContext: function applyContext() /*templateEntry*/{},
+<span id='argos-_SDataEditMixin-method-createTemplateRequest'>    /**
+</span>     * Creates Sage.SData.Client.SDataTemplateResourceRequest instance and sets a number of known properties.
+     *
+     * List of properties used `this.property/this.options.property`:
+     *
+     * `resourceKind`, `querySelect`, `queryInclude`
+     *
+     * @return {Object} Sage.SData.Client.SDataTemplateResourceRequest instance.
+     */
+    createTemplateRequest: function createTemplateRequest() {
+      var request = new Sage.SData.Client.SDataTemplateResourceRequest(this.getService());
 
-            return values;
-        },
-<span id='argos-_SDataEditMixin-method-convertEntry'>        /**
-</span>         * Loops a given entry testing for SData date strings and converts them to javascript Date objects
-         * @param {Object} entry SData entry
-         * @return {Object} Entry with actual Date objects
-         */
-        convertEntry: function(entry) {
-            for (var n in entry) {
-                if (convert.isDateString(entry[n])) {
-                    entry[n] = convert.toDateFromString(entry[n]);
-                }
-            }
+      if (this.resourceKind) {
+        request.setResourceKind(this.resourceKind);
+      }
 
-            return entry;
-        },
-        _applyStateToPutOptions: function(putOptions) {
-            var store = this.get('store');
+      if (this.querySelect) {
+        request.setQueryArg(Sage.SData.Client.SDataUri.QueryArgNames.Select, this.querySelect.join(','));
+      }
 
-            if (this._isConcurrencyCheckEnabled()) {
-                // The SData store will take the version and apply it to the etag
-                putOptions.version = store.getVersion(this.entry);
-            }
+      if (this.queryInclude) {
+        request.setQueryArg(Sage.SData.Client.SDataUri.QueryArgNames.Include, this.queryInclude.join(','));
+      }
 
-            putOptions.entity = store.getEntity(this.entry) || this.entityName;
-        },
-        _applyStateToAddOptions: function(addOptions) {
-            addOptions.entity = this.entityName;
-        },
-        _isConcurrencyCheckEnabled: function() {
-            return App &amp;&amp; App.enableConcurrencyCheck;
+      if (this.contractName) {
+        request.setContractName(this.contractName);
+      }
+
+      return request;
+    },
+<span id='argos-_SDataEditMixin-method-requestTemplate'>    /**
+</span>     * Initiates the SData request for the template (default values).
+     */
+    requestTemplate: function requestTemplate() {
+      var request = this.createTemplateRequest();
+      if (request) {
+        request.read({
+          success: this.onRequestTemplateSuccess,
+          failure: this.onRequestTemplateFailure,
+          scope: this
+        });
+      }
+    },
+<span id='argos-_SDataEditMixin-method-onRequestTemplateFailure'>    /**
+</span>     * Handler when an error occurs while request data from the SData endpoint.
+     * @param {Object} response The response object.
+     * @param {Object} o The options that were passed when creating the Ajax request.
+     */
+    onRequestTemplateFailure: function onRequestTemplateFailure(response /*, o*/) {
+      this.handleError(response);
+    },
+<span id='argos-_SDataEditMixin-method-onRequestTemplateSuccess'>    /**
+</span>     * Handler when a request to SData is successful, calls processTemplateEntry
+     * @param {Object} entry The SData response
+     */
+    onRequestTemplateSuccess: function onRequestTemplateSuccess(entry) {
+      this.processTemplateEntry(entry);
+    },
+<span id='argos-_SDataEditMixin-method-processTemplateEntry'>    /**
+</span>     * Processes the returned SData template entry by saving it to `this.templateEntry` and applies
+     * the default values to fields by:
+     *
+     * The cycle of a template values is (first to last, last being the one that overwrites all)
+     *
+     * 1\. Set the values of the template SData response
+     * 2\. Set any field defaults (the fields `default` property)
+     * 3\. ApplyContext is called
+     * 4\. If `this.options.entry` is defined, apply those values
+     *
+     * @param {Object} templateEntry SData template entry
+     */
+    processTemplateEntry: function processTemplateEntry(templateEntry) {
+      this.templateEntry = this.convertEntry(templateEntry || {});
+
+      this.setValues(this.templateEntry, true);
+      this.applyFieldDefaults();
+      this.applyContext(this.templateEntry);
+
+      // if an entry has been passed through options, apply it here, now that the template has been applied.
+      // in this case, since we are doing an insert (only time template is used), the entry is applied as modified data.
+      if (this.options.entry) {
+        this.entry = this.convertEntry(this.options.entry);
+        this.setValues(this.entry);
+      }
+
+      _domClass['default'].remove(this.domNode, 'panel-loading');
+    },
+<span id='argos-_SDataEditMixin-method-convertValues'>    /**
+</span>     * Does the reverse of {@link #convertEntry convertEntry} in that it loops the payload being
+     * sent back to SData and converts Date objects into SData date strings
+     * @param {Object} values Payload
+     * @return {Object} Entry with string dates
+     */
+    convertValues: function convertValues(values) {
+      for (var n in values) {
+        if (values[n] instanceof Date) {
+          values[n] = this.getService().isJsonEnabled() ? _convert['default'].toJsonStringFromDate(values[n]) : _convert['default'].toIsoStringFromDate(values[n]);
         }
-    });
+      }
 
-    lang.setObject('Sage.Platform.Mobile._SDataEditMixin', __class);
-    return __class;
+      return values;
+    },
+<span id='argos-_SDataEditMixin-method-convertEntry'>    /**
+</span>     * Loops a given entry testing for SData date strings and converts them to javascript Date objects
+     * @param {Object} entry SData entry
+     * @return {Object} Entry with actual Date objects
+     */
+    convertEntry: function convertEntry(entry) {
+      for (var n in entry) {
+        if (_convert['default'].isDateString(entry[n])) {
+          entry[n] = _convert['default'].toDateFromString(entry[n]);
+        }
+      }
+
+      return entry;
+    },
+    _applyStateToPutOptions: function _applyStateToPutOptions(putOptions) {
+      var store = this.get('store');
+
+      if (this._isConcurrencyCheckEnabled()) {
+        // The SData store will take the version and apply it to the etag
+        putOptions.version = store.getVersion(this.entry);
+      }
+
+      putOptions.entity = store.getEntity(this.entry) || this.entityName;
+    },
+    _applyStateToAddOptions: function _applyStateToAddOptions(addOptions) {
+      addOptions.entity = this.entityName;
+    },
+    _isConcurrencyCheckEnabled: function _isConcurrencyCheckEnabled() {
+      return App &amp;&amp; App.enableConcurrencyCheck;
+    },
+    initModel: function initModel() {
+      var model = this.getModel();
+      if (model) {
+        this._model = model;
+        this._model.init();
+        if (this._model.ModelType === _MODEL_TYPES['default'].SDATA) {
+          this._applyViewToModel(this._model);
+        }
+      }
+    },
+    _applyViewToModel: function _applyViewToModel(model) {
+      if (!model) {
+        return;
+      }
+
+      var queryModel = model._getQueryModelByName('detail');
+      if (this.resourceKind) {
+        model.resourceKind = this.resourceKind;
+      }
+
+      if (!queryModel) {
+        return;
+      }
+
+      // Attempt to mixin the view's querySelect, queryInclude, queryWhere,
+      // queryArgs, queryOrderBy, resourceProperty, resourcePredicate properties
+      // into the layout. The past method of extending a querySelect for example,
+      // was to modify the protoype of the view's querySelect array.
+      if (this.querySelect) {
+        /* eslint-disable */
+        console.warn('A view\'s querySelect is deprecated. Register a customization to the models layout instead.');
+        /* eslint-enable */
+        if (!queryModel.querySelect) {
+          queryModel.querySelect = [];
+        }
+
+        queryModel.querySelect = queryModel.querySelect.concat(this.querySelect.filter(function (item) {
+          return queryModel.querySelect.indexOf(item) &lt; 0;
+        }));
+      }
+
+      if (this.queryInclude) {
+        /* eslint-disable */
+        console.warn('A view\'s queryInclude is deprecated. Register a customization to the models layout instead.');
+        /* eslint-enable */
+        if (!queryModel.queryInclude) {
+          queryModel.queryInclude = [];
+        }
+
+        queryModel.queryInclude = queryModel.queryInclude.concat(this.queryInclude.filter(function (item) {
+          return queryModel.queryInclude.indexOf(item) &lt; 0;
+        }));
+      }
+
+      if (this.queryWhere) {
+        /* eslint-disable */
+        console.warn('A view\'s queryWhere is deprecated. Register a customization to the models layout instead.');
+        /* eslint-enable */
+        queryModel.queryWhere = this.queryWhere;
+      }
+
+      if (this.queryArgs) {
+        /* eslint-disable */
+        console.warn('A view\'s queryArgs is deprecated. Register a customization to the models layout instead.');
+        /* eslint-enable */
+        queryModel.queryArgs = _lang['default'].mixin({}, queryModel.queryArgs, this.queryArgs);
+      }
+
+      if (this.queryOrderBy) {
+        /* eslint-disable */
+        console.warn('A view\'s queryOrderBy is deprecated. Register a customization to the models layout instead.');
+        /* eslint-enable */
+        if (Array.isArray(this.queryOrderBy)) {
+          if (!queryModel.queryOrderBy) {
+            queryModel.queryOrderBy = [];
+          }
+
+          queryModel.queryOrderBy = queryModel.queryOrderBy.concat(this.queryOrderBy.filter(function (item) {
+            return queryModel.queryOrderBy.indexOf(item) &lt; 0;
+          }));
+        } else {
+          queryModel.queryOrderBy = this.queryOrderBy;
+        }
+      }
+
+      if (this.resourceProperty) {
+        /* eslint-disable */
+        console.warn('A view\'s resourceProperty is deprecated. Register a customization to the models layout instead.');
+        /* eslint-enable */
+        queryModel.resourceProperty = this.resourceProperty;
+      }
+
+      if (this.resourcePredicate) {
+        /* eslint-disable */
+        console.warn('A view\'s resourcePredicate is deprecated. Register a customization to the models layout instead.');
+        /* eslint-enable */
+        queryModel.resourcePredicate = this.resourcePredicate;
+      }
+    }
+  });
+
+  _lang['default'].setObject('Sage.Platform.Mobile._SDataEditMixin', __class);
+  module.exports = __class;
 });
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInNyYy9fU0RhdGFFZGl0TWl4aW4uanMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7QUFnQ0EsTUFBTSxPQUFPLEdBQUcseUJBQVEsdUJBQXVCLEVBQUUsK0JBQW1CLEVBQUU7Ozs7O0FBS3BFLFNBQUssRUFBRSxJQUFJOzs7Ozs7QUFNWCxpQkFBYSxFQUFFLElBQUk7QUFDbkIsdUJBQW1CLEVBQUUsQ0FDbkIsT0FBTyxFQUNQLFVBQVUsQ0FDWDs7QUFFRCx3QkFBb0IsRUFBRSxTQUFTLG9CQUFvQixHQUFHO0FBQ3BELFVBQU0sT0FBTyxHQUFHLElBQUksQ0FBQyxTQUFTLENBQUMsU0FBUyxDQUFDLENBQUM7O0FBRTFDLGFBQU8saUJBQUssS0FBSyxDQUFDLE9BQU8sRUFBRTtBQUN6QixvQkFBWSxFQUFFLElBQUksQ0FBQyxZQUFZO09BQ2hDLENBQUMsQ0FBQztLQUNKO0FBQ0QsYUFBUyxFQUFFLFNBQVMsU0FBUyxHQUFHO0FBQzlCLFVBQUksQ0FBQyxLQUFLLEdBQUcsS0FBSyxDQUFDO0tBQ3BCO0FBQ0QsbUJBQWUsRUFBRSxTQUFTLGVBQWUsR0FBRztBQUMxQyxVQUFJLElBQUksQ0FBQyxPQUFPLENBQUMsUUFBUSxFQUFFO0FBQ3pCLFlBQUksQ0FBQyxvQkFBb0IsQ0FBQyxJQUFJLENBQUMsT0FBTyxDQUFDLFFBQVEsQ0FBQyxDQUFDO09BQ2xELE1BQU07QUFDTCxZQUFJLENBQUMsZUFBZSxFQUFFLENBQUM7T0FDeEI7S0FDRjtBQUNELHdCQUFvQixFQUFFLFNBQVMsb0JBQW9CLENBQUMsQ0FBQyxFQUFFO0FBQ3JELFVBQUksTUFBTSxHQUFHLENBQUMsQ0FBQztBQUNmLFlBQU0sR0FBRyxJQUFJLENBQUMsU0FBUyxDQUFDLFNBQVMsQ0FBQyxDQUFDO0FBQ25DLFlBQU0sR0FBRyxpQkFBSyxLQUFLLENBQUMsTUFBTSxFQUFFO0FBQzFCLGNBQU0sRUFBRSxJQUFJLENBQUMsS0FBSyxD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QUVqSCxrQkFBVSxDQUFDLGlCQUFpQixHQUFHLElBQUksQ0FBQyxpQkFBaUIsQ0FBQztPQUN2RDtLQUNGO0dBQ0YsQ0FBQyxDQUFDOztBQUVILG1CQUFLLFNBQVMsQ0FBQyxzQ0FBc0MsRUFBRSxPQUFPLENBQUMsQ0FBQzttQkFDakQsT0FBTyIsImZpbGUiOiJzcmMvX1NEYXRhRWRpdE1peGluLmpzIiwic291cmNlUm9vdCI6InNyYyIsInNvdXJjZXNDb250ZW50IjpbIi8qIENvcHlyaWdodCAoYykgMjAxMCwgU2FnZSBTb2Z0d2FyZSwgSW5jLiBBbGwgcmlnaHRzIHJlc2VydmVkLlxyXG4gKlxyXG4gKiBMaWNlbnNlZCB1bmRlciB0aGUgQXBhY2hlIExpY2Vuc2UsIFZlcnNpb24gMi4wICh0aGUgXCJMaWNlbnNlXCIpO1xyXG4gKiB5b3UgbWF5IG5vdCB1c2UgdGhpcyBmaWxlIGV4Y2VwdCBpbiBjb21wbGlhbmNlIHdpdGggdGhlIExpY2Vuc2UuXHJcbiAqIFlvdSBtYXkgb2J0YWluIGEgY29weSBvZiB0aGUgTGljZW5zZSBhdFxyXG4gKlxyXG4gKiAgICAgaHR0cDovL3d3dy5hcGFjaGUub3JnL2xpY2Vuc2VzL0xJQ0VOU0UtMi4wXHJcbiAqXHJcbiAqIFVubGVzcyByZXF1aXJlZCBieSBhcHBsaWNhYmxlIGxhdyBvciBhZ3JlZWQgdG8gaW4gd3JpdGluZywgc29mdHdhcmVcclxuICogZGlzdHJpYnV0ZWQgdW5kZXIgdGhlIExpY2Vuc2UgaXMgZGlzdHJpYnV0ZWQgb24gYW4gXCJBUyBJU1wiIEJBU0lTLFxyXG4gKiBXSVRIT1VUIFdBUlJBTlRJRVMgT1IgQ09ORElUSU9OUyBPRiBBTlkgS0lORCwgZWl0aGVyIGV4cHJlc3Mgb3IgaW1wbGllZC5cclxuICogU2VlIHRoZSBMaWNlbnNlIGZvciB0aGUgc3BlY2lmaWMgbGFuZ3VhZ2UgZ292ZXJuaW5nIHBlcm1pc3Npb25zIGFuZFxyXG4gKiBsaW1pdGF0aW9ucyB1bmRlciB0aGUgTGljZW5zZS5cclxuICovXHJcblxyXG4vKipcclxuICogQGNsYXNzIGFyZ29zLl9TRGF0YUVkaXRNaXhpblxyXG4gKlxyXG4gKiBFbmFibGVzIFNEYXRhIGZvciB0aGUgRWRpdCB2aWV3LlxyXG4gKiBFeHRlbmRzIHRoZSBTRGF0YURldGFpbCBNaXhpbiBieSBwcm92aWRpbmcgZnVuY3Rpb25zIGZvciAkdGVtcGxhdGUgcmVxdWVzdHMuXHJcbiAqXHJcbiAqIEBhbHRlcm5hdGVDbGFzc05hbWUgX1NEYXRhRWRpdE1peGluXHJcbiAqIEBleHRlbmRzIGFyZ29zLl9TRGF0YURldGFpbE1peGluXHJcbiAqIEByZXF1aXJlcyBhcmdvcy5TRGF0YVxyXG4gKi9cclxuaW1wb3J0IGRlY2xhcmUgZnJvbSAnZG9qby9fYmFzZS9kZWNsYXJlJztcclxuaW1wb3J0IGxhbmcgZnJvbSAnZG9qby9fYmFzZS9sYW5nJztcclxuaW1wb3J0IGRvbUNsYXNzIGZyb20gJ2Rvam8vZG9tLWNsYXNzJztcclxuaW1wb3J0IGNvbnZlcnQgZnJvbSAnLi9Db252ZXJ0JztcclxuaW1wb3J0IF9TRGF0YURldGFpbE1peGluIGZyb20gJy4vX1NEYXRhRGV0YWlsTWl4aW4nO1xyXG5pbXBvcnQgTU9ERUxfVFlQRVMgZnJvbSAnYXJnb3MvTW9kZWxzL1R5cGVzJztcclxuXHJcbmNvbnN0IF9fY2xhc3MgPSBkZWNsYXJlKCdhcmdvcy5fU0RhdGFFZGl0TWl4aW4nLCBbX1NEYXRhRGV0YWlsTWl4aW5dLCB7XHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtPYmplY3R9XHJcbiAgICogVGhlIHNhdmVkIFNEYXRhIHJlc3BvbnNlLlxyXG4gICAqL1xyXG4gIGVudHJ5OiBudWxsLFxyXG5cclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge09iamVjdH1cclxuICAgKiBUaGUgc2F2ZWQgdGVtcGxhdGUgU0RhdGEgcmVzcG9uc2UuXHJcbiAgICovXHJcbiAgdGVtcGxhdGVFbnRyeTogbnVsbCxcclxuICBkaWZmUHJvcGVydHlJZ25vcmVzOiBbXHJcbiAgICAnJGV0YWcnLFxyXG4gICAgJyR1cGRhdGVkJyxcclxuICBdLFxyXG5cclxuICBfYnVpbGRSZWZyZXNoTWVzc2FnZTogZnVuY3Rpb24gX2J1aWxkUmVmcmVzaE1lc3NhZ2UoKSB7XHJcbiAgICBjb25zdCBtZXNzYWdlID0gdGhpcy5pbmhlcml0ZWQoYXJndW1lbnRzKTtcclxuXHJcbiAgICByZXR1cm4gbGFuZy5taXhpbihtZXNzYWdlLCB7XHJcbiAgICAgIHJlc291cmNlS2luZDogdGhpcy5yZXNvdXJjZUtpbmQsXHJcbiAgICB9KTtcclxuICB9LFxyXG4gIG9uUmVmcmVzaDogZnVuY3Rpb24gb25SZWZyZXNoKCkge1xyXG4gICAgdGhpcy5lbnRyeSA9IGZhbHNlO1xyXG4gIH0sXHJcbiAgb25SZWZyZXNoSW5zZXJ0OiBmdW5jdGlvbiBvblJlZnJlc2hJbnNlcnQoKSB7XHJcbiAgICBpZiAodGhpcy5vcHRpb25zLnRlbXBsYXRlKSB7XHJcbiAgICAgIHRoaXMucHJvY2Vzc1RlbXBsYXRlRW50cnkodGhpcy5vcHRpb25zLnRlbXBsYXRlKTtcclxuICAgIH0gZWxzZSB7XHJcbiAgICAgIHRoaXMucmVxdWVzdFRlbXBsYXRlKCk7XHJcbiAgICB9XHJcbiAgfSxcclxuICBjcmVhdGVFbnRyeUZvclVwZGF0ZTogZnVuY3Rpb24gY3JlYXRlRW50cnlGb3JVcGRhdGUodikge1xyXG4gICAgbGV0IHZhbHVlcyA9IHY7XHJcbiAgICB2YWx1ZXMgPSB0aGlzLmluaGVyaXRlZChhcmd1bWVudHMpO1xyXG4gICAgdmFsdWVzID0gbGFuZy5taXhpbih2YWx1ZXMsIHtcclxuICAgICAgJyRrZXknOiB0aGlzLmVudHJ5LiRrZXksXHJcbiAgICAgICckZXRhZyc6IHRoaXMuZW50cnkuJGV0YWcsXHJcbiAgICAgICckbmFtZSc6IHRoaXMuZW50cnkuJG5hbWUsXHJcbiAgICB9KTtcclxuXHJcbiAgICBpZiAoIXRoaXMuX2lzQ29uY3VycmVuY3lDaGVja0VuYWJsZWQoKSkge1xyXG4gICAgICBkZWxldGUgdmFsdWVzLiRldGFnO1xyXG4gICAgfVxyXG5cclxuICAgIHJldHVybiB2YWx1ZXM7XHJcbiAgfSxcclxuICBjcmVhdGVFbnRyeUZvckluc2VydDogZnVuY3Rpb24gY3JlYXRlRW50cnlGb3JJbnNlcnQodikge1xyXG4gICAgbGV0IHZhbHVlcyA9IHY7XHJcbiAgICB2YWx1ZXMgPSB0aGlzLmluaGVyaXRlZChhcmd1bWVudHMpO1xyXG4gICAgcmV0dXJuIGxhbmcubWl4aW4odmFsdWVzLCB7XHJcbiAgICAgICckbmFtZSc6IHRoaXMuZW50aXR5TmFtZSxcclxuICAgIH0pO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogQXBwbHlDb250ZXh0IGlzIGNhbGxlZCBkdXJpbmcge0BsaW5rICNwcm9jZXNzVGVtcGxhdGVFbnRyeSBwcm9jZXNzVGVtcGxhdGVFbnRyeX0gYW5kIGlzXHJcbiAgICogaW50ZW5kZWQgYXMgYSBob29rIGZvciB3aGVuIHlvdSBhcmUgaW5zZXJ0aW5nIGEgbmV3IGVudHJ5IChub3QgZWRpdGluZykgYW5kIHdpc2ggdG8gYXBwbHlcclxuICAgKiB2YWx1ZXMgZnJvbSBjb250ZXh0LCBpZSwgZnJvbSBhIHZpZXcgaW4gdGhlIGhpc3RvcnkuXHJcbiAgICpcclxuICAgKiBUaGUgY3ljbGUgb2YgYSB0ZW1wbGF0ZSB2YWx1ZXMgaXMgKGZpcnN0IHRvIGxhc3QsIGxhc3QgYmVpbmcgdGhlIG9uZSB0aGF0IG92ZXJ3cml0ZXMgYWxsKVxyXG4gICAqXHJcbiAgICogMVxcLiBTZXQgdGhlIHZhbHVlcyBvZiB0aGUgdGVtcGxhdGUgU0RhdGEgcmVzcG9uc2VcclxuICAgKiAyXFwuIFNldCBhbnkgZmllbGQgZGVmYXVsdHMgKHRoZSBmaWVsZHMgYGRlZmF1bHRgIHByb3BlcnR5KVxyXG4gICAqIDNcXC4gQXBwbHlDb250ZXh0IGlzIGNhbGxlZFxyXG4gICAqIDRcXC4gSWYgYHRoaXMub3B0aW9ucy5lbnRyeWAgaXMgZGVmaW5lZCwgYXBwbHkgdGhvc2UgdmFsdWVzXHJcbiAgICpcclxuICAgKiBAcGFyYW0gdGVtcGxhdGVFbnRyeVxyXG4gICAqL1xyXG4gIGFwcGx5Q29udGV4dDogZnVuY3Rpb24gYXBwbHlDb250ZXh0KC8qdGVtcGxhdGVFbnRyeSovKSB7fSxcclxuICAvKipcclxuICAgKiBDcmVhdGVzIFNhZ2UuU0RhdGEuQ2xpZW50LlNEYXRhVGVtcGxhdGVSZXNvdXJjZVJlcXVlc3QgaW5zdGFuY2UgYW5kIHNldHMgYSBudW1iZXIgb2Yga25vd24gcHJvcGVydGllcy5cclxuICAgKlxyXG4gICAqIExpc3Qgb2YgcHJvcGVydGllcyB1c2VkIGB0aGlzLnByb3BlcnR5L3RoaXMub3B0aW9ucy5wcm9wZXJ0eWA6XHJcbiAgICpcclxuICAgKiBgcmVzb3VyY2VLaW5kYCwgYHF1ZXJ5U2VsZWN0YCwgYHF1ZXJ5SW5jbHVkZWBcclxuICAgKlxyXG4gICAqIEByZXR1cm4ge09iamVjdH0gU2FnZS5TRGF0YS5DbGllbnQuU0RhdGFUZW1wbGF0ZVJlc291cmNlUmVxdWVzdCBpbnN0YW5jZS5cclxuICAgKi9cclxuICBjcmVhdGVUZW1wbGF0ZVJlcXVlc3Q6IGZ1bmN0aW9uIGNyZWF0ZVRlbXBsYXRlUmVxdWVzdCgpIHtcclxuICAgIGNvbnN0IHJlcXVlc3QgPSBuZXcgU2FnZS5TRGF0YS5DbGllbnQuU0RhdGFUZW1wbGF0ZVJlc291cmNlUmVxdWVzdCh0aGlzLmdldFNlcnZpY2UoKSk7XHJcblxyXG4gICAgaWYgKHRoaXMucmVzb3VyY2VLaW5kKSB7XHJcbiAgICAgIHJlcXVlc3Quc2V0UmVzb3VyY2VLaW5kKHRoaXMucmVzb3VyY2VLaW5kKTtcclxuICAgIH1cclxuXHJcbiAgICBpZiAodGhpcy5xdWVyeVNlbGVjdCkge1xyXG4gICAgICByZXF1ZXN0LnNldFF1ZXJ5QXJnKFNhZ2UuU0RhdGEuQ2xpZW50LlNEYXRhVXJpLlF1ZXJ5QXJnTmFtZXMuU2VsZWN0LCB0aGlzLnF1ZXJ5U2VsZWN0LmpvaW4oJywnKSk7XHJcbiAgICB9XHJcblxyXG4gICAgaWYgKHRoaXMucXVlcnlJbmNsdWRlKSB7XHJcbiAgICAgIHJlcXVlc3Quc2V0UXVlcnlBcmcoU2FnZS5TRGF0YS5DbGllbnQuU0RhdGFVcmkuUXVlcnlBcmdOYW1lcy5JbmNsdWRlLCB0aGlzLnF1ZXJ5SW5jbHVkZS5qb2luKCcsJykpO1xyXG4gICAgfVxyXG5cclxuICAgIGlmICh0aGlzLmNvbnRyYWN0TmFtZSkge1xyXG4gICAgICByZXF1ZXN0LnNldENvbnRyYWN0TmFtZSh0aGlzLmNvbnRyYWN0TmFtZSk7XHJcbiAgICB9XHJcblxyXG4gICAgcmV0dXJuIHJlcXVlc3Q7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBJbml0aWF0ZXMgdGhlIFNEYXRhIHJlcXVlc3QgZm9yIHRoZSB0ZW1wbGF0ZSAoZGVmYXVsdCB2YWx1ZXMpLlxyXG4gICAqL1xyXG4gIHJlcXVlc3RUZW1wbGF0ZTogZnVuY3Rpb24gcmVxdWVzdFRlbXBsYXRlKCkge1xyXG4gICAgY29uc3QgcmVxdWVzdCA9IHRoaXMuY3JlYXRlVGVtcGxhdGVSZXF1ZXN0KCk7XHJcbiAgICBpZiAocmVxdWVzdCkge1xyXG4gICAgICByZXF1ZXN0LnJlYWQoe1xyXG4gICAgICAgIHN1Y2Nlc3M6IHRoaXMub25SZXF1ZXN0VGVtcGxhdGVTdWNjZXNzLFxyXG4gICAgICAgIGZhaWx1cmU6IHRoaXMub25SZXF1ZXN0VGVtcGxhdGVGYWlsdXJlLFxyXG4gICAgICAgIHNjb3BlOiB0aGlzLFxyXG4gICAgICB9KTtcclxuICAgIH1cclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIEhhbmRsZXIgd2hlbiBhbiBlcnJvciBvY2N1cnMgd2hpbGUgcmVxdWVzdCBkYXRhIGZyb20gdGhlIFNEYXRhIGVuZHBvaW50LlxyXG4gICAqIEBwYXJhbSB7T2JqZWN0fSByZXNwb25zZSBUaGUgcmVzcG9uc2Ugb2JqZWN0LlxyXG4gICAqIEBwYXJhbSB7T2JqZWN0fSBvIFRoZSBvcHRpb25zIHRoYXQgd2VyZSBwYXNzZWQgd2hlbiBjcmVhdGluZyB0aGUgQWpheCByZXF1ZXN0LlxyXG4gICAqL1xyXG4gIG9uUmVxdWVzdFRlbXBsYXRlRmFpbHVyZTogZnVuY3Rpb24gb25SZXF1ZXN0VGVtcGxhdGVGYWlsdXJlKHJlc3BvbnNlLyosIG8qLykge1xyXG4gICAgdGhpcy5oYW5kbGVFcnJvcihyZXNwb25zZSk7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBIYW5kbGVyIHdoZW4gYSByZXF1ZXN0IHRvIFNEYXRhIGlzIHN1Y2Nlc3NmdWwsIGNhbGxzIHByb2Nlc3NUZW1wbGF0ZUVudHJ5XHJcbiAgICogQHBhcmFtIHtPYmplY3R9IGVudHJ5IFRoZSBTRGF0YSByZXNwb25zZVxyXG4gICAqL1xyXG4gIG9uUmVxdWVzdFRlbXBsYXRlU3VjY2VzczogZnVuY3Rpb24gb25SZXF1ZXN0VGVtcGxhdGVTdWNjZXNzKGVudHJ5KSB7XHJcbiAgICB0aGlzLnByb2Nlc3NUZW1wbGF0ZUVudHJ5KGVudHJ5KTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIFByb2Nlc3NlcyB0aGUgcmV0dXJuZWQgU0RhdGEgdGVtcGxhdGUgZW50cnkgYnkgc2F2aW5nIGl0IHRvIGB0aGlzLnRlbXBsYXRlRW50cnlgIGFuZCBhcHBsaWVzXHJcbiAgICogdGhlIGRlZmF1bHQgdmFsdWVzIHRvIGZpZWxkcyBieTpcclxuICAgKlxyXG4gICAqIFRoZSBjeWNsZSBvZiBhIHRlbXBsYXRlIHZhbHVlcyBpcyAoZmlyc3QgdG8gbGFzdCwgbGFzdCBiZWluZyB0aGUgb25lIHRoYXQgb3ZlcndyaXRlcyBhbGwpXHJcbiAgICpcclxuICAgKiAxXFwuIFNldCB0aGUgdmFsdWVzIG9mIHRoZSB0ZW1wbGF0ZSBTRGF0YSByZXNwb25zZVxyXG4gICAqIDJcXC4gU2V0IGFueSBmaWVsZCBkZWZhdWx0cyAodGhlIGZpZWxkcyBgZGVmYXVsdGAgcHJvcGVydHkpXHJcbiAgICogM1xcLiBBcHBseUNvbnRleHQgaXMgY2FsbGVkXHJcbiAgICogNFxcLiBJZiBgdGhpcy5vcHRpb25zLmVudHJ5YCBpcyBkZWZpbmVkLCBhcHBseSB0aG9zZSB2YWx1ZXNcclxuICAgKlxyXG4gICAqIEBwYXJhbSB7T2JqZWN0fSB0ZW1wbGF0ZUVudHJ5IFNEYXRhIHRlbXBsYXRlIGVudHJ5XHJcbiAgICovXHJcbiAgcHJvY2Vzc1RlbXBsYXRlRW50cnk6IGZ1bmN0aW9uIHByb2Nlc3NUZW1wbGF0ZUVudHJ5KHRlbXBsYXRlRW50cnkpIHtcclxuICAgIHRoaXMudGVtcGxhdGVFbnRyeSA9IHRoaXMuY29udmVydEVudHJ5KHRlbXBsYXRlRW50cnkgfHwge30pO1xyXG5cclxuICAgIHRoaXMuc2V0VmFsdWVzKHRoaXMudGVtcGxhdGVFbnRyeSwgdHJ1ZSk7XHJcbiAgICB0aGlzLmFwcGx5RmllbGREZWZhdWx0cygpO1xyXG4gICAgdGhpcy5hcHBseUNvbnRleHQodGhpcy50ZW1wbGF0ZUVudHJ5KTtcclxuXHJcbiAgICAvLyBpZiBhbiBlbnRyeSBoYXMgYmVlbiBwYXNzZWQgdGhyb3VnaCBvcHRpb25zLCBhcHBseSBpdCBoZXJlLCBub3cgdGhhdCB0aGUgdGVtcGxhdGUgaGFzIGJlZW4gYXBwbGllZC5cclxuICAgIC8vIGluIHRoaXMgY2FzZSwgc2luY2Ugd2UgYXJlIGRvaW5nIGFuIGluc2VydCAob25seSB0aW1lIHRlbXBsYXRlIGlzIHVzZWQpLCB0aGUgZW50cnkgaXMgYXBwbGllZCBhcyBtb2RpZmllZCBkYXRhLlxyXG4gICAgaWYgKHRoaXMub3B0aW9ucy5lbnRyeSkge1xyXG4gICAgICB0aGlzLmVudHJ5ID0gdGhpcy5jb252ZXJ0RW50cnkodGhpcy5vcHRpb25zLmVudHJ5KTtcclxuICAgICAgdGhpcy5zZXRWYWx1ZXModGhpcy5lbnRyeSk7XHJcbiAgICB9XHJcblxyXG4gICAgZG9tQ2xhc3MucmVtb3ZlKHRoaXMuZG9tTm9kZSwgJ3BhbmVsLWxvYWRpbmcnKTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIERvZXMgdGhlIHJldmVyc2Ugb2Yge0BsaW5rICNjb252ZXJ0RW50cnkgY29udmVydEVudHJ5fSBpbiB0aGF0IGl0IGxvb3BzIHRoZSBwYXlsb2FkIGJlaW5nXHJcbiAgICogc2VudCBiYWNrIHRvIFNEYXRhIGFuZCBjb252ZXJ0cyBEYXRlIG9iamVjdHMgaW50byBTRGF0YSBkYXRlIHN0cmluZ3NcclxuICAgKiBAcGFyYW0ge09iamVjdH0gdmFsdWVzIFBheWxvYWRcclxuICAgKiBAcmV0dXJuIHtPYmplY3R9IEVudHJ5IHdpdGggc3RyaW5nIGRhdGVzXHJcbiAgICovXHJcbiAgY29udmVydFZhbHVlczogZnVuY3Rpb24gY29udmVydFZhbHVlcyh2YWx1ZXMpIHtcclxuICAgIGZvciAoY29uc3QgbiBpbiB2YWx1ZXMpIHtcclxuICAgICAgaWYgKHZhbHVlc1tuXSBpbnN0YW5jZW9mIERhdGUpIHtcclxuICAgICAgICB2YWx1ZXNbbl0gPSB0aGlzLmdldFNlcnZpY2UoKS5pc0pzb25FbmFibGVkKCkgPyBjb252ZXJ0LnRvSnNvblN0cmluZ0Zyb21EYXRlKHZhbHVlc1tuXSkgOiBjb252ZXJ0LnRvSXNvU3RyaW5nRnJvbURhdGUodmFsdWVzW25dKTtcclxuICAgICAgfVxyXG4gICAgfVxyXG5cclxuICAgIHJldHVybiB2YWx1ZXM7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBMb29wcyBhIGdpdmVuIGVudHJ5IHRlc3RpbmcgZm9yIFNEYXRhIGRhdGUgc3RyaW5ncyBhbmQgY29udmVydHMgdGhlbSB0byBqYXZhc2NyaXB0IERhdGUgb2JqZWN0c1xyXG4gICAqIEBwYXJhbSB7T2JqZWN0fSBlbnRyeSBTRGF0YSBlbnRyeVxyXG4gICAqIEByZXR1cm4ge09iamVjdH0gRW50cnkgd2l0aCBhY3R1YWwgRGF0ZSBvYmplY3RzXHJcbiAgICovXHJcbiAgY29udmVydEVudHJ5OiBmdW5jdGlvbiBjb252ZXJ0RW50cnkoZW50cnkpIHtcclxuICAgIGZvciAoY29uc3QgbiBpbiBlbnRyeSkge1xyXG4gICAgICBpZiAoY29udmVydC5pc0RhdGVTdHJpbmcoZW50cnlbbl0pKSB7XHJcbiAgICAgICAgZW50cnlbbl0gPSBjb252ZXJ0LnRvRGF0ZUZyb21TdHJpbmcoZW50cnlbbl0pO1xyXG4gICAgICB9XHJcbiAgICB9XHJcblxyXG4gICAgcmV0dXJuIGVudHJ5O1xyXG4gIH0sXHJcbiAgX2FwcGx5U3RhdGVUb1B1dE9wdGlvbnM6IGZ1bmN0aW9uIF9hcHBseVN0YXRlVG9QdXRPcHRpb25zKHB1dE9wdGlvbnMpIHtcclxuICAgIGNvbnN0IHN0b3JlID0gdGhpcy5nZXQoJ3N0b3JlJyk7XHJcblxyXG4gICAgaWYgKHRoaXMuX2lzQ29uY3VycmVuY3lDaGVja0VuYWJsZWQoKSkge1xyXG4gICAgICAvLyBUaGUgU0RhdGEgc3RvcmUgd2lsbCB0YWtlIHRoZSB2ZXJzaW9uIGFuZCBhcHBseSBpdCB0byB0aGUgZXRhZ1xyXG4gICAgICBwdXRPcHRpb25zLnZlcnNpb24gPSBzdG9yZS5nZXRWZXJzaW9uKHRoaXMuZW50cnkpO1xyXG4gICAgfVxyXG5cclxuICAgIHB1dE9wdGlvbnMuZW50aXR5ID0gc3RvcmUuZ2V0RW50aXR5KHRoaXMuZW50cnkpIHx8IHRoaXMuZW50aXR5TmFtZTtcclxuICB9LFxyXG4gIF9hcHBseVN0YXRlVG9BZGRPcHRpb25zOiBmdW5jdGlvbiBfYXBwbHlTdGF0ZVRvQWRkT3B0aW9ucyhhZGRPcHRpb25zKSB7XHJcbiAgICBhZGRPcHRpb25zLmVudGl0eSA9IHRoaXMuZW50aXR5TmFtZTtcclxuICB9LFxyXG4gIF9pc0NvbmN1cnJlbmN5Q2hlY2tFbmFibGVkOiBmdW5jdGlvbiBfaXNDb25jdXJyZW5jeUNoZWNrRW5hYmxlZCgpIHtcclxuICAgIHJldHVybiBBcHAgJiYgQXBwLmVuYWJsZUNvbmN1cnJlbmN5Q2hlY2s7XHJcbiAgfSxcclxuICBpbml0TW9kZWw6IGZ1bmN0aW9uIGluaXRNb2RlbCgpIHtcclxuICAgIGNvbnN0IG1vZGVsID0gdGhpcy5nZXRNb2RlbCgpO1xyXG4gICAgaWYgKG1vZGVsKSB7XHJcbiAgICAgIHRoaXMuX21vZGVsID0gbW9kZWw7XHJcbiAgICAgIHRoaXMuX21vZGVsLmluaXQoKTtcclxuICAgICAgaWYgKHRoaXMuX21vZGVsLk1vZGVsVHlwZSA9PT0gTU9ERUxfVFlQRVMuU0RBVEEpIHtcclxuICAgICAgICB0aGlzLl9hcHBseVZpZXdUb01vZGVsKHRoaXMuX21vZGVsKTtcclxuICAgICAgfVxyXG4gICAgfVxyXG4gIH0sXHJcbiAgX2FwcGx5Vmlld1RvTW9kZWw6IGZ1bmN0aW9uIF9hcHBseVZpZXdUb01vZGVsKG1vZGVsKSB7XHJcbiAgICBpZiAoIW1vZGVsKSB7XHJcbiAgICAgIHJldHVybjtcclxuICAgIH1cclxuXHJcbiAgICBjb25zdCBxdWVyeU1vZGVsID0gbW9kZWwuX2dldFF1ZXJ5TW9kZWxCeU5hbWUoJ2RldGFpbCcpO1xyXG4gICAgaWYgKHRoaXMucmVzb3VyY2VLaW5kKSB7XHJcbiAgICAgIG1vZGVsLnJlc291cmNlS2luZCA9IHRoaXMucmVzb3VyY2VLaW5kO1xyXG4gICAgfVxyXG5cclxuICAgIGlmICghcXVlcnlNb2RlbCkge1xyXG4gICAgICByZXR1cm47XHJcbiAgICB9XHJcblxyXG4gICAgLy8gQXR0ZW1wdCB0byBtaXhpbiB0aGUgdmlldydzIHF1ZXJ5U2VsZWN0LCBxdWVyeUluY2x1ZGUsIHF1ZXJ5V2hlcmUsXHJcbiAgICAvLyBxdWVyeUFyZ3MsIHF1ZXJ5T3JkZXJCeSwgcmVzb3VyY2VQcm9wZXJ0eSwgcmVzb3VyY2VQcmVkaWNhdGUgcHJvcGVydGllc1xyXG4gICAgLy8gaW50byB0aGUgbGF5b3V0LiBUaGUgcGFzdCBtZXRob2Qgb2YgZXh0ZW5kaW5nIGEgcXVlcnlTZWxlY3QgZm9yIGV4YW1wbGUsXHJcbiAgICAvLyB3YXMgdG8gbW9kaWZ5IHRoZSBwcm90b3lwZSBvZiB0aGUgdmlldydzIHF1ZXJ5U2VsZWN0IGFycmF5LlxyXG4gICAgaWYgKHRoaXMucXVlcnlTZWxlY3QpIHtcclxuICAgICAgLyogZXNsaW50LWRpc2FibGUgKi9cclxuICAgICAgY29uc29sZS53YXJuKGBBIHZpZXcncyBxdWVyeVNlbGVjdCBpcyBkZXByZWNhdGVkLiBSZWdpc3RlciBhIGN1c3RvbWl6YXRpb24gdG8gdGhlIG1vZGVscyBsYXlvdXQgaW5zdGVhZC5gKTtcclxuICAgICAgLyogZXNsaW50LWVuYWJsZSAqL1xyXG4gICAgICBpZiAoIXF1ZXJ5TW9kZWwucXVlcnlTZWxlY3QpIHtcclxuICAgICAgICBxdWVyeU1vZGVsLnF1ZXJ5U2VsZWN0ID0gW107XHJcbiAgICAgIH1cclxuXHJcbiAgICAgIHF1ZXJ5TW9kZWwucXVlcnlTZWxlY3QgPSBxdWVyeU1vZGVsLnF1ZXJ5U2VsZWN0LmNvbmNhdCh0aGlzLnF1ZXJ5U2VsZWN0LmZpbHRlciggKGl0ZW0pID0+IHtcclxuICAgICAgICByZXR1cm4gcXVlcnlNb2RlbC5xdWVyeVNlbGVjdC5pbmRleE9mKGl0ZW0pIDwgMDtcclxuICAgICAgfSkpO1xyXG4gICAgfVxyXG5cclxuICAgIGlmICh0aGlzLnF1ZXJ5SW5jbHVkZSkge1xyXG4gICAgICAvKiBlc2xpbnQtZGlzYWJsZSAqL1xyXG4gICAgICBjb25zb2xlLndhcm4oYEEgdmlldydzIHF1ZXJ5SW5jbHVkZSBpcyBkZXByZWNhdGVkLiBSZWdpc3RlciBhIGN1c3RvbWl6YXRpb24gdG8gdGhlIG1vZGVscyBsYXlvdXQgaW5zdGVhZC5gKTtcclxuICAgICAgLyogZXNsaW50LWVuYWJsZSAqL1xyXG4gICAgICBpZiAoIXF1ZXJ5TW9kZWwucXVlcnlJbmNsdWRlKSB7XHJcbiAgICAgICAgcXVlcnlNb2RlbC5xdWVyeUluY2x1ZGUgPSBbXTtcclxuICAgICAgfVxyXG5cclxuICAgICAgcXVlcnlNb2RlbC5xdWVyeUluY2x1ZGUgPSBxdWVyeU1vZGVsLnF1ZXJ5SW5jbHVkZS5jb25jYXQodGhpcy5xdWVyeUluY2x1ZGUuZmlsdGVyKCAoaXRlbSkgPT4ge1xyXG4gICAgICAgIHJldHVybiBxdWVyeU1vZGVsLnF1ZXJ5SW5jbHVkZS5pbmRleE9mKGl0ZW0pIDwgMDtcclxuICAgICAgfSkpO1xyXG4gICAgfVxyXG5cclxuICAgIGlmICh0aGlzLnF1ZXJ5V2hlcmUpIHtcclxuICAgICAgLyogZXNsaW50LWRpc2FibGUgKi9cclxuICAgICAgY29uc29sZS53YXJuKGBBIHZpZXcncyBxdWVyeVdoZXJlIGlzIGRlcHJlY2F0ZWQuIFJlZ2lzdGVyIGEgY3VzdG9taXphdGlvbiB0byB0aGUgbW9kZWxzIGxheW91dCBpbnN0ZWFkLmApO1xyXG4gICAgICAvKiBlc2xpbnQtZW5hYmxlICovXHJcbiAgICAgIHF1ZXJ5TW9kZWwucXVlcnlXaGVyZSA9IHRoaXMucXVlcnlXaGVyZTtcclxuICAgIH1cclxuXHJcbiAgICBpZiAodGhpcy5xdWVyeUFyZ3MpIHtcclxuICAgICAgLyogZXNsaW50LWRpc2FibGUgKi9cclxuICAgICAgY29uc29sZS53YXJuKGBBIHZpZXcncyBxdWVyeUFyZ3MgaXMgZGVwcmVjYXRlZC4gUmVnaXN0ZXIgYSBjdXN0b21pemF0aW9uIHRvIHRoZSBtb2RlbHMgbGF5b3V0IGluc3RlYWQuYCk7XHJcbiAgICAgIC8qIGVzbGludC1lbmFibGUgKi9cclxuICAgICAgcXVlcnlNb2RlbC5xdWVyeUFyZ3MgPSBsYW5nLm1peGluKHt9LCBxdWVyeU1vZGVsLnF1ZXJ5QXJncywgdGhpcy5xdWVyeUFyZ3MpO1xyXG4gICAgfVxyXG5cclxuICAgIGlmICh0aGlzLnF1ZXJ5T3JkZXJCeSkge1xyXG4gICAgICAvKiBlc2xpbnQtZGlzYWJsZSAqL1xyXG4gICAgICBjb25zb2xlLndhcm4oYEEgdmlldydzIHF1ZXJ5T3JkZXJCeSBpcyBkZXByZWNhdGVkLiBSZWdpc3RlciBhIGN1c3RvbWl6YXRpb24gdG8gdGhlIG1vZGVscyBsYXlvdXQgaW5zdGVhZC5gKTtcclxuICAgICAgLyogZXNsaW50LWVuYWJsZSAqL1xyXG4gICAgICBpZiAoQXJyYXkuaXNBcnJheSh0aGlzLnF1ZXJ5T3JkZXJCeSkpIHtcclxuICAgICAgICBpZiAoIXF1ZXJ5TW9kZWwucXVlcnlPcmRlckJ5KSB7XHJcbiAgICAgICAgICBxdWVyeU1vZGVsLnF1ZXJ5T3JkZXJCeSA9IFtdO1xyXG4gICAgICAgIH1cclxuXHJcbiAgICAgICAgcXVlcnlNb2RlbC5xdWVyeU9yZGVyQnkgPSBxdWVyeU1vZGVsLnF1ZXJ5T3JkZXJCeS5jb25jYXQodGhpcy5xdWVyeU9yZGVyQnkuZmlsdGVyKCAoaXRlbSkgPT4ge1xyXG4gICAgICAgICAgcmV0dXJuIHF1ZXJ5TW9kZWwucXVlcnlPcmRlckJ5LmluZGV4T2YoaXRlbSkgPCAwO1xyXG4gICAgICAgIH0pKTtcclxuICAgICAgfSBlbHNlIHtcclxuICAgICAgICBxdWVyeU1vZGVsLnF1ZXJ5T3JkZXJCeSA9IHRoaXMucXVlcnlPcmRlckJ5O1xyXG4gICAgICB9XHJcbiAgICB9XHJcblxyXG4gICAgaWYgKHRoaXMucmVzb3VyY2VQcm9wZXJ0eSkge1xyXG4gICAgICAvKiBlc2xpbnQtZGlzYWJsZSAqL1xyXG4gICAgICBjb25zb2xlLndhcm4oYEEgdmlldydzIHJlc291cmNlUHJvcGVydHkgaXMgZGVwcmVjYXRlZC4gUmVnaXN0ZXIgYSBjdXN0b21pemF0aW9uIHRvIHRoZSBtb2RlbHMgbGF5b3V0IGluc3RlYWQuYCk7XHJcbiAgICAgIC8qIGVzbGludC1lbmFibGUgKi9cclxuICAgICAgcXVlcnlNb2RlbC5yZXNvdXJjZVByb3BlcnR5ID0gdGhpcy5yZXNvdXJjZVByb3BlcnR5O1xyXG4gICAgfVxyXG5cclxuICAgIGlmICh0aGlzLnJlc291cmNlUHJlZGljYXRlKSB7XHJcbiAgICAgIC8qIGVzbGludC1kaXNhYmxlICovXHJcbiAgICAgIGNvbnNvbGUud2FybihgQSB2aWV3J3MgcmVzb3VyY2VQcmVkaWNhdGUgaXMgZGVwcmVjYXRlZC4gUmVnaXN0ZXIgYSBjdXN0b21pemF0aW9uIHRvIHRoZSBtb2RlbHMgbGF5b3V0IGluc3RlYWQuYCk7XHJcbiAgICAgIC8qIGVzbGludC1lbmFibGUgKi9cclxuICAgICAgcXVlcnlNb2RlbC5yZXNvdXJjZVByZWRpY2F0ZSA9IHRoaXMucmVzb3VyY2VQcmVkaWNhdGU7XHJcbiAgICB9XHJcbiAgfSxcclxufSk7XHJcblxyXG5sYW5nLnNldE9iamVjdCgnU2FnZS5QbGF0Zm9ybS5Nb2JpbGUuX1NEYXRhRWRpdE1peGluJywgX19jbGFzcyk7XHJcbmV4cG9ydCBkZWZhdWx0IF9fY2xhc3M7XHJcbiJdfQ==
 </pre>
 </body>
 </html>

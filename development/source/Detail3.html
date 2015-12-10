@@ -15,346 +15,322 @@
   </script>
 </head>
 <body onload="prettyPrint(); highlight();">
-  <pre class="prettyprint lang-js">/*
- * Copyright (c) 1997-2013, SalesLogix, NA., LLC. All rights reserved.
- */
+  <pre class="prettyprint lang-js">define('crm/Views/Contact/Detail', ['exports', 'module', 'dojo/_base/declare', 'dojo/_base/lang', 'dojo/string', '../../Format', '../../Template', '../../Models/Names', 'argos/Detail', 'argos/I18n'], function (exports, module, _dojo_baseDeclare, _dojo_baseLang, _dojoString, _Format, _Template, _ModelsNames, _argosDetail, _argosI18n) {
+  function _interopRequireDefault(obj) { return obj &amp;&amp; obj.__esModule ? obj : { 'default': obj }; }
 
-<span id='crm-Views-Contact-Detail'>/**
-</span> * @class crm.Views.Contact.Detail
- *
- * @extends argos.Detail
- *
- * @requires crm.Format
- * @requires crm.Template
- */
-define('crm/Views/Contact/Detail', [
-    'dojo/_base/declare',
-    'dojo/_base/lang',
-    'dojo/string',
-    '../../Format',
-    '../../Template',
-    'argos/Detail'
-], function(
-    declare,
-    lang,
-    string,
-    format,
-    template,
-    Detail
-) {
+  var _declare = _interopRequireDefault(_dojo_baseDeclare);
 
-    var __class = declare('crm.Views.Contact.Detail', [Detail], {
-        //Localization
-        activityTypeText: {
-            'atPhoneCall': 'Phone Call',
-            'atEMail': 'E-mail'
-        },
-        accountText: 'account',
-        acctMgrText: 'acct mgr',
-        addressText: 'address',
-        contactTitleText: 'title',
-        createDateText: 'create date',
-        createUserText: 'create user',
-        emailText: 'email',
-        faxText: 'fax',
-        homeText: 'home phone',
-        nameText: 'contact',
-        ownerText: 'owner',
-        actionsText: 'Quick Actions',
-        relatedAccountsText: 'Accounts',
-        relatedActivitiesText: 'Activities',
-        relatedHistoriesText: 'Notes/History',
-        relatedItemsText: 'Related Items',
-        relatedNotesText: 'Notes',
-        relatedOpportunitiesText: 'Opportunities',
-        relatedTicketsText: 'Tickets',
-        relatedAddressesText: 'Addresses',
-        relatedAttachmentText: 'Attachments',
-        relatedAttachmentTitleText: 'Contact Attachments',
-        titleText: 'Contact',
-        webText: 'web',
-        workText: 'work phone',
-        cuisinePreferenceText: 'cuisine',
-        callMobileNumberText: 'Call mobile',
-        callWorkNumberText: 'Call work',
-        calledText: 'Called',
-        scheduleActivityText: 'Schedule activity',
-        addNoteText: 'Add note',
-        sendEmailText: 'Send email',
-        viewAddressText: 'View address',
-        moreDetailsText: 'More Details',
+  var _lang = _interopRequireDefault(_dojo_baseLang);
 
-        //View Properties
-        id: 'contact_detail',
-        editView: 'contact_edit',
-        historyEditView: 'history_edit',
-        noteEditView: 'history_edit',
-        security: 'Entities/Contact/View',
-        querySelect: [
-            'Account/AccountName',
-            'AccountManager/UserInfo/FirstName',
-            'AccountManager/UserInfo/LastName',
-            'AccountName',
-            'Address/*',
-            'CuisinePreference',
-            'CreateDate',
-            'CreateUser',
-            'Email',
-            'Fax',
-            'FirstName',
-            'HomePhone',
-            'LastName',
-            'MiddleName',
-            'Mobile',
-            'Name',
-            'NameLF',
-            'Owner/OwnerDescription',
-            'Prefix',
-            'Suffix',
-            'Title',
-            'WebAddress',
-            'WorkPhone'
-        ],
-        resourceKind: 'contacts',
+  var _string = _interopRequireDefault(_dojoString);
 
-        navigateToHistoryInsert: function(type, entry, complete) {
-            var view = App.getView(this.historyEditView);
-            if (view) {
-                this.refreshRequired = true;
+  var _format = _interopRequireDefault(_Format);
 
-                view.show({
-                        title: this.activityTypeText[type],
-                        template: {},
-                        entry: entry,
-                        insert: true
-                    }, {
-                        complete: complete
-                    });
-            }
-        },
-        recordCallToHistory: function(complete) {
-            var entry = {
-                '$name': 'History',
-                'Type': 'atPhoneCall',
-                'ContactName': this.entry['NameLF'],
-                'ContactId': this.entry['$key'],
-                'AccountName': this.entry['AccountName'],
-                'AccountId': this.entry['Account']['$key'],
-                'Description': string.substitute('${0} ${1}', [this.calledText, this.entry['NameLF']]),
-                'UserId': App.context &amp;&amp; App.context.user['$key'],
-                'UserName': App.context &amp;&amp; App.context.user['UserName'],
-                'Duration': 15,
-                'CompletedDate': (new Date())
-            };
+  var _template = _interopRequireDefault(_Template);
 
-            this.navigateToHistoryInsert('atPhoneCall', entry, complete);
-        },
-        recordEmailToHistory: function(complete) {
-            var entry = {
-                '$name': 'History',
-                'Type': 'atEMail',
-                'ContactName': this.entry['NameLF'],
-                'ContactId': this.entry['$key'],
-                'AccountName': this.entry['AccountName'],
-                'AccountId': this.entry['Account']['$key'],
-                'Description': string.substitute('Emailed ${0}', [this.entry['NameLF']]),
-                'UserId': App.context &amp;&amp; App.context.user['$key'],
-                'UserName': App.context &amp;&amp; App.context.user['UserName'],
-                'Duration': 15,
-                'CompletedDate': (new Date())
-            };
+  var _MODEL_NAMES = _interopRequireDefault(_ModelsNames);
 
-            this.navigateToHistoryInsert('atEMail', entry, complete);
-        },
-        callWorkPhone: function() {
-            this.recordCallToHistory(function() {
-                App.initiateCall(this.entry['WorkPhone']);
-            }.bindDelegate(this));
-        },
-        callMobilePhone: function() {
-            this.recordCallToHistory(function() {
-                App.initiateCall(this.entry['Mobile']);
-            }.bindDelegate(this));
-        },
-        sendEmail: function() {
-            this.recordEmailToHistory(function() {
-                App.initiateEmail(this.entry['Email']);
-            }.bindDelegate(this));
-        },
-        checkValueExists: function(entry, value) {
-            return !value;
-        },
-        viewAddress: function() {
-            App.showMapForAddress(format.address(this.entry['Address'], true, ' '));
-        },
-        checkAddress: function(entry, value) {
-            return !format.address(value, true, '');
-        },
-        scheduleActivity: function() {
-            App.navigateToActivityInsertView();
-        },
-        addNote: function() {
-            var view = App.getView(this.noteEditView);
-            if (view) {
-                view.show({
-                    template: {},
-                    insert: true
-                });
-            }
-        },
-        createLayout: function() {
-            return this.layout || (this.layout = [{
-                    list: true,
-                    title: this.actionsText,
-                    cls: 'action-list',
-                    name: 'QuickActionsSection',
-                    children: [{
-                            name: 'CallWorkPhoneAction',
-                            property: 'WorkPhone',
-                            label: this.callWorkNumberText,
-                            action: 'callWorkPhone',
-                            iconClass: 'fa fa-phone-square fa-lg',
-                            disabled: this.checkValueExists,
-                            renderer: format.phone.bindDelegate(this, false)
-                        }, {
-                            name: 'CallMobilePhoneAction',
-                            property: 'Mobile',
-                            label: this.callMobileNumberText,
-                            action: 'callMobilePhone',
-                            iconClass: 'fa fa-mobile fa-lg',
-                            disabled: this.checkValueExists,
-                            renderer: format.phone.bindDelegate(this, false)
-                        }, {
-                            name: 'ScheduleActivityAction',
-                            label: this.scheduleActivityText,
-                            action: 'scheduleActivity',
-                            iconClass: 'fa fa-calendar fa-lg',
-                            tpl: new Simplate([
-                                '{%: $.AccountName %} / {%: $.NameLF %}'
-                            ])
-                        }, {
-                            name: 'AddNoteAction',
-                            property: 'NameLF',
-                            label: this.addNoteText,
-                            action: 'addNote',
-                            iconClass: 'fa fa-edit fa-lg'
-                        }, {
-                            name: 'SendEmailAction',
-                            property: 'Email',
-                            label: this.sendEmailText,
-                            action: 'sendEmail',
-                            iconClass: 'fa fa-envelope fa-lg',
-                            disabled: this.checkValueExists
-                        }, {
-                            name: 'ViewAddressAction',
-                            property: 'Address',
-                            label: this.viewAddressText,
-                            action: 'viewAddress',
-                            iconClass: 'fa fa-map-marker fa-lg',
-                            disabled: this.checkAddress,
-                            renderer: format.address.bindDelegate(this, true, ' ')
-                        }]
-                }, {
-                    title: this.detailsText,
-                    name: 'DetailsSection',
-                    children: [{
-                            name: 'NameLF',
-                            property: 'NameLF',
-                            label: this.nameText
-                        }, {
-                            name: 'AccountName',
-                            property: 'AccountName',
-                            descriptor: 'AccountName',
-                            label: this.accountText,
-                            view: 'account_detail',
-                            key: 'Account.$key'
-                        }, {
-                            name: 'WorkPhone',
-                            property: 'WorkPhone',
-                            label: this.workText,
-                            renderer: format.phone
-                        }, {
-                            name: 'AccountManager.UserInfo',
-                            property: 'AccountManager.UserInfo',
-                            label: this.acctMgrText,
-                            tpl: template.nameLF
-                        }]
-                }, {
-                    title: this.moreDetailsText,
-                    name: 'MoreDetailsSection',
-                    collapsed: true,
-                    children: [{
-                            name: 'HomePhone',
-                            property: 'HomePhone',
-                            label: this.homeText,
-                            renderer: format.phone
-                        }, {
-                            name: 'WebAddress',
-                            property: 'WebAddress',
-                            label: this.webText,
-                            renderer: format.link
-                        }, {
-                            name: 'Title',
-                            property: 'Title',
-                            label: this.contactTitleText
-                        }, {
-                            name: 'Fax',
-                            property: 'Fax',
-                            label: this.faxText,
-                            renderer: format.phone
-                        }, {
-                            name: 'Owner.OwnerDescription',
-                            property: 'Owner.OwnerDescription',
-                            label: this.ownerText
-                        }, {
-                            name: 'CuisinePreference',
-                            property: 'CuisinePreference',
-                            label: this.cuisinePreferenceText
-                        }]
-                }, {
-                    title: this.relatedItemsText,
-                    name: 'RelatedItemsSection',
-                    list: true,
-                    children: [{
-                            name: 'ActivityRelated',
-                            label: this.relatedActivitiesText,
-                            view: 'activity_related',
-                            where: this.formatRelatedQuery.bindDelegate(this, 'ContactId eq &quot;${0}&quot;')
-                        }, {
-                            name: 'OpportunityRelated',
-                            label: this.relatedOpportunitiesText,
-                            view: 'opportunity_related',
-                            where: this.formatRelatedQuery.bindDelegate(this, 'Contacts.Contact.Id eq &quot;${0}&quot;')
-                        }, {
-                            name: 'TicketRelated',
-                            label: this.relatedTicketsText,
-                            view: 'ticket_related',
-                            where: this.formatRelatedQuery.bindDelegate(this, 'Contact.Id eq &quot;${0}&quot;')
-                        }, {
-                            name: 'HistoryRelated',
-                            label: this.relatedHistoriesText,
-                            where: this.formatRelatedQuery.bindDelegate(this, 'ContactId eq &quot;${0}&quot; and Type ne &quot;atDatabaseChange&quot;'),
-                            view: 'history_related'
-                        }, {
-                            name: 'AddressesRelated',
-                            label: this.relatedAddressesText,
-                            where: this.formatRelatedQuery.bindDelegate(this, 'EntityId eq &quot;${0}&quot;', 'Address.EntityId'),
-                            view: 'address_related'
-                        }, {
-                            name: 'AttachmentRelated',
-                            label: this.relatedAttachmentText,
-                            where: this.formatRelatedQuery.bindDelegate(this, 'contactId eq &quot;${0}&quot;'),// must be lower case because of feed
-                            view: 'contact_attachment_related',
-                            title: this.relatedAttachmentTitleText
-                        }]
-                }]);
-        }
-    });
+  var _Detail = _interopRequireDefault(_argosDetail);
 
-    lang.setObject('Mobile.SalesLogix.Views.Contact.Detail', __class);
-    return __class;
+  var _getResource = _interopRequireDefault(_argosI18n);
+
+  var resource = (0, _getResource['default'])('contactDetail');
+
+<span id='crm-Views-Contact-Detail'>  /**
+</span>   * @class crm.Views.Contact.Detail
+   *
+   * @extends argos.Detail
+   *
+   * @requires crm.Format
+   * @requires crm.Template
+   */
+  var __class = (0, _declare['default'])('crm.Views.Contact.Detail', [_Detail['default']], {
+    // Localization
+    activityTypeText: {
+      'atPhoneCall': resource.phoneCall,
+      'atEMail': resource.email
+    },
+    accountText: resource.accountText,
+    acctMgrText: resource.acctMgrText,
+    addressText: resource.addressText,
+    contactTitleText: resource.contactTitleText,
+    createDateText: resource.createDateText,
+    createUserText: resource.createUserText,
+    emailText: resource.emailText,
+    faxText: resource.faxText,
+    homeText: resource.homeText,
+    nameText: resource.nameText,
+    ownerText: resource.ownerText,
+    actionsText: resource.actionsText,
+    relatedAccountsText: resource.relatedAccountsText,
+    relatedActivitiesText: resource.relatedActivitiesText,
+    relatedHistoriesText: resource.relatedHistoriesText,
+    relatedItemsText: resource.relatedItemsText,
+    relatedNotesText: resource.relatedNotesText,
+    relatedOpportunitiesText: resource.relatedOpportunitiesText,
+    relatedTicketsText: resource.relatedTicketsText,
+    relatedAddressesText: resource.relatedAddressesText,
+    relatedAttachmentText: resource.relatedAttachmentText,
+    relatedAttachmentTitleText: resource.relatedAttachmentTitleText,
+    titleText: resource.titleText,
+    webText: resource.webText,
+    workText: resource.workText,
+    cuisinePreferenceText: resource.cuisinePreferenceText,
+    callMobileNumberText: resource.callMobileNumberText,
+    callWorkNumberText: resource.callWorkNumberText,
+    calledText: resource.calledText,
+    scheduleActivityText: resource.scheduleActivityText,
+    addNoteText: resource.addNoteText,
+    sendEmailText: resource.sendEmailText,
+    viewAddressText: resource.viewAddressText,
+    moreDetailsText: resource.moreDetailsText,
+    entityText: resource.entityText,
+
+    // View Properties
+    id: 'contact_detail',
+    editView: 'contact_edit',
+    historyEditView: 'history_edit',
+    noteEditView: 'history_edit',
+    enableOffline: true,
+    resourceKind: 'contacts',
+    modelName: _MODEL_NAMES['default'].CONTACT,
+
+    navigateToHistoryInsert: function navigateToHistoryInsert(type, entry, complete) {
+      var view = App.getView(this.historyEditView);
+      if (view) {
+        this.refreshRequired = true;
+
+        view.show({
+          title: this.activityTypeText[type],
+          template: {},
+          entry: entry,
+          insert: true
+        }, {
+          complete: complete
+        });
+      }
+    },
+    recordCallToHistory: function recordCallToHistory(complete) {
+      var entry = {
+        '$name': 'History',
+        'Type': 'atPhoneCall',
+        'ContactName': this.entry.NameLF,
+        'ContactId': this.entry.$key,
+        'AccountName': this.entry.AccountName,
+        'AccountId': this.entry.Account.$key,
+        'Description': _string['default'].substitute('${0} ${1}', [this.calledText, this.entry.NameLF]),
+        'UserId': App.context &amp;&amp; App.context.user.$key,
+        'UserName': App.context &amp;&amp; App.context.user.$descriptor,
+        'Duration': 15,
+        'CompletedDate': new Date()
+      };
+
+      this.navigateToHistoryInsert('atPhoneCall', entry, complete);
+    },
+    recordEmailToHistory: function recordEmailToHistory(complete) {
+      var entry = {
+        '$name': 'History',
+        'Type': 'atEMail',
+        'ContactName': this.entry.NameLF,
+        'ContactId': this.entry.$key,
+        'AccountName': this.entry.AccountName,
+        'AccountId': this.entry.Account.$key,
+        'Description': _string['default'].substitute('Emailed ${0}', [this.entry.NameLF]),
+        'UserId': App.context &amp;&amp; App.context.user.$key,
+        'UserName': App.context &amp;&amp; App.context.user.$descriptor,
+        'Duration': 15,
+        'CompletedDate': new Date()
+      };
+
+      this.navigateToHistoryInsert('atEMail', entry, complete);
+    },
+    callWorkPhone: function callWorkPhone() {
+      this.recordCallToHistory((function initiateCall() {
+        App.initiateCall(this.entry.WorkPhone);
+      }).bindDelegate(this));
+    },
+    callMobilePhone: function callMobilePhone() {
+      this.recordCallToHistory((function initiateCall() {
+        App.initiateCall(this.entry.Mobile);
+      }).bindDelegate(this));
+    },
+    sendEmail: function sendEmail() {
+      this.recordEmailToHistory((function initiateEmail() {
+        App.initiateEmail(this.entry.Email);
+      }).bindDelegate(this));
+    },
+    checkValueExists: function checkValueExists(entry, value) {
+      return !value;
+    },
+    viewAddress: function viewAddress() {
+      App.showMapForAddress(_format['default'].address(this.entry.Address, true, ' '));
+    },
+    checkAddress: function checkAddress(entry, value) {
+      return !_format['default'].address(value, true, '');
+    },
+    scheduleActivity: function scheduleActivity() {
+      App.navigateToActivityInsertView();
+    },
+    addNote: function addNote() {
+      var view = App.getView(this.noteEditView);
+      if (view) {
+        view.show({
+          template: {},
+          insert: true
+        });
+      }
+    },
+    createLayout: function createLayout() {
+      return this.layout || (this.layout = [{
+        list: true,
+        title: this.actionsText,
+        cls: 'action-list',
+        name: 'QuickActionsSection',
+        children: [{
+          name: 'CallWorkPhoneAction',
+          property: 'WorkPhone',
+          label: this.callWorkNumberText,
+          action: 'callWorkPhone',
+          iconClass: 'fa fa-phone-square fa-lg',
+          disabled: this.checkValueExists,
+          renderer: _format['default'].phone.bindDelegate(this, false)
+        }, {
+          name: 'CallMobilePhoneAction',
+          property: 'Mobile',
+          label: this.callMobileNumberText,
+          action: 'callMobilePhone',
+          iconClass: 'fa fa-mobile fa-lg',
+          disabled: this.checkValueExists,
+          renderer: _format['default'].phone.bindDelegate(this, false)
+        }, {
+          name: 'ScheduleActivityAction',
+          label: this.scheduleActivityText,
+          action: 'scheduleActivity',
+          iconClass: 'fa fa-calendar fa-lg',
+          tpl: new Simplate(['{%: $.AccountName %} / {%: $.NameLF %}'])
+        }, {
+          name: 'AddNoteAction',
+          property: 'NameLF',
+          label: this.addNoteText,
+          action: 'addNote',
+          iconClass: 'fa fa-edit fa-lg'
+        }, {
+          name: 'SendEmailAction',
+          property: 'Email',
+          label: this.sendEmailText,
+          action: 'sendEmail',
+          iconClass: 'fa fa-envelope fa-lg',
+          disabled: this.checkValueExists
+        }, {
+          name: 'ViewAddressAction',
+          property: 'Address',
+          label: this.viewAddressText,
+          action: 'viewAddress',
+          iconClass: 'fa fa-map-marker fa-lg',
+          disabled: this.checkAddress,
+          renderer: _format['default'].address.bindDelegate(this, true, ' ')
+        }]
+      }, {
+        title: this.detailsText,
+        name: 'DetailsSection',
+        children: [{
+          name: 'NameLF',
+          property: 'NameLF',
+          label: this.nameText
+        }, {
+          name: 'AccountName',
+          property: 'AccountName',
+          descriptor: 'AccountName',
+          label: this.accountText,
+          view: 'account_detail',
+          key: 'Account.$key'
+        }, {
+          name: 'WorkPhone',
+          property: 'WorkPhone',
+          label: this.workText,
+          renderer: _format['default'].phone
+        }, {
+          name: 'AccountManager.UserInfo',
+          property: 'AccountManager.UserInfo',
+          label: this.acctMgrText,
+          tpl: _template['default'].nameLF
+        }]
+      }, {
+        title: this.moreDetailsText,
+        name: 'MoreDetailsSection',
+        collapsed: true,
+        children: [{
+          name: 'HomePhone',
+          property: 'HomePhone',
+          label: this.homeText,
+          renderer: _format['default'].phone
+        }, {
+          name: 'WebAddress',
+          property: 'WebAddress',
+          label: this.webText,
+          renderer: _format['default'].link
+        }, {
+          name: 'Title',
+          property: 'Title',
+          label: this.contactTitleText
+        }, {
+          name: 'Fax',
+          property: 'Fax',
+          label: this.faxText,
+          renderer: _format['default'].phone
+        }, {
+          name: 'Owner.OwnerDescription',
+          property: 'Owner.OwnerDescription',
+          label: this.ownerText
+        }, {
+          name: 'CuisinePreference',
+          property: 'CuisinePreference',
+          label: this.cuisinePreferenceText
+        }]
+      }, {
+        title: this.relatedItemsText,
+        name: 'RelatedItemsSection',
+        list: true,
+        children: [{
+          name: 'ActivityRelated',
+          label: this.relatedActivitiesText,
+          view: 'activity_related',
+          where: this.formatRelatedQuery.bindDelegate(this, 'ContactId eq &quot;${0}&quot;')
+        }, {
+          name: 'OpportunityRelated',
+          label: this.relatedOpportunitiesText,
+          view: 'opportunity_related',
+          where: this.formatRelatedQuery.bindDelegate(this, 'Contacts.Contact.Id eq &quot;${0}&quot;')
+        }, {
+          name: 'TicketRelated',
+          label: this.relatedTicketsText,
+          view: 'ticket_related',
+          where: this.formatRelatedQuery.bindDelegate(this, 'Contact.Id eq &quot;${0}&quot;')
+        }, {
+          name: 'HistoryRelated',
+          label: this.relatedHistoriesText,
+          where: this.formatRelatedQuery.bindDelegate(this, 'ContactId eq &quot;${0}&quot; and Type ne &quot;atDatabaseChange&quot;'),
+          view: 'history_related'
+        }, {
+          name: 'AddressesRelated',
+          label: this.relatedAddressesText,
+          where: this.formatRelatedQuery.bindDelegate(this, 'EntityId eq &quot;${0}&quot;', 'Address.EntityId'),
+          view: 'address_related'
+        }, {
+          name: 'AttachmentRelated',
+          label: this.relatedAttachmentText,
+          where: this.formatRelatedQuery.bindDelegate(this, 'contactId eq &quot;${0}&quot;'), // must be lower case because of feed
+          view: 'contact_attachment_related',
+          title: this.relatedAttachmentTitleText
+        }]
+      }]);
+    }
+  });
+
+  _lang['default'].setObject('Mobile.SalesLogix.Views.Contact.Detail', __class);
+  module.exports = __class;
 });
-
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInNyYy9WaWV3cy9Db250YWN0L0RldGFpbC5qcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7Ozs7Ozs7Ozs7O0FBU0EsTUFBTSxRQUFRLEdBQUcsNkJBQVksZUFBZSxDQUFDLENBQUM7Ozs7Ozs7Ozs7QUFVOUMsTUFBTSxPQUFPLEdBQUcseUJBQVEsMEJBQTBCLEVBQUUsb0JBQVEsRUFBRTs7QUFFNUQsb0JBQWdCLEVBQUU7QUFDaEIsbUJBQWEsRUFBRSxRQUFRLENBQUMsU0FBUztBQUNqQyxlQUFTLEVBQUUsUUFBUSxDQUFDLEtBQUs7S0FDMUI7QUFDRCxlQUFXLEVBQUUsUUFBUSxDQUFDLFdBQVc7QUFDakMsZUFBVyxFQUFFLFFBQVEsQ0FBQyxXQUFXO0FBQ2pDLGVBQVcsRUFBRSxRQUFRLENBQUMsV0FBVztBQUNqQyxvQkFBZ0IsRUFBRSxRQUFRLENBQUMsZ0JBQWdCO0FBQzNDLGtCQUFjLEVBQUUsUUFBUSxDQUFDLGNBQWM7QUFDdkMsa0JBQWMsRUFBRSxRQUFRLENBQUMsY0FBYztBQUN2QyxhQUFTLEVBQUUsUUFBUSxDQUFDLFNBQVM7QUFDN0IsV0FBTyxFQUFFLFFBQVEsQ0FBQyxPQUFPO0FBQ3pCLFlBQVEsRUFBRSxRQUFRLENBQUMsUUFBUTtBQUMzQixZQUFRLEVBQUUsUUFBUSxDQUFDLFFBQVE7QUFDM0IsYUFBUyxFQUFFLFFBQVEsQ0FBQyxTQUFTO0FBQzdCLGVBQVcsRUFBRSxRQUFRLENBQUMsV0FBVztBQUNqQyx1QkFBbUIsRUFBRSxRQUFRLENBQUMsbUJBQW1CO0FBQ2pELHlCQUFxQixFQUFFLFFBQVEsQ0FBQyxxQkFBcUI7QUFDckQsd0JBQW9CLEVBQUUsUUFBUSxDQUFDLG9CQUFvQjtBQUNuRCxvQkFBZ0IsRUFBRSxRQUFRLENBQUMsZ0JBQWdCO0FBQzNDLG9CQUFnQixFQUFFLFFBQVEsQ0FBQyxnQkFBZ0I7QUFDM0MsNEJBQXdCLEVBQUUsUUFBUSxDQUFDLHdCQUF3QjtBQUMzRCxzQkFBa0IsRUFBRSxRQUFRLENBQUMs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LElBQUksQ0FBQyxrQkFBa0IsQ0FBQyxZQUFZLENBQUMsSUFBSSxFQUFFLHFCQUFxQixDQUFDO0FBQ3hFLGNBQUksRUFBRSw0QkFBNEI7QUFDbEMsZUFBSyxFQUFFLElBQUksQ0FBQywwQkFBMEI7U0FDdkMsQ0FBQztPQUNILENBQUMsQ0FBQSxBQUFDLENBQUM7S0FDTDtHQUNGLENBQUMsQ0FBQzs7QUFFSCxtQkFBSyxTQUFTLENBQUMsd0NBQXdDLEVBQUUsT0FBTyxDQUFDLENBQUM7bUJBQ25ELE9BQU8iLCJmaWxlIjoic3JjL1ZpZXdzL0NvbnRhY3QvRGV0YWlsLmpzIiwic291cmNlUm9vdCI6InNyYyIsInNvdXJjZXNDb250ZW50IjpbImltcG9ydCBkZWNsYXJlIGZyb20gJ2Rvam8vX2Jhc2UvZGVjbGFyZSc7XHJcbmltcG9ydCBsYW5nIGZyb20gJ2Rvam8vX2Jhc2UvbGFuZyc7XHJcbmltcG9ydCBzdHJpbmcgZnJvbSAnZG9qby9zdHJpbmcnO1xyXG5pbXBvcnQgZm9ybWF0IGZyb20gJy4uLy4uL0Zvcm1hdCc7XHJcbmltcG9ydCB0ZW1wbGF0ZSBmcm9tICcuLi8uLi9UZW1wbGF0ZSc7XHJcbmltcG9ydCBNT0RFTF9OQU1FUyBmcm9tICcuLi8uLi9Nb2RlbHMvTmFtZXMnO1xyXG5pbXBvcnQgRGV0YWlsIGZyb20gJ2FyZ29zL0RldGFpbCc7XHJcbmltcG9ydCBnZXRSZXNvdXJjZSBmcm9tICdhcmdvcy9JMThuJztcclxuXHJcbmNvbnN0IHJlc291cmNlID0gZ2V0UmVzb3VyY2UoJ2NvbnRhY3REZXRhaWwnKTtcclxuXHJcbi8qKlxyXG4gKiBAY2xhc3MgY3JtLlZpZXdzLkNvbnRhY3QuRGV0YWlsXHJcbiAqXHJcbiAqIEBleHRlbmRzIGFyZ29zLkRldGFpbFxyXG4gKlxyXG4gKiBAcmVxdWlyZXMgY3JtLkZvcm1hdFxyXG4gKiBAcmVxdWlyZXMgY3JtLlRlbXBsYXRlXHJcbiAqL1xyXG5jb25zdCBfX2NsYXNzID0gZGVjbGFyZSgnY3JtLlZpZXdzLkNvbnRhY3QuRGV0YWlsJywgW0RldGFpbF0sIHtcclxuICAvLyBMb2NhbGl6YXRpb25cclxuICBhY3Rpdml0eVR5cGVUZXh0OiB7XHJcbiAgICAnYXRQaG9uZUNhbGwnOiByZXNvdXJjZS5waG9uZUNhbGwsXHJcbiAgICAnYXRFTWFpbCc6IHJlc291cmNlLmVtYWlsLFxyXG4gIH0sXHJcbiAgYWNjb3VudFRleHQ6IHJlc291cmNlLmFjY291bnRUZXh0LFxyXG4gIGFjY3RNZ3JUZXh0OiByZXNvdXJjZS5hY2N0TWdyVGV4dCxcclxuICBhZGRyZXNzVGV4dDogcmVzb3VyY2UuYWRkcmVzc1RleHQsXHJcbiAgY29udGFjdFRpdGxlVGV4dDogcmVzb3VyY2UuY29udGFjdFRpdGxlVGV4dCxcclxuICBjcmVhdGVEYXRlVGV4dDogcmVzb3VyY2UuY3JlYXRlRGF0ZVRleHQsXHJcbiAgY3JlYXRlVXNlclRleHQ6IHJlc291cmNlLmNyZWF0ZVVzZXJUZXh0LFxyXG4gIGVtYWlsVGV4dDogcmVzb3VyY2UuZW1haWxUZXh0LFxyXG4gIGZheFRleHQ6IHJlc291cmNlLmZheFRleHQsXHJcbiAgaG9tZVRleHQ6IHJlc291cmNlLmhvbWVUZXh0LFxyXG4gIG5hbWVUZXh0OiByZXNvdXJjZS5uYW1lVGV4dCxcclxuICBvd25lclRleHQ6IHJlc291cmNlLm93bmVyVGV4dCxcclxuICBhY3Rpb25zVGV4dDogcmVzb3VyY2UuYWN0aW9uc1RleHQsXHJcbiAgcmVsYXRlZEFjY291bnRzVGV4dDogcmVzb3VyY2UucmVsYXRlZEFjY291bnRzVGV4dCxcclxuICByZWxhdGVkQWN0aXZpdGllc1RleHQ6IHJlc291cmNlLnJlbGF0ZWRBY3Rpdml0aWVzVGV4dCxcclxuICByZWxhdGVkSGlzdG9yaWVzVGV4dDogcmVzb3VyY2UucmVsYXRlZEhpc3Rvcmllc1RleHQsXHJcbiAgcmVsYXRlZEl0ZW1zVGV4dDogcmVzb3VyY2UucmVsYXRlZEl0ZW1zVGV4dCxcclxuICByZWxhdGVkTm90ZXNUZXh0OiByZXNvdXJjZS5yZWxhdGVkTm90ZXNUZXh0LFxyXG4gIHJlbGF0ZWRPcHBvcnR1bml0aWVzVGV4dDogcmVzb3VyY2UucmVsYXRlZE9wcG9ydHVuaXRpZXNUZXh0LFxyXG4gIHJlbGF0ZWRUaWNrZXRzVGV4dDogcmVzb3VyY2UucmVsYXRlZFRpY2tldHNUZXh0LFxyXG4gIHJlbGF0ZWRBZGRyZXNzZXNUZXh0OiByZXNvdXJjZS5yZWxhdGVkQWRkcmVzc2VzVGV4dCxcclxuICByZWxhdGVkQXR0YWNobWVudFRleHQ6IHJlc291cmNlLnJlbGF0ZWRBdHRhY2htZW50VGV4dCxcclxuICByZWxhdGVkQXR0YWNobWVudFRpdGxlVGV4dDogcmVzb3VyY2UucmVsYXRlZEF0dGFjaG1lbnRUaXRsZVRleHQsXHJcbiAgdGl0bGVUZXh0OiByZXNvdXJjZS50aXRsZVRleHQsXHJcbiAgd2ViVGV4dDogcmVzb3VyY2Uud2ViVGV4dCxcclxuICB3b3JrVGV4dDogcmVzb3VyY2Uud29ya1RleHQsXHJcbiAgY3Vpc2luZVByZWZlcmVuY2VUZXh0OiByZXNvdXJjZS5jdWlzaW5lUHJlZmVyZW5jZVRleHQsXHJcbiAgY2FsbE1vYmlsZU51bWJlclRleHQ6IHJlc291cmNlLmNhbGxNb2JpbGVOdW1iZXJUZXh0LFxyXG4gIGNhbGxXb3JrTnVtYmVyVGV4dDogcmVzb3VyY2UuY2FsbFdvcmtOdW1iZXJUZXh0LFxyXG4gIGNhbGxlZFRleHQ6IHJlc291cmNlLmNhbGxlZFRleHQsXHJcbiAgc2NoZWR1bGVBY3Rpdml0eVRleHQ6IHJlc291cmNlLnNjaGVkdWxlQWN0aXZpdHlUZXh0LFxyXG4gIGFkZE5vdGVUZXh0OiByZXNvdXJjZS5hZGROb3RlVGV4dCxcclxuICBzZW5kRW1haWxUZXh0OiByZXNvdXJjZS5zZW5kRW1haWxUZXh0LFxyXG4gIHZpZXdBZGRyZXNzVGV4dDogcmVzb3VyY2Uudmlld0FkZHJlc3NUZXh0LFxyXG4gIG1vcmVEZXRhaWxzVGV4dDogcmVzb3VyY2UubW9yZURldGFpbHNUZXh0LFxyXG4gIGVudGl0eVRleHQ6IHJlc291cmNlLmVudGl0eVRleHQsXHJcblxyXG4gIC8vIFZpZXcgUHJvcGVydGllc1xyXG4gIGlkOiAnY29udGFjdF9kZXRhaWwnLFxyXG4gIGVkaXRWaWV3OiAnY29udGFjdF9lZGl0JyxcclxuICBoaXN0b3J5RWRpdFZpZXc6ICdoaXN0b3J5X2VkaXQnLFxyXG4gIG5vdGVFZGl0VmlldzogJ2hpc3RvcnlfZWRpdCcsXHJcbiAgZW5hYmxlT2ZmbGluZTogdHJ1ZSxcclxuICByZXNvdXJjZUtpbmQ6ICdjb250YWN0cycsXHJcbiAgbW9kZWxOYW1lOiBNT0RFTF9OQU1FUy5DT05UQUNULFxyXG5cclxuICBuYXZpZ2F0ZVRvSGlzdG9yeUluc2VydDogZnVuY3Rpb24gbmF2aWdhdGVUb0hpc3RvcnlJbnNlcnQodHlwZSwgZW50cnksIGNvbXBsZXRlKSB7XHJcbiAgICBjb25zdCB2aWV3ID0gQXBwLmdldFZpZXcodGhpcy5oaXN0b3J5RWRpdFZpZXcpO1xyXG4gICAgaWYgKHZpZXcpIHtcclxuICAgICAgdGhpcy5yZWZyZXNoUmVxdWlyZWQgPSB0cnVlO1xyXG5cclxuICAgICAgdmlldy5zaG93KHtcclxuICAgICAgICB0aXRsZTogdGhpcy5hY3Rpdml0eVR5cGVUZXh0W3R5cGVdLFxyXG4gICAgICAgIHRlbXBsYXRlOiB7fSxcclxuICAgICAgICBlbnRyeTogZW50cnksXHJcbiAgICAgICAgaW5zZXJ0OiB0cnVlLFxyXG4gICAgICB9LCB7XHJcbiAgICAgICAgY29tcGxldGU6IGNvbXBsZXRlLFxyXG4gICAgICB9KTtcclxuICAgIH1cclxuICB9LFxyXG4gIHJlY29yZENhbGxUb0hpc3Rvcnk6IGZ1bmN0aW9uIHJlY29yZENhbGxUb0hpc3RvcnkoY29tcGxldGUpIHtcclxuICAgIGNvbnN0IGVudHJ5ID0ge1xyXG4gICAgICAnJG5hbWUnOiAnSGlzdG9yeScsXHJcbiAgICAgICdUeXBlJzogJ2F0UGhvbmVDYWxsJyxcclxuICAgICAgJ0NvbnRhY3ROYW1lJzogdGhpcy5lbnRyeS5OYW1lTEYsXHJcbiAgICAgICdDb250YWN0SWQnOiB0aGlzLmVudHJ5LiRrZXksXHJcbiAgICAgICdBY2NvdW50TmFtZSc6IHRoaXMuZW50cnkuQWNjb3VudE5hbWUsXHJcbiAgICAgICdBY2NvdW50SWQnOiB0aGlzLmVudHJ5LkFjY291bnQuJGtleSxcclxuICAgICAgJ0Rlc2NyaXB0aW9uJzogc3RyaW5nLnN1YnN0aXR1dGUoJyR7MH0gJHsxfScsIFt0aGlzLmNhbGxlZFRleHQsIHRoaXMuZW50cnkuTmFtZUxGXSksXHJcbiAgICAgICdVc2VySWQnOiBBcHAuY29udGV4dCAmJiBBcHAuY29udGV4dC51c2VyLiRrZXksXHJcbiAgICAgICdVc2VyTmFtZSc6IEFwcC5jb250ZXh0ICYmIEFwcC5jb250ZXh0LnVzZXIuJGRlc2NyaXB0b3IsXHJcbiAgICAgICdEdXJhdGlvbic6IDE1LFxyXG4gICAgICAnQ29tcGxldGVkRGF0ZSc6IChuZXcgRGF0ZSgpKSxcclxuICAgIH07XHJcblxyXG4gICAgdGhpcy5uYXZpZ2F0ZVRvSGlzdG9yeUluc2VydCgnYXRQaG9uZUNhbGwnLCBlbnRyeSwgY29tcGxldGUpO1xyXG4gIH0sXHJcbiAgcmVjb3JkRW1haWxUb0hpc3Rvcnk6IGZ1bmN0aW9uIHJlY29yZEVtYWlsVG9IaXN0b3J5KGNvbXBsZXRlKSB7XHJcbiAgICBjb25zdCBlbnRyeSA9IHtcclxuICAgICAgJyRuYW1lJzogJ0hpc3RvcnknLFxyXG4gICAgICAnVHlwZSc6ICdhdEVNYWlsJyxcclxuICAgICAgJ0NvbnRhY3ROYW1lJzogdGhpcy5lbnRyeS5OYW1lTEYsXHJcbiAgICAgICdDb250YWN0SWQnOiB0aGlzLmVudHJ5LiRrZXksXHJcbiAgICAgICdBY2NvdW50TmFtZSc6IHRoaXMuZW50cnkuQWNjb3VudE5hbWUsXHJcbiAgICAgICdBY2NvdW50SWQnOiB0aGlzLmVudHJ5LkFjY291bnQuJGtleSxcclxuICAgICAgJ0Rlc2NyaXB0aW9uJzogc3RyaW5nLnN1YnN0aXR1dGUoJ0VtYWlsZWQgJHswfScsIFt0aGlzLmVudHJ5Lk5hbWVMRl0pLFxyXG4gICAgICAnVXNlcklkJzogQXBwLmNvbnRleHQgJiYgQXBwLmNvbnRleHQudXNlci4ka2V5LFxyXG4gICAgICAnVXNlck5hbWUnOiBBcHAuY29udGV4dCAmJiBBcHAuY29udGV4dC51c2VyLiRkZXNjcmlwdG9yLFxyXG4gICAgICAnRHVyYXRpb24nOiAxNSxcclxuICAgICAgJ0NvbXBsZXRlZERhdGUnOiAobmV3IERhdGUoKSksXHJcbiAgICB9O1xyXG5cclxuICAgIHRoaXMubmF2aWdhdGVUb0hpc3RvcnlJbnNlcnQoJ2F0RU1haWwnLCBlbnRyeSwgY29tcGxldGUpO1xyXG4gIH0sXHJcbiAgY2FsbFdvcmtQaG9uZTogZnVuY3Rpb24gY2FsbFdvcmtQaG9uZSgpIHtcclxuICAgIHRoaXMucmVjb3JkQ2FsbFRvSGlzdG9yeShmdW5jdGlvbiBpbml0aWF0ZUNhbGwoKSB7XHJcbiAgICAgIEFwcC5pbml0aWF0ZUNhbGwodGhpcy5lbnRyeS5Xb3JrUGhvbmUpO1xyXG4gICAgfS5iaW5kRGVsZWdhdGUodGhpcykpO1xyXG4gIH0sXHJcbiAgY2FsbE1vYmlsZVBob25lOiBmdW5jdGlvbiBjYWxsTW9iaWxlUGhvbmUoKSB7XHJcbiAgICB0aGlzLnJlY29yZENhbGxUb0hpc3RvcnkoZnVuY3Rpb24gaW5pdGlhdGVDYWxsKCkge1xyXG4gICAgICBBcHAuaW5pdGlhdGVDYWxsKHRoaXMuZW50cnkuTW9iaWxlKTtcclxuICAgIH0uYmluZERlbGVnYXRlKHRoaXMpKTtcclxuICB9LFxyXG4gIHNlbmRFbWFpbDogZnVuY3Rpb24gc2VuZEVtYWlsKCkge1xyXG4gICAgdGhpcy5yZWNvcmRFbWFpbFRvSGlzdG9yeShmdW5jdGlvbiBpbml0aWF0ZUVtYWlsKCkge1xyXG4gICAgICBBcHAuaW5pdGlhdGVFbWFpbCh0aGlzLmVudHJ5LkVtYWlsKTtcclxuICAgIH0uYmluZERlbGVnYXRlKHRoaXMpKTtcclxuICB9LFxyXG4gIGNoZWNrVmFsdWVFeGlzdHM6IGZ1bmN0aW9uIGNoZWNrVmFsdWVFeGlzdHMoZW50cnksIHZhbHVlKSB7XHJcbiAgICByZXR1cm4gIXZhbHVlO1xyXG4gIH0sXHJcbiAgdmlld0FkZHJlc3M6IGZ1bmN0aW9uIHZpZXdBZGRyZXNzKCkge1xyXG4gICAgQXBwLnNob3dNYXBGb3JBZGRyZXNzKGZvcm1hdC5hZGRyZXNzKHRoaXMuZW50cnkuQWRkcmVzcywgdHJ1ZSwgJyAnKSk7XHJcbiAgfSxcclxuICBjaGVja0FkZHJlc3M6IGZ1bmN0aW9uIGNoZWNrQWRkcmVzcyhlbnRyeSwgdmFsdWUpIHtcclxuICAgIHJldHVybiAhZm9ybWF0LmFkZHJlc3ModmFsdWUsIHRydWUsICcnKTtcclxuICB9LFxyXG4gIHNjaGVkdWxlQWN0aXZpdHk6IGZ1bmN0aW9uIHNjaGVkdWxlQWN0aXZpdHkoKSB7XHJcbiAgICBBcHAubmF2aWdhdGVUb0FjdGl2aXR5SW5zZXJ0VmlldygpO1xyXG4gIH0sXHJcbiAgYWRkTm90ZTogZnVuY3Rpb24gYWRkTm90ZSgpIHtcclxuICAgIGNvbnN0IHZpZXcgPSBBcHAuZ2V0Vmlldyh0aGlzLm5vdGVFZGl0Vmlldyk7XHJcbiAgICBpZiAodmlldykge1xyXG4gICAgICB2aWV3LnNob3coe1xyXG4gICAgICAgIHRlbXBsYXRlOiB7fSxcclxuICAgICAgICBpbnNlcnQ6IHRydWUsXHJcbiAgICAgIH0pO1xyXG4gICAgfVxyXG4gIH0sXHJcbiAgY3JlYXRlTGF5b3V0OiBmdW5jdGlvbiBjcmVhdGVMYXlvdXQoKSB7XHJcbiAgICByZXR1cm4gdGhpcy5sYXlvdXQgfHwgKHRoaXMubGF5b3V0ID0gW3tcclxuICAgICAgbGlzdDogdHJ1ZSxcclxuICAgICAgdGl0bGU6IHRoaXMuYWN0aW9uc1RleHQsXHJcbiAgICAgIGNsczogJ2FjdGlvbi1saXN0JyxcclxuICAgICAgbmFtZTogJ1F1aWNrQWN0aW9uc1NlY3Rpb24nLFxyXG4gICAgICBjaGlsZHJlbjogW3tcclxuICAgICAgICBuYW1lOiAnQ2FsbFdvcmtQaG9uZUFjdGlvbicsXHJcbiAgICAgICAgcHJvcGVydHk6ICdXb3JrUGhvbmUnLFxyXG4gICAgICAgIGxhYmVsOiB0aGlzLmNhbGxXb3JrTnVtYmVyVGV4dCxcclxuICAgICAgICBhY3Rpb246ICdjYWxsV29ya1Bob25lJyxcclxuICAgICAgICBpY29uQ2xhc3M6ICdmYSBmYS1waG9uZS1zcXVhcmUgZmEtbGcnLFxyXG4gICAgICAgIGRpc2FibGVkOiB0aGlzLmNoZWNrVmFsdWVFeGlzdHMsXHJcbiAgICAgICAgcmVuZGVyZXI6IGZvcm1hdC5waG9uZS5iaW5kRGVsZWdhdGUodGhpcywgZmFsc2UpLFxyXG4gICAgICB9LCB7XHJcbiAgICAgICAgbmFtZTogJ0NhbGxNb2JpbGVQaG9uZUFjdGlvbicsXHJcbiAgICAgICAgcHJvcGVydHk6ICdNb2JpbGUnLFxyXG4gICAgICAgIGxhYmVsOiB0aGlzLmNhbGxNb2JpbGVOdW1iZXJUZXh0LFxyXG4gICAgICAgIGFjdGlvbjogJ2NhbGxNb2JpbGVQaG9uZScsXHJcbiAgICAgICAgaWNvbkNsYXNzOiAnZmEgZmEtbW9iaWxlIGZhLWxnJyxcclxuICAgICAgICBkaXNhYmxlZDogdGhpcy5jaGVja1ZhbHVlRXhpc3RzLFxyXG4gICAgICAgIHJlbmRlcmVyOiBmb3JtYXQucGhvbmUuYmluZERlbGVnYXRlKHRoaXMsIGZhbHNlKSxcclxuICAgICAgfSwge1xyXG4gICAgICAgIG5hbWU6ICdTY2hlZHVsZUFjdGl2aXR5QWN0aW9uJyxcclxuICAgICAgICBsYWJlbDogdGhpcy5zY2hlZHVsZUFjdGl2aXR5VGV4dCxcclxuICAgICAgICBhY3Rpb246ICdzY2hlZHVsZUFjdGl2aXR5JyxcclxuICAgICAgICBpY29uQ2xhc3M6ICdmYSBmYS1jYWxlbmRhciBmYS1sZycsXHJcbiAgICAgICAgdHBsOiBuZXcgU2ltcGxhdGUoW1xyXG4gICAgICAgICAgJ3slOiAkLkFjY291bnROYW1lICV9IC8geyU6ICQuTmFtZUxGICV9JyxcclxuICAgICAgICBdKSxcclxuICAgICAgfSwge1xyXG4gICAgICAgIG5hbWU6ICdBZGROb3RlQWN0aW9uJyxcclxuICAgICAgICBwcm9wZXJ0eTogJ05hbWVMRicsXHJcbiAgICAgICAgbGFiZWw6IHRoaXMuYWRkTm90ZVRleHQsXHJcbiAgICAgICAgYWN0aW9uOiAnYWRkTm90ZScsXHJcbiAgICAgICAgaWNvbkNsYXNzOiAnZmEgZmEtZWRpdCBmYS1sZycsXHJcbiAgICAgIH0sIHtcclxuICAgICAgICBuYW1lOiAnU2VuZEVtYWlsQWN0aW9uJyxcclxuICAgICAgICBwcm9wZXJ0eTogJ0VtYWlsJyxcclxuICAgICAgICBsYWJlbDogdGhpcy5zZW5kRW1haWxUZXh0LFxyXG4gICAgICAgIGFjdGlvbjogJ3NlbmRFbWFpbCcsXHJcbiAgICAgICAgaWNvbkNsYXNzOiAnZmEgZmEtZW52ZWxvcGUgZmEtbGcnLFxyXG4gICAgICAgIGRpc2FibGVkOiB0aGlzLmNoZWNrVmFsdWVFeGlzdHMsXHJcbiAgICAgIH0sIHtcclxuICAgICAgICBuYW1lOiAnVmlld0FkZHJlc3NBY3Rpb24nLFxyXG4gICAgICAgIHByb3BlcnR5OiAnQWRkcmVzcycsXHJcbiAgICAgICAgbGFiZWw6IHRoaXMudmlld0FkZHJlc3NUZXh0LFxyXG4gICAgICAgIGFjdGlvbjogJ3ZpZXdBZGRyZXNzJyxcclxuICAgICAgICBpY29uQ2xhc3M6ICdmYSBmYS1tYXAtbWFya2VyIGZhLWxnJyxcclxuICAgICAgICBkaXNhYmxlZDogdGhpcy5jaGVja0FkZHJlc3MsXHJcbiAgICAgICAgcmVuZGVyZXI6IGZvcm1hdC5hZGRyZXNzLmJpbmREZWxlZ2F0ZSh0aGlzLCB0cnVlLCAnICcpLFxyXG4gICAgICB9XSxcclxuICAgIH0sIHtcclxuICAgICAgdGl0bGU6IHRoaXMuZGV0YWlsc1RleHQsXHJcbiAgICAgIG5hbWU6ICdEZXRhaWxzU2VjdGlvbicsXHJcbiAgICAgIGNoaWxkcmVuOiBbe1xyXG4gICAgICAgIG5hbWU6ICdOYW1lTEYnLFxyXG4gICAgICAgIHByb3BlcnR5OiAnTmFtZUxGJyxcclxuICAgICAgICBsYWJlbDogdGhpcy5uYW1lVGV4dCxcclxuICAgICAgfSwge1xyXG4gICAgICAgIG5hbWU6ICdBY2NvdW50TmFtZScsXHJcbiAgICAgICAgcHJvcGVydHk6ICdBY2NvdW50TmFtZScsXHJcbiAgICAgICAgZGVzY3JpcHRvcjogJ0FjY291bnROYW1lJyxcclxuICAgICAgICBsYWJlbDogdGhpcy5hY2NvdW50VGV4dCxcclxuICAgICAgICB2aWV3OiAnYWNjb3VudF9kZXRhaWwnLFxyXG4gICAgICAgIGtleTogJ0FjY291bnQuJGtleScsXHJcbiAgICAgIH0sIHtcclxuICAgICAgICBuYW1lOiAnV29ya1Bob25lJyxcclxuICAgICAgICBwcm9wZXJ0eTogJ1dvcmtQaG9uZScsXHJcbiAgICAgICAgbGFiZWw6IHRoaXMud29ya1RleHQsXHJcbiAgICAgICAgcmVuZGVyZXI6IGZvcm1hdC5waG9uZSxcclxuICAgICAgfSwge1xyXG4gICAgICAgIG5hbWU6ICdBY2NvdW50TWFuYWdlci5Vc2VySW5mbycsXHJcbiAgICAgICAgcHJvcGVydHk6ICdBY2NvdW50TWFuYWdlci5Vc2VySW5mbycsXHJcbiAgICAgICAgbGFiZWw6IHRoaXMuYWNjdE1nclRleHQsXHJcbiAgICAgICAgdHBsOiB0ZW1wbGF0ZS5uYW1lTEYsXHJcbiAgICAgIH1dLFxyXG4gICAgfSwge1xyXG4gICAgICB0aXRsZTogdGhpcy5tb3JlRGV0YWlsc1RleHQsXHJcbiAgICAgIG5hbWU6ICdNb3JlRGV0YWlsc1NlY3Rpb24nLFxyXG4gICAgICBjb2xsYXBzZWQ6IHRydWUsXHJcbiAgICAgIGNoaWxkcmVuOiBbe1xyXG4gICAgICAgIG5hbWU6ICdIb21lUGhvbmUnLFxyXG4gICAgICAgIHByb3BlcnR5OiAnSG9tZVBob25lJyxcclxuICAgICAgICBsYWJlbDogdGhpcy5ob21lVGV4dCxcclxuICAgICAgICByZW5kZXJlcjogZm9ybWF0LnBob25lLFxyXG4gICAgICB9LCB7XHJcbiAgICAgICAgbmFtZTogJ1dlYkFkZHJlc3MnLFxyXG4gICAgICAgIHByb3BlcnR5OiAnV2ViQWRkcmVzcycsXHJcbiAgICAgICAgbGFiZWw6IHRoaXMud2ViVGV4dCxcclxuICAgICAgICByZW5kZXJlcjogZm9ybWF0LmxpbmssXHJcbiAgICAgIH0sIHtcclxuICAgICAgICBuYW1lOiAnVGl0bGUnLFxyXG4gICAgICAgIHByb3BlcnR5OiAnVGl0bGUnLFxyXG4gICAgICAgIGxhYmVsOiB0aGlzLmNvbnRhY3RUaXRsZVRleHQsXHJcbiAgICAgIH0sIHtcclxuICAgICAgICBuYW1lOiAnRmF4JyxcclxuICAgICAgICBwcm9wZXJ0eTogJ0ZheCcsXHJcbiAgICAgICAgbGFiZWw6IHRoaXMuZmF4VGV4dCxcclxuICAgICAgICByZW5kZXJlcjogZm9ybWF0LnBob25lLFxyXG4gICAgICB9LCB7XHJcbiAgICAgICAgbmFtZTogJ093bmVyLk93bmVyRGVzY3JpcHRpb24nLFxyXG4gICAgICAgIHByb3BlcnR5OiAnT3duZXIuT3duZXJEZXNjcmlwdGlvbicsXHJcbiAgICAgICAgbGFiZWw6IHRoaXMub3duZXJUZXh0LFxyXG4gICAgICB9LCB7XHJcbiAgICAgICAgbmFtZTogJ0N1aXNpbmVQcmVmZXJlbmNlJyxcclxuICAgICAgICBwcm9wZXJ0eTogJ0N1aXNpbmVQcmVmZXJlbmNlJyxcclxuICAgICAgICBsYWJlbDogdGhpcy5jdWlzaW5lUHJlZmVyZW5jZVRleHQsXHJcbiAgICAgIH1dLFxyXG4gICAgfSwge1xyXG4gICAgICB0aXRsZTogdGhpcy5yZWxhdGVkSXRlbXNUZXh0LFxyXG4gICAgICBuYW1lOiAnUmVsYXRlZEl0ZW1zU2VjdGlvbicsXHJcbiAgICAgIGxpc3Q6IHRydWUsXHJcbiAgICAgIGNoaWxkcmVuOiBbe1xyXG4gICAgICAgIG5hbWU6ICdBY3Rpdml0eVJlbGF0ZWQnLFxyXG4gICAgICAgIGxhYmVsOiB0aGlzLnJlbGF0ZWRBY3Rpdml0aWVzVGV4dCxcclxuICAgICAgICB2aWV3OiAnYWN0aXZpdHlfcmVsYXRlZCcsXHJcbiAgICAgICAgd2hlcmU6IHRoaXMuZm9ybWF0UmVsYXRlZFF1ZXJ5LmJpbmREZWxlZ2F0ZSh0aGlzLCAnQ29udGFjdElkIGVxIFwiJHswfVwiJyksXHJcbiAgICAgIH0sIHtcclxuICAgICAgICBuYW1lOiAnT3Bwb3J0dW5pdHlSZWxhdGVkJyxcclxuICAgICAgICBsYWJlbDogdGhpcy5yZWxhdGVkT3Bwb3J0dW5pdGllc1RleHQsXHJcbiAgICAgICAgdmlldzogJ29wcG9ydHVuaXR5X3JlbGF0ZWQnLFxyXG4gICAgICAgIHdoZXJlOiB0aGlzLmZvcm1hdFJlbGF0ZWRRdWVyeS5iaW5kRGVsZWdhdGUodGhpcywgJ0NvbnRhY3RzLkNvbnRhY3QuSWQgZXEgXCIkezB9XCInKSxcclxuICAgICAgfSwge1xyXG4gICAgICAgIG5hbWU6ICdUaWNrZXRSZWxhdGVkJyxcclxuICAgICAgICBsYWJlbDogdGhpcy5yZWxhdGVkVGlja2V0c1RleHQsXHJcbiAgICAgICAgdmlldzogJ3RpY2tldF9yZWxhdGVkJyxcclxuICAgICAgICB3aGVyZTogdGhpcy5mb3JtYXRSZWxhdGVkUXVlcnkuYmluZERlbGVnYXRlKHRoaXMsICdDb250YWN0LklkIGVxIFwiJHswfVwiJyksXHJcbiAgICAgIH0sIHtcclxuICAgICAgICBuYW1lOiAnSGlzdG9yeVJlbGF0ZWQnLFxyXG4gICAgICAgIGxhYmVsOiB0aGlzLnJlbGF0ZWRIaXN0b3JpZXNUZXh0LFxyXG4gICAgICAgIHdoZXJlOiB0aGlzLmZvcm1hdFJlbGF0ZWRRdWVyeS5iaW5kRGVsZWdhdGUodGhpcywgJ0NvbnRhY3RJZCBlcSBcIiR7MH1cIiBhbmQgVHlwZSBuZSBcImF0RGF0YWJhc2VDaGFuZ2VcIicpLFxyXG4gICAgICAgIHZpZXc6ICdoaXN0b3J5X3JlbGF0ZWQnLFxyXG4gICAgICB9LCB7XHJcbiAgICAgICAgbmFtZTogJ0FkZHJlc3Nlc1JlbGF0ZWQnLFxyXG4gICAgICAgIGxhYmVsOiB0aGlzLnJlbGF0ZWRBZGRyZXNzZXNUZXh0LFxyXG4gICAgICAgIHdoZXJlOiB0aGlzLmZvcm1hdFJlbGF0ZWRRdWVyeS5iaW5kRGVsZWdhdGUodGhpcywgJ0VudGl0eUlkIGVxIFwiJHswfVwiJywgJ0FkZHJlc3MuRW50aXR5SWQnKSxcclxuICAgICAgICB2aWV3OiAnYWRkcmVzc19yZWxhdGVkJyxcclxuICAgICAgfSwge1xyXG4gICAgICAgIG5hbWU6ICdBdHRhY2htZW50UmVsYXRlZCcsXHJcbiAgICAgICAgbGFiZWw6IHRoaXMucmVsYXRlZEF0dGFjaG1lbnRUZXh0LFxyXG4gICAgICAgIHdoZXJlOiB0aGlzLmZvcm1hdFJlbGF0ZWRRdWVyeS5iaW5kRGVsZWdhdGUodGhpcywgJ2NvbnRhY3RJZCBlcSBcIiR7MH1cIicpLCAvLyBtdXN0IGJlIGxvd2VyIGNhc2UgYmVjYXVzZSBvZiBmZWVkXHJcbiAgICAgICAgdmlldzogJ2NvbnRhY3RfYXR0YWNobWVudF9yZWxhdGVkJyxcclxuICAgICAgICB0aXRsZTogdGhpcy5yZWxhdGVkQXR0YWNobWVudFRpdGxlVGV4dCxcclxuICAgICAgfV0sXHJcbiAgICB9XSk7XHJcbiAgfSxcclxufSk7XHJcblxyXG5sYW5nLnNldE9iamVjdCgnTW9iaWxlLlNhbGVzTG9naXguVmlld3MuQ29udGFjdC5EZXRhaWwnLCBfX2NsYXNzKTtcclxuZXhwb3J0IGRlZmF1bHQgX19jbGFzcztcclxuIl19
 </pre>
 </body>
 </html>

@@ -15,838 +15,815 @@
   </script>
 </head>
 <body onload="prettyPrint(); highlight();">
-  <pre class="prettyprint lang-js">/* Copyright (c) 2010, Sage Software, Inc. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+  <pre class="prettyprint lang-js">define('argos/Fields/LookupField', ['exports', 'module', 'dojo/_base/array', 'dojo/_base/declare', 'dojo/_base/event', 'dojo/_base/lang', 'dojo/string', 'dojo/query', '../Utility', './_Field', '../FieldManager', '../I18n'], function (exports, module, _dojo_baseArray, _dojo_baseDeclare, _dojo_baseEvent, _dojo_baseLang, _dojoString, _dojoQuery, _Utility, _Field2, _FieldManager, _I18n) {
+  function _interopRequireDefault(obj) { return obj &amp;&amp; obj.__esModule ? obj : { 'default': obj }; }
 
-define('argos/Fields/LookupField', [
-    'dojo/_base/array',
-    'dojo/_base/declare',
-    'dojo/_base/event',
-    'dojo/_base/lang',
-    'dojo/string',
-    'dojo/query',
-    '../Utility',
-    './_Field',
-    '../FieldManager'
-], function(
-    array,
-    declare,
-    event,
-    lang,
-    string,
-    query,
-    utility,
-    _Field,
-    FieldManager
-) {
-<span id='argos-Fields-LookupField'>    /**
-</span>     * @class argos.Fields.LookupField
-     * The LookupField is similiar to an Edit View in that it is a field that takes the user to another
-     * view but the difference is that an EditorField takes the user to an Edit View, whereas LookupField
-     * takes the user to a List View.
+  /* Copyright (c) 2010, Sage Software, Inc. All rights reserved.
+   *
+   * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   * you may not use this file except in compliance with the License.
+   * You may obtain a copy of the License at
+   *
+   *     http://www.apache.org/licenses/LICENSE-2.0
+   *
+   * Unless required by applicable law or agreed to in writing, software
+   * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   * See the License for the specific language governing permissions and
+   * limitations under the License.
+   */
+
+  var _array = _interopRequireDefault(_dojo_baseArray);
+
+  var _declare = _interopRequireDefault(_dojo_baseDeclare);
+
+  var _event = _interopRequireDefault(_dojo_baseEvent);
+
+  var _lang = _interopRequireDefault(_dojo_baseLang);
+
+  var _string = _interopRequireDefault(_dojoString);
+
+  var _query = _interopRequireDefault(_dojoQuery);
+
+  var _utility = _interopRequireDefault(_Utility);
+
+  var _Field3 = _interopRequireDefault(_Field2);
+
+  var _FieldManager2 = _interopRequireDefault(_FieldManager);
+
+  var _getResource = _interopRequireDefault(_I18n);
+
+  var resource = (0, _getResource['default'])('lookupField');
+
+<span id='argos-Fields-LookupField'>  /**
+</span>   * @class argos.Fields.LookupField
+   * The LookupField is similiar to an Edit View in that it is a field that takes the user to another
+   * view but the difference is that an EditorField takes the user to an Edit View, whereas LookupField
+   * takes the user to a List View.
+   *
+   * Meaning that LookupField is meant for establishing relationships by only storing the key for a value
+   * and with displayed text.
+   *
+   * ###Example:
+   *     {
+   *         name: 'Owner',
+   *         property: 'Owner',
+   *         label: this.ownerText,
+   *         type: 'lookup',
+   *         view: 'user_list'
+   *     }
+   *
+   * @alternateClassName LookupField
+   * @extends argos.Fields._Field
+   * @requires argos.FieldManager
+   * @requires argos.Utility
+   */
+  var control = (0, _declare['default'])('argos.Fields.LookupField', [_Field3['default']], {
+<span id='argos-Fields-LookupField-property-attributeMap'>    /**
+</span>     * @property {Object}
+     * Creates a setter map to html nodes, namely:
      *
-     * Meaning that LookupField is meant for establishing relationships by only storing the key for a value
-     * and with displayed text.
+     * * inputValue =&gt; inputNodes's value
+     * * inputDisabled =&gt; inputNodes's disabled
+     * * inputReadOnly =&gt; inputNodes readonly
      *
-     * ###Example:
-     *     {
-     *         name: 'Owner',
-     *         property: 'Owner',
-     *         label: this.ownerText,
-     *         type: 'lookup',
-     *         view: 'user_list'
-     *     }
-     *
-     * @alternateClassName LookupField
-     * @extends argos.Fields._Field
-     * @requires argos.FieldManager
-     * @requires argos.Utility
      */
-    var control = declare('argos.Fields.LookupField', [_Field], {
-<span id='argos-Fields-LookupField-property-attributeMap'>        /**
-</span>         * @property {Object}
-         * Creates a setter map to html nodes, namely:
-         *
-         * * inputValue =&gt; inputNodes's value
-         * * inputDisabled =&gt; inputNodes's disabled
-         * * inputReadOnly =&gt; inputNodes readonly
-         *
-         */
-        attributeMap: {
-            inputValue: {
-                node: 'inputNode',
-                type: 'attribute',
-                attribute: 'value'
-            },
-            inputDisabled: {
-                node: 'inputNode',
-                type: 'attribute',
-                attribute: 'disabled'
-            },
-            inputReadOnly: {
-                node: 'inputNode',
-                type: 'attribute',
-                attribute: 'readonly'
-            }
-        },
-<span id='argos-Fields-LookupField-property-widgetTemplate'>        /**
-</span>         * @property {Simplate}
-         * Simplate that defines the fields HTML Markup
-         *
-         * * `$` =&gt; Field instance
-         * * `$$` =&gt; Owner View instance
-         *
-         */
-        widgetTemplate: new Simplate([
-            '{% if ($.label) { %}',
-                '&lt;label for=&quot;{%= $.name %}&quot;&gt;{%: $.label %}&lt;/label&gt;',
-            '{% } %}',
-            '&lt;button style=&quot;z-index: 5;&quot; data-action=&quot;buttonClick&quot; class=&quot;button simpleSubHeaderButton {% if ($$.iconClass) { %} {%: $$.iconClass %} {% } %}&quot; aria-label=&quot;{%: $.lookupLabelText %}&quot;&gt;&lt;span aria-hidden=&quot;true&quot;&gt;{%: $.lookupText %}&lt;/span&gt;&lt;/button&gt;',
-            '&lt;input data-dojo-attach-point=&quot;inputNode&quot; type=&quot;text&quot; {% if ($.requireSelection) { %}readonly=&quot;readonly&quot;{% } %} /&gt;'
-        ]),
+    attributeMap: {
+      inputValue: {
+        node: 'inputNode',
+        type: 'attribute',
+        attribute: 'value'
+      },
+      inputDisabled: {
+        node: 'inputNode',
+        type: 'attribute',
+        attribute: 'disabled'
+      },
+      inputReadOnly: {
+        node: 'inputNode',
+        type: 'attribute',
+        attribute: 'readonly'
+      }
+    },
+<span id='argos-Fields-LookupField-property-widgetTemplate'>    /**
+</span>     * @property {Simplate}
+     * Simplate that defines the fields HTML Markup
+     *
+     * * `$` =&gt; Field instance
+     * * `$$` =&gt; Owner View instance
+     *
+     */
+    widgetTemplate: new Simplate(['{% if ($.label) { %}', '&lt;label for=&quot;{%= $.name %}&quot;&gt;{%: $.label %}&lt;/label&gt;', '{% } %}', '&lt;button style=&quot;z-index: 5;&quot; data-action=&quot;buttonClick&quot; class=&quot;button simpleSubHeaderButton {% if ($$.iconClass) { %} {%: $$.iconClass %} {% } %}&quot; aria-label=&quot;{%: $.lookupLabelText %}&quot;&gt;&lt;span aria-hidden=&quot;true&quot;&gt;{%: $.lookupText %}&lt;/span&gt;&lt;/button&gt;', '&lt;input data-dojo-attach-point=&quot;inputNode&quot; type=&quot;text&quot; {% if ($.requireSelection) { %}readonly=&quot;readonly&quot;{% } %} /&gt;']),
 
-        iconClass: 'fa fa-search fa-lg',
+    iconClass: 'fa fa-search fa-lg',
 
-        // Localization
-<span id='argos-Fields-LookupField-property-dependentErrorText'>        /**
-</span>         * @property {String}
-         * Error text shown when validation fails.
-         *
-         * * `${0}` is the label text of the field
-         */
-        dependentErrorText: &quot;A value for '${0}' must be selected.&quot;,
-<span id='argos-Fields-LookupField-cfg-emptyText'>        /**
-</span>         * @cfg {String}
-         * Text displayed when the field is cleared or set to null
-         */
-        emptyText: '',
-<span id='argos-Fields-LookupField-property-completeText'>        /**
-</span>         * @deprecated
-         */
-        completeText: 'Select',
-<span id='argos-Fields-LookupField-property-lookupLabelText'>        /**
-</span>         * @property {String}
-         * The ARIA label text in the lookup button
-         */
-        lookupLabelText: 'lookup',
-<span id='argos-Fields-LookupField-property-lookupText'>        /**
-</span>         * @property {String}
-         * The text placed inside the lookup button
-         */
-        lookupText: '...',
+    // Localization
+<span id='argos-Fields-LookupField-property-dependentErrorText'>    /**
+</span>     * @property {String}
+     * Error text shown when validation fails.
+     *
+     * * `${0}` is the label text of the field
+     */
+    dependentErrorText: resource.dependentErrorText,
+<span id='argos-Fields-LookupField-cfg-emptyText'>    /**
+</span>     * @cfg {String}
+     * Text displayed when the field is cleared or set to null
+     */
+    emptyText: resource.emptyText,
+<span id='argos-Fields-LookupField-property-completeText'>    /**
+</span>     * @deprecated
+     */
+    completeText: resource.completeText,
+<span id='argos-Fields-LookupField-property-lookupLabelText'>    /**
+</span>     * @property {String}
+     * The ARIA label text in the lookup button
+     */
+    lookupLabelText: resource.lookupLabelText,
+<span id='argos-Fields-LookupField-property-lookupText'>    /**
+</span>     * @property {String}
+     * The text placed inside the lookup button
+     */
+    lookupText: resource.lookupText,
 
-<span id='argos-Fields-LookupField-cfg-view'>        /**
-</span>         * @cfg {String}
-         * Required. Must be set to a view id of the target lookup view
-         */
-        view: false,
+<span id='argos-Fields-LookupField-cfg-view'>    /**
+</span>     * @cfg {String}
+     * Required. Must be set to a view id of the target lookup view
+     */
+    view: false,
 
-<span id='argos-Fields-LookupField-cfg-viewMixin'>        /**
-</span>         * @cfg {Object}
-         * Optional. Object to mixin over the view
-         */
-        viewMixin: null,
-<span id='argos-Fields-LookupField-property-keyProperty'>        /**
-</span>         * @property {String}
-         * The default `valueKeyProperty` if `valueKeyProperty` is not defined.
-         */
-        keyProperty: '$key',
-<span id='argos-Fields-LookupField-property-textProperty'>        /**
-</span>         * @property {String}
-         * The default `valueTextProperty` if `valueTextProperty` is not defined.
-         */
-        textProperty: '$descriptor',
-<span id='argos-Fields-LookupField-cfg-textTemplate'>        /**
-</span>         * @cfg {Simplate}
-         * If provided the displayed textProperty is transformed with the given Simplate.
-         *
-         * * `$` =&gt; value extracted
-         * * `$$` =&gt; field instance
-         *
-         * Note that this (and renderer) are destructive, meaning once transformed the stored
-         * text value will be the result of the template/renderer. Typically this is not a concern
-         * as SData will only use the key property. But be aware if any other fields use this field as
-         * context.
-         *
-         */
-        textTemplate: null,
-<span id='argos-Fields-LookupField-cfg-textRenderer'>        /**
-</span>         * @cfg {Function}
-         * If provided the displayed textProperty is transformed with the given function.
-         *
-         * The function is passed the current value and should return a string to be displayed.
-         *
-         * Note that this (and renderer) are destructive, meaning once transformed the stored
-         * text value will be the result of the template/renderer. Typically this is not a concern
-         * as SData will only use the key property. But be aware if any other fields use this field as
-         * context.
-         *
-         */
-        textRenderer: null,
-<span id='argos-Fields-LookupField-cfg-valueKeyProperty'>        /**
-</span>         * @cfg {String}
-         * The property name of the returned entry to use as the key
-         */
-        valueKeyProperty: null,
-<span id='argos-Fields-LookupField-cfg-valueTextProperty'>        /**
-</span>         * @cfg {String}
-         * The property name of the returned entry to use as the displayed text/description
-         */
-        valueTextProperty: null,
-<span id='argos-Fields-LookupField-cfg-requireSelection'>        /**
-</span>         * @cfg {Boolean}
-         * Flag that indicates the field is required and that a choice has to be made. If false,
-         * it passes the navigation option that {@link List List} views listen for for adding a &quot;Empty&quot;
-         * selection choice.
-         */
-        requireSelection: true,
-<span id='argos-Fields-LookupField-property-singleSelect'>        /**
-</span>         * @property {Boolean}
-         * Sets the singleSelect navigation option and if true limits gather the value from the
-         * target list view to the first selection.
-         */
-        singleSelect: true,
-<span id='argos-Fields-LookupField-property-singleSelectAction'>        /**
-</span>         * @property {String}
-         * The data-action of the toolbar item (which will be hidden) sent in navigation options. This
-         * with `singleSelect` is listened to in {@link List List} so clicking a row invokes the action,
-         * which is the function name defined (on the field instance in this case).
-         */
-        singleSelectAction: 'complete',
-<span id='argos-Fields-LookupField-cfg-dependsOn'>        /**
-</span>         * @cfg {String}
-         * Name of the field in which this fields depends on before going to the target view. The value
-         * is retrieved from the dependOn field and passed to expandable navigation options (resourceKind,
-         * where, resourcePredicate and previousSelections).
-         *
-         * If dependsOn is set, the target field does not have a value and a user attempts to do a lookup
-         * an error will be shown.
-         *
-         */
-        dependsOn: null,
-<span id='argos-Fields-LookupField-cfg-resourceKind'>        /**
-</span>         * @cfg {String/Function}
-         * May be set and passed in the navigation options to the target List view.
-         *
-         * Used to indicate the entity type.
-         *
-         */
-        resourceKind: null,
-<span id='argos-Fields-LookupField-cfg-resourcePredicate'>        /**
-</span>         * @cfg {String/Function}
-         * May be set and passed in the navigation options to the target List view.
-         */
-        resourcePredicate: null,
-<span id='argos-Fields-LookupField-cfg-where'>        /**
-</span>         * @cfg {String/Function}
-         * May be set and passed in the navigation options to the target List view.
-         *
-         * Sets the where expression used in the SData query of the List view.
-         */
-        where: null,
-<span id='argos-Fields-LookupField-cfg-orderBy'>        /**
-</span>         * @cfg {String/Function}
-         * May be set and passed in the navigation options to the target List view.
-         *
-         * Sets the orderBy expression used in the SData query of the List view.
-         */
-        orderBy: null,
-<span id='argos-Fields-LookupField-property-currentValue'>        /**
-</span>         * @property {Object}
-         * The current value object defined using the extracted key/text properties from the selected
-         * entry.
-         */
-        currentValue: null,
-<span id='argos-Fields-LookupField-property-currentSelection'>        /**
-</span>         * @property {Object}
-         * The entire selected entry from the target view (not just the key/text properties).
-         */
-        currentSelection: null,
+<span id='argos-Fields-LookupField-cfg-viewMixin'>    /**
+</span>     * @cfg {Object}
+     * Optional. Object to mixin over the view
+     */
+    viewMixin: null,
+<span id='argos-Fields-LookupField-property-keyProperty'>    /**
+</span>     * @property {String}
+     * The default `valueKeyProperty` if `valueKeyProperty` is not defined.
+     */
+    keyProperty: '$key',
+<span id='argos-Fields-LookupField-property-textProperty'>    /**
+</span>     * @property {String}
+     * The default `valueTextProperty` if `valueTextProperty` is not defined.
+     */
+    textProperty: '$descriptor',
+<span id='argos-Fields-LookupField-cfg-textTemplate'>    /**
+</span>     * @cfg {Simplate}
+     * If provided the displayed textProperty is transformed with the given Simplate.
+     *
+     * * `$` =&gt; value extracted
+     * * `$$` =&gt; field instance
+     *
+     * Note that this (and renderer) are destructive, meaning once transformed the stored
+     * text value will be the result of the template/renderer. Typically this is not a concern
+     * as SData will only use the key property. But be aware if any other fields use this field as
+     * context.
+     *
+     */
+    textTemplate: null,
+<span id='argos-Fields-LookupField-cfg-textRenderer'>    /**
+</span>     * @cfg {Function}
+     * If provided the displayed textProperty is transformed with the given function.
+     *
+     * The function is passed the current value and should return a string to be displayed.
+     *
+     * Note that this (and renderer) are destructive, meaning once transformed the stored
+     * text value will be the result of the template/renderer. Typically this is not a concern
+     * as SData will only use the key property. But be aware if any other fields use this field as
+     * context.
+     *
+     */
+    textRenderer: null,
+<span id='argos-Fields-LookupField-cfg-valueKeyProperty'>    /**
+</span>     * @cfg {String}
+     * The property name of the returned entry to use as the key
+     */
+    valueKeyProperty: null,
+<span id='argos-Fields-LookupField-cfg-valueTextProperty'>    /**
+</span>     * @cfg {String}
+     * The property name of the returned entry to use as the displayed text/description
+     */
+    valueTextProperty: null,
+<span id='argos-Fields-LookupField-cfg-requireSelection'>    /**
+</span>     * @cfg {Boolean}
+     * Flag that indicates the field is required and that a choice has to be made. If false,
+     * it passes the navigation option that {@link List List} views listen for for adding a &quot;Empty&quot;
+     * selection choice.
+     */
+    requireSelection: true,
+<span id='argos-Fields-LookupField-property-singleSelect'>    /**
+</span>     * @property {Boolean}
+     * Sets the singleSelect navigation option and if true limits gather the value from the
+     * target list view to the first selection.
+     */
+    singleSelect: true,
+<span id='argos-Fields-LookupField-property-singleSelectAction'>    /**
+</span>     * @property {String}
+     * The data-action of the toolbar item (which will be hidden) sent in navigation options. This
+     * with `singleSelect` is listened to in {@link List List} so clicking a row invokes the action,
+     * which is the function name defined (on the field instance in this case).
+     */
+    singleSelectAction: 'complete',
+<span id='argos-Fields-LookupField-cfg-dependsOn'>    /**
+</span>     * @cfg {String}
+     * Name of the field in which this fields depends on before going to the target view. The value
+     * is retrieved from the dependOn field and passed to expandable navigation options (resourceKind,
+     * where, resourcePredicate and previousSelections).
+     *
+     * If dependsOn is set, the target field does not have a value and a user attempts to do a lookup
+     * an error will be shown.
+     *
+     */
+    dependsOn: null,
+<span id='argos-Fields-LookupField-cfg-resourceKind'>    /**
+</span>     * @cfg {String/Function}
+     * May be set and passed in the navigation options to the target List view.
+     *
+     * Used to indicate the entity type.
+     *
+     */
+    resourceKind: null,
+<span id='argos-Fields-LookupField-cfg-resourcePredicate'>    /**
+</span>     * @cfg {String/Function}
+     * May be set and passed in the navigation options to the target List view.
+     */
+    resourcePredicate: null,
+<span id='argos-Fields-LookupField-cfg-where'>    /**
+</span>     * @cfg {String/Function}
+     * May be set and passed in the navigation options to the target List view.
+     *
+     * Sets the where expression used in the SData query of the List view.
+     */
+    where: null,
+<span id='argos-Fields-LookupField-cfg-orderBy'>    /**
+</span>     * @cfg {String/Function}
+     * May be set and passed in the navigation options to the target List view.
+     *
+     * Sets the orderBy expression used in the SData query of the List view.
+     */
+    orderBy: null,
+<span id='argos-Fields-LookupField-property-currentValue'>    /**
+</span>     * @property {Object}
+     * The current value object defined using the extracted key/text properties from the selected
+     * entry.
+     */
+    currentValue: null,
+<span id='argos-Fields-LookupField-property-currentSelection'>    /**
+</span>     * @property {Object}
+     * The entire selected entry from the target view (not just the key/text properties).
+     */
+    currentSelection: null,
 
-<span id='argos-Fields-LookupField-method-init'>        /**
-</span>         * Extends init to connect to the click event, if the field is read only disable and
-         * if require selection is false connect to onkeyup and onblur.
-         */
-        init: function() {
-            this.inherited(arguments);
+<span id='argos-Fields-LookupField-method-init'>    /**
+</span>     * Extends init to connect to the click event, if the field is read only disable and
+     * if require selection is false connect to onkeyup and onblur.
+     */
+    init: function init() {
+      this.inherited(arguments);
 
-            this.connect(this.containerNode, 'onclick', this._onClick);
+      this.connect(this.containerNode, 'onclick', this._onClick);
 
-            if (this.isReadOnly()) {
-                this.disable();
-                this.set('inputReadOnly', true);
-            } else if (!this.requireSelection) {
-                this.connect(this.inputNode, 'onkeyup', this._onKeyUp);
-                this.connect(this.inputNode, 'onblur', this._onBlur);
-            }
-        },
-<span id='argos-Fields-LookupField-method-enable'>        /**
-</span>         * Extends enable to also remove the disabled attribute
-         */
-        enable: function() {
-            this.inherited(arguments);
+      if (this.isReadOnly()) {
+        this.disable();
+        this.set('inputReadOnly', true);
+      } else if (!this.requireSelection) {
+        this.connect(this.inputNode, 'onkeyup', this._onKeyUp);
+        this.connect(this.inputNode, 'onblur', this._onBlur);
+      }
+    },
+<span id='argos-Fields-LookupField-method-enable'>    /**
+</span>     * Extends enable to also remove the disabled attribute
+     */
+    enable: function enable() {
+      this.inherited(arguments);
 
-            this.set('inputDisabled', false);
-        },
-<span id='argos-Fields-LookupField-method-disable'>        /**
-</span>         * Extends disable to also set the disabled attribute
-         */
-        disable: function() {
-            this.inherited(arguments);
+      this.set('inputDisabled', false);
+    },
+<span id='argos-Fields-LookupField-method-disable'>    /**
+</span>     * Extends disable to also set the disabled attribute
+     */
+    disable: function disable() {
+      this.inherited(arguments);
 
-            this.set('inputDisabled', true);
-        },
-        focus: function() {
-            if (!this.isReadOnly()) {
-                this.inputNode.focus();
-            }
-        },
-<span id='argos-Fields-LookupField-method-isReadOnly'>        /**
-</span>         * Determines if the field is readonly by checking for a target view
-         * @return {Boolean}
-         */
-        isReadOnly: function() {
-            return !this.view;
-        },
-<span id='argos-Fields-LookupField-method-getDependentValue'>        /**
-</span>         * Retrieves the value of the field named with `this.dependsOn`
-         * @return {String/Object/Number/Boolean}
-         */
-        getDependentValue: function() {
-            if (this.dependsOn &amp;&amp; this.owner) {
-                var field = this.owner.fields[this.dependsOn];
-                if (field) {
-                    return field.getValue();
-                }
-            }
-        },
-<span id='argos-Fields-LookupField-method-getDependentLabel'>        /**
-</span>         * Retrieves the label string of the field named with `this.dependsOn`
-         * @return {String}
-         */
-        getDependentLabel: function() {
-            if (this.dependsOn &amp;&amp; this.owner) {
-                var field = this.owner.fields[this.dependsOn];
-                if (field) {
-                    return field.label;
-                }
-            }
-        },
-<span id='argos-Fields-LookupField-method-expandExpression'>        /**
-</span>         * Expands the passed expression if it is a function.
-         * @param {String/Function} expression Returns string directly, if function it is called and the result returned.
-         * @return {String} String expression.
-         */
-        expandExpression: function(expression) {
-            if (typeof expression === 'function') {
-                return expression.apply(this, Array.prototype.slice.call(arguments, 1));
-            } else {
-                return expression;
-            }
-        },
-<span id='argos-Fields-LookupField-method-createNavigationOptions'>        /**
-</span>         * Creates the options to be passed in navigation to the target view
-         *
-         * Key points of the options set by default:
-         *
-         * * enableActions = false, List views should not be showing their list-actions bar this hides it
-         * * selectionOnly = true, List views should not allow editing/viewing, just selecting
-         * * negateHistory = true, disables saving of this options object when storing the history context
-         * * tools = {}, overrides the toolbar of the target view so that the function that fires is invoked
-         * in the context of this field, not the List.
-         *
-         * The following options are &quot;expandable&quot; meaning they can be strings or functions that return strings:
-         *
-         * resourceKind, resourcePredicate, where and previousSelections
-         *
-         * They will be passed the `dependsOn` field value (if defined).
-         *
-         */
-        createNavigationOptions: function() {
-            var options,
-                expand,
-                dependentValue,
-                item,
-                key;
-
-            options = {
-                enableActions: false,
-                selectionOnly: true,
-                singleSelect: this.singleSelect,
-                singleSelectAction: this.singleSelectAction || 'complete',
-                allowEmptySelection: !this.requireSelection,
-                resourceKind: this.resourceKind,
-                resourcePredicate: this.resourcePredicate,
-                where: this.where,
-                orderBy: this.orderBy,
-                negateHistory: true,
-                continuousScrolling: false,
-                simpleMode: true,
-                tools: {
-                    tbar: [{
-                        id: 'complete',
-                        cls: 'fa fa-check fa-fw fa-lg',
-                        fn: this.complete,
-                        scope: this
-                    }, {
-                        id: 'cancel',
-                        side: 'left',
-                        cls: 'fa fa-ban fa-fw fa-lg',
-                        fn: this.reui.back,
-                        scope: this.reui
-                    }]
-                }
-            };
-            expand = ['resourceKind', 'resourcePredicate', 'where', 'previousSelections'];
-            dependentValue = this.getDependentValue();
-
-            if (options.singleSelect &amp;&amp; options.singleSelectAction) {
-                for (key in options.tools.tbar) {
-                    if (options.tools.tbar.hasOwnProperty(key)) {
-                        item = options.tools.tbar[key];
-                        if (item.id === options.singleSelectAction) {
-                            item.cls = 'invisible';
-                        }
-                    }
-                }
-            }
-
-            if (this.dependsOn &amp;&amp; !dependentValue) {
-                console.error(string.substitute(this.dependentErrorText, [this.getDependentLabel() || '']));
-                return false;
-            }
-
-            array.forEach(expand, function(item) {
-                if (this[item]) {
-                    options[item] = this.dependsOn // only pass dependentValue if there is a dependency
-                        ? this.expandExpression(this[item], dependentValue)
-                        : this.expandExpression(this[item]);
-                }
-            }, this);
-
-            options.dependentValue = dependentValue;
-            options.title = this.title;
-
-            return options;
-        },
-<span id='argos-Fields-LookupField-method-navigateToListView'>        /**
-</span>         * Navigates to the `this.view` id passing the options created from {@link #createNavigationOptions createNavigationOptions}.
-         */
-        navigateToListView: function() {
-            var view = this.app.getView(this.view),
-                options = this.createNavigationOptions();
-
-            if (view &amp;&amp; options &amp;&amp; !this.disabled) {
-                lang.mixin(view, this.viewMixin);
-                view.show(options);
-            }
-        },
-        buttonClick: function() {
-            this.navigateToListView();
-        },
-<span id='argos-Fields-LookupField-method-_onClick'>        /**
-</span>         * Handler for the click event, fires {@link #navigateToListView navigateToListView} if the
-         * field is not disabled.
-         * @param evt
-         */
-        _onClick: function(evt) {
-            var buttonNode = query(evt.target).closest('.button')[0];
-
-            if (!this.isDisabled() &amp;&amp; (buttonNode || this.requireSelection)) {
-                event.stop(evt);
-                this.navigateToListView();
-            }
-        },
-<span id='argos-Fields-LookupField-method-_onKeyUp'>        /**
-</span>         * Handler for onkeyup, fires {@link #onNotificationTrigger onNotificationTrigger} if
-         * `this.notificationTrigger` is `'keyup'`.
-         * @param {Event} evt Click event
-         */
-        _onKeyUp: function(evt) {
-            if (!this.isDisabled() &amp;&amp; this.notificationTrigger === 'keyup') {
-                this.onNotificationTrigger(evt);
-            }
-        },
-<span id='argos-Fields-LookupField-method-_onBlur'>        /**
-</span>         * Handler for onblur, fires {@link #onNotificationTrigger onNotificationTrigger} if
-         * `this.notificationTrigger` is `'blur'`.
-         * @param {Event} evt Blur event
-         */
-        _onBlur: function(evt) {
-            if (!this.isDisabled() &amp;&amp; this.notificationTrigger === 'blur') {
-                this.onNotificationTrigger(evt);
-            }
-        },
-<span id='argos-Fields-LookupField-method-onNotificationTrigger'>        /**
-</span>         * Called from onkeyup and onblur handlers if the trigger is set.
-         *
-         * Checks the current value against `this.previousValue` and if different
-         * fires {@link #onChange onChange}.
-         *
-         * @param {Event} evt
-         */
-        onNotificationTrigger: function(evt) {
-            var currentValue = this.getValue();
-
-            if (this.previousValue !== currentValue) {
-                this.onChange(currentValue, this);
-            }
-
-            this.previousValue = currentValue;
-        },
-<span id='argos-Fields-LookupField-method-setText'>        /**
-</span>         * Sets the displayed text of the field
-         * @param {String} text
-         */
-        setText: function(text) {
-            this.set('inputValue', text);
-
-            this.previousValue = text;
-        },
-<span id='argos-Fields-LookupField-method-getText'>        /**
-</span>         * Returns the string text of the field (note, not the value of the field)
-         * @return {String}
-         */
-        getText: function() {
-            return this.inputNode.value;
-        },
-<span id='argos-Fields-LookupField-method-complete'>        /**
-</span>         * Called from the target list view when a row is selected.
-         *
-         * The intent of the complete function is to gather the value(s) from the list view and
-         * transfer them to the field - then handle navigating back to the Edit view.
-         *
-         * The target view must be the currently active view and must have a selection model.
-         *
-         * The values are gathered and passed to {@link #setSelection setSelection}, `ReUI.back()` is
-         * fired and lastly {@link #_onComplete _onComplete} is called in a setTimeout due to bizarre
-         * transition issues, namely in IE.
-         */
-        complete: function() {
-            var view, selectionModel, selections, selectionCount, val, selectionKey;
-
-            view = this.app.getPrimaryActiveView();
-            selectionModel = view.get('selectionModel');
-
-            if (view &amp;&amp; selectionModel) {
-                selections = selectionModel.getSelections();
-                selectionCount = selectionModel.getSelectionCount();
-
-                if (selectionCount === 0 &amp;&amp; view.options.allowEmptySelection) {
-                    this.clearValue(true);
-                }
-
-                if (this.singleSelect) {
-                    for (selectionKey in selections) {
-                        if (selections.hasOwnProperty(selectionKey)) {
-                            val = selections[selectionKey].data;
-                            this.setSelection(val, selectionKey);
-                            break;
-                        }
-                    }
-                } else {
-                    if (selectionCount &gt; 0) {
-                        this.setSelections(selections);
-                    }
-                }
-
-                this.reui.back();
-
-                // if the event is fired before the transition, any XMLHttpRequest created in an event handler and
-                // executing during the transition can potentially fail (status 0).  this might only be an issue with CORS
-                // requests created in this state (the pre-flight request is made, and the request ends with status 0).
-                // wrapping thing in a timeout and placing after the transition starts, mitigates this issue.
-                setTimeout(this._onComplete.bind(this), 0);
-            }
-        },
-<span id='argos-Fields-LookupField-method-_onComplete'>        /**
-</span>         * Forces {@link #onChange onChange} to fire
-         */
-        _onComplete: function() {
-            this.onChange(this.currentValue, this);
-        },
-<span id='argos-Fields-LookupField-method-isDirty'>        /**
-</span>         * Determines if the field has been altered from the default/template value.
-         * @return {Boolean}
-         */
-        isDirty: function() {
-            if (this.originalValue &amp;&amp; this.currentValue) {
-                if (this.originalValue.key !== this.currentValue.key) {
-                    return true;
-                }
-
-                if (this.originalValue.text !== this.currentValue.text) {
-                    return true;
-                }
-
-                if (!this.requireSelection &amp;&amp; !this.textTemplate) {
-                    if (this.originalValue.text !== this.getText()) {
-                        return true;
-                    }
-                }
-
-                return false;
-            }
-
-            if (this.originalValue) {
-                if (!this.requireSelection &amp;&amp; !this.textTemplate) {
-                    if (this.originalValue.text !== this.getText()) {
-                        return true;
-                    }
-                }
-            } else {
-                if (!this.requireSelection &amp;&amp; !this.textTemplate) {
-                    var text = this.getText();
-                    if (text &amp;&amp; text.length &gt; 0) {
-                        return true;
-                    }
-                }
-            }
-
-            return (this.originalValue !== this.currentValue);
-        },
-<span id='argos-Fields-LookupField-method-getSelection'>        /**
-</span>         * Returns the current selection that was set from the target list view.
-         * @return {Object}
-         */
-        getSelection: function() {
-            return this.currentSelection;
-        },
-<span id='argos-Fields-LookupField-method-getValue'>        /**
-</span>         * Returns the current value either by extracting the valueKeyProperty and valueTextProperty or
-         * several other methods of getting it to that state.
-         * @return {Object/String}
-         */
-        getValue: function() {
-            var value = null,
-                text = this.getText() || '',
-                // if valueKeyProperty or valueTextProperty IS NOT EXPLICITLY set to false
-                // and IS NOT defined use keyProperty or textProperty in its place.
-                keyProperty = this.valueKeyProperty !== false
-                    ? this.valueKeyProperty || this.keyProperty
-                    : false,
-                textProperty = this.valueTextProperty !== false
-                    ? this.valueTextProperty || this.textProperty
-                    : false;
-
-            if (keyProperty || textProperty) {
-                if (this.currentValue) {
-                    if (keyProperty) {
-                        value = utility.setValue(value || {}, keyProperty, this.currentValue.key);
-                    }
-
-                    // if a text template has been applied there is no way to guarantee a correct
-                    // mapping back to the property
-                    if (textProperty &amp;&amp; !this.textTemplate) {
-                        value = utility.setValue(value || {}, textProperty, this.requireSelection ? this.currentValue.text : text);
-                    }
-                } else if (!this.requireSelection) {
-                    if (keyProperty &amp;&amp; text.length &gt; 0) {
-                        value = utility.setValue(value || {}, keyProperty, text);
-                    }
-
-                    // if a text template has been applied there is no way to guarantee a correct
-                    // mapping back to the property
-                    if (textProperty &amp;&amp; !this.textTemplate &amp;&amp; text.length &gt; 0) {
-                        value = utility.setValue(value || {}, textProperty, text);
-                    }
-                }
-            } else {
-                if (this.currentValue) {
-                    if (this.requireSelection) {
-                        value = this.currentValue.key ? this.currentValue.key : this.currentValue;
-                    } else {
-                        value = this.currentValue.text !== text &amp;&amp; !this.textTemplate
-                            ? text
-                            : this.currentValue.key;
-                    }
-                } else if (!this.requireSelection &amp;&amp; text.length &gt; 0) {
-                    value = text;
-                }
-            }
-
-            return value;
-        },
-<span id='argos-Fields-LookupField-method-formatValue'>        /**
-</span>         * If using a multi-select enabled lookup then the view will return multiple objects as the value.
-         *
-         * This function takes that array and returns the single value that should be used for `this.currentValue`.
-         *
-         * @template
-         * @param {Object[]} values
-         * @return {Object/String}
-         */
-        formatValue: function(values) {
-            return values;
-        },
-<span id='argos-Fields-LookupField-method-setSelections'>        /**
-</span>         * If using a multi-select enabled lookup this function will be called by {@link #complete complete}
-         * in that the target view returned multiple entries.
-         *
-         * Sets the currentValue using {@link #formatValue formatValue}.
-         *
-         * Sets the displayed text using `this.textRenderer`.
-         *
-         * @param {Object[]} values
-         */
-        setSelections: function(values) {
-            this.currentValue = (this.formatValue)
-                ? this.formatValue.call(this, values)
-                : values;
-
-            var text = (this.textRenderer)
-                ? this.textRenderer.call(this, values)
-                : '';
-
-            this.setText(text);
-        },
-<span id='argos-Fields-LookupField-method-setSelection'>        /**
-</span>         * If using a singleSelect enabled lookup this function will be called by {@link #complete complete}
-         * and the single entry's data and key will be passed to this function.
-         *
-         * Sets the `this.currentSelection` to the passed data (entire entry)
-         *
-         * Sets the `this.currentValue` to the extract key/text properties
-         *
-         * Calls {@link #setText setText} with the extracted text property.
-         *
-         * @param {Object} val Entire selection entry
-         * @param {String} key data-key attribute of the selected row (typically $key from SData)
-         */
-        setSelection: function(val, key) {
-            var text = utility.getValue(val, this.textProperty);
-
-            key = utility.getValue(val, this.keyProperty, val) || key; // if we can extract the key as requested, use it instead of the selection key
-
-            if (text &amp;&amp; this.textTemplate) {
-                text = this.textTemplate.apply(text, this);
-            } else if (this.textRenderer) {
-                text = this.textRenderer.call(this, val, key, text);
-            }
-
-            this.currentSelection = val;
-
-            this.currentValue = {
-                key: key || text,
-                text: text || key
-            };
-
-            this.setText(this.currentValue.text);
-        },
-<span id='argos-Fields-LookupField-method-setValue'>        /**
-</span>         * Sets the given value to `this.currentValue` using the initial flag if to set it as
-         * clean/unmodified or false for dirty.
-         * @param {Object/String} val Value to set
-         * @param {Boolean} initial Dirty flag (true is clean)
-         */
-        setValue: function(val, initial) {
-            // if valueKeyProperty or valueTextProperty IS NOT EXPLICITLY set to false
-            // and IS NOT defined use keyProperty or textProperty in its place.
-            var key,
-                text,
-                keyProperty = this.valueKeyProperty !== false
-                    ? this.valueKeyProperty || this.keyProperty
-                    : false,
-                textProperty = this.valueTextProperty !== false
-                    ? this.valueTextProperty || this.textProperty
-                    : false;
-
-            if (typeof val === 'undefined' || val === null) {
-                this.currentValue = false;
-                if (initial) {
-                    this.originalValue = this.currentValue;
-                }
-
-                this.setText(this.requireSelection ? this.emptyText : '');
-                return false;
-            }
-
-            if (keyProperty || textProperty) {
-                if (keyProperty) {
-                    key = utility.getValue(val, keyProperty);
-                }
-
-                if (textProperty) {
-                    text = utility.getValue(val, textProperty);
-                }
-
-                if (text &amp;&amp; this.textTemplate) {
-                    text = this.textTemplate.apply(text, this);
-                } else if (this.textRenderer) {
-                    text = this.textRenderer.call(this, val, key, text);
-                }
-
-                if (key || text) {
-                    this.currentValue = {
-                        key: key || text,
-                        text: text || key
-                    };
-
-                    if (initial) {
-                        this.originalValue = this.currentValue;
-                    }
-
-                    this.setText(this.currentValue.text);
-                } else {
-                    this.currentValue = false;
-
-                    if (initial) {
-                        this.originalValue = this.currentValue;
-                    }
-
-                    this.setText(this.requireSelection ? this.emptyText : '');
-                }
-            } else {
-                key = val;
-                text = val;
-
-                if (text &amp;&amp; this.textTemplate) {
-                    text = this.textTemplate.apply(text, this);
-                } else if (this.textRenderer) {
-                    text = this.textRenderer.call(this, val, key, text);
-                }
-
-                this.currentValue = {
-                    key: key || text,
-                    text: text || key
-                };
-
-                if (initial) {
-                    this.originalValue = this.currentValue;
-                }
-
-                this.setText(text);
-            }
-        },
-<span id='argos-Fields-LookupField-method-clearValue'>        /**
-</span>         * Clears the value by setting null (which triggers usage of `this.emptyText`.
-         *
-         * Flag is used to indicate if to set null as the initial value (unmodified) or not.
-         *
-         * @param {Boolean} flag
-         */
-        clearValue: function(flag) {
-            var initial = flag !== true;
-
-            this.setValue(null, initial);
+      this.set('inputDisabled', true);
+    },
+    focus: function focus() {
+      if (!this.isReadOnly()) {
+        this.inputNode.focus();
+      }
+    },
+<span id='argos-Fields-LookupField-method-isReadOnly'>    /**
+</span>     * Determines if the field is readonly by checking for a target view
+     * @return {Boolean}
+     */
+    isReadOnly: function isReadOnly() {
+      return !this.view;
+    },
+<span id='argos-Fields-LookupField-method-getDependentValue'>    /**
+</span>     * Retrieves the value of the field named with `this.dependsOn`
+     * @return {String/Object/Number/Boolean}
+     */
+    getDependentValue: function getDependentValue() {
+      if (this.dependsOn &amp;&amp; this.owner) {
+        var field = this.owner.fields[this.dependsOn];
+        if (field) {
+          return field.getValue();
         }
-    });
+      }
+    },
+<span id='argos-Fields-LookupField-method-getDependentLabel'>    /**
+</span>     * Retrieves the label string of the field named with `this.dependsOn`
+     * @return {String}
+     */
+    getDependentLabel: function getDependentLabel() {
+      if (this.dependsOn &amp;&amp; this.owner) {
+        var field = this.owner.fields[this.dependsOn];
+        if (field) {
+          return field.label;
+        }
+      }
+    },
+<span id='argos-Fields-LookupField-method-expandExpression'>    /**
+</span>     * Expands the passed expression if it is a function.
+     * @param {String/Function} expression Returns string directly, if function it is called and the result returned.
+     * @return {String} String expression.
+     */
+    expandExpression: function expandExpression(expression) {
+      if (typeof expression === 'function') {
+        return expression.apply(this, Array.prototype.slice.call(arguments, 1));
+      }
+      return expression;
+    },
+<span id='argos-Fields-LookupField-method-createNavigationOptions'>    /**
+</span>     * Creates the options to be passed in navigation to the target view
+     *
+     * Key points of the options set by default:
+     *
+     * * enableActions = false, List views should not be showing their list-actions bar this hides it
+     * * selectionOnly = true, List views should not allow editing/viewing, just selecting
+     * * negateHistory = true, disables saving of this options object when storing the history context
+     * * tools = {}, overrides the toolbar of the target view so that the function that fires is invoked
+     * in the context of this field, not the List.
+     *
+     * The following options are &quot;expandable&quot; meaning they can be strings or functions that return strings:
+     *
+     * resourceKind, resourcePredicate, where and previousSelections
+     *
+     * They will be passed the `dependsOn` field value (if defined).
+     *
+     */
+    createNavigationOptions: function createNavigationOptions() {
+      var options = {
+        enableActions: false,
+        selectionOnly: true,
+        singleSelect: this.singleSelect,
+        singleSelectAction: this.singleSelectAction || 'complete',
+        allowEmptySelection: !this.requireSelection,
+        resourceKind: this.resourceKind,
+        resourcePredicate: this.resourcePredicate,
+        where: this.where,
+        orderBy: this.orderBy,
+        negateHistory: true,
+        continuousScrolling: false,
+        simpleMode: true,
+        tools: {
+          tbar: [{
+            id: 'complete',
+            cls: 'fa fa-check fa-fw fa-lg',
+            fn: this.complete,
+            scope: this
+          }, {
+            id: 'cancel',
+            side: 'left',
+            cls: 'fa fa-ban fa-fw fa-lg',
+            fn: this.reui.back,
+            scope: this.reui
+          }]
+        }
+      };
 
-    lang.setObject('Sage.Platform.Mobile.Fields.LookupField', control);
-    return FieldManager.register('lookup', control);
+      var expand = ['resourceKind', 'resourcePredicate', 'where', 'previousSelections'];
+      var dependentValue = this.getDependentValue();
+
+      if (options.singleSelect &amp;&amp; options.singleSelectAction) {
+        for (var key in options.tools.tbar) {
+          if (options.tools.tbar.hasOwnProperty(key)) {
+            var item = options.tools.tbar[key];
+            if (item.id === options.singleSelectAction) {
+              item.cls = 'invisible';
+            }
+          }
+        }
+      }
+
+      if (this.dependsOn &amp;&amp; !dependentValue) {
+        console.error(_string['default'].substitute(this.dependentErrorText, [this.getDependentLabel() || ''])); //eslint-disable-line
+        return false;
+      }
+
+      _array['default'].forEach(expand, function forEach(item) {
+        if (this[item]) {
+          options[item] = this.dependsOn // only pass dependentValue if there is a dependency
+          ? this.expandExpression(this[item], dependentValue) : this.expandExpression(this[item]);
+        }
+      }, this);
+
+      options.dependentValue = dependentValue;
+      options.title = this.title;
+
+      return options;
+    },
+<span id='argos-Fields-LookupField-method-navigateToListView'>    /**
+</span>     * Navigates to the `this.view` id passing the options created from {@link #createNavigationOptions createNavigationOptions}.
+     */
+    navigateToListView: function navigateToListView() {
+      var view = this.app.getView(this.view);
+      var options = this.createNavigationOptions();
+
+      if (view &amp;&amp; options &amp;&amp; !this.disabled) {
+        _lang['default'].mixin(view, this.viewMixin);
+        view.show(options);
+      }
+    },
+    buttonClick: function buttonClick() {
+      this.navigateToListView();
+    },
+<span id='argos-Fields-LookupField-method-_onClick'>    /**
+</span>     * Handler for the click event, fires {@link #navigateToListView navigateToListView} if the
+     * field is not disabled.
+     * @param evt
+     */
+    _onClick: function _onClick(evt) {
+      var buttonNode = (0, _query['default'])(evt.target).closest('.button')[0];
+
+      if (!this.isDisabled() &amp;&amp; (buttonNode || this.requireSelection)) {
+        _event['default'].stop(evt);
+        this.navigateToListView();
+      }
+    },
+<span id='argos-Fields-LookupField-method-_onKeyUp'>    /**
+</span>     * Handler for onkeyup, fires {@link #onNotificationTrigger onNotificationTrigger} if
+     * `this.notificationTrigger` is `'keyup'`.
+     * @param {Event} evt Click event
+     */
+    _onKeyUp: function _onKeyUp(evt) {
+      if (!this.isDisabled() &amp;&amp; this.notificationTrigger === 'keyup') {
+        this.onNotificationTrigger(evt);
+      }
+    },
+<span id='argos-Fields-LookupField-method-_onBlur'>    /**
+</span>     * Handler for onblur, fires {@link #onNotificationTrigger onNotificationTrigger} if
+     * `this.notificationTrigger` is `'blur'`.
+     * @param {Event} evt Blur event
+     */
+    _onBlur: function _onBlur(evt) {
+      if (!this.isDisabled() &amp;&amp; this.notificationTrigger === 'blur') {
+        this.onNotificationTrigger(evt);
+      }
+    },
+<span id='argos-Fields-LookupField-method-onNotificationTrigger'>    /**
+</span>     * Called from onkeyup and onblur handlers if the trigger is set.
+     *
+     * Checks the current value against `this.previousValue` and if different
+     * fires {@link #onChange onChange}.
+     *
+     * @param {Event} evt
+     */
+    onNotificationTrigger: function onNotificationTrigger() /*evt*/{
+      var currentValue = this.getValue();
+
+      if (this.previousValue !== currentValue) {
+        this.onChange(currentValue, this);
+      }
+
+      this.previousValue = currentValue;
+    },
+<span id='argos-Fields-LookupField-method-setText'>    /**
+</span>     * Sets the displayed text of the field
+     * @param {String} text
+     */
+    setText: function setText(text) {
+      this.set('inputValue', text);
+
+      this.previousValue = text;
+    },
+<span id='argos-Fields-LookupField-method-getText'>    /**
+</span>     * Returns the string text of the field (note, not the value of the field)
+     * @return {String}
+     */
+    getText: function getText() {
+      return this.inputNode.value;
+    },
+<span id='argos-Fields-LookupField-method-complete'>    /**
+</span>     * Called from the target list view when a row is selected.
+     *
+     * The intent of the complete function is to gather the value(s) from the list view and
+     * transfer them to the field - then handle navigating back to the Edit view.
+     *
+     * The target view must be the currently active view and must have a selection model.
+     *
+     * The values are gathered and passed to {@link #setSelection setSelection}, `ReUI.back()` is
+     * fired and lastly {@link #_onComplete _onComplete} is called in a setTimeout due to bizarre
+     * transition issues, namely in IE.
+     */
+    complete: function complete() {
+      var view = this.app.getPrimaryActiveView();
+      var selectionModel = view.get('selectionModel');
+
+      if (view &amp;&amp; selectionModel) {
+        var selections = selectionModel.getSelections();
+        var selectionCount = selectionModel.getSelectionCount();
+
+        if (selectionCount === 0 &amp;&amp; view.options.allowEmptySelection) {
+          this.clearValue(true);
+        }
+
+        if (this.singleSelect) {
+          for (var selectionKey in selections) {
+            if (selections.hasOwnProperty(selectionKey)) {
+              var val = selections[selectionKey].data;
+              this.setSelection(val, selectionKey);
+              break;
+            }
+          }
+        } else {
+          if (selectionCount &gt; 0) {
+            this.setSelections(selections);
+          }
+        }
+
+        this.reui.back();
+
+        // if the event is fired before the transition, any XMLHttpRequest created in an event handler and
+        // executing during the transition can potentially fail (status 0).  this might only be an issue with CORS
+        // requests created in this state (the pre-flight request is made, and the request ends with status 0).
+        // wrapping thing in a timeout and placing after the transition starts, mitigates this issue.
+        setTimeout(this._onComplete.bind(this), 0);
+      }
+    },
+<span id='argos-Fields-LookupField-method-_onComplete'>    /**
+</span>     * Forces {@link #onChange onChange} to fire
+     */
+    _onComplete: function _onComplete() {
+      this.onChange(this.currentValue, this);
+    },
+<span id='argos-Fields-LookupField-method-isDirty'>    /**
+</span>     * Determines if the field has been altered from the default/template value.
+     * @return {Boolean}
+     */
+    isDirty: function isDirty() {
+      if (this.originalValue &amp;&amp; this.currentValue) {
+        if (this.originalValue.key !== this.currentValue.key) {
+          return true;
+        }
+
+        if (this.originalValue.text !== this.currentValue.text) {
+          return true;
+        }
+
+        if (!this.requireSelection &amp;&amp; !this.textTemplate) {
+          if (this.originalValue.text !== this.getText()) {
+            return true;
+          }
+        }
+
+        return false;
+      }
+
+      if (this.originalValue) {
+        if (!this.requireSelection &amp;&amp; !this.textTemplate) {
+          if (this.originalValue.text !== this.getText()) {
+            return true;
+          }
+        }
+      } else {
+        if (!this.requireSelection &amp;&amp; !this.textTemplate) {
+          var text = this.getText();
+          if (text &amp;&amp; text.length &gt; 0) {
+            return true;
+          }
+        }
+      }
+
+      return this.originalValue !== this.currentValue;
+    },
+<span id='argos-Fields-LookupField-method-getSelection'>    /**
+</span>     * Returns the current selection that was set from the target list view.
+     * @return {Object}
+     */
+    getSelection: function getSelection() {
+      return this.currentSelection;
+    },
+<span id='argos-Fields-LookupField-method-getValue'>    /**
+</span>     * Returns the current value either by extracting the valueKeyProperty and valueTextProperty or
+     * several other methods of getting it to that state.
+     * @return {Object/String}
+     */
+    getValue: function getValue() {
+      var value = null;
+      var text = this.getText() || '';
+      // if valueKeyProperty or valueTextProperty IS NOT EXPLICITLY set to false
+      // and IS NOT defined use keyProperty or textProperty in its place.
+      var keyProperty = this.valueKeyProperty !== false ? this.valueKeyProperty || this.keyProperty : false;
+      var textProperty = this.valueTextProperty !== false ? this.valueTextProperty || this.textProperty : false;
+
+      if (keyProperty || textProperty) {
+        if (this.currentValue) {
+          if (keyProperty) {
+            value = _utility['default'].setValue(value || {}, keyProperty, this.currentValue.key);
+          }
+
+          // if a text template has been applied there is no way to guarantee a correct
+          // mapping back to the property
+          if (textProperty &amp;&amp; !this.textTemplate) {
+            value = _utility['default'].setValue(value || {}, textProperty, this.requireSelection ? this.currentValue.text : text);
+          }
+        } else if (!this.requireSelection) {
+          if (keyProperty &amp;&amp; text.length &gt; 0) {
+            value = _utility['default'].setValue(value || {}, keyProperty, text);
+          }
+
+          // if a text template has been applied there is no way to guarantee a correct
+          // mapping back to the property
+          if (textProperty &amp;&amp; !this.textTemplate &amp;&amp; text.length &gt; 0) {
+            value = _utility['default'].setValue(value || {}, textProperty, text);
+          }
+        }
+      } else {
+        if (this.currentValue) {
+          if (this.requireSelection) {
+            value = this.currentValue.key ? this.currentValue.key : this.currentValue;
+          } else {
+            value = this.currentValue.text !== text &amp;&amp; !this.textTemplate ? text : this.currentValue.key;
+          }
+        } else if (!this.requireSelection &amp;&amp; text.length &gt; 0) {
+          value = text;
+        }
+      }
+
+      return value;
+    },
+<span id='argos-Fields-LookupField-method-formatValue'>    /**
+</span>     * If using a multi-select enabled lookup then the view will return multiple objects as the value.
+     *
+     * This function takes that array and returns the single value that should be used for `this.currentValue`.
+     *
+     * @template
+     * @param {Object[]} values
+     * @return {Object/String}
+     */
+    formatValue: function formatValue(values) {
+      return values;
+    },
+<span id='argos-Fields-LookupField-method-setSelections'>    /**
+</span>     * If using a multi-select enabled lookup this function will be called by {@link #complete complete}
+     * in that the target view returned multiple entries.
+     *
+     * Sets the currentValue using {@link #formatValue formatValue}.
+     *
+     * Sets the displayed text using `this.textRenderer`.
+     *
+     * @param {Object[]} values
+     */
+    setSelections: function setSelections(values) {
+      this.currentValue = this.formatValue ? this.formatValue.call(this, values) : values;
+
+      var text = this.textRenderer ? this.textRenderer.call(this, values) : '';
+
+      this.setText(text);
+    },
+<span id='argos-Fields-LookupField-method-setSelection'>    /**
+</span>     * If using a singleSelect enabled lookup this function will be called by {@link #complete complete}
+     * and the single entry's data and key will be passed to this function.
+     *
+     * Sets the `this.currentSelection` to the passed data (entire entry)
+     *
+     * Sets the `this.currentValue` to the extract key/text properties
+     *
+     * Calls {@link #setText setText} with the extracted text property.
+     *
+     * @param {Object} val Entire selection entry
+     * @param {String} key data-key attribute of the selected row (typically $key from SData)
+     */
+    setSelection: function setSelection(val, key) {
+      this.currentSelection = val;
+      if (val === null || typeof val === 'undefined') {
+        return false;
+      }
+      var text = _utility['default'].getValue(val, this.textProperty);
+      var newKey = _utility['default'].getValue(val, this.keyProperty, val) || key; // if we can extract the key as requested, use it instead of the selection key
+
+      if (text &amp;&amp; this.textTemplate) {
+        text = this.textTemplate.apply(text, this);
+      } else if (this.textRenderer) {
+        text = this.textRenderer.call(this, val, newKey, text);
+      }
+
+      this.currentValue = {
+        key: newKey || text,
+        text: text || newKey
+      };
+
+      this.setText(this.currentValue.text);
+    },
+<span id='argos-Fields-LookupField-method-setValue'>    /**
+</span>     * Sets the given value to `this.currentValue` using the initial flag if to set it as
+     * clean/unmodified or false for dirty.
+     * @param {Object/String} val Value to set
+     * @param {Boolean} initial Dirty flag (true is clean)
+     */
+    setValue: function setValue(val, initial) {
+      // if valueKeyProperty or valueTextProperty IS NOT EXPLICITLY set to false
+      // and IS NOT defined use keyProperty or textProperty in its place.
+      var keyProperty = this.valueKeyProperty !== false ? this.valueKeyProperty || this.keyProperty : false;
+      var textProperty = this.valueTextProperty !== false ? this.valueTextProperty || this.textProperty : false;
+      var key = undefined;
+      var text = undefined;
+
+      if (typeof val === 'undefined' || val === null) {
+        this.currentValue = false;
+        if (initial) {
+          this.originalValue = this.currentValue;
+        }
+
+        this.setText(this.requireSelection ? this.emptyText : '');
+        return false;
+      }
+
+      if (keyProperty || textProperty) {
+        if (keyProperty) {
+          key = _utility['default'].getValue(val, keyProperty);
+        }
+
+        if (textProperty) {
+          text = _utility['default'].getValue(val, textProperty);
+        }
+
+        if (text &amp;&amp; this.textTemplate) {
+          text = this.textTemplate.apply(text, this);
+        } else if (this.textRenderer) {
+          text = this.textRenderer.call(this, val, key, text);
+        }
+
+        if (key || text) {
+          this.currentValue = {
+            key: key || text,
+            text: text || key
+          };
+
+          if (initial) {
+            this.originalValue = this.currentValue;
+          }
+
+          this.setText(this.currentValue.text);
+        } else {
+          this.currentValue = false;
+
+          if (initial) {
+            this.originalValue = this.currentValue;
+          }
+
+          this.setText(this.requireSelection ? this.emptyText : '');
+        }
+      } else {
+        key = val;
+        text = val;
+
+        if (text &amp;&amp; this.textTemplate) {
+          text = this.textTemplate.apply(text, this);
+        } else if (this.textRenderer) {
+          text = this.textRenderer.call(this, val, key, text);
+        }
+
+        this.currentValue = {
+          key: key || text,
+          text: text || key
+        };
+
+        if (initial) {
+          this.originalValue = this.currentValue;
+        }
+
+        this.setText(text);
+      }
+    },
+<span id='argos-Fields-LookupField-method-clearValue'>    /**
+</span>     * Clears the value by setting null (which triggers usage of `this.emptyText`.
+     *
+     * Flag is used to indicate if to set null as the initial value (unmodified) or not.
+     *
+     * @param {Boolean} flag
+     */
+    clearValue: function clearValue(flag) {
+      var initial = flag !== true;
+      this.setSelection(null);
+      this.setValue(null, initial);
+    }
+  });
+
+  _lang['default'].setObject('Sage.Platform.Mobile.Fields.LookupField', control);
+  module.exports = _FieldManager2['default'].register('lookup', control);
 });
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInNyYy9GaWVsZHMvTG9va3VwRmllbGQuanMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7QUF5QkEsTUFBTSxRQUFRLEdBQUcsNkJBQVksYUFBYSxDQUFDLENBQUM7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7QUF5QjVDLE1BQU0sT0FBTyxHQUFHLHlCQUFRLDBCQUEwQixFQUFFLG9CQUFRLEVBQUU7Ozs7Ozs7Ozs7QUFVNUQsZ0JBQVksRUFBRTtBQUNaLGdCQUFVLEVBQUU7QUFDVixZQUFJLEVBQUUsV0FBVztBQUNqQixZQUFJLEVBQUUsV0FBVztBQUNqQixpQkFBUyxFQUFFLE9BQU87T0FDbkI7QUFDRCxtQkFBYSxFQUFFO0FBQ2IsWUFBSSxFQUFFLFdBQVc7QUFDakIsWUFBSSxFQUFFLFdBQVc7QUFDakIsaUJBQVMsRUFBRSxVQUFVO09BQ3RCO0FBQ0QsbUJBQWEsRUFBRTtBQUNiLFlBQUksRUFBRSxXQUFXO0FBQ2pCLFlBQUksRUFBRSxXQUFXO0FBQ2pCLGlCQUFTLEVBQUUsVUFBVTtPQUN0QjtLQUNGOzs7Ozs7Ozs7QUFTRCxrQkFBYyxFQUFFLElBQUksUUFBUSxDQUFDLENBQzNCLHNCQUFzQixFQUN0QixtREFBbUQsRUFDbkQsU0FBUyxFQUNULHFQQUFxUCxFQUNyUCxvSEFBb0gsQ0FDckgsQ0FBQzs7QUFFRixhQUFTLEVBQUUsb0JBQW9COzs7Ozs7Ozs7QUFTL0Isc0JBQWtCLEVBQUUsUUFBUSxDQUFDLGtCQUFrQjs7Ozs7QUFLL0MsYUFBUyxFQUFFLFFBQVEsQ0FBQyxTQUFTOzs7O0FBSTdCLGdCQUFZLEVBQUUsUUFBUSxDQUFDLFlBQVk7Ozs7O0FBS25DLG1CQUFlLEVBQUUsUUFBUSxDQUFDLGVBQWU7Ozs7O0FBS3pDLGNBQVUsRUFBRSxRQUFRLENBQUMsVUFBVTs7Ozs7O0FBTS9CLFFBQUksRUFBRSxLQUFLOzs7Ozs7QUFNWCxhQUFTLEVBQUUsSUFBSTs7Ozs7QUFLZixlQUFX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QUksQ0FBQyxZQUFZLEVBQUU7QUFDNUIsY0FBSSxHQUFHLElBQUksQ0FBQyxZQUFZLENBQUMsSUFBSSxDQUFDLElBQUksRUFBRSxHQUFHLEVBQUUsR0FBRyxFQUFFLElBQUksQ0FBQyxDQUFDO1NBQ3JEOztBQUVELFlBQUksQ0FBQyxZQUFZLEdBQUc7QUFDbEIsYUFBRyxFQUFFLEdBQUcsSUFBSSxJQUFJO0FBQ2hCLGNBQUksRUFBRSxJQUFJLElBQUksR0FBRztTQUNsQixDQUFDOztBQUVGLFlBQUksT0FBTyxFQUFFO0FBQ1gsY0FBSSxDQUFDLGFBQWEsR0FBRyxJQUFJLENBQUMsWUFBWSxDQUFDO1NBQ3hDOztBQUVELFlBQUksQ0FBQyxPQUFPLENBQUMsSUFBSSxDQUFDLENBQUM7T0FDcEI7S0FDRjs7Ozs7Ozs7QUFRRCxjQUFVLEVBQUUsU0FBUyxVQUFVLENBQUMsSUFBSSxFQUFFO0FBQ3BDLFVBQU0sT0FBTyxHQUFHLElBQUksS0FBSyxJQUFJLENBQUM7QUFDOUIsVUFBSSxDQUFDLFlBQVksQ0FBQyxJQUFJLENBQUMsQ0FBQztBQUN4QixVQUFJLENBQUMsUUFBUSxDQUFDLElBQUksRUFBRSxPQUFPLENBQUMsQ0FBQztLQUM5QjtHQUNGLENBQUMsQ0FBQzs7QUFFSCxtQkFBSyxTQUFTLENBQUMseUNBQXlDLEVBQUUsT0FBTyxDQUFDLENBQUM7bUJBQ3BELDBCQUFhLFFBQVEsQ0FBQyxRQUFRLEVBQUUsT0FBTyxDQUFDIiwiZmlsZSI6InNyYy9GaWVsZHMvTG9va3VwRmllbGQuanMiLCJzb3VyY2VSb290Ijoic3JjIiwic291cmNlc0NvbnRlbnQiOlsiLyogQ29weXJpZ2h0IChjKSAyMDEwLCBTYWdlIFNvZnR3YXJlLCBJbmMuIEFsbCByaWdodHMgcmVzZXJ2ZWQuXHJcbiAqXHJcbiAqIExpY2Vuc2VkIHVuZGVyIHRoZSBBcGFjaGUgTGljZW5zZSwgVmVyc2lvbiAyLjAgKHRoZSBcIkxpY2Vuc2VcIik7XHJcbiAqIHlvdSBtYXkgbm90IHVzZSB0aGlzIGZpbGUgZXhjZXB0IGluIGNvbXBsaWFuY2Ugd2l0aCB0aGUgTGljZW5zZS5cclxuICogWW91IG1heSBvYnRhaW4gYSBjb3B5IG9mIHRoZSBMaWNlbnNlIGF0XHJcbiAqXHJcbiAqICAgICBodHRwOi8vd3d3LmFwYWNoZS5vcmcvbGljZW5zZXMvTElDRU5TRS0yLjBcclxuICpcclxuICogVW5sZXNzIHJlcXVpcmVkIGJ5IGFwcGxpY2FibGUgbGF3IG9yIGFncmVlZCB0byBpbiB3cml0aW5nLCBzb2Z0d2FyZVxyXG4gKiBkaXN0cmlidXRlZCB1bmRlciB0aGUgTGljZW5zZSBpcyBkaXN0cmlidXRlZCBvbiBhbiBcIkFTIElTXCIgQkFTSVMsXHJcbiAqIFdJVEhPVVQgV0FSUkFOVElFUyBPUiBDT05ESVRJT05TIE9GIEFOWSBLSU5ELCBlaXRoZXIgZXhwcmVzcyBvciBpbXBsaWVkLlxyXG4gKiBTZWUgdGhlIExpY2Vuc2UgZm9yIHRoZSBzcGVjaWZpYyBsYW5ndWFnZSBnb3Zlcm5pbmcgcGVybWlzc2lvbnMgYW5kXHJcbiAqIGxpbWl0YXRpb25zIHVuZGVyIHRoZSBMaWNlbnNlLlxyXG4gKi9cclxuaW1wb3J0IGFycmF5IGZyb20gJ2Rvam8vX2Jhc2UvYXJyYXknO1xyXG5pbXBvcnQgZGVjbGFyZSBmcm9tICdkb2pvL19iYXNlL2RlY2xhcmUnO1xyXG5pbXBvcnQgZXZlbnQgZnJvbSAnZG9qby9fYmFzZS9ldmVudCc7XHJcbmltcG9ydCBsYW5nIGZyb20gJ2Rvam8vX2Jhc2UvbGFuZyc7XHJcbmltcG9ydCBzdHJpbmcgZnJvbSAnZG9qby9zdHJpbmcnO1xyXG5pbXBvcnQgcXVlcnkgZnJvbSAnZG9qby9xdWVyeSc7XHJcbmltcG9ydCB1dGlsaXR5IGZyb20gJy4uL1V0aWxpdHknO1xyXG5pbXBvcnQgX0ZpZWxkIGZyb20gJy4vX0ZpZWxkJztcclxuaW1wb3J0IEZpZWxkTWFuYWdlciBmcm9tICcuLi9GaWVsZE1hbmFnZXInO1xyXG5pbXBvcnQgZ2V0UmVzb3VyY2UgZnJvbSAnLi4vSTE4bic7XHJcblxyXG5jb25zdCByZXNvdXJjZSA9IGdldFJlc291cmNlKCdsb29rdXBGaWVsZCcpO1xyXG5cclxuLyoqXHJcbiAqIEBjbGFzcyBhcmdvcy5GaWVsZHMuTG9va3VwRmllbGRcclxuICogVGhlIExvb2t1cEZpZWxkIGlzIHNpbWlsaWFyIHRvIGFuIEVkaXQgVmlldyBpbiB0aGF0IGl0IGlzIGEgZmllbGQgdGhhdCB0YWtlcyB0aGUgdXNlciB0byBhbm90aGVyXHJcbiAqIHZpZXcgYnV0IHRoZSBkaWZmZXJlbmNlIGlzIHRoYXQgYW4gRWRpdG9yRmllbGQgdGFrZXMgdGhlIHVzZXIgdG8gYW4gRWRpdCBWaWV3LCB3aGVyZWFzIExvb2t1cEZpZWxkXHJcbiAqIHRha2VzIHRoZSB1c2VyIHRvIGEgTGlzdCBWaWV3LlxyXG4gKlxyXG4gKiBNZWFuaW5nIHRoYXQgTG9va3VwRmllbGQgaXMgbWVhbnQgZm9yIGVzdGFibGlzaGluZyByZWxhdGlvbnNoaXBzIGJ5IG9ubHkgc3RvcmluZyB0aGUga2V5IGZvciBhIHZhbHVlXHJcbiAqIGFuZCB3aXRoIGRpc3BsYXllZCB0ZXh0LlxyXG4gKlxyXG4gKiAjIyNFeGFtcGxlOlxyXG4gKiAgICAge1xyXG4gKiAgICAgICAgIG5hbWU6ICdPd25lcicsXHJcbiAqICAgICAgICAgcHJvcGVydHk6ICdPd25lcicsXHJcbiAqICAgICAgICAgbGFiZWw6IHRoaXMub3duZXJUZXh0LFxyXG4gKiAgICAgICAgIHR5cGU6ICdsb29rdXAnLFxyXG4gKiAgICAgICAgIHZpZXc6ICd1c2VyX2xpc3QnXHJcbiAqICAgICB9XHJcbiAqXHJcbiAqIEBhbHRlcm5hdGVDbGFzc05hbWUgTG9va3VwRmllbGRcclxuICogQGV4dGVuZHMgYXJnb3MuRmllbGRzLl9GaWVsZFxyXG4gKiBAcmVxdWlyZXMgYXJnb3MuRmllbGRNYW5hZ2VyXHJcbiAqIEByZXF1aXJlcyBhcmdvcy5VdGlsaXR5XHJcbiAqL1xyXG5jb25zdCBjb250cm9sID0gZGVjbGFyZSgnYXJnb3MuRmllbGRzLkxvb2t1cEZpZWxkJywgW19GaWVsZF0sIHtcclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge09iamVjdH1cclxuICAgKiBDcmVhdGVzIGEgc2V0dGVyIG1hcCB0byBodG1sIG5vZGVzLCBuYW1lbHk6XHJcbiAgICpcclxuICAgKiAqIGlucHV0VmFsdWUgPT4gaW5wdXROb2RlcydzIHZhbHVlXHJcbiAgICogKiBpbnB1dERpc2FibGVkID0+IGlucHV0Tm9kZXMncyBkaXNhYmxlZFxyXG4gICAqICogaW5wdXRSZWFkT25seSA9PiBpbnB1dE5vZGVzIHJlYWRvbmx5XHJcbiAgICpcclxuICAgKi9cclxuICBhdHRyaWJ1dGVNYXA6IHtcclxuICAgIGlucHV0VmFsdWU6IHtcclxuICAgICAgbm9kZTogJ2lucHV0Tm9kZScsXHJcbiAgICAgIHR5cGU6ICdhdHRyaWJ1dGUnLFxyXG4gICAgICBhdHRyaWJ1dGU6ICd2YWx1ZScsXHJcbiAgICB9LFxyXG4gICAgaW5wdXREaXNhYmxlZDoge1xyXG4gICAgICBub2RlOiAnaW5wdXROb2RlJyxcclxuICAgICAgdHlwZTogJ2F0dHJpYnV0ZScsXHJcbiAgICAgIGF0dHJpYnV0ZTogJ2Rpc2FibGVkJyxcclxuICAgIH0sXHJcbiAgICBpbnB1dFJlYWRPbmx5OiB7XHJcbiAgICAgIG5vZGU6ICdpbnB1dE5vZGUnLFxyXG4gICAgICB0eXBlOiAnYXR0cmlidXRlJyxcclxuICAgICAgYXR0cmlidXRlOiAncmVhZG9ubHknLFxyXG4gICAgfSxcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7U2ltcGxhdGV9XHJcbiAgICogU2ltcGxhdGUgdGhhdCBkZWZpbmVzIHRoZSBmaWVsZHMgSFRNTCBNYXJrdXBcclxuICAgKlxyXG4gICAqICogYCRgID0+IEZpZWxkIGluc3RhbmNlXHJcbiAgICogKiBgJCRgID0+IE93bmVyIFZpZXcgaW5zdGFuY2VcclxuICAgKlxyXG4gICAqL1xyXG4gIHdpZGdldFRlbXBsYXRlOiBuZXcgU2ltcGxhdGUoW1xyXG4gICAgJ3slIGlmICgkLmxhYmVsKSB7ICV9JyxcclxuICAgICc8bGFiZWwgZm9yPVwieyU9ICQubmFtZSAlfVwiPnslOiAkLmxhYmVsICV9PC9sYWJlbD4nLFxyXG4gICAgJ3slIH0gJX0nLFxyXG4gICAgJzxidXR0b24gc3R5bGU9XCJ6LWluZGV4OiA1O1wiIGRhdGEtYWN0aW9uPVwiYnV0dG9uQ2xpY2tcIiBjbGFzcz1cImJ1dHRvbiBzaW1wbGVTdWJIZWFkZXJCdXR0b24geyUgaWYgKCQkLmljb25DbGFzcykgeyAlfSB7JTogJCQuaWNvbkNsYXNzICV9IHslIH0gJX1cIiBhcmlhLWxhYmVsPVwieyU6ICQubG9va3VwTGFiZWxUZXh0ICV9XCI+PHNwYW4gYXJpYS1oaWRkZW49XCJ0cnVlXCI+eyU6ICQubG9va3VwVGV4dCAlfTwvc3Bhbj48L2J1dHRvbj4nLFxyXG4gICAgJzxpbnB1dCBkYXRhLWRvam8tYXR0YWNoLXBvaW50PVwiaW5wdXROb2RlXCIgdHlwZT1cInRleHRcIiB7JSBpZiAoJC5yZXF1aXJlU2VsZWN0aW9uKSB7ICV9cmVhZG9ubHk9XCJyZWFkb25seVwieyUgfSAlfSAvPicsXHJcbiAgXSksXHJcblxyXG4gIGljb25DbGFzczogJ2ZhIGZhLXNlYXJjaCBmYS1sZycsXHJcblxyXG4gIC8vIExvY2FsaXphdGlvblxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7U3RyaW5nfVxyXG4gICAqIEVycm9yIHRleHQgc2hvd24gd2hlbiB2YWxpZGF0aW9uIGZhaWxzLlxyXG4gICAqXHJcbiAgICogKiBgJHswfWAgaXMgdGhlIGxhYmVsIHRleHQgb2YgdGhlIGZpZWxkXHJcbiAgICovXHJcbiAgZGVwZW5kZW50RXJyb3JUZXh0OiByZXNvdXJjZS5kZXBlbmRlbnRFcnJvclRleHQsXHJcbiAgLyoqXHJcbiAgICogQGNmZyB7U3RyaW5nfVxyXG4gICAqIFRleHQgZGlzcGxheWVkIHdoZW4gdGhlIGZpZWxkIGlzIGNsZWFyZWQgb3Igc2V0IHRvIG51bGxcclxuICAgKi9cclxuICBlbXB0eVRleHQ6IHJlc291cmNlLmVtcHR5VGV4dCxcclxuICAvKipcclxuICAgKiBAZGVwcmVjYXRlZFxyXG4gICAqL1xyXG4gIGNvbXBsZXRlVGV4dDogcmVzb3VyY2UuY29tcGxldGVUZXh0LFxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7U3RyaW5nfVxyXG4gICAqIFRoZSBBUklBIGxhYmVsIHRleHQgaW4gdGhlIGxvb2t1cCBidXR0b25cclxuICAgKi9cclxuICBsb29rdXBMYWJlbFRleHQ6IHJlc291cmNlLmxvb2t1cExhYmVsVGV4dCxcclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge1N0cmluZ31cclxuICAgKiBUaGUgdGV4dCBwbGFjZWQgaW5zaWRlIHRoZSBsb29rdXAgYnV0dG9uXHJcbiAgICovXHJcbiAgbG9va3VwVGV4dDogcmVzb3VyY2UubG9va3VwVGV4dCxcclxuXHJcbiAgLyoqXHJcbiAgICogQGNmZyB7U3RyaW5nfVxyXG4gICAqIFJlcXVpcmVkLiBNdXN0IGJlIHNldCB0byBhIHZpZXcgaWQgb2YgdGhlIHRhcmdldCBsb29rdXAgdmlld1xyXG4gICAqL1xyXG4gIHZpZXc6IGZhbHNlLFxyXG5cclxuICAvKipcclxuICAgKiBAY2ZnIHtPYmplY3R9XHJcbiAgICogT3B0aW9uYWwuIE9iamVjdCB0byBtaXhpbiBvdmVyIHRoZSB2aWV3XHJcbiAgICovXHJcbiAgdmlld01peGluOiBudWxsLFxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7U3RyaW5nfVxyXG4gICAqIFRoZSBkZWZhdWx0IGB2YWx1ZUtleVByb3BlcnR5YCBpZiBgdmFsdWVLZXlQcm9wZXJ0eWAgaXMgbm90IGRlZmluZWQuXHJcbiAgICovXHJcbiAga2V5UHJvcGVydHk6ICcka2V5JyxcclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge1N0cmluZ31cclxuICAgKiBUaGUgZGVmYXVsdCBgdmFsdWVUZXh0UHJvcGVydHlgIGlmIGB2YWx1ZVRleHRQcm9wZXJ0eWAgaXMgbm90IGRlZmluZWQuXHJcbiAgICovXHJcbiAgdGV4dFByb3BlcnR5OiAnJGRlc2NyaXB0b3InLFxyXG4gIC8qKlxyXG4gICAqIEBjZmcge1NpbXBsYXRlfVxyXG4gICAqIElmIHByb3ZpZGVkIHRoZSBkaXNwbGF5ZWQgdGV4dFByb3BlcnR5IGlzIHRyYW5zZm9ybWVkIHdpdGggdGhlIGdpdmVuIFNpbXBsYXRlLlxyXG4gICAqXHJcbiAgICogKiBgJGAgPT4gdmFsdWUgZXh0cmFjdGVkXHJcbiAgICogKiBgJCRgID0+IGZpZWxkIGluc3RhbmNlXHJcbiAgICpcclxuICAgKiBOb3RlIHRoYXQgdGhpcyAoYW5kIHJlbmRlcmVyKSBhcmUgZGVzdHJ1Y3RpdmUsIG1lYW5pbmcgb25jZSB0cmFuc2Zvcm1lZCB0aGUgc3RvcmVkXHJcbiAgICogdGV4dCB2YWx1ZSB3aWxsIGJlIHRoZSByZXN1bHQgb2YgdGhlIHRlbXBsYXRlL3JlbmRlcmVyLiBUeXBpY2FsbHkgdGhpcyBpcyBub3QgYSBjb25jZXJuXHJcbiAgICogYXMgU0RhdGEgd2lsbCBvbmx5IHVzZSB0aGUga2V5IHByb3BlcnR5LiBCdXQgYmUgYXdhcmUgaWYgYW55IG90aGVyIGZpZWxkcyB1c2UgdGhpcyBmaWVsZCBhc1xyXG4gICAqIGNvbnRleHQuXHJcbiAgICpcclxuICAgKi9cclxuICB0ZXh0VGVtcGxhdGU6IG51bGwsXHJcbiAgLyoqXHJcbiAgICogQGNmZyB7RnVuY3Rpb259XHJcbiAgICogSWYgcHJvdmlkZWQgdGhlIGRpc3BsYXllZCB0ZXh0UHJvcGVydHkgaXMgdHJhbnNmb3JtZWQgd2l0aCB0aGUgZ2l2ZW4gZnVuY3Rpb24uXHJcbiAgICpcclxuICAgKiBUaGUgZnVuY3Rpb24gaXMgcGFzc2VkIHRoZSBjdXJyZW50IHZhbHVlIGFuZCBzaG91bGQgcmV0dXJuIGEgc3RyaW5nIHRvIGJlIGRpc3BsYXllZC5cclxuICAgKlxyXG4gICAqIE5vdGUgdGhhdCB0aGlzIChhbmQgcmVuZGVyZXIpIGFyZSBkZXN0cnVjdGl2ZSwgbWVhbmluZyBvbmNlIHRyYW5zZm9ybWVkIHRoZSBzdG9yZWRcclxuICAgKiB0ZXh0IHZhbHVlIHdpbGwgYmUgdGhlIHJlc3VsdCBvZiB0aGUgdGVtcGxhdGUvcmVuZGVyZXIuIFR5cGljYWxseSB0aGlzIGlzIG5vdCBhIGNvbmNlcm5cclxuICAgKiBhcyBTRGF0YSB3aWxsIG9ubHkgdXNlIHRoZSBrZXkgcHJvcGVydHkuIEJ1dCBiZSBhd2FyZSBpZiBhbnkgb3RoZXIgZmllbGRzIHVzZSB0aGlzIGZpZWxkIGFzXHJcbiAgICogY29udGV4dC5cclxuICAgKlxyXG4gICAqL1xyXG4gIHRleHRSZW5kZXJlcjogbnVsbCxcclxuICAvKipcclxuICAgKiBAY2ZnIHtTdHJpbmd9XHJcbiAgICogVGhlIHByb3BlcnR5IG5hbWUgb2YgdGhlIHJldHVybmVkIGVudHJ5IHRvIHVzZSBhcyB0aGUga2V5XHJcbiAgICovXHJcbiAgdmFsdWVLZXlQcm9wZXJ0eTogbnVsbCxcclxuICAvKipcclxuICAgKiBAY2ZnIHtTdHJpbmd9XHJcbiAgICogVGhlIHByb3BlcnR5IG5hbWUgb2YgdGhlIHJldHVybmVkIGVudHJ5IHRvIHVzZSBhcyB0aGUgZGlzcGxheWVkIHRleHQvZGVzY3JpcHRpb25cclxuICAgKi9cclxuICB2YWx1ZVRleHRQcm9wZXJ0eTogbnVsbCxcclxuICAvKipcclxuICAgKiBAY2ZnIHtCb29sZWFufVxyXG4gICAqIEZsYWcgdGhhdCBpbmRpY2F0ZXMgdGhlIGZpZWxkIGlzIHJlcXVpcmVkIGFuZCB0aGF0IGEgY2hvaWNlIGhhcyB0byBiZSBtYWRlLiBJZiBmYWxzZSxcclxuICAgKiBpdCBwYXNzZXMgdGhlIG5hdmlnYXRpb24gb3B0aW9uIHRoYXQge0BsaW5rIExpc3QgTGlzdH0gdmlld3MgbGlzdGVuIGZvciBmb3IgYWRkaW5nIGEgXCJFbXB0eVwiXHJcbiAgICogc2VsZWN0aW9uIGNob2ljZS5cclxuICAgKi9cclxuICByZXF1aXJlU2VsZWN0aW9uOiB0cnVlLFxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7Qm9vbGVhbn1cclxuICAgKiBTZXRzIHRoZSBzaW5nbGVTZWxlY3QgbmF2aWdhdGlvbiBvcHRpb24gYW5kIGlmIHRydWUgbGltaXRzIGdhdGhlciB0aGUgdmFsdWUgZnJvbSB0aGVcclxuICAgKiB0YXJnZXQgbGlzdCB2aWV3IHRvIHRoZSBmaXJzdCBzZWxlY3Rpb24uXHJcbiAgICovXHJcbiAgc2luZ2xlU2VsZWN0OiB0cnVlLFxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7U3RyaW5nfVxyXG4gICAqIFRoZSBkYXRhLWFjdGlvbiBvZiB0aGUgdG9vbGJhciBpdGVtICh3aGljaCB3aWxsIGJlIGhpZGRlbikgc2VudCBpbiBuYXZpZ2F0aW9uIG9wdGlvbnMuIFRoaXNcclxuICAgKiB3aXRoIGBzaW5nbGVTZWxlY3RgIGlzIGxpc3RlbmVkIHRvIGluIHtAbGluayBMaXN0IExpc3R9IHNvIGNsaWNraW5nIGEgcm93IGludm9rZXMgdGhlIGFjdGlvbixcclxuICAgKiB3aGljaCBpcyB0aGUgZnVuY3Rpb24gbmFtZSBkZWZpbmVkIChvbiB0aGUgZmllbGQgaW5zdGFuY2UgaW4gdGhpcyBjYXNlKS5cclxuICAgKi9cclxuICBzaW5nbGVTZWxlY3RBY3Rpb246ICdjb21wbGV0ZScsXHJcbiAgLyoqXHJcbiAgICogQGNmZyB7U3RyaW5nfVxyXG4gICAqIE5hbWUgb2YgdGhlIGZpZWxkIGluIHdoaWNoIHRoaXMgZmllbGRzIGRlcGVuZHMgb24gYmVmb3JlIGdvaW5nIHRvIHRoZSB0YXJnZXQgdmlldy4gVGhlIHZhbHVlXHJcbiAgICogaXMgcmV0cmlldmVkIGZyb20gdGhlIGRlcGVuZE9uIGZpZWxkIGFuZCBwYXNzZWQgdG8gZXhwYW5kYWJsZSBuYXZpZ2F0aW9uIG9wdGlvbnMgKHJlc291cmNlS2luZCxcclxuICAgKiB3aGVyZSwgcmVzb3VyY2VQcmVkaWNhdGUgYW5kIHByZXZpb3VzU2VsZWN0aW9ucykuXHJcbiAgICpcclxuICAgKiBJZiBkZXBlbmRzT24gaXMgc2V0LCB0aGUgdGFyZ2V0IGZpZWxkIGRvZXMgbm90IGhhdmUgYSB2YWx1ZSBhbmQgYSB1c2VyIGF0dGVtcHRzIHRvIGRvIGEgbG9va3VwXHJcbiAgICogYW4gZXJyb3Igd2lsbCBiZSBzaG93bi5cclxuICAgKlxyXG4gICAqL1xyXG4gIGRlcGVuZHNPbjogbnVsbCxcclxuICAvKipcclxuICAgKiBAY2ZnIHtTdHJpbmcvRnVuY3Rpb259XHJcbiAgICogTWF5IGJlIHNldCBhbmQgcGFzc2VkIGluIHRoZSBuYXZpZ2F0aW9uIG9wdGlvbnMgdG8gdGhlIHRhcmdldCBMaXN0IHZpZXcuXHJcbiAgICpcclxuICAgKiBVc2VkIHRvIGluZGljYXRlIHRoZSBlbnRpdHkgdHlwZS5cclxuICAgKlxyXG4gICAqL1xyXG4gIHJlc291cmNlS2luZDogbnVsbCxcclxuICAvKipcclxuICAgKiBAY2ZnIHtTdHJpbmcvRnVuY3Rpb259XHJcbiAgICogTWF5IGJlIHNldCBhbmQgcGFzc2VkIGluIHRoZSBuYXZpZ2F0aW9uIG9wdGlvbnMgdG8gdGhlIHRhcmdldCBMaXN0IHZpZXcuXHJcbiAgICovXHJcbiAgcmVzb3VyY2VQcmVkaWNhdGU6IG51bGwsXHJcbiAgLyoqXHJcbiAgICogQGNmZyB7U3RyaW5nL0Z1bmN0aW9ufVxyXG4gICAqIE1heSBiZSBzZXQgYW5kIHBhc3NlZCBpbiB0aGUgbmF2aWdhdGlvbiBvcHRpb25zIHRvIHRoZSB0YXJnZXQgTGlzdCB2aWV3LlxyXG4gICAqXHJcbiAgICogU2V0cyB0aGUgd2hlcmUgZXhwcmVzc2lvbiB1c2VkIGluIHRoZSBTRGF0YSBxdWVyeSBvZiB0aGUgTGlzdCB2aWV3LlxyXG4gICAqL1xyXG4gIHdoZXJlOiBudWxsLFxyXG4gIC8qKlxyXG4gICAqIEBjZmcge1N0cmluZy9GdW5jdGlvbn1cclxuICAgKiBNYXkgYmUgc2V0IGFuZCBwYXNzZWQgaW4gdGhlIG5hdmlnYXRpb24gb3B0aW9ucyB0byB0aGUgdGFyZ2V0IExpc3Qgdmlldy5cclxuICAgKlxyXG4gICAqIFNldHMgdGhlIG9yZGVyQnkgZXhwcmVzc2lvbiB1c2VkIGluIHRoZSBTRGF0YSBxdWVyeSBvZiB0aGUgTGlzdCB2aWV3LlxyXG4gICAqL1xyXG4gIG9yZGVyQnk6IG51bGwsXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtPYmplY3R9XHJcbiAgICogVGhlIGN1cnJlbnQgdmFsdWUgb2JqZWN0IGRlZmluZWQgdXNpbmcgdGhlIGV4dHJhY3RlZCBrZXkvdGV4dCBwcm9wZXJ0aWVzIGZyb20gdGhlIHNlbGVjdGVkXHJcbiAgICogZW50cnkuXHJcbiAgICovXHJcbiAgY3VycmVudFZhbHVlOiBudWxsLFxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7T2JqZWN0fVxyXG4gICAqIFRoZSBlbnRpcmUgc2VsZWN0ZWQgZW50cnkgZnJvbSB0aGUgdGFyZ2V0IHZpZXcgKG5vdCBqdXN0IHRoZSBrZXkvdGV4dCBwcm9wZXJ0aWVzKS5cclxuICAgKi9cclxuICBjdXJyZW50U2VsZWN0aW9uOiBudWxsLFxyXG5cclxuICAvKipcclxuICAgKiBFeHRlbmRzIGluaXQgdG8gY29ubmVjdCB0byB0aGUgY2xpY2sgZXZlbnQsIGlmIHRoZSBmaWVsZCBpcyByZWFkIG9ubHkgZGlzYWJsZSBhbmRcclxuICAgKiBpZiByZXF1aXJlIHNlbGVjdGlvbiBpcyBmYWxzZSBjb25uZWN0IHRvIG9ua2V5dXAgYW5kIG9uYmx1ci5cclxuICAgKi9cclxuICBpbml0OiBmdW5jdGlvbiBpbml0KCkge1xyXG4gICAgdGhpcy5pbmhlcml0ZWQoYXJndW1lbnRzKTtcclxuXHJcbiAgICB0aGlzLmNvbm5lY3QodGhpcy5jb250YWluZXJOb2RlLCAnb25jbGljaycsIHRoaXMuX29uQ2xpY2spO1xyXG5cclxuICAgIGlmICh0aGlzLmlzUmVhZE9ubHkoKSkge1xyXG4gICAgICB0aGlzLmRpc2FibGUoKTtcclxuICAgICAgdGhpcy5zZXQoJ2lucHV0UmVhZE9ubHknLCB0cnVlKTtcclxuICAgIH0gZWxzZSBpZiAoIXRoaXMucmVxdWlyZVNlbGVjdGlvbikge1xyXG4gICAgICB0aGlzLmNvbm5lY3QodGhpcy5pbnB1dE5vZGUsICdvbmtleXVwJywgdGhpcy5fb25LZXlVcCk7XHJcbiAgICAgIHRoaXMuY29ubmVjdCh0aGlzLmlucHV0Tm9kZSwgJ29uYmx1cicsIHRoaXMuX29uQmx1cik7XHJcbiAgICB9XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBFeHRlbmRzIGVuYWJsZSB0byBhbHNvIHJlbW92ZSB0aGUgZGlzYWJsZWQgYXR0cmlidXRlXHJcbiAgICovXHJcbiAgZW5hYmxlOiBmdW5jdGlvbiBlbmFibGUoKSB7XHJcbiAgICB0aGlzLmluaGVyaXRlZChhcmd1bWVudHMpO1xyXG5cclxuICAgIHRoaXMuc2V0KCdpbnB1dERpc2FibGVkJywgZmFsc2UpO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogRXh0ZW5kcyBkaXNhYmxlIHRvIGFsc28gc2V0IHRoZSBkaXNhYmxlZCBhdHRyaWJ1dGVcclxuICAgKi9cclxuICBkaXNhYmxlOiBmdW5jdGlvbiBkaXNhYmxlKCkge1xyXG4gICAgdGhpcy5pbmhlcml0ZWQoYXJndW1lbnRzKTtcclxuXHJcbiAgICB0aGlzLnNldCgnaW5wdXREaXNhYmxlZCcsIHRydWUpO1xyXG4gIH0sXHJcbiAgZm9jdXM6IGZ1bmN0aW9uIGZvY3VzKCkge1xyXG4gICAgaWYgKCF0aGlzLmlzUmVhZE9ubHkoKSkge1xyXG4gICAgICB0aGlzLmlucHV0Tm9kZS5mb2N1cygpO1xyXG4gICAgfVxyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogRGV0ZXJtaW5lcyBpZiB0aGUgZmllbGQgaXMgcmVhZG9ubHkgYnkgY2hlY2tpbmcgZm9yIGEgdGFyZ2V0IHZpZXdcclxuICAgKiBAcmV0dXJuIHtCb29sZWFufVxyXG4gICAqL1xyXG4gIGlzUmVhZE9ubHk6IGZ1bmN0aW9uIGlzUmVhZE9ubHkoKSB7XHJcbiAgICByZXR1cm4gIXRoaXMudmlldztcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIFJldHJpZXZlcyB0aGUgdmFsdWUgb2YgdGhlIGZpZWxkIG5hbWVkIHdpdGggYHRoaXMuZGVwZW5kc09uYFxyXG4gICAqIEByZXR1cm4ge1N0cmluZy9PYmplY3QvTnVtYmVyL0Jvb2xlYW59XHJcbiAgICovXHJcbiAgZ2V0RGVwZW5kZW50VmFsdWU6IGZ1bmN0aW9uIGdldERlcGVuZGVudFZhbHVlKCkge1xyXG4gICAgaWYgKHRoaXMuZGVwZW5kc09uICYmIHRoaXMub3duZXIpIHtcclxuICAgICAgY29uc3QgZmllbGQgPSB0aGlzLm93bmVyLmZpZWxkc1t0aGlzLmRlcGVuZHNPbl07XHJcbiAgICAgIGlmIChmaWVsZCkge1xyXG4gICAgICAgIHJldHVybiBmaWVsZC5nZXRWYWx1ZSgpO1xyXG4gICAgICB9XHJcbiAgICB9XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBSZXRyaWV2ZXMgdGhlIGxhYmVsIHN0cmluZyBvZiB0aGUgZmllbGQgbmFtZWQgd2l0aCBgdGhpcy5kZXBlbmRzT25gXHJcbiAgICogQHJldHVybiB7U3RyaW5nfVxyXG4gICAqL1xyXG4gIGdldERlcGVuZGVudExhYmVsOiBmdW5jdGlvbiBnZXREZXBlbmRlbnRMYWJlbCgpIHtcclxuICAgIGlmICh0aGlzLmRlcGVuZHNPbiAmJiB0aGlzLm93bmVyKSB7XHJcbiAgICAgIGNvbnN0IGZpZWxkID0gdGhpcy5vd25lci5maWVsZHNbdGhpcy5kZXBlbmRzT25dO1xyXG4gICAgICBpZiAoZmllbGQpIHtcclxuICAgICAgICByZXR1cm4gZmllbGQubGFiZWw7XHJcbiAgICAgIH1cclxuICAgIH1cclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIEV4cGFuZHMgdGhlIHBhc3NlZCBleHByZXNzaW9uIGlmIGl0IGlzIGEgZnVuY3Rpb24uXHJcbiAgICogQHBhcmFtIHtTdHJpbmcvRnVuY3Rpb259IGV4cHJlc3Npb24gUmV0dXJucyBzdHJpbmcgZGlyZWN0bHksIGlmIGZ1bmN0aW9uIGl0IGlzIGNhbGxlZCBhbmQgdGhlIHJlc3VsdCByZXR1cm5lZC5cclxuICAgKiBAcmV0dXJuIHtTdHJpbmd9IFN0cmluZyBleHByZXNzaW9uLlxyXG4gICAqL1xyXG4gIGV4cGFuZEV4cHJlc3Npb246IGZ1bmN0aW9uIGV4cGFuZEV4cHJlc3Npb24oZXhwcmVzc2lvbikge1xyXG4gICAgaWYgKHR5cGVvZiBleHByZXNzaW9uID09PSAnZnVuY3Rpb24nKSB7XHJcbiAgICAgIHJldHVybiBleHByZXNzaW9uLmFwcGx5KHRoaXMsIEFycmF5LnByb3RvdHlwZS5zbGljZS5jYWxsKGFyZ3VtZW50cywgMSkpO1xyXG4gICAgfVxyXG4gICAgcmV0dXJuIGV4cHJlc3Npb247XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBDcmVhdGVzIHRoZSBvcHRpb25zIHRvIGJlIHBhc3NlZCBpbiBuYXZpZ2F0aW9uIHRvIHRoZSB0YXJnZXQgdmlld1xyXG4gICAqXHJcbiAgICogS2V5IHBvaW50cyBvZiB0aGUgb3B0aW9ucyBzZXQgYnkgZGVmYXVsdDpcclxuICAgKlxyXG4gICAqICogZW5hYmxlQWN0aW9ucyA9IGZhbHNlLCBMaXN0IHZpZXdzIHNob3VsZCBub3QgYmUgc2hvd2luZyB0aGVpciBsaXN0LWFjdGlvbnMgYmFyIHRoaXMgaGlkZXMgaXRcclxuICAgKiAqIHNlbGVjdGlvbk9ubHkgPSB0cnVlLCBMaXN0IHZpZXdzIHNob3VsZCBub3QgYWxsb3cgZWRpdGluZy92aWV3aW5nLCBqdXN0IHNlbGVjdGluZ1xyXG4gICAqICogbmVnYXRlSGlzdG9yeSA9IHRydWUsIGRpc2FibGVzIHNhdmluZyBvZiB0aGlzIG9wdGlvbnMgb2JqZWN0IHdoZW4gc3RvcmluZyB0aGUgaGlzdG9yeSBjb250ZXh0XHJcbiAgICogKiB0b29scyA9IHt9LCBvdmVycmlkZXMgdGhlIHRvb2xiYXIgb2YgdGhlIHRhcmdldCB2aWV3IHNvIHRoYXQgdGhlIGZ1bmN0aW9uIHRoYXQgZmlyZXMgaXMgaW52b2tlZFxyXG4gICAqIGluIHRoZSBjb250ZXh0IG9mIHRoaXMgZmllbGQsIG5vdCB0aGUgTGlzdC5cclxuICAgKlxyXG4gICAqIFRoZSBmb2xsb3dpbmcgb3B0aW9ucyBhcmUgXCJleHBhbmRhYmxlXCIgbWVhbmluZyB0aGV5IGNhbiBiZSBzdHJpbmdzIG9yIGZ1bmN0aW9ucyB0aGF0IHJldHVybiBzdHJpbmdzOlxyXG4gICAqXHJcbiAgICogcmVzb3VyY2VLaW5kLCByZXNvdXJjZVByZWRpY2F0ZSwgd2hlcmUgYW5kIHByZXZpb3VzU2VsZWN0aW9uc1xyXG4gICAqXHJcbiAgICogVGhleSB3aWxsIGJlIHBhc3NlZCB0aGUgYGRlcGVuZHNPbmAgZmllbGQgdmFsdWUgKGlmIGRlZmluZWQpLlxyXG4gICAqXHJcbiAgICovXHJcbiAgY3JlYXRlTmF2aWdhdGlvbk9wdGlvbnM6IGZ1bmN0aW9uIGNyZWF0ZU5hdmlnYXRpb25PcHRpb25zKCkge1xyXG4gICAgY29uc3Qgb3B0aW9ucyA9IHtcclxuICAgICAgZW5hYmxlQWN0aW9uczogZmFsc2UsXHJcbiAgICAgIHNlbGVjdGlvbk9ubHk6IHRydWUsXHJcbiAgICAgIHNpbmdsZVNlbGVjdDogdGhpcy5zaW5nbGVTZWxlY3QsXHJcbiAgICAgIHNpbmdsZVNlbGVjdEFjdGlvbjogdGhpcy5zaW5nbGVTZWxlY3RBY3Rpb24gfHwgJ2NvbXBsZXRlJyxcclxuICAgICAgYWxsb3dFbXB0eVNlbGVjdGlvbjogIXRoaXMucmVxdWlyZVNlbGVjdGlvbixcclxuICAgICAgcmVzb3VyY2VLaW5kOiB0aGlzLnJlc291cmNlS2luZCxcclxuICAgICAgcmVzb3VyY2VQcmVkaWNhdGU6IHRoaXMucmVzb3VyY2VQcmVkaWNhdGUsXHJcbiAgICAgIHdoZXJlOiB0aGlzLndoZXJlLFxyXG4gICAgICBvcmRlckJ5OiB0aGlzLm9yZGVyQnksXHJcbiAgICAgIG5lZ2F0ZUhpc3Rvcnk6IHRydWUsXHJcbiAgICAgIGNvbnRpbnVvdXNTY3JvbGxpbmc6IGZhbHNlLFxyXG4gICAgICBzaW1wbGVNb2RlOiB0cnVlLFxyXG4gICAgICB0b29sczoge1xyXG4gICAgICAgIHRiYXI6IFt7XHJcbiAgICAgICAgICBpZDogJ2NvbXBsZXRlJyxcclxuICAgICAgICAgIGNsczogJ2ZhIGZhLWNoZWNrIGZhLWZ3IGZhLWxnJyxcclxuICAgICAgICAgIGZuOiB0aGlzLmNvbXBsZXRlLFxyXG4gICAgICAgICAgc2NvcGU6IHRoaXMsXHJcbiAgICAgICAgfSwge1xyXG4gICAgICAgICAgaWQ6ICdjYW5jZWwnLFxyXG4gICAgICAgICAgc2lkZTogJ2xlZnQnLFxyXG4gICAgICAgICAgY2xzOiAnZmEgZmEtYmFuIGZhLWZ3IGZhLWxnJyxcclxuICAgICAgICAgIGZuOiB0aGlzLnJldWkuYmFjayxcclxuICAgICAgICAgIHNjb3BlOiB0aGlzLnJldWksXHJcbiAgICAgICAgfV0sXHJcbiAgICAgIH0sXHJcbiAgICB9O1xyXG5cclxuICAgIGNvbnN0IGV4cGFuZCA9IFsncmVzb3VyY2VLaW5kJywgJ3Jlc291cmNlUHJlZGljYXRlJywgJ3doZXJlJywgJ3ByZXZpb3VzU2VsZWN0aW9ucyddO1xyXG4gICAgY29uc3QgZGVwZW5kZW50VmFsdWUgPSB0aGlzLmdldERlcGVuZGVudFZhbHVlKCk7XHJcblxyXG4gICAgaWYgKG9wdGlvbnMuc2luZ2xlU2VsZWN0ICYmIG9wdGlvbnMuc2luZ2xlU2VsZWN0QWN0aW9uKSB7XHJcbiAgICAgIGZvciAoY29uc3Qga2V5IGluIG9wdGlvbnMudG9vbHMudGJhcikge1xyXG4gICAgICAgIGlmIChvcHRpb25zLnRvb2xzLnRiYXIuaGFzT3duUHJvcGVydHkoa2V5KSkge1xyXG4gICAgICAgICAgY29uc3QgaXRlbSA9IG9wdGlvbnMudG9vbHMudGJhcltrZXldO1xyXG4gICAgICAgICAgaWYgKGl0ZW0uaWQgPT09IG9wdGlvbnMuc2luZ2xlU2VsZWN0QWN0aW9uKSB7XHJcbiAgICAgICAgICAgIGl0ZW0uY2xzID0gJ2ludmlzaWJsZSc7XHJcbiAgICAgICAgICB9XHJcbiAgICAgICAgfVxyXG4gICAgICB9XHJcbiAgICB9XHJcblxyXG4gICAgaWYgKHRoaXMuZGVwZW5kc09uICYmICFkZXBlbmRlbnRWYWx1ZSkge1xyXG4gICAgICBjb25zb2xlLmVycm9yKHN0cmluZy5zdWJzdGl0dXRlKHRoaXMuZGVwZW5kZW50RXJyb3JUZXh0LCBbdGhpcy5nZXREZXBlbmRlbnRMYWJlbCgpIHx8ICcnXSkpOy8vZXNsaW50LWRpc2FibGUtbGluZVxyXG4gICAgICByZXR1cm4gZmFsc2U7XHJcbiAgICB9XHJcblxyXG4gICAgYXJyYXkuZm9yRWFjaChleHBhbmQsIGZ1bmN0aW9uIGZvckVhY2goaXRlbSkge1xyXG4gICAgICBpZiAodGhpc1tpdGVtXSkge1xyXG4gICAgICAgIG9wdGlvbnNbaXRlbV0gPSB0aGlzLmRlcGVuZHNPbiAvLyBvbmx5IHBhc3MgZGVwZW5kZW50VmFsdWUgaWYgdGhlcmUgaXMgYSBkZXBlbmRlbmN5XHJcbiAgICAgICAgICA/IHRoaXMuZXhwYW5kRXhwcmVzc2lvbih0aGlzW2l0ZW1dLCBkZXBlbmRlbnRWYWx1ZSkgOiB0aGlzLmV4cGFuZEV4cHJlc3Npb24odGhpc1tpdGVtXSk7XHJcbiAgICAgIH1cclxuICAgIH0sIHRoaXMpO1xyXG5cclxuICAgIG9wdGlvbnMuZGVwZW5kZW50VmFsdWUgPSBkZXBlbmRlbnRWYWx1ZTtcclxuICAgIG9wdGlvbnMudGl0bGUgPSB0aGlzLnRpdGxlO1xyXG5cclxuICAgIHJldHVybiBvcHRpb25zO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogTmF2aWdhdGVzIHRvIHRoZSBgdGhpcy52aWV3YCBpZCBwYXNzaW5nIHRoZSBvcHRpb25zIGNyZWF0ZWQgZnJvbSB7QGxpbmsgI2NyZWF0ZU5hdmlnYXRpb25PcHRpb25zIGNyZWF0ZU5hdmlnYXRpb25PcHRpb25zfS5cclxuICAgKi9cclxuICBuYXZpZ2F0ZVRvTGlzdFZpZXc6IGZ1bmN0aW9uIG5hdmlnYXRlVG9MaXN0VmlldygpIHtcclxuICAgIGNvbnN0IHZpZXcgPSB0aGlzLmFwcC5nZXRWaWV3KHRoaXMudmlldyk7XHJcbiAgICBjb25zdCBvcHRpb25zID0gdGhpcy5jcmVhdGVOYXZpZ2F0aW9uT3B0aW9ucygpO1xyXG5cclxuICAgIGlmICh2aWV3ICYmIG9wdGlvbnMgJiYgIXRoaXMuZGlzYWJsZWQpIHtcclxuICAgICAgbGFuZy5taXhpbih2aWV3LCB0aGlzLnZpZXdNaXhpbik7XHJcbiAgICAgIHZpZXcuc2hvdyhvcHRpb25zKTtcclxuICAgIH1cclxuICB9LFxyXG4gIGJ1dHRvbkNsaWNrOiBmdW5jdGlvbiBidXR0b25DbGljaygpIHtcclxuICAgIHRoaXMubmF2aWdhdGVUb0xpc3RWaWV3KCk7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBIYW5kbGVyIGZvciB0aGUgY2xpY2sgZXZlbnQsIGZpcmVzIHtAbGluayAjbmF2aWdhdGVUb0xpc3RWaWV3IG5hdmlnYXRlVG9MaXN0Vmlld30gaWYgdGhlXHJcbiAgICogZmllbGQgaXMgbm90IGRpc2FibGVkLlxyXG4gICAqIEBwYXJhbSBldnRcclxuICAgKi9cclxuICBfb25DbGljazogZnVuY3Rpb24gX29uQ2xpY2soZXZ0KSB7XHJcbiAgICBjb25zdCBidXR0b25Ob2RlID0gcXVlcnkoZXZ0LnRhcmdldCkuY2xvc2VzdCgnLmJ1dHRvbicpWzBdO1xyXG5cclxuICAgIGlmICghdGhpcy5pc0Rpc2FibGVkKCkgJiYgKGJ1dHRvbk5vZGUgfHwgdGhpcy5yZXF1aXJlU2VsZWN0aW9uKSkge1xyXG4gICAgICBldmVudC5zdG9wKGV2dCk7XHJcbiAgICAgIHRoaXMubmF2aWdhdGVUb0xpc3RWaWV3KCk7XHJcbiAgICB9XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBIYW5kbGVyIGZvciBvbmtleXVwLCBmaXJlcyB7QGxpbmsgI29uTm90aWZpY2F0aW9uVHJpZ2dlciBvbk5vdGlmaWNhdGlvblRyaWdnZXJ9IGlmXHJcbiAgICogYHRoaXMubm90aWZpY2F0aW9uVHJpZ2dlcmAgaXMgYCdrZXl1cCdgLlxyXG4gICAqIEBwYXJhbSB7RXZlbnR9IGV2dCBDbGljayBldmVudFxyXG4gICAqL1xyXG4gIF9vbktleVVwOiBmdW5jdGlvbiBfb25LZXlVcChldnQpIHtcclxuICAgIGlmICghdGhpcy5pc0Rpc2FibGVkKCkgJiYgdGhpcy5ub3RpZmljYXRpb25UcmlnZ2VyID09PSAna2V5dXAnKSB7XHJcbiAgICAgIHRoaXMub25Ob3RpZmljYXRpb25UcmlnZ2VyKGV2dCk7XHJcbiAgICB9XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBIYW5kbGVyIGZvciBvbmJsdXIsIGZpcmVzIHtAbGluayAjb25Ob3RpZmljYXRpb25UcmlnZ2VyIG9uTm90aWZpY2F0aW9uVHJpZ2dlcn0gaWZcclxuICAgKiBgdGhpcy5ub3RpZmljYXRpb25UcmlnZ2VyYCBpcyBgJ2JsdXInYC5cclxuICAgKiBAcGFyYW0ge0V2ZW50fSBldnQgQmx1ciBldmVudFxyXG4gICAqL1xyXG4gIF9vbkJsdXI6IGZ1bmN0aW9uIF9vbkJsdXIoZXZ0KSB7XHJcbiAgICBpZiAoIXRoaXMuaXNEaXNhYmxlZCgpICYmIHRoaXMubm90aWZpY2F0aW9uVHJpZ2dlciA9PT0gJ2JsdXInKSB7XHJcbiAgICAgIHRoaXMub25Ob3RpZmljYXRpb25UcmlnZ2VyKGV2dCk7XHJcbiAgICB9XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBDYWxsZWQgZnJvbSBvbmtleXVwIGFuZCBvbmJsdXIgaGFuZGxlcnMgaWYgdGhlIHRyaWdnZXIgaXMgc2V0LlxyXG4gICAqXHJcbiAgICogQ2hlY2tzIHRoZSBjdXJyZW50IHZhbHVlIGFnYWluc3QgYHRoaXMucHJldmlvdXNWYWx1ZWAgYW5kIGlmIGRpZmZlcmVudFxyXG4gICAqIGZpcmVzIHtAbGluayAjb25DaGFuZ2Ugb25DaGFuZ2V9LlxyXG4gICAqXHJcbiAgICogQHBhcmFtIHtFdmVudH0gZXZ0XHJcbiAgICovXHJcbiAgb25Ob3RpZmljYXRpb25UcmlnZ2VyOiBmdW5jdGlvbiBvbk5vdGlmaWNhdGlvblRyaWdnZXIoLypldnQqLykge1xyXG4gICAgY29uc3QgY3VycmVudFZhbHVlID0gdGhpcy5nZXRWYWx1ZSgpO1xyXG5cclxuICAgIGlmICh0aGlzLnByZXZpb3VzVmFsdWUgIT09IGN1cnJlbnRWYWx1ZSkge1xyXG4gICAgICB0aGlzLm9uQ2hhbmdlKGN1cnJlbnRWYWx1ZSwgdGhpcyk7XHJcbiAgICB9XHJcblxyXG4gICAgdGhpcy5wcmV2aW91c1ZhbHVlID0gY3VycmVudFZhbHVlO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogU2V0cyB0aGUgZGlzcGxheWVkIHRleHQgb2YgdGhlIGZpZWxkXHJcbiAgICogQHBhcmFtIHtTdHJpbmd9IHRleHRcclxuICAgKi9cclxuICBzZXRUZXh0OiBmdW5jdGlvbiBzZXRUZXh0KHRleHQpIHtcclxuICAgIHRoaXMuc2V0KCdpbnB1dFZhbHVlJywgdGV4dCk7XHJcblxyXG4gICAgdGhpcy5wcmV2aW91c1ZhbHVlID0gdGV4dDtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIFJldHVybnMgdGhlIHN0cmluZyB0ZXh0IG9mIHRoZSBmaWVsZCAobm90ZSwgbm90IHRoZSB2YWx1ZSBvZiB0aGUgZmllbGQpXHJcbiAgICogQHJldHVybiB7U3RyaW5nfVxyXG4gICAqL1xyXG4gIGdldFRleHQ6IGZ1bmN0aW9uIGdldFRleHQoKSB7XHJcbiAgICByZXR1cm4gdGhpcy5pbnB1dE5vZGUudmFsdWU7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBDYWxsZWQgZnJvbSB0aGUgdGFyZ2V0IGxpc3QgdmlldyB3aGVuIGEgcm93IGlzIHNlbGVjdGVkLlxyXG4gICAqXHJcbiAgICogVGhlIGludGVudCBvZiB0aGUgY29tcGxldGUgZnVuY3Rpb24gaXMgdG8gZ2F0aGVyIHRoZSB2YWx1ZShzKSBmcm9tIHRoZSBsaXN0IHZpZXcgYW5kXHJcbiAgICogdHJhbnNmZXIgdGhlbSB0byB0aGUgZmllbGQgLSB0aGVuIGhhbmRsZSBuYXZpZ2F0aW5nIGJhY2sgdG8gdGhlIEVkaXQgdmlldy5cclxuICAgKlxyXG4gICAqIFRoZSB0YXJnZXQgdmlldyBtdXN0IGJlIHRoZSBjdXJyZW50bHkgYWN0aXZlIHZpZXcgYW5kIG11c3QgaGF2ZSBhIHNlbGVjdGlvbiBtb2RlbC5cclxuICAgKlxyXG4gICAqIFRoZSB2YWx1ZXMgYXJlIGdhdGhlcmVkIGFuZCBwYXNzZWQgdG8ge0BsaW5rICNzZXRTZWxlY3Rpb24gc2V0U2VsZWN0aW9ufSwgYFJlVUkuYmFjaygpYCBpc1xyXG4gICAqIGZpcmVkIGFuZCBsYXN0bHkge0BsaW5rICNfb25Db21wbGV0ZSBfb25Db21wbGV0ZX0gaXMgY2FsbGVkIGluIGEgc2V0VGltZW91dCBkdWUgdG8gYml6YXJyZVxyXG4gICAqIHRyYW5zaXRpb24gaXNzdWVzLCBuYW1lbHkgaW4gSUUuXHJcbiAgICovXHJcbiAgY29tcGxldGU6IGZ1bmN0aW9uIGNvbXBsZXRlKCkge1xyXG4gICAgY29uc3QgdmlldyA9IHRoaXMuYXBwLmdldFByaW1hcnlBY3RpdmVWaWV3KCk7XHJcbiAgICBjb25zdCBzZWxlY3Rpb25Nb2RlbCA9IHZpZXcuZ2V0KCdzZWxlY3Rpb25Nb2RlbCcpO1xyXG5cclxuICAgIGlmICh2aWV3ICYmIHNlbGVjdGlvbk1vZGVsKSB7XHJcbiAgICAgIGNvbnN0IHNlbGVjdGlvbnMgPSBzZWxlY3Rpb25Nb2RlbC5nZXRTZWxlY3Rpb25zKCk7XHJcbiAgICAgIGNvbnN0IHNlbGVjdGlvbkNvdW50ID0gc2VsZWN0aW9uTW9kZWwuZ2V0U2VsZWN0aW9uQ291bnQoKTtcclxuXHJcbiAgICAgIGlmIChzZWxlY3Rpb25Db3VudCA9PT0gMCAmJiB2aWV3Lm9wdGlvbnMuYWxsb3dFbXB0eVNlbGVjdGlvbikge1xyXG4gICAgICAgIHRoaXMuY2xlYXJWYWx1ZSh0cnVlKTtcclxuICAgICAgfVxyXG5cclxuICAgICAgaWYgKHRoaXMuc2luZ2xlU2VsZWN0KSB7XHJcbiAgICAgICAgZm9yIChjb25zdCBzZWxlY3Rpb25LZXkgaW4gc2VsZWN0aW9ucykge1xyXG4gICAgICAgICAgaWYgKHNlbGVjdGlvbnMuaGFzT3duUHJvcGVydHkoc2VsZWN0aW9uS2V5KSkge1xyXG4gICAgICAgICAgICBjb25zdCB2YWwgPSBzZWxlY3Rpb25zW3NlbGVjdGlvbktleV0uZGF0YTtcclxuICAgICAgICAgICAgdGhpcy5zZXRTZWxlY3Rpb24odmFsLCBzZWxlY3Rpb25LZXkpO1xyXG4gICAgICAgICAgICBicmVhaztcclxuICAgICAgICAgIH1cclxuICAgICAgICB9XHJcbiAgICAgIH0gZWxzZSB7XHJcbiAgICAgICAgaWYgKHNlbGVjdGlvbkNvdW50ID4gMCkge1xyXG4gICAgICAgICAgdGhpcy5zZXRTZWxlY3Rpb25zKHNlbGVjdGlvbnMpO1xyXG4gICAgICAgIH1cclxuICAgICAgfVxyXG5cclxuICAgICAgdGhpcy5yZXVpLmJhY2soKTtcclxuXHJcbiAgICAgIC8vIGlmIHRoZSBldmVudCBpcyBmaXJlZCBiZWZvcmUgdGhlIHRyYW5zaXRpb24sIGFueSBYTUxIdHRwUmVxdWVzdCBjcmVhdGVkIGluIGFuIGV2ZW50IGhhbmRsZXIgYW5kXHJcbiAgICAgIC8vIGV4ZWN1dGluZyBkdXJpbmcgdGhlIHRyYW5zaXRpb24gY2FuIHBvdGVudGlhbGx5IGZhaWwgKHN0YXR1cyAwKS4gIHRoaXMgbWlnaHQgb25seSBiZSBhbiBpc3N1ZSB3aXRoIENPUlNcclxuICAgICAgLy8gcmVxdWVzdHMgY3JlYXRlZCBpbiB0aGlzIHN0YXRlICh0aGUgcHJlLWZsaWdodCByZXF1ZXN0IGlzIG1hZGUsIGFuZCB0aGUgcmVxdWVzdCBlbmRzIHdpdGggc3RhdHVzIDApLlxyXG4gICAgICAvLyB3cmFwcGluZyB0aGluZyBpbiBhIHRpbWVvdXQgYW5kIHBsYWNpbmcgYWZ0ZXIgdGhlIHRyYW5zaXRpb24gc3RhcnRzLCBtaXRpZ2F0ZXMgdGhpcyBpc3N1ZS5cclxuICAgICAgc2V0VGltZW91dCh0aGlzLl9vbkNvbXBsZXRlLmJpbmQodGhpcyksIDApO1xyXG4gICAgfVxyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogRm9yY2VzIHtAbGluayAjb25DaGFuZ2Ugb25DaGFuZ2V9IHRvIGZpcmVcclxuICAgKi9cclxuICBfb25Db21wbGV0ZTogZnVuY3Rpb24gX29uQ29tcGxldGUoKSB7XHJcbiAgICB0aGlzLm9uQ2hhbmdlKHRoaXMuY3VycmVudFZhbHVlLCB0aGlzKTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIERldGVybWluZXMgaWYgdGhlIGZpZWxkIGhhcyBiZWVuIGFsdGVyZWQgZnJvbSB0aGUgZGVmYXVsdC90ZW1wbGF0ZSB2YWx1ZS5cclxuICAgKiBAcmV0dXJuIHtCb29sZWFufVxyXG4gICAqL1xyXG4gIGlzRGlydHk6IGZ1bmN0aW9uIGlzRGlydHkoKSB7XHJcbiAgICBpZiAodGhpcy5vcmlnaW5hbFZhbHVlICYmIHRoaXMuY3VycmVudFZhbHVlKSB7XHJcbiAgICAgIGlmICh0aGlzLm9yaWdpbmFsVmFsdWUua2V5ICE9PSB0aGlzLmN1cnJlbnRWYWx1ZS5rZXkpIHtcclxuICAgICAgICByZXR1cm4gdHJ1ZTtcclxuICAgICAgfVxyXG5cclxuICAgICAgaWYgKHRoaXMub3JpZ2luYWxWYWx1ZS50ZXh0ICE9PSB0aGlzLmN1cnJlbnRWYWx1ZS50ZXh0KSB7XHJcbiAgICAgICAgcmV0dXJuIHRydWU7XHJcbiAgICAgIH1cclxuXHJcbiAgICAgIGlmICghdGhpcy5yZXF1aXJlU2VsZWN0aW9uICYmICF0aGlzLnRleHRUZW1wbGF0ZSkge1xyXG4gICAgICAgIGlmICh0aGlzLm9yaWdpbmFsVmFsdWUudGV4dCAhPT0gdGhpcy5nZXRUZXh0KCkpIHtcclxuICAgICAgICAgIHJldHVybiB0cnVlO1xyXG4gICAgICAgIH1cclxuICAgICAgfVxyXG5cclxuICAgICAgcmV0dXJuIGZhbHNlO1xyXG4gICAgfVxyXG5cclxuICAgIGlmICh0aGlzLm9yaWdpbmFsVmFsdWUpIHtcclxuICAgICAgaWYgKCF0aGlzLnJlcXVpcmVTZWxlY3Rpb24gJiYgIXRoaXMudGV4dFRlbXBsYXRlKSB7XHJcbiAgICAgICAgaWYgKHRoaXMub3JpZ2luYWxWYWx1ZS50ZXh0ICE9PSB0aGlzLmdldFRleHQoKSkge1xyXG4gICAgICAgICAgcmV0dXJuIHRydWU7XHJcbiAgICAgICAgfVxyXG4gICAgICB9XHJcbiAgICB9IGVsc2Uge1xyXG4gICAgICBpZiAoIXRoaXMucmVxdWlyZVNlbGVjdGlvbiAmJiAhdGhpcy50ZXh0VGVtcGxhdGUpIHtcclxuICAgICAgICBjb25zdCB0ZXh0ID0gdGhpcy5nZXRUZXh0KCk7XHJcbiAgICAgICAgaWYgKHRleHQgJiYgdGV4dC5sZW5ndGggPiAwKSB7XHJcbiAgICAgICAgICByZXR1cm4gdHJ1ZTtcclxuICAgICAgICB9XHJcbiAgICAgIH1cclxuICAgIH1cclxuXHJcbiAgICByZXR1cm4gKHRoaXMub3JpZ2luYWxWYWx1ZSAhPT0gdGhpcy5jdXJyZW50VmFsdWUpO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogUmV0dXJucyB0aGUgY3VycmVudCBzZWxlY3Rpb24gdGhhdCB3YXMgc2V0IGZyb20gdGhlIHRhcmdldCBsaXN0IHZpZXcuXHJcbiAgICogQHJldHVybiB7T2JqZWN0fVxyXG4gICAqL1xyXG4gIGdldFNlbGVjdGlvbjogZnVuY3Rpb24gZ2V0U2VsZWN0aW9uKCkge1xyXG4gICAgcmV0dXJuIHRoaXMuY3VycmVudFNlbGVjdGlvbjtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIFJldHVybnMgdGhlIGN1cnJlbnQgdmFsdWUgZWl0aGVyIGJ5IGV4dHJhY3RpbmcgdGhlIHZhbHVlS2V5UHJvcGVydHkgYW5kIHZhbHVlVGV4dFByb3BlcnR5IG9yXHJcbiAgICogc2V2ZXJhbCBvdGhlciBtZXRob2RzIG9mIGdldHRpbmcgaXQgdG8gdGhhdCBzdGF0ZS5cclxuICAgKiBAcmV0dXJuIHtPYmplY3QvU3RyaW5nfVxyXG4gICAqL1xyXG4gIGdldFZhbHVlOiBmdW5jdGlvbiBnZXRWYWx1ZSgpIHtcclxuICAgIGxldCB2YWx1ZSA9IG51bGw7XHJcbiAgICBjb25zdCB0ZXh0ID0gdGhpcy5nZXRUZXh0KCkgfHwgJyc7XHJcbiAgICAgIC8vIGlmIHZhbHVlS2V5UHJvcGVydHkgb3IgdmFsdWVUZXh0UHJvcGVydHkgSVMgTk9UIEVYUExJQ0lUTFkgc2V0IHRvIGZhbHNlXHJcbiAgICAgIC8vIGFuZCBJUyBOT1QgZGVmaW5lZCB1c2Uga2V5UHJvcGVydHkgb3IgdGV4dFByb3BlcnR5IGluIGl0cyBwbGFjZS5cclxuICAgIGNvbnN0IGtleVByb3BlcnR5ID0gdGhpcy52YWx1ZUtleVByb3BlcnR5ICE9PSBmYWxzZSA/IHRoaXMudmFsdWVLZXlQcm9wZXJ0eSB8fCB0aGlzLmtleVByb3BlcnR5IDogZmFsc2U7XHJcbiAgICBjb25zdCB0ZXh0UHJvcGVydHkgPSB0aGlzLnZhbHVlVGV4dFByb3BlcnR5ICE9PSBmYWxzZSA/IHRoaXMudmFsdWVUZXh0UHJvcGVydHkgfHwgdGhpcy50ZXh0UHJvcGVydHkgOiBmYWxzZTtcclxuXHJcbiAgICBpZiAoa2V5UHJvcGVydHkgfHwgdGV4dFByb3BlcnR5KSB7XHJcbiAgICAgIGlmICh0aGlzLmN1cnJlbnRWYWx1ZSkge1xyXG4gICAgICAgIGlmIChrZXlQcm9wZXJ0eSkge1xyXG4gICAgICAgICAgdmFsdWUgPSB1dGlsaXR5LnNldFZhbHVlKHZhbHVlIHx8IHt9LCBrZXlQcm9wZXJ0eSwgdGhpcy5jdXJyZW50VmFsdWUua2V5KTtcclxuICAgICAgICB9XHJcblxyXG4gICAgICAgIC8vIGlmIGEgdGV4dCB0ZW1wbGF0ZSBoYXMgYmVlbiBhcHBsaWVkIHRoZXJlIGlzIG5vIHdheSB0byBndWFyYW50ZWUgYSBjb3JyZWN0XHJcbiAgICAgICAgLy8gbWFwcGluZyBiYWNrIHRvIHRoZSBwcm9wZXJ0eVxyXG4gICAgICAgIGlmICh0ZXh0UHJvcGVydHkgJiYgIXRoaXMudGV4dFRlbXBsYXRlKSB7XHJcbiAgICAgICAgICB2YWx1ZSA9IHV0aWxpdHkuc2V0VmFsdWUodmFsdWUgfHwge30sIHRleHRQcm9wZXJ0eSwgdGhpcy5yZXF1aXJlU2VsZWN0aW9uID8gdGhpcy5jdXJyZW50VmFsdWUudGV4dCA6IHRleHQpO1xyXG4gICAgICAgIH1cclxuICAgICAgfSBlbHNlIGlmICghdGhpcy5yZXF1aXJlU2VsZWN0aW9uKSB7XHJcbiAgICAgICAgaWYgKGtleVByb3BlcnR5ICYmIHRleHQubGVuZ3RoID4gMCkge1xyXG4gICAgICAgICAgdmFsdWUgPSB1dGlsaXR5LnNldFZhbHVlKHZhbHVlIHx8IHt9LCBrZXlQcm9wZXJ0eSwgdGV4dCk7XHJcbiAgICAgICAgfVxyXG5cclxuICAgICAgICAvLyBpZiBhIHRleHQgdGVtcGxhdGUgaGFzIGJlZW4gYXBwbGllZCB0aGVyZSBpcyBubyB3YXkgdG8gZ3VhcmFudGVlIGEgY29ycmVjdFxyXG4gICAgICAgIC8vIG1hcHBpbmcgYmFjayB0byB0aGUgcHJvcGVydHlcclxuICAgICAgICBpZiAodGV4dFByb3BlcnR5ICYmICF0aGlzLnRleHRUZW1wbGF0ZSAmJiB0ZXh0Lmxlbmd0aCA+IDApIHtcclxuICAgICAgICAgIHZhbHVlID0gdXRpbGl0eS5zZXRWYWx1ZSh2YWx1ZSB8fCB7fSwgdGV4dFByb3BlcnR5LCB0ZXh0KTtcclxuICAgICAgICB9XHJcbiAgICAgIH1cclxuICAgIH0gZWxzZSB7XHJcbiAgICAgIGlmICh0aGlzLmN1cnJlbnRWYWx1ZSkge1xyXG4gICAgICAgIGlmICh0aGlzLnJlcXVpcmVTZWxlY3Rpb24pIHtcclxuICAgICAgICAgIHZhbHVlID0gdGhpcy5jdXJyZW50VmFsdWUua2V5ID8gdGhpcy5jdXJyZW50VmFsdWUua2V5IDogdGhpcy5jdXJyZW50VmFsdWU7XHJcbiAgICAgICAgfSBlbHNlIHtcclxuICAgICAgICAgIHZhbHVlID0gdGhpcy5jdXJyZW50VmFsdWUudGV4dCAhPT0gdGV4dCAmJiAhdGhpcy50ZXh0VGVtcGxhdGUgPyB0ZXh0IDogdGhpcy5jdXJyZW50VmFsdWUua2V5O1xyXG4gICAgICAgIH1cclxuICAgICAgfSBlbHNlIGlmICghdGhpcy5yZXF1aXJlU2VsZWN0aW9uICYmIHRleHQubGVuZ3RoID4gMCkge1xyXG4gICAgICAgIHZhbHVlID0gdGV4dDtcclxuICAgICAgfVxyXG4gICAgfVxyXG5cclxuICAgIHJldHVybiB2YWx1ZTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIElmIHVzaW5nIGEgbXVsdGktc2VsZWN0IGVuYWJsZWQgbG9va3VwIHRoZW4gdGhlIHZpZXcgd2lsbCByZXR1cm4gbXVsdGlwbGUgb2JqZWN0cyBhcyB0aGUgdmFsdWUuXHJcbiAgICpcclxuICAgKiBUaGlzIGZ1bmN0aW9uIHRha2VzIHRoYXQgYXJyYXkgYW5kIHJldHVybnMgdGhlIHNpbmdsZSB2YWx1ZSB0aGF0IHNob3VsZCBiZSB1c2VkIGZvciBgdGhpcy5jdXJyZW50VmFsdWVgLlxyXG4gICAqXHJcbiAgICogQHRlbXBsYXRlXHJcbiAgICogQHBhcmFtIHtPYmplY3RbXX0gdmFsdWVzXHJcbiAgICogQHJldHVybiB7T2JqZWN0L1N0cmluZ31cclxuICAgKi9cclxuICBmb3JtYXRWYWx1ZTogZnVuY3Rpb24gZm9ybWF0VmFsdWUodmFsdWVzKSB7XHJcbiAgICByZXR1cm4gdmFsdWVzO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogSWYgdXNpbmcgYSBtdWx0aS1zZWxlY3QgZW5hYmxlZCBsb29rdXAgdGhpcyBmdW5jdGlvbiB3aWxsIGJlIGNhbGxlZCBieSB7QGxpbmsgI2NvbXBsZXRlIGNvbXBsZXRlfVxyXG4gICAqIGluIHRoYXQgdGhlIHRhcmdldCB2aWV3IHJldHVybmVkIG11bHRpcGxlIGVudHJpZXMuXHJcbiAgICpcclxuICAgKiBTZXRzIHRoZSBjdXJyZW50VmFsdWUgdXNpbmcge0BsaW5rICNmb3JtYXRWYWx1ZSBmb3JtYXRWYWx1ZX0uXHJcbiAgICpcclxuICAgKiBTZXRzIHRoZSBkaXNwbGF5ZWQgdGV4dCB1c2luZyBgdGhpcy50ZXh0UmVuZGVyZXJgLlxyXG4gICAqXHJcbiAgICogQHBhcmFtIHtPYmplY3RbXX0gdmFsdWVzXHJcbiAgICovXHJcbiAgc2V0U2VsZWN0aW9uczogZnVuY3Rpb24gc2V0U2VsZWN0aW9ucyh2YWx1ZXMpIHtcclxuICAgIHRoaXMuY3VycmVudFZhbHVlID0gKHRoaXMuZm9ybWF0VmFsdWUpID8gdGhpcy5mb3JtYXRWYWx1ZS5jYWxsKHRoaXMsIHZhbHVlcykgOiB2YWx1ZXM7XHJcblxyXG4gICAgY29uc3QgdGV4dCA9ICh0aGlzLnRleHRSZW5kZXJlcikgPyB0aGlzLnRleHRSZW5kZXJlci5jYWxsKHRoaXMsIHZhbHVlcykgOiAnJztcclxuXHJcbiAgICB0aGlzLnNldFRleHQodGV4dCk7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBJZiB1c2luZyBhIHNpbmdsZVNlbGVjdCBlbmFibGVkIGxvb2t1cCB0aGlzIGZ1bmN0aW9uIHdpbGwgYmUgY2FsbGVkIGJ5IHtAbGluayAjY29tcGxldGUgY29tcGxldGV9XHJcbiAgICogYW5kIHRoZSBzaW5nbGUgZW50cnkncyBkYXRhIGFuZCBrZXkgd2lsbCBiZSBwYXNzZWQgdG8gdGhpcyBmdW5jdGlvbi5cclxuICAgKlxyXG4gICAqIFNldHMgdGhlIGB0aGlzLmN1cnJlbnRTZWxlY3Rpb25gIHRvIHRoZSBwYXNzZWQgZGF0YSAoZW50aXJlIGVudHJ5KVxyXG4gICAqXHJcbiAgICogU2V0cyB0aGUgYHRoaXMuY3VycmVudFZhbHVlYCB0byB0aGUgZXh0cmFjdCBrZXkvdGV4dCBwcm9wZXJ0aWVzXHJcbiAgICpcclxuICAgKiBDYWxscyB7QGxpbmsgI3NldFRleHQgc2V0VGV4dH0gd2l0aCB0aGUgZXh0cmFjdGVkIHRleHQgcHJvcGVydHkuXHJcbiAgICpcclxuICAgKiBAcGFyYW0ge09iamVjdH0gdmFsIEVudGlyZSBzZWxlY3Rpb24gZW50cnlcclxuICAgKiBAcGFyYW0ge1N0cmluZ30ga2V5IGRhdGEta2V5IGF0dHJpYnV0ZSBvZiB0aGUgc2VsZWN0ZWQgcm93ICh0eXBpY2FsbHkgJGtleSBmcm9tIFNEYXRhKVxyXG4gICAqL1xyXG4gIHNldFNlbGVjdGlvbjogZnVuY3Rpb24gc2V0U2VsZWN0aW9uKHZhbCwga2V5KSB7XHJcbiAgICB0aGlzLmN1cnJlbnRTZWxlY3Rpb24gPSB2YWw7XHJcbiAgICBpZiAodmFsID09PSBudWxsIHx8IHR5cGVvZiB2YWwgPT09ICd1bmRlZmluZWQnKSB7XHJcbiAgICAgIHJldHVybiBmYWxzZTtcclxuICAgIH1cclxuICAgIGxldCB0ZXh0ID0gdXRpbGl0eS5nZXRWYWx1ZSh2YWwsIHRoaXMudGV4dFByb3BlcnR5KTtcclxuICAgIGNvbnN0IG5ld0tleSA9IHV0aWxpdHkuZ2V0VmFsdWUodmFsLCB0aGlzLmtleVByb3BlcnR5LCB2YWwpIHx8IGtleTsgLy8gaWYgd2UgY2FuIGV4dHJhY3QgdGhlIGtleSBhcyByZXF1ZXN0ZWQsIHVzZSBpdCBpbnN0ZWFkIG9mIHRoZSBzZWxlY3Rpb24ga2V5XHJcblxyXG4gICAgaWYgKHRleHQgJiYgdGhpcy50ZXh0VGVtcGxhdGUpIHtcclxuICAgICAgdGV4dCA9IHRoaXMudGV4dFRlbXBsYXRlLmFwcGx5KHRleHQsIHRoaXMpO1xyXG4gICAgfSBlbHNlIGlmICh0aGlzLnRleHRSZW5kZXJlcikge1xyXG4gICAgICB0ZXh0ID0gdGhpcy50ZXh0UmVuZGVyZXIuY2FsbCh0aGlzLCB2YWwsIG5ld0tleSwgdGV4dCk7XHJcbiAgICB9XHJcblxyXG4gICAgdGhpcy5jdXJyZW50VmFsdWUgPSB7XHJcbiAgICAga2V5OiBuZXdLZXkgfHwgdGV4dCxcclxuICAgICB0ZXh0OiB0ZXh0IHx8IG5ld0tleSxcclxuICAgIH07XHJcblxyXG4gICAgdGhpcy5zZXRUZXh0KHRoaXMuY3VycmVudFZhbHVlLnRleHQpO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogU2V0cyB0aGUgZ2l2ZW4gdmFsdWUgdG8gYHRoaXMuY3VycmVudFZhbHVlYCB1c2luZyB0aGUgaW5pdGlhbCBmbGFnIGlmIHRvIHNldCBpdCBhc1xyXG4gICAqIGNsZWFuL3VubW9kaWZpZWQgb3IgZmFsc2UgZm9yIGRpcnR5LlxyXG4gICAqIEBwYXJhbSB7T2JqZWN0L1N0cmluZ30gdmFsIFZhbHVlIHRvIHNldFxyXG4gICAqIEBwYXJhbSB7Qm9vbGVhbn0gaW5pdGlhbCBEaXJ0eSBmbGFnICh0cnVlIGlzIGNsZWFuKVxyXG4gICAqL1xyXG4gIHNldFZhbHVlOiBmdW5jdGlvbiBzZXRWYWx1ZSh2YWwsIGluaXRpYWwpIHtcclxuICAgIC8vIGlmIHZhbHVlS2V5UHJvcGVydHkgb3IgdmFsdWVUZXh0UHJvcGVydHkgSVMgTk9UIEVYUExJQ0lUTFkgc2V0IHRvIGZhbHNlXHJcbiAgICAvLyBhbmQgSVMgTk9UIGRlZmluZWQgdXNlIGtleVByb3BlcnR5IG9yIHRleHRQcm9wZXJ0eSBpbiBpdHMgcGxhY2UuXHJcbiAgICBjb25zdCBrZXlQcm9wZXJ0eSA9IHRoaXMudmFsdWVLZXlQcm9wZXJ0eSAhPT0gZmFsc2UgPyB0aGlzLnZhbHVlS2V5UHJvcGVydHkgfHwgdGhpcy5rZXlQcm9wZXJ0eSA6IGZhbHNlO1xyXG4gICAgY29uc3QgdGV4dFByb3BlcnR5ID0gdGhpcy52YWx1ZVRleHRQcm9wZXJ0eSAhPT0gZmFsc2UgPyB0aGlzLnZhbHVlVGV4dFByb3BlcnR5IHx8IHRoaXMudGV4dFByb3BlcnR5IDogZmFsc2U7XHJcbiAgICBsZXQga2V5O1xyXG4gICAgbGV0IHRleHQ7XHJcblxyXG4gICAgaWYgKHR5cGVvZiB2YWwgPT09ICd1bmRlZmluZWQnIHx8IHZhbCA9PT0gbnVsbCkge1xyXG4gICAgICB0aGlzLmN1cnJlbnRWYWx1ZSA9IGZhbHNlO1xyXG4gICAgICBpZiAoaW5pdGlhbCkge1xyXG4gICAgICAgIHRoaXMub3JpZ2luYWxWYWx1ZSA9IHRoaXMuY3VycmVudFZhbHVlO1xyXG4gICAgICB9XHJcblxyXG4gICAgICB0aGlzLnNldFRleHQodGhpcy5yZXF1aXJlU2VsZWN0aW9uID8gdGhpcy5lbXB0eVRleHQgOiAnJyk7XHJcbiAgICAgIHJldHVybiBmYWxzZTtcclxuICAgIH1cclxuXHJcbiAgICBpZiAoa2V5UHJvcGVydHkgfHwgdGV4dFByb3BlcnR5KSB7XHJcbiAgICAgIGlmIChrZXlQcm9wZXJ0eSkge1xyXG4gICAgICAgIGtleSA9IHV0aWxpdHkuZ2V0VmFsdWUodmFsLCBrZXlQcm9wZXJ0eSk7XHJcbiAgICAgIH1cclxuXHJcbiAgICAgIGlmICh0ZXh0UHJvcGVydHkpIHtcclxuICAgICAgICB0ZXh0ID0gdXRpbGl0eS5nZXRWYWx1ZSh2YWwsIHRleHRQcm9wZXJ0eSk7XHJcbiAgICAgIH1cclxuXHJcbiAgICAgIGlmICh0ZXh0ICYmIHRoaXMudGV4dFRlbXBsYXRlKSB7XHJcbiAgICAgICAgdGV4dCA9IHRoaXMudGV4dFRlbXBsYXRlLmFwcGx5KHRleHQsIHRoaXMpO1xyXG4gICAgICB9IGVsc2UgaWYgKHRoaXMudGV4dFJlbmRlcmVyKSB7XHJcbiAgICAgICAgdGV4dCA9IHRoaXMudGV4dFJlbmRlcmVyLmNhbGwodGhpcywgdmFsLCBrZXksIHRleHQpO1xyXG4gICAgICB9XHJcblxyXG4gICAgICBpZiAoa2V5IHx8IHRleHQpIHtcclxuICAgICAgICB0aGlzLmN1cnJlbnRWYWx1ZSA9IHtcclxuICAgICAgICAgIGtleToga2V5IHx8IHRleHQsXHJcbiAgICAgICAgICB0ZXh0OiB0ZXh0IHx8IGtleSxcclxuICAgICAgICB9O1xyXG5cclxuICAgICAgICBpZiAoaW5pdGlhbCkge1xyXG4gICAgICAgICAgdGhpcy5vcmlnaW5hbFZhbHVlID0gdGhpcy5jdXJyZW50VmFsdWU7XHJcbiAgICAgICAgfVxyXG5cclxuICAgICAgICB0aGlzLnNldFRleHQodGhpcy5jdXJyZW50VmFsdWUudGV4dCk7XHJcbiAgICAgIH0gZWxzZSB7XHJcbiAgICAgICAgdGhpcy5jdXJyZW50VmFsdWUgPSBmYWxzZTtcclxuXHJcbiAgICAgICAgaWYgKGluaXRpYWwpIHtcclxuICAgICAgICAgIHRoaXMub3JpZ2luYWxWYWx1ZSA9IHRoaXMuY3VycmVudFZhbHVlO1xyXG4gICAgICAgIH1cclxuXHJcbiAgICAgICAgdGhpcy5zZXRUZXh0KHRoaXMucmVxdWlyZVNlbGVjdGlvbiA/IHRoaXMuZW1wdHlUZXh0IDogJycpO1xyXG4gICAgICB9XHJcbiAgICB9IGVsc2Uge1xyXG4gICAgICBrZXkgPSB2YWw7XHJcbiAgICAgIHRleHQgPSB2YWw7XHJcblxyXG4gICAgICBpZiAodGV4dCAmJiB0aGlzLnRleHRUZW1wbGF0ZSkge1xyXG4gICAgICAgIHRleHQgPSB0aGlzLnRleHRUZW1wbGF0ZS5hcHBseSh0ZXh0LCB0aGlzKTtcclxuICAgICAgfSBlbHNlIGlmICh0aGlzLnRleHRSZW5kZXJlcikge1xyXG4gICAgICAgIHRleHQgPSB0aGlzLnRleHRSZW5kZXJlci5jYWxsKHRoaXMsIHZhbCwga2V5LCB0ZXh0KTtcclxuICAgICAgfVxyXG5cclxuICAgICAgdGhpcy5jdXJyZW50VmFsdWUgPSB7XHJcbiAgICAgICAga2V5OiBrZXkgfHwgdGV4dCxcclxuICAgICAgICB0ZXh0OiB0ZXh0IHx8IGtleSxcclxuICAgICAgfTtcclxuXHJcbiAgICAgIGlmIChpbml0aWFsKSB7XHJcbiAgICAgICAgdGhpcy5vcmlnaW5hbFZhbHVlID0gdGhpcy5jdXJyZW50VmFsdWU7XHJcbiAgICAgIH1cclxuXHJcbiAgICAgIHRoaXMuc2V0VGV4dCh0ZXh0KTtcclxuICAgIH1cclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIENsZWFycyB0aGUgdmFsdWUgYnkgc2V0dGluZyBudWxsICh3aGljaCB0cmlnZ2VycyB1c2FnZSBvZiBgdGhpcy5lbXB0eVRleHRgLlxyXG4gICAqXHJcbiAgICogRmxhZyBpcyB1c2VkIHRvIGluZGljYXRlIGlmIHRvIHNldCBudWxsIGFzIHRoZSBpbml0aWFsIHZhbHVlICh1bm1vZGlmaWVkKSBvciBub3QuXHJcbiAgICpcclxuICAgKiBAcGFyYW0ge0Jvb2xlYW59IGZsYWdcclxuICAgKi9cclxuICBjbGVhclZhbHVlOiBmdW5jdGlvbiBjbGVhclZhbHVlKGZsYWcpIHtcclxuICAgIGNvbnN0IGluaXRpYWwgPSBmbGFnICE9PSB0cnVlO1xyXG4gICAgdGhpcy5zZXRTZWxlY3Rpb24obnVsbCk7XHJcbiAgICB0aGlzLnNldFZhbHVlKG51bGwsIGluaXRpYWwpO1xyXG4gIH0sXHJcbn0pO1xyXG5cclxubGFuZy5zZXRPYmplY3QoJ1NhZ2UuUGxhdGZvcm0uTW9iaWxlLkZpZWxkcy5Mb29rdXBGaWVsZCcsIGNvbnRyb2wpO1xyXG5leHBvcnQgZGVmYXVsdCBGaWVsZE1hbmFnZXIucmVnaXN0ZXIoJ2xvb2t1cCcsIGNvbnRyb2wpO1xyXG4iXX0=
 </pre>
 </body>
 </html>

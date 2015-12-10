@@ -15,691 +15,572 @@
   </script>
 </head>
 <body onload="prettyPrint(); highlight();">
-  <pre class="prettyprint lang-js">/*
- * Copyright (c) 1997-2013, SalesLogix, NA., LLC. All rights reserved.
- */
+  <pre class="prettyprint lang-js">define('crm/Views/Activity/MyList', ['exports', 'module', 'dojo/_base/declare', 'dojo/_base/lang', 'dojo/string', 'dojo/query', 'dojo/_base/connect', '../../Environment', './List', 'argos/Convert', 'argos/ErrorManager', '../../Action', 'argos/Offline/_ListOfflineMixin', 'argos/Models/Types', '../../Models/Names', 'argos/I18n'], function (exports, module, _dojo_baseDeclare, _dojo_baseLang, _dojoString, _dojoQuery, _dojo_baseConnect, _Environment, _List, _argosConvert, _argosErrorManager, _Action, _argosOffline_ListOfflineMixin, _argosModelsTypes, _ModelsNames, _argosI18n) {
+  function _interopRequireDefault(obj) { return obj &amp;&amp; obj.__esModule ? obj : { 'default': obj }; }
 
-<span id='crm-Views-Activity-MyList'>/**
-</span> * @class crm.Views.Activity.MyList
- *
- * @extends crm.Views.Activity.List
- * @mixins crm.Views.Activity.List
- *
- * @requires argos.List
- * @requires argos.Format
- * @requires argos.Utility
- * @requires argos.Convert
- * @requires argos.ErrorManager
- *
- * @requires crm.Format
- * @requires crm.Environment
- * @requires crm.Views.Activity.List
- * @requires crm.Action
- *
- * @requires moment
- *
- */
-define('crm/Views/Activity/MyList', [
-    'dojo/_base/declare',
-    'dojo/_base/lang',
-    'dojo/string',
-    'dojo/query',
-    'dojo/_base/connect',
-    'argos/List',
-    '../../Format',
-    '../../Environment',
-    'argos/Format',
-    './List',
-    'argos/Utility',
-    'argos/Convert',
-    'argos/ErrorManager',
-    'moment',
-    '../../Action'
-], function(
-    declare,
-    lang,
-    string,
-    query,
-    connect,
-    List,
-    format,
-    environment,
-    platformFormat,
-    ActivityList,
-    Utility,
-    convert,
-    ErrorManager,
-    moment,
-    action
-) {
+  var _declare = _interopRequireDefault(_dojo_baseDeclare);
 
-    var __class = declare('crm.Views.Activity.MyList', [ActivityList], {
+  var _lang = _interopRequireDefault(_dojo_baseLang);
 
-        //Templates
-        //Card View
-       itemRowContainerTemplate: new Simplate([
-           '&lt;li data-action=&quot;activateEntry&quot; data-my-activity-key=&quot;{%= $.$key %}&quot; data-key=&quot;{%= $$.getItemActionKey($) %}&quot; data-descriptor=&quot;{%: $$.getItemDescriptor($) %}&quot; data-activity-type=&quot;{%: $.Activity.Type %}&quot;&gt;',
-            '{%! $$.itemRowContentTemplate %}',
-          '&lt;/li&gt;'
-        ]),
-        activityTimeTemplate: new Simplate([
-            '{% if ($$.isTimelessToday($)) { %}',
-                '{%: $$.allDayText %}',
-            '{% } else { %}',
-                '{%: crm.Format.relativeDate($.Activity.StartDate, argos.Convert.toBoolean($.Activity.Timeless)) %}',
-            '{% } %}'
-        ]),
-        itemTemplate: new Simplate([
-            '&lt;h3&gt;',
-                '&lt;span class=&quot;p-description&quot;&gt;{%: $.Activity.Description %}{% if ($.Status === &quot;asUnconfirmed&quot;) { %} ({%: crm.Format.userActivityStatus($.Status) %}) {% } %}&lt;/span&gt;',
-            '&lt;/h3&gt;',
-            '&lt;h4&gt;',
-                '{%! $$.activityTimeTemplate %}',
-            '&lt;/h4&gt;',
-            '&lt;h4&gt;{%! $$.nameTemplate %}&lt;/h4&gt;',
-            '&lt;h4&gt;',
-                '{% if ($.Activity.PhoneNumber) { %}',
-                    '&lt;span class=&quot;href&quot; data-action=&quot;_callPhone&quot; data-key=&quot;{%: $.$key %}&quot;&gt;{%: argos.Format.phone($.Activity.PhoneNumber) %}&lt;/span&gt;',
-                '{% } %}',
-            '&lt;/h4&gt;'
-        ]),
-        nameTemplate: new Simplate([
-            '{% if ($.Activity.ContactName) { %}',
-            '{%: $.Activity.ContactName %} | {%: $.Activity.AccountName %}',
-            '{% } else if ($.Activity.AccountName) { %}',
-            '{%: $.Activity.AccountName %}',
-            '{% } else { %}',
-            '{%: $.Activity.LeadName %}',
-            '{% } %}'
-        ]),
+  var _string = _interopRequireDefault(_dojoString);
 
-        //Localization
-        titleText: 'My Activities',
-        completeActivityText: 'Complete',
-        acceptActivityText: 'Accept',
-        declineActivityText: 'Decline',
-        callText: 'Call',
-        calledText: 'Called',
-        addAttachmentActionText: 'Add Attachment',
-        viewContactActionText: 'Contact',
-        viewAccountActionText: 'Account',
-        viewOpportunityActionText: 'Opportunity',
+  var _query = _interopRequireDefault(_dojoQuery);
 
-        //View Properties
-        id: 'myactivity_list',
+  var _connect = _interopRequireDefault(_dojo_baseConnect);
 
-        historyEditView: 'history_edit',
-        existsRE: /^[\w]{12}$/,
-        queryWhere: function() {
-            return string.substitute('User.Id eq &quot;${0}&quot; and Status ne &quot;asDeclned&quot; and Activity.Type ne &quot;atLiterature&quot;', [App.context['user'].$key]);
-        },
-        queryOrderBy: 'Activity.StartDate desc',
-        querySelect: [
-            'Alarm',
-            'AlarmTime',
-            'Status',
-            'Activity/Description',
-            'Activity/StartDate',
-            'Activity/EndDate',
-            'Activity/Type',
-            'Activity/AccountName',
-            'Activity/AccountId',
-            'Activity/ContactId',
-            'Activity/ContactName',
-            'Activity/Leader',
-            'Activity/LeadName',
-            'Activity/LeadId',
-            'Activity/OpportunityId',
-            'Activity/TicketId',
-            'Activity/UserId',
-            'Activity/Timeless',
-            'Activity/PhoneNumber',
-            'Activity/Recurring',
-            'Activity/Alarm',
-            'Activity/ModifyDate',
-            'Activity/Priority'
-        ],
-        resourceKind: 'userActivities',
-        allowSelection: true,
-        enableActions: true,
-        hashTagQueries: {
-            'alarm': 'Alarm eq true',
-            'status-unconfirmed': 'Status eq &quot;asUnconfirmed&quot;',
-            'status-accepted': 'Status eq &quot;asAccepted&quot;',
-            'status-declined': 'Status eq &quot;asDeclned&quot;',
-            'recurring': 'Activity.Recurring eq true',
-            'timeless': 'Activity.Timeless eq true',
-            'yesterday': function() {
-                var now, yesterdayStart, yesterdayEnd, query;
+  var _environment = _interopRequireDefault(_Environment);
 
-                now = moment();
+  var _ActivityList = _interopRequireDefault(_List);
 
-                yesterdayStart = now.clone().subtract(1, 'days').startOf('day');
-                yesterdayEnd = yesterdayStart.clone().endOf('day');
+  var _convert = _interopRequireDefault(_argosConvert);
 
-                query = string.substitute(
-                        '((Activity.Timeless eq false and Activity.StartDate between @${0}@ and @${1}@) or (Activity.Timeless eq true and Activity.StartDate between @${2}@ and @${3}@))',
-                        [
-                        convert.toIsoStringFromDate(yesterdayStart.toDate()),
-                        convert.toIsoStringFromDate(yesterdayEnd.toDate()),
-                        yesterdayStart.format('YYYY-MM-DDT00:00:00[Z]'),
-                        yesterdayEnd.format('YYYY-MM-DDT23:59:59[Z]')
-                        ]
-                );
-                return query;
-            },
-            'today': function() {
-                var now, todayStart, todayEnd, query;
+  var _ErrorManager = _interopRequireDefault(_argosErrorManager);
 
-                now = moment();
+  var _action = _interopRequireDefault(_Action);
 
-                todayStart = now.clone().startOf('day');
-                todayEnd = todayStart.clone().endOf('day');
+  var _ListOfflineMixin2 = _interopRequireDefault(_argosOffline_ListOfflineMixin);
 
-                query = string.substitute(
-                        '((Activity.Timeless eq false and Activity.StartDate between @${0}@ and @${1}@) or (Activity.Timeless eq true and Activity.StartDate between @${2}@ and @${3}@))',
-                        [
-                        convert.toIsoStringFromDate(todayStart.toDate()),
-                        convert.toIsoStringFromDate(todayEnd.toDate()),
-                        todayStart.format('YYYY-MM-DDT00:00:00[Z]'),
-                        todayEnd.format('YYYY-MM-DDT23:59:59[Z]')
-                        ]
-                );
-                return query;
-            },
-            'this-week': function() {
-                var now, weekStartDate, weekEndDate, query;
+  var _MODEL_TYPES = _interopRequireDefault(_argosModelsTypes);
 
-                now = moment();
+  var _MODEL_NAMES = _interopRequireDefault(_ModelsNames);
 
-                weekStartDate = now.clone().startOf('week');
-                weekEndDate = weekStartDate.clone().endOf('week');
+  var _getResource = _interopRequireDefault(_argosI18n);
 
-                query = string.substitute(
-                        '((Activity.Timeless eq false and Activity.StartDate between @${0}@ and @${1}@) or (Activity.Timeless eq true and Activity.StartDate between @${2}@ and @${3}@))',
-                        [
-                        convert.toIsoStringFromDate(weekStartDate.toDate()),
-                        convert.toIsoStringFromDate(weekEndDate.toDate()),
-                        weekStartDate.format('YYYY-MM-DDT00:00:00[Z]'),
-                        weekEndDate.format('YYYY-MM-DDT23:59:59[Z]')]
-                );
-                return query;
-            }
-        },
-        hashTagQueriesText: {
-            'alarm': 'alarm',
-            'status-unconfirmed': 'status-unconfirmed',
-            'status-accepted': 'status-accepted',
-            'status-declined': 'status-declined',
-            'recurring': 'recurring',
-            'timeless': 'timeless',
-            'today': 'today',
-            'this-week': 'this-week',
-            'yesterday': 'yesterday'
-        },
-        createToolLayout: function() {
-            this.inherited(arguments);
-            if (this.tools &amp;&amp; this.tools.tbar &amp;&amp; !this._refreshAdded &amp;&amp; !window.App.supportsTouch()) {
-                this.tools.tbar.push({
-                    id: 'refresh',
-                    cls: 'fa fa-refresh fa-fw fa-lg',
-                    action: '_refreshClicked'
-                });
+  var resource = (0, _getResource['default'])('activityMyList');
 
-                this._refreshAdded = true;
-            }
+<span id='crm-Views-Activity-MyList'>  /**
+</span>   * @class crm.Views.Activity.MyList
+   *
+   * @extends crm.Views.Activity.List
+   * @mixins crm.Views.Activity.List
+   *
+   * @requires argos.List
+   * @requires argos.Format
+   * @requires argos.Utility
+   * @requires argos.Convert
+   * @requires argos.ErrorManager
+   *
+   * @requires crm.Format
+   * @requires crm.Environment
+   * @requires crm.Views.Activity.List
+   * @requires crm.Action
+   *
+   * @requires moment
+   *
+   */
+  var __class = (0, _declare['default'])('crm.Views.Activity.MyList', [_ActivityList['default'], _ListOfflineMixin2['default']], {
 
-            return this.tools;
-        },
-        _refreshAdded: false,
-        _refreshClicked: function() {
-            this.clear();
-            this.refreshRequired = true;
-            this.refresh();
+    // Templates
+    // Card View
+    itemRowContainerTemplate: new Simplate(['&lt;li data-action=&quot;activateEntry&quot; data-my-activity-key=&quot;{%= $.$key %}&quot; data-key=&quot;{%= $$.getItemActionKey($) %}&quot; data-descriptor=&quot;{%: $$.getItemDescriptor($) %}&quot; data-activity-type=&quot;{%: $.Activity.Type %}&quot;&gt;', '{%! $$.itemRowContentTemplate %}', '&lt;/li&gt;']),
+    activityTimeTemplate: new Simplate(['{% if ($$.isTimelessToday($)) { %}', '{%: $$.allDayText %}', '{% } else { %}', '{%: crm.Format.relativeDate($.Activity.StartDate, argos.Convert.toBoolean($.Activity.Timeless)) %}', '{% } %}']),
+    itemTemplate: new Simplate(['&lt;h3&gt;', '&lt;span class=&quot;p-description&quot;&gt;{%: $.Activity.Description %}{% if ($.Status === &quot;asUnconfirmed&quot;) { %} ({%: crm.Format.userActivityStatus($.Status) %}) {% } %}&lt;/span&gt;', '&lt;/h3&gt;', '&lt;h4&gt;', '{%! $$.activityTimeTemplate %}', '&lt;/h4&gt;', '&lt;h4&gt;{%! $$.nameTemplate %}&lt;/h4&gt;', '&lt;h4&gt;', '{% if ($.Activity.PhoneNumber) { %}', '&lt;span class=&quot;href&quot; data-action=&quot;_callPhone&quot; data-key=&quot;{%: $.$key %}&quot;&gt;{%: argos.Format.phone($.Activity.PhoneNumber) %}&lt;/span&gt;', '{% } %}', '&lt;/h4&gt;']),
+    nameTemplate: new Simplate(['{% if ($.Activity.ContactName) { %}', '{%: $.Activity.ContactName %} | {%: $.Activity.AccountName %}', '{% } else if ($.Activity.AccountName) { %}', '{%: $.Activity.AccountName %}', '{% } else { %}', '{%: $.Activity.LeadName %}', '{% } %}']),
 
-            // Hook for customizers
-            this.onRefreshClicked();
-        },
-        onRefreshClicked: function() {
-        },
-        _callPhone: function(params) {
-            this.invokeActionItemBy(function(action) {
-                return action.id === 'call';
-            }, params.key);
-        },
-        defaultSearchTerm: function() {
-            if (App.enableHashTags) {
-                return '#' + this.hashTagQueriesText['this-week'];
-            }
+    // Localization
+    titleText: resource.titleText,
+    completeActivityText: resource.completeActivityText,
+    acceptActivityText: resource.acceptActivityText,
+    declineActivityText: resource.declineActivityText,
+    callText: resource.callText,
+    calledText: resource.calledText,
+    addAttachmentActionText: resource.addAttachmentActionText,
+    viewContactActionText: resource.viewContactActionText,
+    viewAccountActionText: resource.viewAccountActionText,
+    viewOpportunityActionText: resource.viewOpportunityActionText,
 
-            return '';
-        },
-        createActionLayout: function() {
-            return this.actions || (this.actions = [{
-                id: 'viewAccount',
-                label: this.viewAccountActionText,
-                enabled: function(action, selection) {
-                    var entry = selection &amp;&amp; selection.data;
-                    if (!entry) {
-                        return false;
-                    }
-                    if (entry.Activity['AccountId']) {
-                        return true;
-                    }
-                    return false;
-                },
-                fn: function(action, selection) {
-                    var viewId, options, view;
+    // View Properties
+    id: 'myactivity_list',
+    entityName: 'UserActivity',
+    modelName: 'UserActivity',
+    enableOffline: true,
+    historyEditView: 'history_edit',
+    existsRE: /^[\w]{12}$/,
+    queryWhere: function queryWhere() {
+      return _string['default'].substitute('User.Id eq &quot;${0}&quot; and Status ne &quot;asDeclned&quot; and Activity.Type ne &quot;atLiterature&quot;', [App.context.user.$key]);
+    },
+    queryOrderBy: 'Activity.StartDate desc',
+    querySelect: ['Alarm', 'AlarmTime', 'Status', 'Activity/Description', 'Activity/StartDate', 'Activity/EndDate', 'Activity/Type', 'Activity/AccountName', 'Activity/AccountId', 'Activity/ContactId', 'Activity/ContactName', 'Activity/Leader', 'Activity/LeadName', 'Activity/LeadId', 'Activity/OpportunityId', 'Activity/TicketId', 'Activity/UserId', 'Activity/Timeless', 'Activity/PhoneNumber', 'Activity/Recurring', 'Activity/Alarm', 'Activity/ModifyDate', 'Activity/Priority'],
+    resourceKind: 'userActivities',
+    allowSelection: true,
+    enableActions: true,
+    hashTagQueries: {
+      'alarm': 'Alarm eq true',
+      'status-unconfirmed': 'Status eq &quot;asUnconfirmed&quot;',
+      'status-accepted': 'Status eq &quot;asAccepted&quot;',
+      'status-declined': 'Status eq &quot;asDeclned&quot;',
+      'recurring': 'Activity.Recurring eq true',
+      'timeless': 'Activity.Timeless eq true',
+      'yesterday': function yesterday() {
+        var now = moment();
+        var yesterdayStart = now.clone().subtract(1, 'days').startOf('day');
+        var yesterdayEnd = yesterdayStart.clone().endOf('day');
 
-                    viewId = 'account_detail';
-                    options = {
-                        key: selection.data['Activity']['AccountId'],
-                        descriptor: selection.data['Activity']['AccountName']
-                    };
+        var theQuery = _string['default'].substitute('((Activity.Timeless eq false and Activity.StartDate between @${0}@ and @${1}@) or (Activity.Timeless eq true and Activity.StartDate between @${2}@ and @${3}@))', [_convert['default'].toIsoStringFromDate(yesterdayStart.toDate()), _convert['default'].toIsoStringFromDate(yesterdayEnd.toDate()), yesterdayStart.format('YYYY-MM-DDT00:00:00[Z]'), yesterdayEnd.format('YYYY-MM-DDT23:59:59[Z]')]);
+        return theQuery;
+      },
+      'today': function today() {
+        var now = moment();
+        var todayStart = now.clone().startOf('day');
+        var todayEnd = todayStart.clone().endOf('day');
 
-                    view = App.getView(viewId);
-                    if (view &amp;&amp; options) {
-                        view.show(options);
-                    }
-                }
-            }, {
-                id: 'viewOpportunity',
-                label: this.viewOpportunityActionText,
-                enabled: function(action, selection) {
-                    var entry = selection &amp;&amp; selection.data;
-                    if (!entry) {
-                        return false;
-                    }
-                    if (entry.Activity['OpportunityId']) {
-                        return true;
-                    }
-                    return false;
-                },
-                fn: function(action, selection) {
-                    var viewId, options, view;
+        var theQuery = _string['default'].substitute('((Activity.Timeless eq false and Activity.StartDate between @${0}@ and @${1}@) or (Activity.Timeless eq true and Activity.StartDate between @${2}@ and @${3}@))', [_convert['default'].toIsoStringFromDate(todayStart.toDate()), _convert['default'].toIsoStringFromDate(todayEnd.toDate()), todayStart.format('YYYY-MM-DDT00:00:00[Z]'), todayEnd.format('YYYY-MM-DDT23:59:59[Z]')]);
+        return theQuery;
+      },
+      'this-week': function thisWeek() {
+        var now = moment();
+        var weekStartDate = now.clone().startOf('week');
+        var weekEndDate = weekStartDate.clone().endOf('week');
 
-                    viewId = 'opportunity_detail';
-                    options = {
-                        key: selection.data['Activity']['OpportunityId'],
-                        descriptor: selection.data['Activity']['OpportunityName']
-                    };
-                    view = App.getView(viewId);
-                    if (view &amp;&amp; options) {
-                        view.show(options);
-                    }
-                }
-            }, {
-                id: 'viewContact',
-                label: this.viewContactActionText,
-                action: 'navigateToContactOrLead',
-                enabled: this.hasContactOrLead
-            }, {
-                id: 'complete',
-                cls: 'fa fa-check-square fa-2x',
-                label: this.completeActivityText,
-                enabled: function(action, selection) {
-                    var recur, entry = selection &amp;&amp; selection.data;
-                    if (!entry) {
-                        return false;
-                    }
+        var theQuery = _string['default'].substitute('((Activity.Timeless eq false and Activity.StartDate between @${0}@ and @${1}@) or (Activity.Timeless eq true and Activity.StartDate between @${2}@ and @${3}@))', [_convert['default'].toIsoStringFromDate(weekStartDate.toDate()), _convert['default'].toIsoStringFromDate(weekEndDate.toDate()), weekStartDate.format('YYYY-MM-DDT00:00:00[Z]'), weekEndDate.format('YYYY-MM-DDT23:59:59[Z]')]);
+        return theQuery;
+      }
+    },
+    hashTagQueriesText: {
+      'alarm': 'alarm',
+      'status-unconfirmed': 'status-unconfirmed',
+      'status-accepted': 'status-accepted',
+      'status-declined': 'status-declined',
+      'recurring': 'recurring',
+      'timeless': 'timeless',
+      'today': 'today',
+      'this-week': 'this-week',
+      'yesterday': 'yesterday'
+    },
+    createToolLayout: function createToolLayout() {
+      this.inherited(arguments);
+      if (this.tools &amp;&amp; this.tools.tbar &amp;&amp; !this._refreshAdded &amp;&amp; !window.App.supportsTouch()) {
+        this.tools.tbar.push({
+          id: 'refresh',
+          cls: 'fa fa-refresh fa-fw fa-lg',
+          action: '_refreshClicked'
+        });
 
-                    recur = entry.Activity.Recurring;
+        this._refreshAdded = true;
+      }
 
-                    return entry.Activity['Leader']['$key'] === App.context['user']['$key'] &amp;&amp; !recur;
-                },
-                fn: (function(action, selection) {
-                    var entry;
+      return this.tools;
+    },
+    _refreshAdded: false,
+    _refreshClicked: function _refreshClicked() {
+      this.clear();
+      this.refreshRequired = true;
+      this.refresh();
 
-                    entry = selection &amp;&amp; selection.data &amp;&amp; selection.data.Activity;
+      // Hook for customizers
+      this.onRefreshClicked();
+    },
+    onRefreshClicked: function onRefreshClicked() {},
+    _callPhone: function _callPhone(params) {
+      this.invokeActionItemBy(function setActionId(theAction) {
+        return theAction.id === 'call';
+      }, params.key);
+    },
+    defaultSearchTerm: function defaultSearchTerm() {
+      if (App.enableHashTags) {
+        return '#' + this.hashTagQueriesText['this-week'];
+      }
 
-                    entry['CompletedDate'] = new Date();
-                    entry['Result'] = 'Complete';
-
-                    environment.refreshActivityLists();
-                    this.completeActivity(entry);
-
-                }).bindDelegate(this)
-            }, {
-                id: 'accept',
-                cls: 'fa fa-check fa-2x',
-                label: this.acceptActivityText,
-                enabled: function(action, selection) {
-                    var entry = selection &amp;&amp; selection.data;
-                    if (!entry) {
-                        return false;
-                    }
-
-                    return entry.Status === 'asUnconfirmed';
-                },
-                fn: (function(action, selection) {
-                    var entry;
-
-                    entry = selection &amp;&amp; selection.data;
-                    environment.refreshActivityLists();
-                    this.confirmActivityFor(entry.Activity.$key, App.context['user']['$key']);
-
-                }).bindDelegate(this)
-            }, {
-                id: 'decline',
-                cls: 'fa fa-ban fa-2x',
-                label: this.declineActivityText,
-                enabled: function(action, selection) {
-                    var entry = selection &amp;&amp; selection.data;
-                    if (!entry) {
-                        return false;
-                    }
-
-                    return entry.Status === 'asUnconfirmed';
-                },
-                fn: (function(action, selection) {
-                    var entry;
-                    entry = selection &amp;&amp; selection.data;
-
-                    environment.refreshActivityLists();
-                    this.declineActivityFor(entry.Activity.$key, App.context['user']['$key']);
-                }).bindDelegate(this)
-            }, {
-                id: 'call',
-                cls: 'fa fa-phone-square fa-2x',
-                label: this.callText,
-                enabled: function(action, selection) {
-                    var entry;
-                    entry = selection &amp;&amp; selection.data;
-                    return entry &amp;&amp; entry.Activity &amp;&amp; entry.Activity.PhoneNumber;
-                },
-                fn: function(action, selection) {
-                    var entry, phone;
-                    entry = selection &amp;&amp; selection.data;
-                    phone = entry &amp;&amp; entry.Activity &amp;&amp; entry.Activity.PhoneNumber;
-                    if (phone) {
-                        this.recordCallToHistory(function() {
-                            App.initiateCall(phone);
-                        }.bindDelegate(this), entry);
-                    }
-                }.bindDelegate(this)
-            }, {
-                id: 'addAttachment',
-                cls: 'fa fa-paperclip fa-2x',
-                label: this.addAttachmentActionText,
-                fn: action.addAttachment.bindDelegate(this)
-            }]
-            );
-        },
-        selectEntry: function(params, evt, node) {
-            /* Override selectEntry from the base List mixin.
-             * Grabbing a different key here, since we use entry.Activity.$key as the main data-key.
-             * TODO: Make [data-key] overrideable in the base class.
-             */
-            var row = query(node).closest('[data-my-activity-key]')[0],
-                key = row ? row.getAttribute('data-my-activity-key') : false;
-
-            if (this._selectionModel &amp;&amp; key) {
-                this._selectionModel.toggle(key, this.entries[key], row);
-            }
-
-            if (this.options.singleSelect &amp;&amp; this.options.singleSelectAction &amp;&amp; !this.enableActions) {
-                this.invokeSingleSelectAction();
-            }
-        },
-        formatSearchQuery: function(searchQuery) {
-            return string.substitute('upper(Activity.Description) like &quot;%${0}%&quot;', [this.escapeSearchQuery(searchQuery.toUpperCase())]);
-        },
-        declineActivityFor: function(activityId, userId) {
-            this._getUserNotifications(activityId, userId, false);
-        },
-        confirmActivityFor: function(activityId, userId) {
-            this._getUserNotifications(activityId, userId, true);
-        },
-        _getUserNotifications: function(activityId, userId, accept) {
-            var req;
-
-            if (activityId) {
-                activityId = activityId.substring(0, 12);
-            }
-
-            req = new Sage.SData.Client.SDataResourceCollectionRequest(this.getService());
-            req.setResourceKind('userNotifications');
-            req.setContractName('dynamic');
-            req.setQueryArg('where', string.substitute('ActivityId eq \'${0}\' and ToUser.Id eq \'${1}\'', [activityId, userId]));
-            req.setQueryArg('precedence', '0');
-            req.read({
-                success: function(userNotifications) {
-                    if (userNotifications['$resources'] &amp;&amp; userNotifications['$resources'].length &gt; 0) {
-                        if (accept) {
-                            this.acceptConfirmation(userNotifications['$resources'][0]);
-                        } else {
-                            this.declineConfirmation(userNotifications['$resources'][0]);
-                        }
-                    }
-                },
-                failure: this.onRequestFailure,
-                scope: this
-            });
-        },
-        declineConfirmation: function(notification) {
-            this._postUserNotifications(notification, 'Decline');
-        },
-        acceptConfirmation: function(notification) {
-            this._postUserNotifications(notification, 'Accept');
-        },
-        _postUserNotifications: function(notification, operation) {
-            if (!notification || typeof operation !== 'string') {
-                return;
-            }
-
-            var payload, request;
-
-            /*
-             * To get the payload template:
-             * http://localhost:6666/SlxClient/slxdata.ashx/slx/dynamic/-/userNotifications/$service/accept/$template?format=json
-            */
-            payload = {
-                '$name': operation,
-                'request': {
-                    'entity': notification,
-                    'UserNotificationId': notification['$key']
-                }
-            };
-
-            request = new Sage.SData.Client.SDataServiceOperationRequest(this.getService())
-                .setContractName('dynamic')
-                .setResourceKind('usernotifications')
-                .setOperationName(operation.toLowerCase());
-            request.execute(payload, {
-                success: function() {
-                    this.clear();
-                    this.refresh();
-                },
-                failure: this.onRequestFailure,
-                scope: this
-            });
-        },
-        completeActivity: function(entry) {
-            var request, completeActivityEntry;
-
-            completeActivityEntry = {
-                '$name': 'ActivityComplete',
-                'request': {
-                    'entity': {'$key': entry['$key']},
-                    'ActivityId': entry['$key'],
-                    'userId': entry['Leader']['$key'],
-                    'result': entry['Result'],
-                    'completeDate': entry['CompletedDate']
-                }
-            };
-
-            request = new Sage.SData.Client.SDataServiceOperationRequest(this.getService())
-                .setResourceKind('activities')
-                .setContractName('system')
-                .setOperationName('Complete');
-
-            request.execute(completeActivityEntry, {
-                success: function() {
-                    connect.publish('/app/refresh', [{
-                        resourceKind: 'history'
-                    }]);
-
-                    this.clear();
-                    this.refresh();
-                },
-                failure: this.onRequestFailure,
-                scope: this
-            });
-        },
-        onRequestFailure: function(response, o) {
-            ErrorManager.addError(response, o, {}, 'failure');
-        },
-        hasAlarm: function(entry) {
-            if (entry.Activity &amp;&amp; entry.Activity.Alarm === true) {
-                return true;
-            }
-
+      return '';
+    },
+    createActionLayout: function createActionLayout() {
+      return this.actions || (this.actions = [{
+        id: 'viewAccount',
+        label: this.viewAccountActionText,
+        enabled: function enabled(theAction, selection) {
+          var entry = selection &amp;&amp; selection.data;
+          if (!entry) {
             return false;
+          }
+          if (entry.Activity.AccountId) {
+            return true;
+          }
+          return false;
         },
-        hasBeenTouched: function(entry) {
-            var modifiedDate, currentDate, weekAgo;
+        fn: function fn(theAction, selection) {
+          var viewId = 'account_detail';
+          var options = {
+            key: selection.data.Activity.AccountId,
+            descriptor: selection.data.Activity.AccountName
+          };
 
-            if (entry['Activity']['ModifyDate']) {
-                modifiedDate = moment(convert.toDateFromString(entry['Activity']['ModifyDate']));
-                currentDate = moment().endOf('day');
-                weekAgo = moment().subtract(1, 'weeks');
-
-                return modifiedDate.isAfter(weekAgo) &amp;&amp;
-                    modifiedDate.isBefore(currentDate);
-            }
-
-            return false;
-        },
-        isImportant: function(entry) {
-            if (entry['Activity']['Priority']) {
-                if (entry['Activity']['Priority'] === 'High') {
-                    return true;
-                }
-            }
-
-            return false;
-        },
-        isOverdue: function(entry) {
-            var startDate, currentDate, seconds, mins;
-            if (entry['Activity']['StartDate']) {
-                startDate = convert.toDateFromString(entry['Activity']['StartDate']);
-                currentDate = new Date();
-                seconds = Math.round((currentDate - startDate) / 1000);
-                mins = seconds / 60;
-                if (mins &gt;= 1) {
-                    return true;
-                }
-            }
-            return false;
-        },
-        isTimelessToday: function(entry) {
-            if (!entry || !entry.Activity || !entry.Activity.Timeless) {
-                return false;
-            }
-
-            var start = moment(entry.Activity.StartDate);
-            return this._isTimelessToday(start);
-        },
-        isRecurring: function(entry) {
-            if (entry['Activity']['Recurring']) {
-                return true;
-            }
-
-            return false;
-        },
-        getItemIconClass: function(entry) {
-            var type = entry &amp;&amp; entry.Activity &amp;&amp; entry.Activity.Type;
-            return this._getItemIconClass(type);
-        },
-        getItemActionKey: function(entry) {
-            return entry.Activity.$key;
-        },
-        getItemDescriptor: function(entry) {
-            return entry.Activity.$descriptor;
-        },
-        hasContactOrLead: function(action, selection) {
-            return (selection.data['Activity']['ContactId']) || (selection.data['Activity']['LeadId']);
-        },
-        navigateToContactOrLead: function(action, selection) {
-            var entry = selection.data['Activity'],
-                entity = this.resolveContactOrLeadEntity(entry),
-                viewId,
-                view,
-                options;
-
-            switch (entity) {
-                case 'Contact':
-                    viewId = 'contact_detail';
-                    options = {
-                        key: entry['ContactId'],
-                        descriptor: entry['ContactName']
-                    };
-                    break;
-                case 'Lead':
-                    viewId = 'lead_detail';
-                    options = {
-                        key: entry['LeadId'],
-                        descriptor: entry['LeadName']
-                    };
-                    break;
-            }
-
-            view = App.getView(viewId);
-
-            if (view &amp;&amp; options) {
-                view.show(options);
-            }
-        },
-        resolveContactOrLeadEntity: function(entry) {
-            var exists = this.existsRE;
-
-            if (entry) {
-                if (exists.test(entry['LeadId'])) {
-                    return 'Lead';
-                }
-                if (exists.test(entry['ContactId'])) {
-                    return 'Contact';
-                }
-            }
-        },
-        recordCallToHistory: function(complete, entry) {
-            var tempEntry = {
-                '$name': 'History',
-                'Type': 'atPhoneCall',
-                'ContactName': entry['Activity']['ContactName'],
-                'ContactId': entry['Activity']['ContactId'],
-                'AccountName': entry['Activity']['AccountName'],
-                'AccountId': entry['Activity']['AccountId'],
-                'Description': string.substitute('${0} ${1}', [this.calledText, (entry['Activity']['ContactName'] || '')]),
-                'UserId': App.context &amp;&amp; App.context.user['$key'],
-                'UserName': App.context &amp;&amp; App.context.user['UserName'],
-                'Duration': 15,
-                'CompletedDate': (new Date())
-            };
-
-            this.navigateToHistoryInsert('atPhoneCall', tempEntry, complete);
-        },
-
-        navigateToHistoryInsert: function(type, entry, complete) {
-            var view = App.getView(this.historyEditView);
-            if (view) {
-                environment.refreshActivityLists();
-                view.show({
-                    title: this.activityTypeText[type],
-                    template: {},
-                    entry: entry,
-                    insert: true
-                }, {
-                    complete: complete
-                });
-            }
+          var view = App.getView(viewId);
+          if (view &amp;&amp; options) {
+            view.show(options);
+          }
         }
-    });
+      }, {
+        id: 'viewOpportunity',
+        label: this.viewOpportunityActionText,
+        enabled: function enabled(theAction, selection) {
+          var entry = selection &amp;&amp; selection.data;
+          if (!entry) {
+            return false;
+          }
+          if (entry.Activity.OpportunityId) {
+            return true;
+          }
+          return false;
+        },
+        fn: function fn(theAction, selection) {
+          var viewId = 'opportunity_detail';
+          var options = {
+            key: selection.data.Activity.OpportunityId,
+            descriptor: selection.data.Activity.OpportunityName
+          };
+          var view = App.getView(viewId);
+          if (view &amp;&amp; options) {
+            view.show(options);
+          }
+        }
+      }, {
+        id: 'viewContact',
+        label: this.viewContactActionText,
+        action: 'navigateToContactOrLead',
+        enabled: this.hasContactOrLead
+      }, {
+        id: 'complete',
+        cls: 'fa fa-check-square fa-2x',
+        label: this.completeActivityText,
+        enabled: function enabled(theAction, selection) {
+          var entry = selection &amp;&amp; selection.data;
+          if (!entry) {
+            return false;
+          }
 
-    lang.setObject('Mobile.SalesLogix.Views.Activity.MyList', __class);
-    return __class;
+          var recur = entry.Activity.Recurring;
+
+          return entry.Activity.Leader.$key === App.context.user.$key &amp;&amp; !recur;
+        },
+        fn: (function fn(theAction, selection) {
+          var entry = selection &amp;&amp; selection.data &amp;&amp; selection.data.Activity;
+
+          entry.CompletedDate = new Date();
+          entry.Result = 'Complete';
+
+          _environment['default'].refreshActivityLists();
+          this.completeActivity(entry);
+        }).bindDelegate(this)
+      }, {
+        id: 'accept',
+        cls: 'fa fa-check fa-2x',
+        label: this.acceptActivityText,
+        enabled: function enabled(theAction, selection) {
+          var entry = selection &amp;&amp; selection.data;
+          if (!entry) {
+            return false;
+          }
+
+          return entry.Status === 'asUnconfirmed';
+        },
+        fn: (function fn(theAction, selection) {
+          var entry = selection &amp;&amp; selection.data;
+          _environment['default'].refreshActivityLists();
+          this.confirmActivityFor(entry.Activity.$key, App.context.user.$key);
+        }).bindDelegate(this)
+      }, {
+        id: 'decline',
+        cls: 'fa fa-ban fa-2x',
+        label: this.declineActivityText,
+        enabled: function enabled(theAction, selection) {
+          var entry = selection &amp;&amp; selection.data;
+          if (!entry) {
+            return false;
+          }
+
+          return entry.Status === 'asUnconfirmed';
+        },
+        fn: (function fn(theAction, selection) {
+          var entry = selection &amp;&amp; selection.data;
+
+          _environment['default'].refreshActivityLists();
+          this.declineActivityFor(entry.Activity.$key, App.context.user.$key);
+        }).bindDelegate(this)
+      }, {
+        id: 'call',
+        cls: 'fa fa-phone-square fa-2x',
+        label: this.callText,
+        enabled: function enabled(theAction, selection) {
+          var entry = selection &amp;&amp; selection.data;
+          return entry &amp;&amp; entry.Activity &amp;&amp; entry.Activity.PhoneNumber;
+        },
+        fn: (function fn(theAction, selection) {
+          var entry = selection &amp;&amp; selection.data;
+          var phone = entry &amp;&amp; entry.Activity &amp;&amp; entry.Activity.PhoneNumber;
+          if (phone) {
+            this.recordCallToHistory((function initiateCall() {
+              App.initiateCall(phone);
+            }).bindDelegate(this), entry);
+          }
+        }).bindDelegate(this)
+      }, {
+        id: 'addAttachment',
+        cls: 'fa fa-paperclip fa-2x',
+        label: this.addAttachmentActionText,
+        fn: _action['default'].addAttachment.bindDelegate(this)
+      }]);
+    },
+    selectEntry: function selectEntry(params, evt, node) {
+      /* Override selectEntry from the base List mixin.
+       * Grabbing a different key here, since we use entry.Activity.$key as the main data-key.
+       * TODO: Make [data-key] overrideable in the base class.
+       */
+      var row = (0, _query['default'])(node).closest('[data-my-activity-key]')[0];
+      var key = row ? row.getAttribute('data-my-activity-key') : false;
+
+      if (this._selectionModel &amp;&amp; key) {
+        this._selectionModel.toggle(key, this.entries[key], row);
+      }
+
+      if (this.options.singleSelect &amp;&amp; this.options.singleSelectAction &amp;&amp; !this.enableActions) {
+        this.invokeSingleSelectAction();
+      }
+    },
+    formatSearchQuery: function formatSearchQuery(searchQuery) {
+      return _string['default'].substitute('upper(Activity.Description) like &quot;%${0}%&quot;', [this.escapeSearchQuery(searchQuery.toUpperCase())]);
+    },
+    declineActivityFor: function declineActivityFor(activityId, userId) {
+      this._getUserNotifications(activityId, userId, false);
+    },
+    confirmActivityFor: function confirmActivityFor(activityId, userId) {
+      this._getUserNotifications(activityId, userId, true);
+    },
+    _getUserNotifications: function _getUserNotifications(activityId, userId, accept) {
+      var id = activityId;
+      if (activityId) {
+        id = activityId.substring(0, 12);
+      }
+
+      var req = new Sage.SData.Client.SDataResourceCollectionRequest(this.getService());
+      req.setResourceKind('userNotifications');
+      req.setContractName('dynamic');
+      req.setQueryArg('where', _string['default'].substitute('ActivityId eq \'${0}\' and ToUser.Id eq \'${1}\'', [id, userId]));
+      req.setQueryArg('precedence', '0');
+      req.read({
+        success: function success(userNotifications) {
+          if (userNotifications.$resources &amp;&amp; userNotifications.$resources.length &gt; 0) {
+            if (accept) {
+              this.acceptConfirmation(userNotifications.$resources[0]);
+            } else {
+              this.declineConfirmation(userNotifications.$resources[0]);
+            }
+          }
+        },
+        failure: this.onRequestFailure,
+        scope: this
+      });
+    },
+    declineConfirmation: function declineConfirmation(notification) {
+      this._postUserNotifications(notification, 'Decline');
+    },
+    acceptConfirmation: function acceptConfirmation(notification) {
+      this._postUserNotifications(notification, 'Accept');
+    },
+    _postUserNotifications: function _postUserNotifications(notification, operation) {
+      if (!notification || typeof operation !== 'string') {
+        return;
+      }
+      /*
+       * To get the payload template:
+       * http://localhost:6666/SlxClient/slxdata.ashx/slx/dynamic/-/userNotifications/$service/accept/$template?format=json
+       */
+      var payload = {
+        '$name': operation,
+        'request': {
+          'entity': notification,
+          'UserNotificationId': notification.$key
+        }
+      };
+
+      var request = new Sage.SData.Client.SDataServiceOperationRequest(this.getService()).setContractName('dynamic').setResourceKind('usernotifications').setOperationName(operation.toLowerCase());
+      request.execute(payload, {
+        success: function success() {
+          this.clear();
+          this.refresh();
+        },
+        failure: this.onRequestFailure,
+        scope: this
+      });
+    },
+    completeActivity: function completeActivity(entry) {
+      var _this = this;
+
+      var activityModel = App.ModelManager.getModel(_MODEL_NAMES['default'].ACTIVITY, _MODEL_TYPES['default'].SDATA);
+      if (activityModel) {
+        activityModel.completeActivity(entry).then(function () {
+          _connect['default'].publish('/app/refresh', [{
+            resourceKind: 'history'
+          }]);
+
+          _this.clear();
+          _this.refresh();
+        }, function (err) {
+          _ErrorManager['default'].addError(err, _this, {}, 'failure');
+        });
+      }
+    },
+    onRequestFailure: function onRequestFailure(response, o) {
+      _ErrorManager['default'].addError(response, o, {}, 'failure');
+    },
+    hasAlarm: function hasAlarm(entry) {
+      if (entry.Activity &amp;&amp; entry.Activity.Alarm === true) {
+        return true;
+      }
+
+      return false;
+    },
+    hasBeenTouched: function hasBeenTouched(entry) {
+      if (entry.Activity.ModifyDate) {
+        var modifiedDate = moment(_convert['default'].toDateFromString(entry.Activity.ModifyDate));
+        var currentDate = moment().endOf('day');
+        var weekAgo = moment().subtract(1, 'weeks');
+
+        return modifiedDate.isAfter(weekAgo) &amp;&amp; modifiedDate.isBefore(currentDate);
+      }
+
+      return false;
+    },
+    isImportant: function isImportant(entry) {
+      if (entry.Activity.Priority) {
+        if (entry.Activity.Priority === 'High') {
+          return true;
+        }
+      }
+
+      return false;
+    },
+    isOverdue: function isOverdue(entry) {
+      if (entry.Activity.StartDate) {
+        var startDate = _convert['default'].toDateFromString(entry.Activity.StartDate);
+        var currentDate = new Date();
+        var seconds = Math.round((currentDate - startDate) / 1000);
+        var mins = seconds / 60;
+        if (mins &gt;= 1) {
+          return true;
+        }
+      }
+      return false;
+    },
+    isTimelessToday: function isTimelessToday(entry) {
+      if (!entry || !entry.Activity || !entry.Activity.Timeless) {
+        return false;
+      }
+
+      var start = moment(entry.Activity.StartDate);
+      return this._isTimelessToday(start);
+    },
+    isRecurring: function isRecurring(entry) {
+      if (entry.Activity.Recurring) {
+        return true;
+      }
+
+      return false;
+    },
+    getItemIconClass: function getItemIconClass(entry) {
+      var type = entry &amp;&amp; entry.Activity &amp;&amp; entry.Activity.Type;
+      return this._getItemIconClass(type);
+    },
+    getItemActionKey: function getItemActionKey(entry) {
+      return entry.Activity.$key;
+    },
+    getItemDescriptor: function getItemDescriptor(entry) {
+      return entry.Activity.$descriptor;
+    },
+    hasContactOrLead: function hasContactOrLead(theAction, selection) {
+      return selection.data.Activity.ContactId || selection.data.Activity.LeadId;
+    },
+    navigateToContactOrLead: function navigateToContactOrLead(theAction, selection) {
+      var entry = selection.data.Activity;
+      var entity = this.resolveContactOrLeadEntity(entry);
+      var viewId = undefined;
+      var options = undefined;
+
+      switch (entity) {
+        case 'Contact':
+          viewId = 'contact_detail';
+          options = {
+            key: entry.ContactId,
+            descriptor: entry.ContactName
+          };
+          break;
+        case 'Lead':
+          viewId = 'lead_detail';
+          options = {
+            key: entry.LeadId,
+            descriptor: entry.LeadName
+          };
+          break;
+        default:
+      }
+
+      var view = App.getView(viewId);
+
+      if (view &amp;&amp; options) {
+        view.show(options);
+      }
+    },
+    resolveContactOrLeadEntity: function resolveContactOrLeadEntity(entry) {
+      var exists = this.existsRE;
+
+      if (entry) {
+        if (exists.test(entry.LeadId)) {
+          return 'Lead';
+        }
+        if (exists.test(entry.ContactId)) {
+          return 'Contact';
+        }
+      }
+    },
+    recordCallToHistory: function recordCallToHistory(complete, entry) {
+      var tempEntry = {
+        '$name': 'History',
+        'Type': 'atPhoneCall',
+        'ContactName': entry.Activity.ContactName,
+        'ContactId': entry.Activity.ContactId,
+        'AccountName': entry.Activity.AccountName,
+        'AccountId': entry.Activity.AccountId,
+        'Description': _string['default'].substitute('${0} ${1}', [this.calledText, entry.Activity.ContactName || '']),
+        'UserId': App.context &amp;&amp; App.context.user.$key,
+        'UserName': App.context &amp;&amp; App.context.user.UserName,
+        'Duration': 15,
+        'CompletedDate': new Date()
+      };
+
+      this.navigateToHistoryInsert('atPhoneCall', tempEntry, complete);
+    },
+
+    navigateToHistoryInsert: function navigateToHistoryInsert(type, entry, complete) {
+      var view = App.getView(this.historyEditView);
+      if (view) {
+        _environment['default'].refreshActivityLists();
+        view.show({
+          title: this.activityTypeText[type],
+          template: {},
+          entry: entry,
+          insert: true
+        }, {
+          complete: complete
+        });
+      }
+    },
+    createBriefcaseEntity: function createBriefcaseEntity(entry) {
+      var entity = {
+        entityId: entry.Activity.$key,
+        entityName: 'Activity',
+        options: {
+          includeRelated: true,
+          viewId: this.detailView,
+          iconClass: this.getItemIconClass(entry)
+        }
+      };
+      return entity;
+    }
+  });
+
+  _lang['default'].setObject('Mobile.SalesLogix.Views.Activity.MyList', __class);
+  module.exports = __class;
 });
-
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInNyYy9WaWV3cy9BY3Rpdml0eS9NeUxpc3QuanMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7OztBQWVBLE1BQU0sUUFBUSxHQUFHLDZCQUFZLGdCQUFnQixDQUFDLENBQUM7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7QUFzQi9DLE1BQU0sT0FBTyxHQUFHLHlCQUFRLDJCQUEyQixFQUFFLHlEQUFpQyxFQUFFOzs7O0FBSXRGLDRCQUF3QixFQUFFLElBQUksUUFBUSxDQUFDLENBQ3JDLDZNQUE2TSxFQUM3TSxrQ0FBa0MsRUFDbEMsT0FBTyxDQUNSLENBQUM7QUFDRix3QkFBb0IsRUFBRSxJQUFJLFFBQVEsQ0FBQyxDQUNqQyxvQ0FBb0MsRUFDcEMsc0JBQXNCLEVBQ3RCLGdCQUFnQixFQUNoQixvR0FBb0csRUFDcEcsU0FBUyxDQUNWLENBQUM7QUFDRixnQkFBWSxFQUFFLElBQUksUUFBUSxDQUFDLENBQ3pCLE1BQU0sRUFDTixvS0FBb0ssRUFDcEssT0FBTyxFQUNQLE1BQU0sRUFDTixnQ0FBZ0MsRUFDaEMsT0FBTyxFQUNQLGlDQUFpQyxFQUNqQyxNQUFNLEVBQ04scUNBQXFDLEVBQ3JDLCtIQUErSCxFQUMvSCxTQUFTLEVBQ1QsT0FBTyxDQUNSLENBQUM7QUFDRixnQkFBWSxFQUFFLElBQUksUUFBUSxDQUFDLENBQ3pCLHFDQUFxQyxFQUNyQywrREFBK0QsRUFDL0QsNENBQTRDLEVBQzVDLCtCQUErQixFQUMvQixnQkFBZ0IsRUFDaEIsNEJBQTRCLEVBQzVCLFNBQVMsQ0FDVixDQUFDOzs7QUFHRixhQUFTLEVBQUUsUUFBUSxDQUFDLFNBQVM7QUFDN0Isd0JBQW9CLEVBQUUsUUFBUSxDQUFDLG9CQUFvQjtBQUNuRCxzQkFBa0IsRUFBRSxRQUFRLENBQUMsa0JBQWtCO0FBQy9DLHVCQUFtQixFQUFFLFFBQVEsQ0FBQyxtQkFBbUI7QUFDakQsWUFBUSxFQUFFLFFBQVEsQ0FBQyxRQUFRO0FBQzNCLGNBQVUs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QXFCLENBQUMsS0FBSyxFQUFFO0FBQzNELFVBQU0sTUFBTSxHQUFHO0FBQ2IsZ0JBQVEsRUFBRSxLQUFLLENBQUMsUUFBUSxDQUFDLElBQUk7QUFDN0Isa0JBQVUsRUFBRSxVQUFVO0FBQ3RCLGVBQU8sRUFBRTtBQUNQLHdCQUFjLEVBQUUsSUFBSTtBQUNwQixnQkFBTSxFQUFFLElBQUksQ0FBQyxVQUFVO0FBQ3ZCLG1CQUFTLEVBQUUsSUFBSSxDQUFDLGdCQUFnQixDQUFDLEtBQUssQ0FBQztTQUN4QztPQUNGLENBQUM7QUFDRixhQUFPLE1BQU0sQ0FBQztLQUNmO0dBQ0YsQ0FBQyxDQUFDOztBQUVILG1CQUFLLFNBQVMsQ0FBQyx5Q0FBeUMsRUFBRSxPQUFPLENBQUMsQ0FBQzttQkFDcEQsT0FBTyIsImZpbGUiOiJzcmMvVmlld3MvQWN0aXZpdHkvTXlMaXN0LmpzIiwic291cmNlUm9vdCI6InNyYyIsInNvdXJjZXNDb250ZW50IjpbImltcG9ydCBkZWNsYXJlIGZyb20gJ2Rvam8vX2Jhc2UvZGVjbGFyZSc7XHJcbmltcG9ydCBsYW5nIGZyb20gJ2Rvam8vX2Jhc2UvbGFuZyc7XHJcbmltcG9ydCBzdHJpbmcgZnJvbSAnZG9qby9zdHJpbmcnO1xyXG5pbXBvcnQgcXVlcnkgZnJvbSAnZG9qby9xdWVyeSc7XHJcbmltcG9ydCBjb25uZWN0IGZyb20gJ2Rvam8vX2Jhc2UvY29ubmVjdCc7XHJcbmltcG9ydCBlbnZpcm9ubWVudCBmcm9tICcuLi8uLi9FbnZpcm9ubWVudCc7XHJcbmltcG9ydCBBY3Rpdml0eUxpc3QgZnJvbSAnLi9MaXN0JztcclxuaW1wb3J0IGNvbnZlcnQgZnJvbSAnYXJnb3MvQ29udmVydCc7XHJcbmltcG9ydCBFcnJvck1hbmFnZXIgZnJvbSAnYXJnb3MvRXJyb3JNYW5hZ2VyJztcclxuaW1wb3J0IGFjdGlvbiBmcm9tICcuLi8uLi9BY3Rpb24nO1xyXG5pbXBvcnQgX0xpc3RPZmZsaW5lTWl4aW4gZnJvbSAnYXJnb3MvT2ZmbGluZS9fTGlzdE9mZmxpbmVNaXhpbic7XHJcbmltcG9ydCBNT0RFTF9UWVBFUyBmcm9tICdhcmdvcy9Nb2RlbHMvVHlwZXMnO1xyXG5pbXBvcnQgTU9ERUxfTkFNRVMgZnJvbSAnLi4vLi4vTW9kZWxzL05hbWVzJztcclxuaW1wb3J0IGdldFJlc291cmNlIGZyb20gJ2FyZ29zL0kxOG4nO1xyXG5cclxuY29uc3QgcmVzb3VyY2UgPSBnZXRSZXNvdXJjZSgnYWN0aXZpdHlNeUxpc3QnKTtcclxuXHJcbi8qKlxyXG4gKiBAY2xhc3MgY3JtLlZpZXdzLkFjdGl2aXR5Lk15TGlzdFxyXG4gKlxyXG4gKiBAZXh0ZW5kcyBjcm0uVmlld3MuQWN0aXZpdHkuTGlzdFxyXG4gKiBAbWl4aW5zIGNybS5WaWV3cy5BY3Rpdml0eS5MaXN0XHJcbiAqXHJcbiAqIEByZXF1aXJlcyBhcmdvcy5MaXN0XHJcbiAqIEByZXF1aXJlcyBhcmdvcy5Gb3JtYXRcclxuICogQHJlcXVpcmVzIGFyZ29zLlV0aWxpdHlcclxuICogQHJlcXVpcmVzIGFyZ29zLkNvbnZlcnRcclxuICogQHJlcXVpcmVzIGFyZ29zLkVycm9yTWFuYWdlclxyXG4gKlxyXG4gKiBAcmVxdWlyZXMgY3JtLkZvcm1hdFxyXG4gKiBAcmVxdWlyZXMgY3JtLkVudmlyb25tZW50XHJcbiAqIEByZXF1aXJlcyBjcm0uVmlld3MuQWN0aXZpdHkuTGlzdFxyXG4gKiBAcmVxdWlyZXMgY3JtLkFjdGlvblxyXG4gKlxyXG4gKiBAcmVxdWlyZXMgbW9tZW50XHJcbiAqXHJcbiAqL1xyXG5jb25zdCBfX2NsYXNzID0gZGVjbGFyZSgnY3JtLlZpZXdzLkFjdGl2aXR5Lk15TGlzdCcsIFtBY3Rpdml0eUxpc3QsIF9MaXN0T2ZmbGluZU1peGluXSwge1xyXG5cclxuICAvLyBUZW1wbGF0ZXNcclxuICAvLyBDYXJkIFZpZXdcclxuICBpdGVtUm93Q29udGFpbmVyVGVtcGxhdGU6IG5ldyBTaW1wbGF0ZShbXHJcbiAgICAnPGxpIGRhdGEtYWN0aW9uPVwiYWN0aXZhdGVFbnRyeVwiIGRhdGEtbXktYWN0aXZpdHkta2V5PVwieyU9ICQuJGtleSAlfVwiIGRhdGEta2V5PVwieyU9ICQkLmdldEl0ZW1BY3Rpb25LZXkoJCkgJX1cIiBkYXRhLWRlc2NyaXB0b3I9XCJ7JTogJCQuZ2V0SXRlbURlc2NyaXB0b3IoJCkgJX1cIiBkYXRhLWFjdGl2aXR5LXR5cGU9XCJ7JTogJC5BY3Rpdml0eS5UeXBlICV9XCI+JyxcclxuICAgICd7JSEgJCQuaXRlbVJvd0NvbnRlbnRUZW1wbGF0ZSAlfScsXHJcbiAgICAnPC9saT4nLFxyXG4gIF0pLFxyXG4gIGFjdGl2aXR5VGltZVRlbXBsYXRlOiBuZXcgU2ltcGxhdGUoW1xyXG4gICAgJ3slIGlmICgkJC5pc1RpbWVsZXNzVG9kYXkoJCkpIHsgJX0nLFxyXG4gICAgJ3slOiAkJC5hbGxEYXlUZXh0ICV9JyxcclxuICAgICd7JSB9IGVsc2UgeyAlfScsXHJcbiAgICAneyU6IGNybS5Gb3JtYXQucmVsYXRpdmVEYXRlKCQuQWN0aXZpdHkuU3RhcnREYXRlLCBhcmdvcy5Db252ZXJ0LnRvQm9vbGVhbigkLkFjdGl2aXR5LlRpbWVsZXNzKSkgJX0nLFxyXG4gICAgJ3slIH0gJX0nLFxyXG4gIF0pLFxyXG4gIGl0ZW1UZW1wbGF0ZTogbmV3IFNpbXBsYXRlKFtcclxuICAgICc8aDM+JyxcclxuICAgICc8c3BhbiBjbGFzcz1cInAtZGVzY3JpcHRpb25cIj57JTogJC5BY3Rpdml0eS5EZXNjcmlwdGlvbiAlfXslIGlmICgkLlN0YXR1cyA9PT0gXCJhc1VuY29uZmlybWVkXCIpIHsgJX0gKHslOiBjcm0uRm9ybWF0LnVzZXJBY3Rpdml0eVN0YXR1cygkLlN0YXR1cykgJX0pIHslIH0gJX08L3NwYW4+JyxcclxuICAgICc8L2gzPicsXHJcbiAgICAnPGg0PicsXHJcbiAgICAneyUhICQkLmFjdGl2aXR5VGltZVRlbXBsYXRlICV9JyxcclxuICAgICc8L2g0PicsXHJcbiAgICAnPGg0PnslISAkJC5uYW1lVGVtcGxhdGUgJX08L2g0PicsXHJcbiAgICAnPGg0PicsXHJcbiAgICAneyUgaWYgKCQuQWN0aXZpdHkuUGhvbmVOdW1iZXIpIHsgJX0nLFxyXG4gICAgJzxzcGFuIGNsYXNzPVwiaHJlZlwiIGRhdGEtYWN0aW9uPVwiX2NhbGxQaG9uZVwiIGRhdGEta2V5PVwieyU6ICQuJGtleSAlfVwiPnslOiBhcmdvcy5Gb3JtYXQucGhvbmUoJC5BY3Rpdml0eS5QaG9uZU51bWJlcikgJX08L3NwYW4+JyxcclxuICAgICd7JSB9ICV9JyxcclxuICAgICc8L2g0PicsXHJcbiAgXSksXHJcbiAgbmFtZVRlbXBsYXRlOiBuZXcgU2ltcGxhdGUoW1xyXG4gICAgJ3slIGlmICgkLkFjdGl2aXR5LkNvbnRhY3ROYW1lKSB7ICV9JyxcclxuICAgICd7JTogJC5BY3Rpdml0eS5Db250YWN0TmFtZSAlfSB8IHslOiAkLkFjdGl2aXR5LkFjY291bnROYW1lICV9JyxcclxuICAgICd7JSB9IGVsc2UgaWYgKCQuQWN0aXZpdHkuQWNjb3VudE5hbWUpIHsgJX0nLFxyXG4gICAgJ3slOiAkLkFjdGl2aXR5LkFjY291bnROYW1lICV9JyxcclxuICAgICd7JSB9IGVsc2UgeyAlfScsXHJcbiAgICAneyU6ICQuQWN0aXZpdHkuTGVhZE5hbWUgJX0nLFxyXG4gICAgJ3slIH0gJX0nLFxyXG4gIF0pLFxyXG5cclxuICAvLyBMb2NhbGl6YXRpb25cclxuICB0aXRsZVRleHQ6IHJlc291cmNlLnRpdGxlVGV4dCxcclxuICBjb21wbGV0ZUFjdGl2aXR5VGV4dDogcmVzb3VyY2UuY29tcGxldGVBY3Rpdml0eVRleHQsXHJcbiAgYWNjZXB0QWN0aXZpdHlUZXh0OiByZXNvdXJjZS5hY2NlcHRBY3Rpdml0eVRleHQsXHJcbiAgZGVjbGluZUFjdGl2aXR5VGV4dDogcmVzb3VyY2UuZGVjbGluZUFjdGl2aXR5VGV4dCxcclxuICBjYWxsVGV4dDogcmVzb3VyY2UuY2FsbFRleHQsXHJcbiAgY2FsbGVkVGV4dDogcmVzb3VyY2UuY2FsbGVkVGV4dCxcclxuICBhZGRBdHRhY2htZW50QWN0aW9uVGV4dDogcmVzb3VyY2UuYWRkQXR0YWNobWVudEFjdGlvblRleHQsXHJcbiAgdmlld0NvbnRhY3RBY3Rpb25UZXh0OiByZXNvdXJjZS52aWV3Q29udGFjdEFjdGlvblRleHQsXHJcbiAgdmlld0FjY291bnRBY3Rpb25UZXh0OiByZXNvdXJjZS52aWV3QWNjb3VudEFjdGlvblRleHQsXHJcbiAgdmlld09wcG9ydHVuaXR5QWN0aW9uVGV4dDogcmVzb3VyY2Uudmlld09wcG9ydHVuaXR5QWN0aW9uVGV4dCxcclxuXHJcbiAgLy8gVmlldyBQcm9wZXJ0aWVzXHJcbiAgaWQ6ICdteWFjdGl2aXR5X2xpc3QnLFxyXG4gIGVudGl0eU5hbWU6ICdVc2VyQWN0aXZpdHknLFxyXG4gIG1vZGVsTmFtZTogJ1VzZXJBY3Rpdml0eScsXHJcbiAgZW5hYmxlT2ZmbGluZTogdHJ1ZSxcclxuICBoaXN0b3J5RWRpdFZpZXc6ICdoaXN0b3J5X2VkaXQnLFxyXG4gIGV4aXN0c1JFOiAvXltcXHddezEyfSQvLFxyXG4gIHF1ZXJ5V2hlcmU6IGZ1bmN0aW9uIHF1ZXJ5V2hlcmUoKSB7XHJcbiAgICByZXR1cm4gc3RyaW5nLnN1YnN0aXR1dGUoJ1VzZXIuSWQgZXEgXCIkezB9XCIgYW5kIFN0YXR1cyBuZSBcImFzRGVjbG5lZFwiIGFuZCBBY3Rpdml0eS5UeXBlIG5lIFwiYXRMaXRlcmF0dXJlXCInLCBbQXBwLmNvbnRleHQudXNlci4ka2V5XSk7XHJcbiAgfSxcclxuICBxdWVyeU9yZGVyQnk6ICdBY3Rpdml0eS5TdGFydERhdGUgZGVzYycsXHJcbiAgcXVlcnlTZWxlY3Q6IFtcclxuICAgICdBbGFybScsXHJcbiAgICAnQWxhcm1UaW1lJyxcclxuICAgICdTdGF0dXMnLFxyXG4gICAgJ0FjdGl2aXR5L0Rlc2NyaXB0aW9uJyxcclxuICAgICdBY3Rpdml0eS9TdGFydERhdGUnLFxyXG4gICAgJ0FjdGl2aXR5L0VuZERhdGUnLFxyXG4gICAgJ0FjdGl2aXR5L1R5cGUnLFxyXG4gICAgJ0FjdGl2aXR5L0FjY291bnROYW1lJyxcclxuICAgICdBY3Rpdml0eS9BY2NvdW50SWQnLFxyXG4gICAgJ0FjdGl2aXR5L0NvbnRhY3RJZCcsXHJcbiAgICAnQWN0aXZpdHkvQ29udGFjdE5hbWUnLFxyXG4gICAgJ0FjdGl2aXR5L0xlYWRlcicsXHJcbiAgICAnQWN0aXZpdHkvTGVhZE5hbWUnLFxyXG4gICAgJ0FjdGl2aXR5L0xlYWRJZCcsXHJcbiAgICAnQWN0aXZpdHkvT3Bwb3J0dW5pdHlJZCcsXHJcbiAgICAnQWN0aXZpdHkvVGlja2V0SWQnLFxyXG4gICAgJ0FjdGl2aXR5L1VzZXJJZCcsXHJcbiAgICAnQWN0aXZpdHkvVGltZWxlc3MnLFxyXG4gICAgJ0FjdGl2aXR5L1Bob25lTnVtYmVyJyxcclxuICAgICdBY3Rpdml0eS9SZWN1cnJpbmcnLFxyXG4gICAgJ0FjdGl2aXR5L0FsYXJtJyxcclxuICAgICdBY3Rpdml0eS9Nb2RpZnlEYXRlJyxcclxuICAgICdBY3Rpdml0eS9Qcmlvcml0eScsXHJcbiAgXSxcclxuICByZXNvdXJjZUtpbmQ6ICd1c2VyQWN0aXZpdGllcycsXHJcbiAgYWxsb3dTZWxlY3Rpb246IHRydWUsXHJcbiAgZW5hYmxlQWN0aW9uczogdHJ1ZSxcclxuICBoYXNoVGFnUXVlcmllczoge1xyXG4gICAgJ2FsYXJtJzogJ0FsYXJtIGVxIHRydWUnLFxyXG4gICAgJ3N0YXR1cy11bmNvbmZpcm1lZCc6ICdTdGF0dXMgZXEgXCJhc1VuY29uZmlybWVkXCInLFxyXG4gICAgJ3N0YXR1cy1hY2NlcHRlZCc6ICdTdGF0dXMgZXEgXCJhc0FjY2VwdGVkXCInLFxyXG4gICAgJ3N0YXR1cy1kZWNsaW5lZCc6ICdTdGF0dXMgZXEgXCJhc0RlY2xuZWRcIicsXHJcbiAgICAncmVjdXJyaW5nJzogJ0FjdGl2aXR5LlJlY3VycmluZyBlcSB0cnVlJyxcclxuICAgICd0aW1lbGVzcyc6ICdBY3Rpdml0eS5UaW1lbGVzcyBlcSB0cnVlJyxcclxuICAgICd5ZXN0ZXJkYXknOiBmdW5jdGlvbiB5ZXN0ZXJkYXkoKSB7XHJcbiAgICAgIGNvbnN0IG5vdyA9IG1vbWVudCgpO1xyXG4gICAgICBjb25zdCB5ZXN0ZXJkYXlTdGFydCA9IG5vdy5jbG9uZSgpLnN1YnRyYWN0KDEsICdkYXlzJykuc3RhcnRPZignZGF5Jyk7XHJcbiAgICAgIGNvbnN0IHllc3RlcmRheUVuZCA9IHllc3RlcmRheVN0YXJ0LmNsb25lKCkuZW5kT2YoJ2RheScpO1xyXG5cclxuICAgICAgY29uc3QgdGhlUXVlcnkgPSBzdHJpbmcuc3Vic3RpdHV0ZShcclxuICAgICAgICAnKChBY3Rpdml0eS5UaW1lbGVzcyBlcSBmYWxzZSBhbmQgQWN0aXZpdHkuU3RhcnREYXRlIGJldHdlZW4gQCR7MH1AIGFuZCBAJHsxfUApIG9yIChBY3Rpdml0eS5UaW1lbGVzcyBlcSB0cnVlIGFuZCBBY3Rpdml0eS5TdGFydERhdGUgYmV0d2VlbiBAJHsyfUAgYW5kIEAkezN9QCkpJywgW1xyXG4gICAgICAgICAgY29udmVydC50b0lzb1N0cmluZ0Zyb21EYXRlKHllc3RlcmRheVN0YXJ0LnRvRGF0ZSgpKSxcclxuICAgICAgICAgIGNvbnZlcnQudG9Jc29TdHJpbmdGcm9tRGF0ZSh5ZXN0ZXJkYXlFbmQudG9EYXRlKCkpLFxyXG4gICAgICAgICAgeWVzdGVyZGF5U3RhcnQuZm9ybWF0KCdZWVlZLU1NLUREVDAwOjAwOjAwW1pdJyksXHJcbiAgICAgICAgICB5ZXN0ZXJkYXlFbmQuZm9ybWF0KCdZWVlZLU1NLUREVDIzOjU5OjU5W1pdJyksXHJcbiAgICAgICAgXVxyXG4gICAgICApO1xyXG4gICAgICByZXR1cm4gdGhlUXVlcnk7XHJcbiAgICB9LFxyXG4gICAgJ3RvZGF5JzogZnVuY3Rpb24gdG9kYXkoKSB7XHJcbiAgICAgIGNvbnN0IG5vdyA9IG1vbWVudCgpO1xyXG4gICAgICBjb25zdCB0b2RheVN0YXJ0ID0gbm93LmNsb25lKCkuc3RhcnRPZignZGF5Jyk7XHJcbiAgICAgIGNvbnN0IHRvZGF5RW5kID0gdG9kYXlTdGFydC5jbG9uZSgpLmVuZE9mKCdkYXknKTtcclxuXHJcbiAgICAgIGNvbnN0IHRoZVF1ZXJ5ID0gc3RyaW5nLnN1YnN0aXR1dGUoXHJcbiAgICAgICAgJygoQWN0aXZpdHkuVGltZWxlc3MgZXEgZmFsc2UgYW5kIEFjdGl2aXR5LlN0YXJ0RGF0ZSBiZXR3ZWVuIEAkezB9QCBhbmQgQCR7MX1AKSBvciAoQWN0aXZpdHkuVGltZWxlc3MgZXEgdHJ1ZSBhbmQgQWN0aXZpdHkuU3RhcnREYXRlIGJldHdlZW4gQCR7Mn1AIGFuZCBAJHszfUApKScsIFtcclxuICAgICAgICAgIGNvbnZlcnQudG9Jc29TdHJpbmdGcm9tRGF0ZSh0b2RheVN0YXJ0LnRvRGF0ZSgpKSxcclxuICAgICAgICAgIGNvbnZlcnQudG9Jc29TdHJpbmdGcm9tRGF0ZSh0b2RheUVuZC50b0RhdGUoKSksXHJcbiAgICAgICAgICB0b2RheVN0YXJ0LmZvcm1hdCgnWVlZWS1NTS1ERFQwMDowMDowMFtaXScpLFxyXG4gICAgICAgICAgdG9kYXlFbmQuZm9ybWF0KCdZWVlZLU1NLUREVDIzOjU5OjU5W1pdJyksXHJcbiAgICAgICAgXVxyXG4gICAgICApO1xyXG4gICAgICByZXR1cm4gdGhlUXVlcnk7XHJcbiAgICB9LFxyXG4gICAgJ3RoaXMtd2Vlayc6IGZ1bmN0aW9uIHRoaXNXZWVrKCkge1xyXG4gICAgICBjb25zdCBub3cgPSBtb21lbnQoKTtcclxuICAgICAgY29uc3Qgd2Vla1N0YXJ0RGF0ZSA9IG5vdy5jbG9uZSgpLnN0YXJ0T2YoJ3dlZWsnKTtcclxuICAgICAgY29uc3Qgd2Vla0VuZERhdGUgPSB3ZWVrU3RhcnREYXRlLmNsb25lKCkuZW5kT2YoJ3dlZWsnKTtcclxuXHJcbiAgICAgIGNvbnN0IHRoZVF1ZXJ5ID0gc3RyaW5nLnN1YnN0aXR1dGUoXHJcbiAgICAgICAgJygoQWN0aXZpdHkuVGltZWxlc3MgZXEgZmFsc2UgYW5kIEFjdGl2aXR5LlN0YXJ0RGF0ZSBiZXR3ZWVuIEAkezB9QCBhbmQgQCR7MX1AKSBvciAoQWN0aXZpdHkuVGltZWxlc3MgZXEgdHJ1ZSBhbmQgQWN0aXZpdHkuU3RhcnREYXRlIGJldHdlZW4gQCR7Mn1AIGFuZCBAJHszfUApKScsIFtcclxuICAgICAgICAgIGNvbnZlcnQudG9Jc29TdHJpbmdGcm9tRGF0ZSh3ZWVrU3RhcnREYXRlLnRvRGF0ZSgpKSxcclxuICAgICAgICAgIGNvbnZlcnQudG9Jc29TdHJpbmdGcm9tRGF0ZSh3ZWVrRW5kRGF0ZS50b0RhdGUoKSksXHJcbiAgICAgICAgICB3ZWVrU3RhcnREYXRlLmZvcm1hdCgnWVlZWS1NTS1ERFQwMDowMDowMFtaXScpLFxyXG4gICAgICAgICAgd2Vla0VuZERhdGUuZm9ybWF0KCdZWVlZLU1NLUREVDIzOjU5OjU5W1pdJyksXHJcbiAgICAgICAgXVxyXG4gICAgICApO1xyXG4gICAgICByZXR1cm4gdGhlUXVlcnk7XHJcbiAgICB9LFxyXG4gIH0sXHJcbiAgaGFzaFRhZ1F1ZXJpZXNUZXh0OiB7XHJcbiAgICAnYWxhcm0nOiAnYWxhcm0nLFxyXG4gICAgJ3N0YXR1cy11bmNvbmZpcm1lZCc6ICdzdGF0dXMtdW5jb25maXJtZWQnLFxyXG4gICAgJ3N0YXR1cy1hY2NlcHRlZCc6ICdzdGF0dXMtYWNjZXB0ZWQnLFxyXG4gICAgJ3N0YXR1cy1kZWNsaW5lZCc6ICdzdGF0dXMtZGVjbGluZWQnLFxyXG4gICAgJ3JlY3VycmluZyc6ICdyZWN1cnJpbmcnLFxyXG4gICAgJ3RpbWVsZXNzJzogJ3RpbWVsZXNzJyxcclxuICAgICd0b2RheSc6ICd0b2RheScsXHJcbiAgICAndGhpcy13ZWVrJzogJ3RoaXMtd2VlaycsXHJcbiAgICAneWVzdGVyZGF5JzogJ3llc3RlcmRheScsXHJcbiAgfSxcclxuICBjcmVhdGVUb29sTGF5b3V0OiBmdW5jdGlvbiBjcmVhdGVUb29sTGF5b3V0KCkge1xyXG4gICAgdGhpcy5pbmhlcml0ZWQoYXJndW1lbnRzKTtcclxuICAgIGlmICh0aGlzLnRvb2xzICYmIHRoaXMudG9vbHMudGJhciAmJiAhdGhpcy5fcmVmcmVzaEFkZGVkICYmICF3aW5kb3cuQXBwLnN1cHBvcnRzVG91Y2goKSkge1xyXG4gICAgICB0aGlzLnRvb2xzLnRiYXIucHVzaCh7XHJcbiAgICAgICAgaWQ6ICdyZWZyZXNoJyxcclxuICAgICAgICBjbHM6ICdmYSBmYS1yZWZyZXNoIGZhLWZ3IGZhLWxnJyxcclxuICAgICAgICBhY3Rpb246ICdfcmVmcmVzaENsaWNrZWQnLFxyXG4gICAgICB9KTtcclxuXHJcbiAgICAgIHRoaXMuX3JlZnJlc2hBZGRlZCA9IHRydWU7XHJcbiAgICB9XHJcblxyXG4gICAgcmV0dXJuIHRoaXMudG9vbHM7XHJcbiAgfSxcclxuICBfcmVmcmVzaEFkZGVkOiBmYWxzZSxcclxuICBfcmVmcmVzaENsaWNrZWQ6IGZ1bmN0aW9uIF9yZWZyZXNoQ2xpY2tlZCgpIHtcclxuICAgIHRoaXMuY2xlYXIoKTtcclxuICAgIHRoaXMucmVmcmVzaFJlcXVpcmVkID0gdHJ1ZTtcclxuICAgIHRoaXMucmVmcmVzaCgpO1xyXG5cclxuICAgIC8vIEhvb2sgZm9yIGN1c3RvbWl6ZXJzXHJcbiAgICB0aGlzLm9uUmVmcmVzaENsaWNrZWQoKTtcclxuICB9LFxyXG4gIG9uUmVmcmVzaENsaWNrZWQ6IGZ1bmN0aW9uIG9uUmVmcmVzaENsaWNrZWQoKSB7fSxcclxuICBfY2FsbFBob25lOiBmdW5jdGlvbiBfY2FsbFBob25lKHBhcmFtcykge1xyXG4gICAgdGhpcy5pbnZva2VBY3Rpb25JdGVtQnkoZnVuY3Rpb24gc2V0QWN0aW9uSWQodGhlQWN0aW9uKSB7XHJcbiAgICAgIHJldHVybiB0aGVBY3Rpb24uaWQgPT09ICdjYWxsJztcclxuICAgIH0sIHBhcmFtcy5rZXkpO1xyXG4gIH0sXHJcbiAgZGVmYXVsdFNlYXJjaFRlcm06IGZ1bmN0aW9uIGRlZmF1bHRTZWFyY2hUZXJtKCkge1xyXG4gICAgaWYgKEFwcC5lbmFibGVIYXNoVGFncykge1xyXG4gICAgICByZXR1cm4gJyMnICsgdGhpcy5oYXNoVGFnUXVlcmllc1RleHRbJ3RoaXMtd2VlayddO1xyXG4gICAgfVxyXG5cclxuICAgIHJldHVybiAnJztcclxuICB9LFxyXG4gIGNyZWF0ZUFjdGlvbkxheW91dDogZnVuY3Rpb24gY3JlYXRlQWN0aW9uTGF5b3V0KCkge1xyXG4gICAgcmV0dXJuIHRoaXMuYWN0aW9ucyB8fCAodGhpcy5hY3Rpb25zID0gW3tcclxuICAgICAgaWQ6ICd2aWV3QWNjb3VudCcsXHJcbiAgICAgIGxhYmVsOiB0aGlzLnZpZXdBY2NvdW50QWN0aW9uVGV4dCxcclxuICAgICAgZW5hYmxlZDogZnVuY3Rpb24gZW5hYmxlZCh0aGVBY3Rpb24sIHNlbGVjdGlvbikge1xyXG4gICAgICAgIGNvbnN0IGVudHJ5ID0gc2VsZWN0aW9uICYmIHNlbGVjdGlvbi5kYXRhO1xyXG4gICAgICAgIGlmICghZW50cnkpIHtcclxuICAgICAgICAgIHJldHVybiBmYWxzZTtcclxuICAgICAgICB9XHJcbiAgICAgICAgaWYgKGVudHJ5LkFjdGl2aXR5LkFjY291bnRJZCkge1xyXG4gICAgICAgICAgcmV0dXJuIHRydWU7XHJcbiAgICAgICAgfVxyXG4gICAgICAgIHJldHVybiBmYWxzZTtcclxuICAgICAgfSxcclxuICAgICAgZm46IGZ1bmN0aW9uIGZuKHRoZUFjdGlvbiwgc2VsZWN0aW9uKSB7XHJcbiAgICAgICAgY29uc3Qgdmlld0lkID0gJ2FjY291bnRfZGV0YWlsJztcclxuICAgICAgICBjb25zdCBvcHRpb25zID0ge1xyXG4gICAgICAgICAga2V5OiBzZWxlY3Rpb24uZGF0YS5BY3Rpdml0eS5BY2NvdW50SWQsXHJcbiAgICAgICAgICBkZXNjcmlwdG9yOiBzZWxlY3Rpb24uZGF0YS5BY3Rpdml0eS5BY2NvdW50TmFtZSxcclxuICAgICAgICB9O1xyXG5cclxuICAgICAgICBjb25zdCB2aWV3ID0gQXBwLmdldFZpZXcodmlld0lkKTtcclxuICAgICAgICBpZiAodmlldyAmJiBvcHRpb25zKSB7XHJcbiAgICAgICAgICB2aWV3LnNob3cob3B0aW9ucyk7XHJcbiAgICAgICAgfVxyXG4gICAgICB9LFxyXG4gICAgfSwge1xyXG4gICAgICBpZDogJ3ZpZXdPcHBvcnR1bml0eScsXHJcbiAgICAgIGxhYmVsOiB0aGlzLnZpZXdPcHBvcnR1bml0eUFjdGlvblRleHQsXHJcbiAgICAgIGVuYWJsZWQ6IGZ1bmN0aW9uIGVuYWJsZWQodGhlQWN0aW9uLCBzZWxlY3Rpb24pIHtcclxuICAgICAgICBjb25zdCBlbnRyeSA9IHNlbGVjdGlvbiAmJiBzZWxlY3Rpb24uZGF0YTtcclxuICAgICAgICBpZiAoIWVudHJ5KSB7XHJcbiAgICAgICAgICByZXR1cm4gZmFsc2U7XHJcbiAgICAgICAgfVxyXG4gICAgICAgIGlmIChlbnRyeS5BY3Rpdml0eS5PcHBvcnR1bml0eUlkKSB7XHJcbiAgICAgICAgICByZXR1cm4gdHJ1ZTtcclxuICAgICAgICB9XHJcbiAgICAgICAgcmV0dXJuIGZhbHNlO1xyXG4gICAgICB9LFxyXG4gICAgICBmbjogZnVuY3Rpb24gZm4odGhlQWN0aW9uLCBzZWxlY3Rpb24pIHtcclxuICAgICAgICBjb25zdCB2aWV3SWQgPSAnb3Bwb3J0dW5pdHlfZGV0YWlsJztcclxuICAgICAgICBjb25zdCBvcHRpb25zID0ge1xyXG4gICAgICAgICAga2V5OiBzZWxlY3Rpb24uZGF0YS5BY3Rpdml0eS5PcHBvcnR1bml0eUlkLFxyXG4gICAgICAgICAgZGVzY3JpcHRvcjogc2VsZWN0aW9uLmRhdGEuQWN0aXZpdHkuT3Bwb3J0dW5pdHlOYW1lLFxyXG4gICAgICAgIH07XHJcbiAgICAgICAgY29uc3QgdmlldyA9IEFwcC5nZXRWaWV3KHZpZXdJZCk7XHJcbiAgICAgICAgaWYgKHZpZXcgJiYgb3B0aW9ucykge1xyXG4gICAgICAgICAgdmlldy5zaG93KG9wdGlvbnMpO1xyXG4gICAgICAgIH1cclxuICAgICAgfSxcclxuICAgIH0sIHtcclxuICAgICAgaWQ6ICd2aWV3Q29udGFjdCcsXHJcbiAgICAgIGxhYmVsOiB0aGlzLnZpZXdDb250YWN0QWN0aW9uVGV4dCxcclxuICAgICAgYWN0aW9uOiAnbmF2aWdhdGVUb0NvbnRhY3RPckxlYWQnLFxyXG4gICAgICBlbmFibGVkOiB0aGlzLmhhc0NvbnRhY3RPckxlYWQsXHJcbiAgICB9LCB7XHJcbiAgICAgIGlkOiAnY29tcGxldGUnLFxyXG4gICAgICBjbHM6ICdmYSBmYS1jaGVjay1zcXVhcmUgZmEtMngnLFxyXG4gICAgICBsYWJlbDogdGhpcy5jb21wbGV0ZUFjdGl2aXR5VGV4dCxcclxuICAgICAgZW5hYmxlZDogZnVuY3Rpb24gZW5hYmxlZCh0aGVBY3Rpb24sIHNlbGVjdGlvbikge1xyXG4gICAgICAgIGNvbnN0IGVudHJ5ID0gc2VsZWN0aW9uICYmIHNlbGVjdGlvbi5kYXRhO1xyXG4gICAgICAgIGlmICghZW50cnkpIHtcclxuICAgICAgICAgIHJldHVybiBmYWxzZTtcclxuICAgICAgICB9XHJcblxyXG4gICAgICAgIGNvbnN0IHJlY3VyID0gZW50cnkuQWN0aXZpdHkuUmVjdXJyaW5nO1xyXG5cclxuICAgICAgICByZXR1cm4gZW50cnkuQWN0aXZpdHkuTGVhZGVyLiRrZXkgPT09IEFwcC5jb250ZXh0LnVzZXIuJGtleSAmJiAhcmVjdXI7XHJcbiAgICAgIH0sXHJcbiAgICAgIGZuOiAoZnVuY3Rpb24gZm4odGhlQWN0aW9uLCBzZWxlY3Rpb24pIHtcclxuICAgICAgICBjb25zdCBlbnRyeSA9IHNlbGVjdGlvbiAmJiBzZWxlY3Rpb24uZGF0YSAmJiBzZWxlY3Rpb24uZGF0YS5BY3Rpdml0eTtcclxuXHJcbiAgICAgICAgZW50cnkuQ29tcGxldGVkRGF0ZSA9IG5ldyBEYXRlKCk7XHJcbiAgICAgICAgZW50cnkuUmVzdWx0ID0gJ0NvbXBsZXRlJztcclxuXHJcbiAgICAgICAgZW52aXJvbm1lbnQucmVmcmVzaEFjdGl2aXR5TGlzdHMoKTtcclxuICAgICAgICB0aGlzLmNvbXBsZXRlQWN0aXZpdHkoZW50cnkpO1xyXG4gICAgICB9KS5iaW5kRGVsZWdhdGUodGhpcyksXHJcbiAgICB9LCB7XHJcbiAgICAgIGlkOiAnYWNjZXB0JyxcclxuICAgICAgY2xzOiAnZmEgZmEtY2hlY2sgZmEtMngnLFxyXG4gICAgICBsYWJlbDogdGhpcy5hY2NlcHRBY3Rpdml0eVRleHQsXHJcbiAgICAgIGVuYWJsZWQ6IGZ1bmN0aW9uIGVuYWJsZWQodGhlQWN0aW9uLCBzZWxlY3Rpb24pIHtcclxuICAgICAgICBjb25zdCBlbnRyeSA9IHNlbGVjdGlvbiAmJiBzZWxlY3Rpb24uZGF0YTtcclxuICAgICAgICBpZiAoIWVudHJ5KSB7XHJcbiAgICAgICAgICByZXR1cm4gZmFsc2U7XHJcbiAgICAgICAgfVxyXG5cclxuICAgICAgICByZXR1cm4gZW50cnkuU3RhdHVzID09PSAnYXNVbmNvbmZpcm1lZCc7XHJcbiAgICAgIH0sXHJcbiAgICAgIGZuOiAoZnVuY3Rpb24gZm4odGhlQWN0aW9uLCBzZWxlY3Rpb24pIHtcclxuICAgICAgICBjb25zdCBlbnRyeSA9IHNlbGVjdGlvbiAmJiBzZWxlY3Rpb24uZGF0YTtcclxuICAgICAgICBlbnZpcm9ubWVudC5yZWZyZXNoQWN0aXZpdHlMaXN0cygpO1xyXG4gICAgICAgIHRoaXMuY29uZmlybUFjdGl2aXR5Rm9yKGVudHJ5LkFjdGl2aXR5LiRrZXksIEFwcC5jb250ZXh0LnVzZXIuJGtleSk7XHJcbiAgICAgIH0pLmJpbmREZWxlZ2F0ZSh0aGlzKSxcclxuICAgIH0sIHtcclxuICAgICAgaWQ6ICdkZWNsaW5lJyxcclxuICAgICAgY2xzOiAnZmEgZmEtYmFuIGZhLTJ4JyxcclxuICAgICAgbGFiZWw6IHRoaXMuZGVjbGluZUFjdGl2aXR5VGV4dCxcclxuICAgICAgZW5hYmxlZDogZnVuY3Rpb24gZW5hYmxlZCh0aGVBY3Rpb24sIHNlbGVjdGlvbikge1xyXG4gICAgICAgIGNvbnN0IGVudHJ5ID0gc2VsZWN0aW9uICYmIHNlbGVjdGlvbi5kYXRhO1xyXG4gICAgICAgIGlmICghZW50cnkpIHtcclxuICAgICAgICAgIHJldHVybiBmYWxzZTtcclxuICAgICAgICB9XHJcblxyXG4gICAgICAgIHJldHVybiBlbnRyeS5TdGF0dXMgPT09ICdhc1VuY29uZmlybWVkJztcclxuICAgICAgfSxcclxuICAgICAgZm46IChmdW5jdGlvbiBmbih0aGVBY3Rpb24sIHNlbGVjdGlvbikge1xyXG4gICAgICAgIGNvbnN0IGVudHJ5ID0gc2VsZWN0aW9uICYmIHNlbGVjdGlvbi5kYXRhO1xyXG5cclxuICAgICAgICBlbnZpcm9ubWVudC5yZWZyZXNoQWN0aXZpdHlMaXN0cygpO1xyXG4gICAgICAgIHRoaXMuZGVjbGluZUFjdGl2aXR5Rm9yKGVudHJ5LkFjdGl2aXR5LiRrZXksIEFwcC5jb250ZXh0LnVzZXIuJGtleSk7XHJcbiAgICAgIH0pLmJpbmREZWxlZ2F0ZSh0aGlzKSxcclxuICAgIH0sIHtcclxuICAgICAgaWQ6ICdjYWxsJyxcclxuICAgICAgY2xzOiAnZmEgZmEtcGhvbmUtc3F1YXJlIGZhLTJ4JyxcclxuICAgICAgbGFiZWw6IHRoaXMuY2FsbFRleHQsXHJcbiAgICAgIGVuYWJsZWQ6IGZ1bmN0aW9uIGVuYWJsZWQodGhlQWN0aW9uLCBzZWxlY3Rpb24pIHtcclxuICAgICAgICBjb25zdCBlbnRyeSA9IHNlbGVjdGlvbiAmJiBzZWxlY3Rpb24uZGF0YTtcclxuICAgICAgICByZXR1cm4gZW50cnkgJiYgZW50cnkuQWN0aXZpdHkgJiYgZW50cnkuQWN0aXZpdHkuUGhvbmVOdW1iZXI7XHJcbiAgICAgIH0sXHJcbiAgICAgIGZuOiBmdW5jdGlvbiBmbih0aGVBY3Rpb24sIHNlbGVjdGlvbikge1xyXG4gICAgICAgIGNvbnN0IGVudHJ5ID0gc2VsZWN0aW9uICYmIHNlbGVjdGlvbi5kYXRhO1xyXG4gICAgICAgIGNvbnN0IHBob25lID0gZW50cnkgJiYgZW50cnkuQWN0aXZpdHkgJiYgZW50cnkuQWN0aXZpdHkuUGhvbmVOdW1iZXI7XHJcbiAgICAgICAgaWYgKHBob25lKSB7XHJcbiAgICAgICAgICB0aGlzLnJlY29yZENhbGxUb0hpc3RvcnkoZnVuY3Rpb24gaW5pdGlhdGVDYWxsKCkge1xyXG4gICAgICAgICAgICBBcHAuaW5pdGlhdGVDYWxsKHBob25lKTtcclxuICAgICAgICAgIH0uYmluZERlbGVnYXRlKHRoaXMpLCBlbnRyeSk7XHJcbiAgICAgICAgfVxyXG4gICAgICB9LmJpbmREZWxlZ2F0ZSh0aGlzKSxcclxuICAgIH0sIHtcclxuICAgICAgaWQ6ICdhZGRBdHRhY2htZW50JyxcclxuICAgICAgY2xzOiAnZmEgZmEtcGFwZXJjbGlwIGZhLTJ4JyxcclxuICAgICAgbGFiZWw6IHRoaXMuYWRkQXR0YWNobWVudEFjdGlvblRleHQsXHJcbiAgICAgIGZuOiBhY3Rpb24uYWRkQXR0YWNobWVudC5iaW5kRGVsZWdhdGUodGhpcyksXHJcbiAgICB9XSk7XHJcbiAgfSxcclxuICBzZWxlY3RFbnRyeTogZnVuY3Rpb24gc2VsZWN0RW50cnkocGFyYW1zLCBldnQsIG5vZGUpIHtcclxuICAgIC8qIE92ZXJyaWRlIHNlbGVjdEVudHJ5IGZyb20gdGhlIGJhc2UgTGlzdCBtaXhpbi5cclxuICAgICAqIEdyYWJiaW5nIGEgZGlmZmVyZW50IGtleSBoZXJlLCBzaW5jZSB3ZSB1c2UgZW50cnkuQWN0aXZpdHkuJGtleSBhcyB0aGUgbWFpbiBkYXRhLWtleS5cclxuICAgICAqIFRPRE86IE1ha2UgW2RhdGEta2V5XSBvdmVycmlkZWFibGUgaW4gdGhlIGJhc2UgY2xhc3MuXHJcbiAgICAgKi9cclxuICAgIGNvbnN0IHJvdyA9IHF1ZXJ5KG5vZGUpLmNsb3Nlc3QoJ1tkYXRhLW15LWFjdGl2aXR5LWtleV0nKVswXTtcclxuICAgIGNvbnN0IGtleSA9IHJvdyA/IHJvdy5nZXRBdHRyaWJ1dGUoJ2RhdGEtbXktYWN0aXZpdHkta2V5JykgOiBmYWxzZTtcclxuXHJcbiAgICBpZiAodGhpcy5fc2VsZWN0aW9uTW9kZWwgJiYga2V5KSB7XHJcbiAgICAgIHRoaXMuX3NlbGVjdGlvbk1vZGVsLnRvZ2dsZShrZXksIHRoaXMuZW50cmllc1trZXldLCByb3cpO1xyXG4gICAgfVxyXG5cclxuICAgIGlmICh0aGlzLm9wdGlvbnMuc2luZ2xlU2VsZWN0ICYmIHRoaXMub3B0aW9ucy5zaW5nbGVTZWxlY3RBY3Rpb24gJiYgIXRoaXMuZW5hYmxlQWN0aW9ucykge1xyXG4gICAgICB0aGlzLmludm9rZVNpbmdsZVNlbGVjdEFjdGlvbigpO1xyXG4gICAgfVxyXG4gIH0sXHJcbiAgZm9ybWF0U2VhcmNoUXVlcnk6IGZ1bmN0aW9uIGZvcm1hdFNlYXJjaFF1ZXJ5KHNlYXJjaFF1ZXJ5KSB7XHJcbiAgICByZXR1cm4gc3RyaW5nLnN1YnN0aXR1dGUoJ3VwcGVyKEFjdGl2aXR5LkRlc2NyaXB0aW9uKSBsaWtlIFwiJSR7MH0lXCInLCBbdGhpcy5lc2NhcGVTZWFyY2hRdWVyeShzZWFyY2hRdWVyeS50b1VwcGVyQ2FzZSgpKV0pO1xyXG4gIH0sXHJcbiAgZGVjbGluZUFjdGl2aXR5Rm9yOiBmdW5jdGlvbiBkZWNsaW5lQWN0aXZpdHlGb3IoYWN0aXZpdHlJZCwgdXNlcklkKSB7XHJcbiAgICB0aGlzLl9nZXRVc2VyTm90aWZpY2F0aW9ucyhhY3Rpdml0eUlkLCB1c2VySWQsIGZhbHNlKTtcclxuICB9LFxyXG4gIGNvbmZpcm1BY3Rpdml0eUZvcjogZnVuY3Rpb24gY29uZmlybUFjdGl2aXR5Rm9yKGFjdGl2aXR5SWQsIHVzZXJJZCkge1xyXG4gICAgdGhpcy5fZ2V0VXNlck5vdGlmaWNhdGlvbnMoYWN0aXZpdHlJZCwgdXNlcklkLCB0cnVlKTtcclxuICB9LFxyXG4gIF9nZXRVc2VyTm90aWZpY2F0aW9uczogZnVuY3Rpb24gX2dldFVzZXJOb3RpZmljYXRpb25zKGFjdGl2aXR5SWQsIHVzZXJJZCwgYWNjZXB0KSB7XHJcbiAgICBsZXQgaWQgPSBhY3Rpdml0eUlkO1xyXG4gICAgaWYgKGFjdGl2aXR5SWQpIHtcclxuICAgICAgaWQgPSBhY3Rpdml0eUlkLnN1YnN0cmluZygwLCAxMik7XHJcbiAgICB9XHJcblxyXG4gICAgY29uc3QgcmVxID0gbmV3IFNhZ2UuU0RhdGEuQ2xpZW50LlNEYXRhUmVzb3VyY2VDb2xsZWN0aW9uUmVxdWVzdCh0aGlzLmdldFNlcnZpY2UoKSk7XHJcbiAgICByZXEuc2V0UmVzb3VyY2VLaW5kKCd1c2VyTm90aWZpY2F0aW9ucycpO1xyXG4gICAgcmVxLnNldENvbnRyYWN0TmFtZSgnZHluYW1pYycpO1xyXG4gICAgcmVxLnNldFF1ZXJ5QXJnKCd3aGVyZScsIHN0cmluZy5zdWJzdGl0dXRlKCdBY3Rpdml0eUlkIGVxIFxcJyR7MH1cXCcgYW5kIFRvVXNlci5JZCBlcSBcXCckezF9XFwnJywgW2lkLCB1c2VySWRdKSk7XHJcbiAgICByZXEuc2V0UXVlcnlBcmcoJ3ByZWNlZGVuY2UnLCAnMCcpO1xyXG4gICAgcmVxLnJlYWQoe1xyXG4gICAgICBzdWNjZXNzOiBmdW5jdGlvbiBzdWNjZXNzKHVzZXJOb3RpZmljYXRpb25zKSB7XHJcbiAgICAgICAgaWYgKHVzZXJOb3RpZmljYXRpb25zLiRyZXNvdXJjZXMgJiYgdXNlck5vdGlmaWNhdGlvbnMuJHJlc291cmNlcy5sZW5ndGggPiAwKSB7XHJcbiAgICAgICAgICBpZiAoYWNjZXB0KSB7XHJcbiAgICAgICAgICAgIHRoaXMuYWNjZXB0Q29uZmlybWF0aW9uKHVzZXJOb3RpZmljYXRpb25zLiRyZXNvdXJjZXNbMF0pO1xyXG4gICAgICAgICAgfSBlbHNlIHtcclxuICAgICAgICAgICAgdGhpcy5kZWNsaW5lQ29uZmlybWF0aW9uKHVzZXJOb3RpZmljYXRpb25zLiRyZXNvdXJjZXNbMF0pO1xyXG4gICAgICAgICAgfVxyXG4gICAgICAgIH1cclxuICAgICAgfSxcclxuICAgICAgZmFpbHVyZTogdGhpcy5vblJlcXVlc3RGYWlsdXJlLFxyXG4gICAgICBzY29wZTogdGhpcyxcclxuICAgIH0pO1xyXG4gIH0sXHJcbiAgZGVjbGluZUNvbmZpcm1hdGlvbjogZnVuY3Rpb24gZGVjbGluZUNvbmZpcm1hdGlvbihub3RpZmljYXRpb24pIHtcclxuICAgIHRoaXMuX3Bvc3RVc2VyTm90aWZpY2F0aW9ucyhub3RpZmljYXRpb24sICdEZWNsaW5lJyk7XHJcbiAgfSxcclxuICBhY2NlcHRDb25maXJtYXRpb246IGZ1bmN0aW9uIGFjY2VwdENvbmZpcm1hdGlvbihub3RpZmljYXRpb24pIHtcclxuICAgIHRoaXMuX3Bvc3RVc2VyTm90aWZpY2F0aW9ucyhub3RpZmljYXRpb24sICdBY2NlcHQnKTtcclxuICB9LFxyXG4gIF9wb3N0VXNlck5vdGlmaWNhdGlvbnM6IGZ1bmN0aW9uIF9wb3N0VXNlck5vdGlmaWNhdGlvbnMobm90aWZpY2F0aW9uLCBvcGVyYXRpb24pIHtcclxuICAgIGlmICghbm90aWZpY2F0aW9uIHx8IHR5cGVvZiBvcGVyYXRpb24gIT09ICdzdHJpbmcnKSB7XHJcbiAgICAgIHJldHVybjtcclxuICAgIH1cclxuICAgIC8qXHJcbiAgICAgKiBUbyBnZXQgdGhlIHBheWxvYWQgdGVtcGxhdGU6XHJcbiAgICAgKiBodHRwOi8vbG9jYWxob3N0OjY2NjYvU2x4Q2xpZW50L3NseGRhdGEuYXNoeC9zbHgvZHluYW1pYy8tL3VzZXJOb3RpZmljYXRpb25zLyRzZXJ2aWNlL2FjY2VwdC8kdGVtcGxhdGU/Zm9ybWF0PWpzb25cclxuICAgICAqL1xyXG4gICAgY29uc3QgcGF5bG9hZCA9IHtcclxuICAgICAgJyRuYW1lJzogb3BlcmF0aW9uLFxyXG4gICAgICAncmVxdWVzdCc6IHtcclxuICAgICAgICAnZW50aXR5Jzogbm90aWZpY2F0aW9uLFxyXG4gICAgICAgICdVc2VyTm90aWZpY2F0aW9uSWQnOiBub3RpZmljYXRpb24uJGtleSxcclxuICAgICAgfSxcclxuICAgIH07XHJcblxyXG4gICAgY29uc3QgcmVxdWVzdCA9IG5ldyBTYWdlLlNEYXRhLkNsaWVudC5TRGF0YVNlcnZpY2VPcGVyYXRpb25SZXF1ZXN0KHRoaXMuZ2V0U2VydmljZSgpKVxyXG4gICAgICAuc2V0Q29udHJhY3ROYW1lKCdkeW5hbWljJylcclxuICAgICAgLnNldFJlc291cmNlS2luZCgndXNlcm5vdGlmaWNhdGlvbnMnKVxyXG4gICAgICAuc2V0T3BlcmF0aW9uTmFtZShvcGVyYXRpb24udG9Mb3dlckNhc2UoKSk7XHJcbiAgICByZXF1ZXN0LmV4ZWN1dGUocGF5bG9hZCwge1xyXG4gICAgICBzdWNjZXNzOiBmdW5jdGlvbiBzdWNjZXNzKCkge1xyXG4gICAgICAgIHRoaXMuY2xlYXIoKTtcclxuICAgICAgICB0aGlzLnJlZnJlc2goKTtcclxuICAgICAgfSxcclxuICAgICAgZmFpbHVyZTogdGhpcy5vblJlcXVlc3RGYWlsdXJlLFxyXG4gICAgICBzY29wZTogdGhpcyxcclxuICAgIH0pO1xyXG4gIH0sXHJcbiAgY29tcGxldGVBY3Rpdml0eTogZnVuY3Rpb24gY29tcGxldGVBY3Rpdml0eShlbnRyeSkge1xyXG4gICAgY29uc3QgYWN0aXZpdHlNb2RlbCA9IEFwcC5Nb2RlbE1hbmFnZXIuZ2V0TW9kZWwoTU9ERUxfTkFNRVMuQUNUSVZJVFksIE1PREVMX1RZUEVTLlNEQVRBKTtcclxuICAgIGlmIChhY3Rpdml0eU1vZGVsKSB7XHJcbiAgICAgIGFjdGl2aXR5TW9kZWwuY29tcGxldGVBY3Rpdml0eShlbnRyeSkudGhlbigoKSA9PiB7XHJcbiAgICAgICAgY29ubmVjdC5wdWJsaXNoKCcvYXBwL3JlZnJlc2gnLCBbe1xyXG4gICAgICAgICAgcmVzb3VyY2VLaW5kOiAnaGlzdG9yeScsXHJcbiAgICAgICAgfV0pO1xyXG5cclxuICAgICAgICB0aGlzLmNsZWFyKCk7XHJcbiAgICAgICAgdGhpcy5yZWZyZXNoKCk7XHJcbiAgICAgIH0sIChlcnIpID0+IHtcclxuICAgICAgICBFcnJvck1hbmFnZXIuYWRkRXJyb3IoZXJyLCB0aGlzLCB7fSwgJ2ZhaWx1cmUnKTtcclxuICAgICAgfSk7XHJcbiAgICB9XHJcbiAgfSxcclxuICBvblJlcXVlc3RGYWlsdXJlOiBmdW5jdGlvbiBvblJlcXVlc3RGYWlsdXJlKHJlc3BvbnNlLCBvKSB7XHJcbiAgICBFcnJvck1hbmFnZXIuYWRkRXJyb3IocmVzcG9uc2UsIG8sIHt9LCAnZmFpbHVyZScpO1xyXG4gIH0sXHJcbiAgaGFzQWxhcm06IGZ1bmN0aW9uIGhhc0FsYXJtKGVudHJ5KSB7XHJcbiAgICBpZiAoZW50cnkuQWN0aXZpdHkgJiYgZW50cnkuQWN0aXZpdHkuQWxhcm0gPT09IHRydWUpIHtcclxuICAgICAgcmV0dXJuIHRydWU7XHJcbiAgICB9XHJcblxyXG4gICAgcmV0dXJuIGZhbHNlO1xyXG4gIH0sXHJcbiAgaGFzQmVlblRvdWNoZWQ6IGZ1bmN0aW9uIGhhc0JlZW5Ub3VjaGVkKGVudHJ5KSB7XHJcbiAgICBpZiAoZW50cnkuQWN0aXZpdHkuTW9kaWZ5RGF0ZSkge1xyXG4gICAgICBjb25zdCBtb2RpZmllZERhdGUgPSBtb21lbnQoY29udmVydC50b0RhdGVGcm9tU3RyaW5nKGVudHJ5LkFjdGl2aXR5Lk1vZGlmeURhdGUpKTtcclxuICAgICAgY29uc3QgY3VycmVudERhdGUgPSBtb21lbnQoKS5lbmRPZignZGF5Jyk7XHJcbiAgICAgIGNvbnN0IHdlZWtBZ28gPSBtb21lbnQoKS5zdWJ0cmFjdCgxLCAnd2Vla3MnKTtcclxuXHJcbiAgICAgIHJldHVybiBtb2RpZmllZERhdGUuaXNBZnRlcih3ZWVrQWdvKSAmJlxyXG4gICAgICAgIG1vZGlmaWVkRGF0ZS5pc0JlZm9yZShjdXJyZW50RGF0ZSk7XHJcbiAgICB9XHJcblxyXG4gICAgcmV0dXJuIGZhbHNlO1xyXG4gIH0sXHJcbiAgaXNJbXBvcnRhbnQ6IGZ1bmN0aW9uIGlzSW1wb3J0YW50KGVudHJ5KSB7XHJcbiAgICBpZiAoZW50cnkuQWN0aXZpdHkuUHJpb3JpdHkpIHtcclxuICAgICAgaWYgKGVudHJ5LkFjdGl2aXR5LlByaW9yaXR5ID09PSAnSGlnaCcpIHtcclxuICAgICAgICByZXR1cm4gdHJ1ZTtcclxuICAgICAgfVxyXG4gICAgfVxyXG5cclxuICAgIHJldHVybiBmYWxzZTtcclxuICB9LFxyXG4gIGlzT3ZlcmR1ZTogZnVuY3Rpb24gaXNPdmVyZHVlKGVudHJ5KSB7XHJcbiAgICBpZiAoZW50cnkuQWN0aXZpdHkuU3RhcnREYXRlKSB7XHJcbiAgICAgIGNvbnN0IHN0YXJ0RGF0ZSA9IGNvbnZlcnQudG9EYXRlRnJvbVN0cmluZyhlbnRyeS5BY3Rpdml0eS5TdGFydERhdGUpO1xyXG4gICAgICBjb25zdCBjdXJyZW50RGF0ZSA9IG5ldyBEYXRlKCk7XHJcbiAgICAgIGNvbnN0IHNlY29uZHMgPSBNYXRoLnJvdW5kKChjdXJyZW50RGF0ZSAtIHN0YXJ0RGF0ZSkgLyAxMDAwKTtcclxuICAgICAgY29uc3QgbWlucyA9IHNlY29uZHMgLyA2MDtcclxuICAgICAgaWYgKG1pbnMgPj0gMSkge1xyXG4gICAgICAgIHJldHVybiB0cnVlO1xyXG4gICAgICB9XHJcbiAgICB9XHJcbiAgICByZXR1cm4gZmFsc2U7XHJcbiAgfSxcclxuICBpc1RpbWVsZXNzVG9kYXk6IGZ1bmN0aW9uIGlzVGltZWxlc3NUb2RheShlbnRyeSkge1xyXG4gICAgaWYgKCFlbnRyeSB8fCAhZW50cnkuQWN0aXZpdHkgfHwgIWVudHJ5LkFjdGl2aXR5LlRpbWVsZXNzKSB7XHJcbiAgICAgIHJldHVybiBmYWxzZTtcclxuICAgIH1cclxuXHJcbiAgICBjb25zdCBzdGFydCA9IG1vbWVudChlbnRyeS5BY3Rpdml0eS5TdGFydERhdGUpO1xyXG4gICAgcmV0dXJuIHRoaXMuX2lzVGltZWxlc3NUb2RheShzdGFydCk7XHJcbiAgfSxcclxuICBpc1JlY3VycmluZzogZnVuY3Rpb24gaXNSZWN1cnJpbmcoZW50cnkpIHtcclxuICAgIGlmIChlbnRyeS5BY3Rpdml0eS5SZWN1cnJpbmcpIHtcclxuICAgICAgcmV0dXJuIHRydWU7XHJcbiAgICB9XHJcblxyXG4gICAgcmV0dXJuIGZhbHNlO1xyXG4gIH0sXHJcbiAgZ2V0SXRlbUljb25DbGFzczogZnVuY3Rpb24gZ2V0SXRlbUljb25DbGFzcyhlbnRyeSkge1xyXG4gICAgY29uc3QgdHlwZSA9IGVudHJ5ICYmIGVudHJ5LkFjdGl2aXR5ICYmIGVudHJ5LkFjdGl2aXR5LlR5cGU7XHJcbiAgICByZXR1cm4gdGhpcy5fZ2V0SXRlbUljb25DbGFzcyh0eXBlKTtcclxuICB9LFxyXG4gIGdldEl0ZW1BY3Rpb25LZXk6IGZ1bmN0aW9uIGdldEl0ZW1BY3Rpb25LZXkoZW50cnkpIHtcclxuICAgIHJldHVybiBlbnRyeS5BY3Rpdml0eS4ka2V5O1xyXG4gIH0sXHJcbiAgZ2V0SXRlbURlc2NyaXB0b3I6IGZ1bmN0aW9uIGdldEl0ZW1EZXNjcmlwdG9yKGVudHJ5KSB7XHJcbiAgICByZXR1cm4gZW50cnkuQWN0aXZpdHkuJGRlc2NyaXB0b3I7XHJcbiAgfSxcclxuICBoYXNDb250YWN0T3JMZWFkOiBmdW5jdGlvbiBoYXNDb250YWN0T3JMZWFkKHRoZUFjdGlvbiwgc2VsZWN0aW9uKSB7XHJcbiAgICByZXR1cm4gKHNlbGVjdGlvbi5kYXRhLkFjdGl2aXR5LkNvbnRhY3RJZCkgfHwgKHNlbGVjdGlvbi5kYXRhLkFjdGl2aXR5LkxlYWRJZCk7XHJcbiAgfSxcclxuICBuYXZpZ2F0ZVRvQ29udGFjdE9yTGVhZDogZnVuY3Rpb24gbmF2aWdhdGVUb0NvbnRhY3RPckxlYWQodGhlQWN0aW9uLCBzZWxlY3Rpb24pIHtcclxuICAgIGNvbnN0IGVudHJ5ID0gc2VsZWN0aW9uLmRhdGEuQWN0aXZpdHk7XHJcbiAgICBjb25zdCBlbnRpdHkgPSB0aGlzLnJlc29sdmVDb250YWN0T3JMZWFkRW50aXR5KGVudHJ5KTtcclxuICAgIGxldCB2aWV3SWQ7XHJcbiAgICBsZXQgb3B0aW9ucztcclxuXHJcbiAgICBzd2l0Y2ggKGVudGl0eSkge1xyXG4gICAgICBjYXNlICdDb250YWN0JzpcclxuICAgICAgICB2aWV3SWQgPSAnY29udGFjdF9kZXRhaWwnO1xyXG4gICAgICAgIG9wdGlvbnMgPSB7XHJcbiAgICAgICAgICBrZXk6IGVudHJ5LkNvbnRhY3RJZCxcclxuICAgICAgICAgIGRlc2NyaXB0b3I6IGVudHJ5LkNvbnRhY3ROYW1lLFxyXG4gICAgICAgIH07XHJcbiAgICAgICAgYnJlYWs7XHJcbiAgICAgIGNhc2UgJ0xlYWQnOlxyXG4gICAgICAgIHZpZXdJZCA9ICdsZWFkX2RldGFpbCc7XHJcbiAgICAgICAgb3B0aW9ucyA9IHtcclxuICAgICAgICAgIGtleTogZW50cnkuTGVhZElkLFxyXG4gICAgICAgICAgZGVzY3JpcHRvcjogZW50cnkuTGVhZE5hbWUsXHJcbiAgICAgICAgfTtcclxuICAgICAgICBicmVhaztcclxuICAgICAgZGVmYXVsdDpcclxuICAgIH1cclxuXHJcbiAgICBjb25zdCB2aWV3ID0gQXBwLmdldFZpZXcodmlld0lkKTtcclxuXHJcbiAgICBpZiAodmlldyAmJiBvcHRpb25zKSB7XHJcbiAgICAgIHZpZXcuc2hvdyhvcHRpb25zKTtcclxuICAgIH1cclxuICB9LFxyXG4gIHJlc29sdmVDb250YWN0T3JMZWFkRW50aXR5OiBmdW5jdGlvbiByZXNvbHZlQ29udGFjdE9yTGVhZEVudGl0eShlbnRyeSkge1xyXG4gICAgY29uc3QgZXhpc3RzID0gdGhpcy5leGlzdHNSRTtcclxuXHJcbiAgICBpZiAoZW50cnkpIHtcclxuICAgICAgaWYgKGV4aXN0cy50ZXN0KGVudHJ5LkxlYWRJZCkpIHtcclxuICAgICAgICByZXR1cm4gJ0xlYWQnO1xyXG4gICAgICB9XHJcbiAgICAgIGlmIChleGlzdHMudGVzdChlbnRyeS5Db250YWN0SWQpKSB7XHJcbiAgICAgICAgcmV0dXJuICdDb250YWN0JztcclxuICAgICAgfVxyXG4gICAgfVxyXG4gIH0sXHJcbiAgcmVjb3JkQ2FsbFRvSGlzdG9yeTogZnVuY3Rpb24gcmVjb3JkQ2FsbFRvSGlzdG9yeShjb21wbGV0ZSwgZW50cnkpIHtcclxuICAgIGNvbnN0IHRlbXBFbnRyeSA9IHtcclxuICAgICAgJyRuYW1lJzogJ0hpc3RvcnknLFxyXG4gICAgICAnVHlwZSc6ICdhdFBob25lQ2FsbCcsXHJcbiAgICAgICdDb250YWN0TmFtZSc6IGVudHJ5LkFjdGl2aXR5LkNvbnRhY3ROYW1lLFxyXG4gICAgICAnQ29udGFjdElkJzogZW50cnkuQWN0aXZpdHkuQ29udGFjdElkLFxyXG4gICAgICAnQWNjb3VudE5hbWUnOiBlbnRyeS5BY3Rpdml0eS5BY2NvdW50TmFtZSxcclxuICAgICAgJ0FjY291bnRJZCc6IGVudHJ5LkFjdGl2aXR5LkFjY291bnRJZCxcclxuICAgICAgJ0Rlc2NyaXB0aW9uJzogc3RyaW5nLnN1YnN0aXR1dGUoJyR7MH0gJHsxfScsIFt0aGlzLmNhbGxlZFRleHQsIChlbnRyeS5BY3Rpdml0eS5Db250YWN0TmFtZSB8fCAnJyldKSxcclxuICAgICAgJ1VzZXJJZCc6IEFwcC5jb250ZXh0ICYmIEFwcC5jb250ZXh0LnVzZXIuJGtleSxcclxuICAgICAgJ1VzZXJOYW1lJzogQXBwLmNvbnRleHQgJiYgQXBwLmNvbnRleHQudXNlci5Vc2VyTmFtZSxcclxuICAgICAgJ0R1cmF0aW9uJzogMTUsXHJcbiAgICAgICdDb21wbGV0ZWREYXRlJzogKG5ldyBEYXRlKCkpLFxyXG4gICAgfTtcclxuXHJcbiAgICB0aGlzLm5hdmlnYXRlVG9IaXN0b3J5SW5zZXJ0KCdhdFBob25lQ2FsbCcsIHRlbXBFbnRyeSwgY29tcGxldGUpO1xyXG4gIH0sXHJcblxyXG4gIG5hdmlnYXRlVG9IaXN0b3J5SW5zZXJ0OiBmdW5jdGlvbiBuYXZpZ2F0ZVRvSGlzdG9yeUluc2VydCh0eXBlLCBlbnRyeSwgY29tcGxldGUpIHtcclxuICAgIGNvbnN0IHZpZXcgPSBBcHAuZ2V0Vmlldyh0aGlzLmhpc3RvcnlFZGl0Vmlldyk7XHJcbiAgICBpZiAodmlldykge1xyXG4gICAgICBlbnZpcm9ubWVudC5yZWZyZXNoQWN0aXZpdHlMaXN0cygpO1xyXG4gICAgICB2aWV3LnNob3coe1xyXG4gICAgICAgIHRpdGxlOiB0aGlzLmFjdGl2aXR5VHlwZVRleHRbdHlwZV0sXHJcbiAgICAgICAgdGVtcGxhdGU6IHt9LFxyXG4gICAgICAgIGVudHJ5OiBlbnRyeSxcclxuICAgICAgICBpbnNlcnQ6IHRydWUsXHJcbiAgICAgIH0sIHtcclxuICAgICAgICBjb21wbGV0ZTogY29tcGxldGUsXHJcbiAgICAgIH0pO1xyXG4gICAgfVxyXG4gIH0sXHJcbiAgY3JlYXRlQnJpZWZjYXNlRW50aXR5OiBmdW5jdGlvbiBjcmVhdGVCcmllZmNhc2VFbnRpdHkoZW50cnkpIHtcclxuICAgIGNvbnN0IGVudGl0eSA9IHtcclxuICAgICAgZW50aXR5SWQ6IGVudHJ5LkFjdGl2aXR5LiRrZXksXHJcbiAgICAgIGVudGl0eU5hbWU6ICdBY3Rpdml0eScsXHJcbiAgICAgIG9wdGlvbnM6IHtcclxuICAgICAgICBpbmNsdWRlUmVsYXRlZDogdHJ1ZSxcclxuICAgICAgICB2aWV3SWQ6IHRoaXMuZGV0YWlsVmlldyxcclxuICAgICAgICBpY29uQ2xhc3M6IHRoaXMuZ2V0SXRlbUljb25DbGFzcyhlbnRyeSksXHJcbiAgICAgIH0sXHJcbiAgICB9O1xyXG4gICAgcmV0dXJuIGVudGl0eTtcclxuICB9LFxyXG59KTtcclxuXHJcbmxhbmcuc2V0T2JqZWN0KCdNb2JpbGUuU2FsZXNMb2dpeC5WaWV3cy5BY3Rpdml0eS5NeUxpc3QnLCBfX2NsYXNzKTtcclxuZXhwb3J0IGRlZmF1bHQgX19jbGFzcztcclxuIl19
 </pre>
 </body>
 </html>

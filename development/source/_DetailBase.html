@@ -15,955 +15,971 @@
   </script>
 </head>
 <body onload="prettyPrint(); highlight();">
-  <pre class="prettyprint lang-js">/* Copyright (c) 2010, Sage Software, Inc. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+  <pre class="prettyprint lang-js">define('argos/_DetailBase', ['exports', 'module', 'dojo/_base/declare', 'dojo/_base/lang', 'dojo/_base/Deferred', 'dojo/_base/connect', 'dojo/query', 'dojo/dom', 'dojo/dom-class', 'dojo/dom-style', 'dojo/dom-construct', './Format', './Utility', './ErrorManager', './View', './TabWidget', './I18n'], function (exports, module, _dojo_baseDeclare, _dojo_baseLang, _dojo_baseDeferred, _dojo_baseConnect, _dojoQuery, _dojoDom, _dojoDomClass, _dojoDomStyle, _dojoDomConstruct, _Format, _Utility, _ErrorManager, _View, _TabWidget, _I18n) {
+  function _interopRequireDefault(obj) { return obj &amp;&amp; obj.__esModule ? obj : { 'default': obj }; }
 
-<span id='argos-_DetailBase'>/**
-</span> * @class argos._DetailBase
- * A Detail View represents a single record and should display all the info the user may need about the entry.
- *
- * A Detail entry is identified by its key (idProperty) which is how it requests the data via the endpoint.
- *
- * @alternateClassName _DetailBase
- * @extends argos.View
- * @requires argos.Format
- * @requires argos.Utility
- * @requires argos.ErrorManager
- */
-define('argos/_DetailBase', [
-    'dojo/_base/declare',
-    'dojo/_base/lang',
-    'dojo/_base/Deferred',
-    'dojo/query',
-    'dojo/string',
-    'dojo/dom',
-    'dojo/dom-class',
-    'dojo/dom-construct',
-    './Format',
-    './Utility',
-    './ErrorManager',
-    './View'
-], function(
-    declare,
-    lang,
-    Deferred,
-    query,
-    string,
-    dom,
-    domClass,
-    domConstruct,
-    format,
-    utility,
-    ErrorManager,
-    View
-) {
+  /* Copyright (c) 2010, Sage Software, Inc. All rights reserved.
+   *
+   * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   * you may not use this file except in compliance with the License.
+   * You may obtain a copy of the License at
+   *
+   *     http://www.apache.org/licenses/LICENSE-2.0
+   *
+   * Unless required by applicable law or agreed to in writing, software
+   * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   * See the License for the specific language governing permissions and
+   * limitations under the License.
+   */
 
-    var __class = declare('argos._DetailBase', [View], {
-<span id='argos-_DetailBase-property-attributeMap'>        /**
-</span>         * @property {Object}
-         * Creates a setter map to html nodes, namely:
-         *
-         * * detailContent =&gt; contentNode's innerHTML
-         *
-         */
-        attributeMap: {
-            detailContent: { node: 'contentNode', type: 'innerHTML' }
+  var _declare = _interopRequireDefault(_dojo_baseDeclare);
+
+  var _lang = _interopRequireDefault(_dojo_baseLang);
+
+  var _Deferred = _interopRequireDefault(_dojo_baseDeferred);
+
+  var _connect = _interopRequireDefault(_dojo_baseConnect);
+
+  var _query = _interopRequireDefault(_dojoQuery);
+
+  var _dom = _interopRequireDefault(_dojoDom);
+
+  var _domClass = _interopRequireDefault(_dojoDomClass);
+
+  var _domStyle = _interopRequireDefault(_dojoDomStyle);
+
+  var _domConstruct = _interopRequireDefault(_dojoDomConstruct);
+
+  var _format = _interopRequireDefault(_Format);
+
+  var _utility = _interopRequireDefault(_Utility);
+
+  var _ErrorManager2 = _interopRequireDefault(_ErrorManager);
+
+  var _View2 = _interopRequireDefault(_View);
+
+  var _TabWidget2 = _interopRequireDefault(_TabWidget);
+
+  var _getResource = _interopRequireDefault(_I18n);
+
+  var resource = (0, _getResource['default'])('detailBase');
+
+<span id='argos-_DetailBase'>  /**
+</span>   * @class argos._DetailBase
+   * A Detail View represents a single record and should display all the info the user may need about the entry.
+   *
+   * A Detail entry is identified by its key (idProperty) which is how it requests the data via the endpoint.
+   *
+   * @alternateClassName _DetailBase
+   * @extends argos.View
+   * @requires argos.Format
+   * @requires argos.Utility
+   * @requires argos.ErrorManager
+   */
+  var __class = (0, _declare['default'])('argos._DetailBase', [_View2['default'], _TabWidget2['default']], {
+<span id='argos-_DetailBase-property-attributeMap'>    /**
+</span>     * @property {Object}
+     * Creates a setter map to html nodes, namely:
+     *
+     * * detailContent =&gt; contentNode's innerHTML
+     *
+     */
+    attributeMap: {
+      detailContent: {
+        node: 'contentNode',
+        type: 'innerHTML'
+      }
+    },
+<span id='argos-_DetailBase-property-widgetTemplate'>    /**
+</span>     * @property {Simplate}
+     * The template used to render the view's main DOM element when the view is initialized.
+     * This template includes loadingTemplate.
+     *
+     * The default template uses the following properties:
+     *
+     *      name                description
+     *      ----------------------------------------------------------------
+     *      id                   main container div id
+     *      title                main container div title attr
+     *      cls                  additional class string added to the main container div
+     *      resourceKind         set to data-resource-kind
+     *
+     */
+    widgetTemplate: new Simplate(['&lt;div id=&quot;{%= $.id %}&quot; title=&quot;{%= $.titleText %}&quot; class=&quot;detail panel {%= $.cls %}&quot; data-dojo-attach-event=&quot;onclick:toggleDropDown&quot; {% if ($.resourceKind) { %}data-resource-kind=&quot;{%= $.resourceKind %}&quot;{% } %}&gt;', '{%! $.loadingTemplate %}', '{%! $.quickActionTemplate %}', '&lt;div class=&quot;panel-content&quot; data-dojo-attach-point=&quot;contentNode&quot;&gt;', '{%! $.tabContentTemplate %}', '{%! $.moreTabListTemplate %}', '&lt;/div&gt;', '&lt;/div&gt;']),
+<span id='argos-_DetailBase-property-emptyTemplate'>    /**
+</span>     * @property {Simplate}
+     * HTML shown when no data is available.
+     */
+    emptyTemplate: new Simplate([]),
+<span id='argos-_DetailBase-property-loadingTemplate'>    /**
+</span>     * @property {Simplate}
+     * HTML shown when data is being loaded.
+     *
+     * `$` =&gt; the view instance
+     */
+    loadingTemplate: new Simplate(['&lt;div class=&quot;panel-loading-indicator&quot;&gt;', '&lt;div class=&quot;row&quot;&gt;', '&lt;div class=&quot;busyIndicator__container busyIndicator--active&quot; aria-live=&quot;polite&quot;&gt;', '&lt;div class=&quot;busyIndicator busyIndicator--large&quot;&gt;', '&lt;div class=&quot;busyIndicator__bar busyIndicator__bar--large busyIndicator__bar--one&quot;&gt;&lt;/div&gt;', '&lt;div class=&quot;busyIndicator__bar busyIndicator__bar--large busyIndicator__bar--two&quot;&gt;&lt;/div&gt;', '&lt;div class=&quot;busyIndicator__bar busyIndicator__bar--large busyIndicator__bar--three&quot;&gt;&lt;/div&gt;', '&lt;div class=&quot;busyIndicator__bar busyIndicator__bar--large busyIndicator__bar--four&quot;&gt;&lt;/div&gt;', '&lt;div class=&quot;busyIndicator__bar busyIndicator__bar--large busyIndicator__bar--five&quot;&gt;&lt;/div&gt;', '&lt;/div&gt;', '&lt;span class=&quot;busyIndicator__label&quot;&gt;{%: $.loadingText %}&lt;/span&gt;', '&lt;/div&gt;', '&lt;/div&gt;', '&lt;/div&gt;']),
+<span id='argos-_DetailBase-property-quickActionTemplate'>    /**
+</span>     * @property {Simplate}
+     * HTML that creates the quick action list
+     */
+    quickActionTemplate: new Simplate(['&lt;div class=&quot;quick-actions&quot; data-dojo-attach-point=&quot;quickActions&quot;&gt;&lt;/div&gt;']),
+<span id='argos-_DetailBase-property-detailHeaderTemplate'>    /**
+</span>     * @property {Simplate}
+     * HTML that creates the detail header displaying information about the tab list
+     *
+     * `$` =&gt; the view instance
+     */
+    detailHeaderTemplate: new Simplate(['&lt;div class=&quot;detail-header&quot;&gt;', '{%: $.value %}', '&lt;/div&gt;']),
+<span id='argos-_DetailBase-property-sectionBeginTemplate'>    /**
+</span>     * @property {Simplate}
+     * HTML that starts a new section
+     *
+     * `$` =&gt; the view instance
+     */
+    sectionBeginTemplate: new Simplate(['{% if (!$$.isTabbed) { %}', '&lt;h2 data-action=&quot;toggleSection&quot; class=&quot;{% if ($.collapsed || $.options.collapsed) { %}collapsed{% } %}&quot;&gt;', '&lt;button class=&quot;{% if ($.collapsed) { %}{%: $$.toggleExpandClass %}{% } else { %}{%: $$.toggleCollapseClass %}{% } %}&quot; aria-label=&quot;{%: $$.toggleCollapseText %}&quot;&gt;&lt;/button&gt;', '{%: ($.title || $.options.title) %}', '&lt;/h2&gt;', '{% } %}', '{% if ($.list || $.options.list) { %}', '{% if ($.cls || $.options.cls) { %}', '&lt;ul class=&quot;{%= ($.cls || $.options.cls) %}&quot;&gt;', '{% } else { %}', '&lt;ul class=&quot;detailContent list&quot;&gt;', '{% } %}', '{% } else { %}', '{% if ($.cls || $.options.cls) { %}', '&lt;div class=&quot;{%= ($.cls || $.options.cls) %}&quot;&gt;', '{% } else { %}', '&lt;div class=&quot;detailContent&quot;&gt;', '{% } %}', '{% } %}']),
+<span id='argos-_DetailBase-property-sectionEndTemplate'>    /**
+</span>     * @property {Simplate}
+     * HTML that ends a section
+     *
+     * `$` =&gt; the view instance
+     */
+    sectionEndTemplate: new Simplate(['{% if ($.list || $.options.list) { %}', '&lt;/ul&gt;', '{% } else { %}', '&lt;/div&gt;', '{% } %}']),
+<span id='argos-_DetailBase-property-propertyTemplate'>    /**
+</span>     * @property {Simplate}
+     * HTML that is used for a property in the detail layout
+     *
+     * * `$` =&gt; detail layout row
+     * * `$$` =&gt; view instance
+     */
+    propertyTemplate: new Simplate(['&lt;div class=&quot;row{% if(!$.value) { %} no-value{% } %} {%= $.cls %}&quot; data-property=&quot;{%= $.property || $.name %}&quot;&gt;', '&lt;label&gt;{%: $.label %}&lt;/label&gt;', '&lt;span&gt;{%= $.value %}&lt;/span&gt;', // todo: create a way to allow the value to not be surrounded with a span tag
+    '&lt;/div&gt;']),
+<span id='argos-_DetailBase-property-relatedPropertyTemplate'>    /**
+</span>     * @property {Simplate}
+     * HTML that is used for detail layout items that point to related views, includes a label and links the value text
+     *
+     * * `$` =&gt; detail layout row
+     * * `$$` =&gt; view instance
+     */
+    relatedPropertyTemplate: new Simplate(['&lt;div class=&quot;row{% if(!$.value) { %} no-value{% } %} {%= $.cls %}&quot;&gt;', '&lt;label&gt;{%: $.label %}&lt;/label&gt;', '&lt;span&gt;', '&lt;a data-action=&quot;activateRelatedEntry&quot; data-view=&quot;{%= $.view %}&quot; data-context=&quot;{%: $.context %}&quot; data-descriptor=&quot;{%: $.descriptor || $.value %}&quot;&gt;', '{%= $.value %}', '&lt;/a&gt;', '&lt;/span&gt;', '&lt;/div&gt;']),
+<span id='argos-_DetailBase-property-relatedTemplate'>    /**
+</span>     * @property {Simplate}
+     * HTML that is used for detail layout items that point to related views, displayed as an icon and text
+     *
+     * * `$` =&gt; detail layout row
+     * * `$$` =&gt; view instance
+     */
+    relatedTemplate: new Simplate(['&lt;li class=&quot;{%= $.cls %}&quot;&gt;', '&lt;a data-action=&quot;activateRelatedList&quot; data-view=&quot;{%= $.view %}&quot; data-context=&quot;{%: $.context %}&quot; {% if ($.disabled) { %}data-disable-action=&quot;true&quot;{% } %} class=&quot;{% if ($.disabled) { %}disabled{% } %}&quot;&gt;', '{% if ($.icon) { %}', '&lt;img src=&quot;{%= $.icon %}&quot; alt=&quot;icon&quot; class=&quot;icon&quot; /&gt;', '{% } else if ($.iconClass) { %}', '&lt;div class=&quot;{%= $.iconClass %}&quot; alt=&quot;icon&quot;&gt;&lt;/div&gt;', '{% } %}', '&lt;span class=&quot;related-item-label&quot;&gt;{%: $.label %}&lt;/span&gt;', '&lt;/a&gt;', '&lt;/li&gt;']),
+<span id='argos-_DetailBase-property-actionPropertyTemplate'>    /**
+</span>     * @property {Simplate}
+     * HTML that is used for detail layout items that fire an action, displayed with label and property value
+     *
+     * * `$` =&gt; detail layout row
+     * * `$$` =&gt; view instance
+     */
+    actionPropertyTemplate: new Simplate(['&lt;div class=&quot;row {%= $.cls %}&quot;&gt;', '&lt;label&gt;{%: $.label %}&lt;/label&gt;', '&lt;span&gt;', '&lt;a data-action=&quot;{%= $.action %}&quot; {% if ($.disabled) { %}data-disable-action=&quot;true&quot;{% } %} class=&quot;{% if ($.disabled) { %}disabled{% } %}&quot;&gt;', '{%= $.value %}', '&lt;/a&gt;', '&lt;/span&gt;', '&lt;/div&gt;']),
+<span id='argos-_DetailBase-property-actionTemplate'>    /**
+</span>     * @property {Simplate}
+     * HTML that is used for detail layout items that fire an action, displayed as an icon and text
+     *
+     * * `$` =&gt; detail layout row
+     * * `$$` =&gt; view instance
+     */
+    actionTemplate: new Simplate(['&lt;li class=&quot;{%= $.cls %}{% if ($.disabled) { %} disabled{% } %}&quot;&gt;', '&lt;a data-action=&quot;{%= $.action %}&quot; {% if ($.disabled) { %}data-disable-action=&quot;true&quot;{% } %} class=&quot;{% if ($.disabled) { %}disabled{% } %}&quot;&gt;', '{% if ($.icon) { %}', '&lt;img src=&quot;{%= $.icon %}&quot; alt=&quot;icon&quot; class=&quot;icon&quot; /&gt;', '{% } else if ($.iconClass) { %}', '&lt;div class=&quot;{%= $.iconClass %}&quot; alt=&quot;icon&quot;&gt;&lt;/div&gt;', '{% } %}', '&lt;label&gt;{%: $.label %}&lt;/label&gt;', '&lt;span&gt;{%= $.value %}&lt;/span&gt;', '&lt;/a&gt;', '&lt;/li&gt;']),
+<span id='argos-_DetailBase-property-notAvailableTemplate'>    /**
+</span>     * @property {Simplate}
+     * HTML that is shown when not available
+     *
+     * `$` =&gt; the view instance
+     */
+    notAvailableTemplate: new Simplate(['&lt;div class=&quot;not-available&quot;&gt;{%: $.notAvailableText %}&lt;/div&gt;']),
+<span id='argos-_DetailBase-property-id'>    /**
+</span>     * @property {String}
+     * The unique identifier of the view
+     */
+    id: 'generic_detail',
+<span id='argos-_DetailBase-property-store'>    /**
+</span>     * @property {Object}
+     * The dojo store this view will use for data exchange.
+     */
+    store: null,
+<span id='argos-_DetailBase-property-entry'>    /**
+</span>     * @property {Object}
+     * The data entry
+     */
+    entry: null,
+<span id='argos-_DetailBase-property-layout'>    /**
+</span>     * @property {Object}
+     * The layout definition that constructs the detail view with sections and rows
+     */
+    layout: null,
+<span id='argos-_DetailBase-cfg-security'>    /**
+</span>     * @cfg {String/Object}
+     * May be used for verifying the view is accessible
+     */
+    security: false,
+<span id='argos-_DetailBase-property-customizationSet'>    /**
+</span>     * @property {String}
+     * The customization identifier for this class. When a customization is registered it is passed
+     * a path/identifier which is then matched to this property.
+     */
+    customizationSet: 'detail',
+<span id='argos-_DetailBase-property-expose'>    /**
+</span>     * @property {Boolean}
+     * Controls if the view should be exposed
+     */
+    expose: false,
+<span id='argos-_DetailBase-property-isTabbed'>    /**
+</span>     * @property {Boolean}
+     * Controls whether the view will render as a tab view or the previous list view
+     */
+    isTabbed: true,
+<span id='argos-_DetailBase-property-quickActionSection'>    /**
+</span>     * @property {String}
+     * Controls how the view determines the quick action section by mapping this string with that on the detail view (should be overwritten)
+     */
+    quickActionSection: 'QuickActionsSection',
+<span id='argos-_DetailBase-property-editText'>    /**
+</span>     * @deprecated
+     */
+    editText: resource.editText,
+<span id='argos-_DetailBase-cfg-icon'>    /**
+</span>     * @cfg {String}
+     * Font awesome icon to be used by the more list item
+     */
+    icon: 'fa fa-chevron',
+
+    viewType: 'detail',
+<span id='argos-_DetailBase-cfg-informationText'>    /**
+</span>     * @cfg {String}
+     * Information text that is concatenated with the entity type
+     */
+    informationText: resource.informationText,
+<span id='argos-_DetailBase-cfg-titleText'>    /**
+</span>     * @cfg {String}
+     * Default title text shown in the top toolbar
+     */
+    titleText: resource.titleText,
+<span id='argos-_DetailBase-cfg-entityText'>    /**
+</span>     * @cfg {String}
+     * Default text used in the header title, followed by information
+     */
+    entityText: resource.entityText,
+<span id='argos-_DetailBase-property-detailsText'>    /**
+</span>     * @property {String}
+     * Helper string for a basic section header text
+     */
+    detailsText: resource.detailsText,
+<span id='argos-_DetailBase-property-loadingText'>    /**
+</span>     * @property {String}
+     * Text shown while loading and used in loadingTemplate
+     */
+    loadingText: resource.loadingText,
+<span id='argos-_DetailBase-property-notAvailableText'>    /**
+</span>     * @property {String}
+     * Text used in the notAvailableTemplate
+     */
+    notAvailableText: resource.notAvailableText,
+<span id='argos-_DetailBase-property-toggleCollapseText'>    /**
+</span>     * @property {String}
+     * ARIA label text for a collapsible section header
+     */
+    toggleCollapseText: resource.toggleCollapseText,
+<span id='argos-_DetailBase-property-toggleCollapseClass'>    /**
+</span>     * @property {String}
+     * CSS class for the collapse button when in a expanded state
+     */
+    toggleCollapseClass: 'fa fa-chevron-down',
+<span id='argos-_DetailBase-property-toggleExpandClass'>    /**
+</span>     * @property {String}
+     * CSS class for the collapse button when in a collapsed state
+     */
+    toggleExpandClass: 'fa fa-chevron-right',
+<span id='argos-_DetailBase-property-_orientation'>    /**
+</span>     * @property {Object}
+     * dojo connect object associated to the setOrientation event
+     */
+    _orientation: null,
+<span id='argos-_DetailBase-cfg-editView'>    /**
+</span>     * @cfg {String}
+     * The view id to be taken to when the Edit button is pressed in the toolbar
+     */
+    editView: false,
+<span id='argos-_DetailBase-property-_navigationOptions'>    /**
+</span>     * @property {Object[]}
+     * Store for mapping layout options to an index on the HTML node
+     */
+    _navigationOptions: null,
+
+    // Store properties
+    itemsProperty: '',
+    idProperty: '',
+    labelProperty: '',
+    entityProperty: '',
+    versionProperty: '',
+
+<span id='argos-_DetailBase-method-postCreate'>    /**
+</span>     * Extends the dijit widget postCreate to subscribe to the global `/app/refresh` event and clear the view.
+     */
+    postCreate: function postCreate() {
+      this.inherited(arguments);
+      this.subscribe('/app/refresh', this._onRefresh);
+      this.clear();
+    },
+    createErrorHandlers: function createErrorHandlers() {
+      var _this = this;
+
+      this.errorHandlers = this.errorHandlers || [{
+        name: 'Aborted',
+        test: function test(error) {
+          return error.aborted;
         },
-<span id='argos-_DetailBase-property-widgetTemplate'>        /**
-</span>         * @property {Simplate}
-         * The template used to render the view's main DOM element when the view is initialized.
-         * This template includes loadingTemplate.
-         *
-         * The default template uses the following properties:
-         *
-         *      name                description
-         *      ----------------------------------------------------------------
-         *      id                   main container div id
-         *      title                main container div title attr
-         *      cls                  additional class string added to the main container div
-         *      resourceKind         set to data-resource-kind
-         *
-         */
-        widgetTemplate: new Simplate([
-            '&lt;div id=&quot;{%= $.id %}&quot; title=&quot;{%= $.titleText %}&quot; class=&quot;detail panel {%= $.cls %}&quot; {% if ($.resourceKind) { %}data-resource-kind=&quot;{%= $.resourceKind %}&quot;{% } %}&gt;',
-            '{%! $.loadingTemplate %}',
-            '&lt;div class=&quot;panel-content&quot; data-dojo-attach-point=&quot;contentNode&quot;&gt;&lt;/div&gt;',
-            '&lt;/div&gt;'
-        ]),
-<span id='argos-_DetailBase-property-emptyTemplate'>        /**
-</span>         * @property {Simplate}
-         * HTML shown when no data is available.
-         */
-        emptyTemplate: new Simplate([
-        ]),
-<span id='argos-_DetailBase-property-loadingTemplate'>        /**
-</span>         * @property {Simplate}
-         * HTML shown when data is being loaded.
-         *
-         * `$` =&gt; the view instance
-         */
-        loadingTemplate: new Simplate([
-            '&lt;div class=&quot;panel-loading-indicator&quot;&gt;',
-            '&lt;div class=&quot;row&quot;&gt;&lt;span class=&quot;fa fa-spinner fa-spin&quot;&gt;&lt;/span&gt;&lt;div&gt;{%: $.loadingText %}&lt;/div&gt;&lt;/div&gt;',
-            '&lt;/div&gt;'
-        ]),
-<span id='argos-_DetailBase-property-sectionBeginTemplate'>        /**
-</span>         * @property {Simplate}
-         * HTML that starts a new section including the collapsible header
-         *
-         * `$` =&gt; the view instance
-         */
-        sectionBeginTemplate: new Simplate([
-            '&lt;h2 data-action=&quot;toggleSection&quot; class=&quot;{% if ($.collapsed || $.options.collapsed) { %}collapsed{% } %}&quot;&gt;',
-            '&lt;button class=&quot;{% if ($.collapsed) { %}{%: $$.toggleExpandClass %}{% } else { %}{%: $$.toggleCollapseClass %}{% } %}&quot; aria-label=&quot;{%: $$.toggleCollapseText %}&quot;&gt;&lt;/button&gt;',
-            '{%: ($.title || $.options.title) %}',
-            '&lt;/h2&gt;',
-            '{% if ($.list || $.options.list) { %}',
-            '&lt;ul class=&quot;{%= ($.cls || $.options.cls) %}&quot;&gt;',
-            '{% } else { %}',
-            '&lt;div class=&quot;{%= ($.cls || $.options.cls) %}&quot;&gt;',
-            '{% } %}'
-        ]),
-<span id='argos-_DetailBase-property-sectionEndTemplate'>        /**
-</span>         * @property {Simplate}
-         * HTML that ends a section
-         *
-         * `$` =&gt; the view instance
-         */
-        sectionEndTemplate: new Simplate([
-            '{% if ($.list || $.options.list) { %}',
-            '&lt;/ul&gt;',
-            '{% } else { %}',
-            '&lt;/div&gt;',
-            '{% } %}'
-        ]),
-<span id='argos-_DetailBase-property-propertyTemplate'>        /**
-</span>         * @property {Simplate}
-         * HTML that is used for a property in the detail layout
-         *
-         * * `$` =&gt; detail layout row
-         * * `$$` =&gt; view instance
-         */
-        propertyTemplate: new Simplate([
-            '&lt;div class=&quot;row{% if(!$.value) { %} no-value{% } %} {%= $.cls %}&quot; data-property=&quot;{%= $.property || $.name %}&quot;&gt;',
-            '&lt;label&gt;{%: $.label %}&lt;/label&gt;',
-            '&lt;span&gt;{%= $.value %}&lt;/span&gt;', // todo: create a way to allow the value to not be surrounded with a span tag
-            '&lt;/div&gt;'
-        ]),
-<span id='argos-_DetailBase-property-relatedPropertyTemplate'>        /**
-</span>         * @property {Simplate}
-         * HTML that is used for detail layout items that point to related views, includes a label and links the value text
-         *
-         * * `$` =&gt; detail layout row
-         * * `$$` =&gt; view instance
-         */
-        relatedPropertyTemplate: new Simplate([
-            '&lt;div class=&quot;row{% if(!$.value) { %} no-value{% } %} {%= $.cls %}&quot;&gt;',
-            '&lt;label&gt;{%: $.label %}&lt;/label&gt;',
-            '&lt;span&gt;',
-            '&lt;a data-action=&quot;activateRelatedEntry&quot; data-view=&quot;{%= $.view %}&quot; data-context=&quot;{%: $.context %}&quot; data-descriptor=&quot;{%: $.descriptor || $.value %}&quot;&gt;',
-            '{%= $.value %}',
-            '&lt;/a&gt;',
-            '&lt;/span&gt;',
-            '&lt;/div&gt;'
-        ]),
-<span id='argos-_DetailBase-property-relatedTemplate'>        /**
-</span>         * @property {Simplate}
-         * HTML that is used for detail layout items that point to related views, displayed as an icon and text
-         *
-         * * `$` =&gt; detail layout row
-         * * `$$` =&gt; view instance
-         */
-        relatedTemplate: new Simplate([
-            '&lt;li class=&quot;{%= $.cls %}&quot;&gt;',
-                '&lt;a data-action=&quot;activateRelatedList&quot; data-view=&quot;{%= $.view %}&quot; data-context=&quot;{%: $.context %}&quot; {% if ($.disabled) { %}data-disable-action=&quot;true&quot;{% } %} class=&quot;{% if ($.disabled) { %}disabled{% } %}&quot;&gt;',
-                    '{% if ($.icon) { %}',
-                        '&lt;img src=&quot;{%= $.icon %}&quot; alt=&quot;icon&quot; class=&quot;icon&quot; /&gt;',
-                    '{% } else if ($.iconClass) { %}',
-                        '&lt;div class=&quot;{%= $.iconClass %}&quot; alt=&quot;icon&quot;&gt;&lt;/div&gt;',
-                    '{% } %}',
-                    '&lt;span class=&quot;related-item-label&quot;&gt;{%: $.label %}&lt;/span&gt;',
-                '&lt;/a&gt;',
-            '&lt;/li&gt;'
-        ]),
-<span id='argos-_DetailBase-property-actionPropertyTemplate'>        /**
-</span>         * @property {Simplate}
-         * HTML that is used for detail layout items that fire an action, displayed with label and property value
-         *
-         * * `$` =&gt; detail layout row
-         * * `$$` =&gt; view instance
-         */
-        actionPropertyTemplate: new Simplate([
-            '&lt;div class=&quot;row {%= $.cls %}&quot;&gt;',
-            '&lt;label&gt;{%: $.label %}&lt;/label&gt;',
-            '&lt;span&gt;',
-            '&lt;a data-action=&quot;{%= $.action %}&quot; {% if ($.disabled) { %}data-disable-action=&quot;true&quot;{% } %} class=&quot;{% if ($.disabled) { %}disabled{% } %}&quot;&gt;',
-            '{%= $.value %}',
-            '&lt;/a&gt;',
-            '&lt;/span&gt;',
-            '&lt;/div&gt;'
-        ]),
-<span id='argos-_DetailBase-property-actionTemplate'>        /**
-</span>         * @property {Simplate}
-         * HTML that is used for detail layout items that fire an action, displayed as an icon and text
-         *
-         * * `$` =&gt; detail layout row
-         * * `$$` =&gt; view instance
-         */
-        actionTemplate: new Simplate([
-            '&lt;li class=&quot;{%= $.cls %}{% if ($.disabled) { %} disabled{% } %}&quot;&gt;',
-            '&lt;a data-action=&quot;{%= $.action %}&quot; {% if ($.disabled) { %}data-disable-action=&quot;true&quot;{% } %} class=&quot;{% if ($.disabled) { %}disabled{% } %}&quot;&gt;',
-            '{% if ($.icon) { %}',
-                '&lt;img src=&quot;{%= $.icon %}&quot; alt=&quot;icon&quot; class=&quot;icon&quot; /&gt;',
-            '{% } else if ($.iconClass) { %}',
-                '&lt;div class=&quot;{%= $.iconClass %}&quot; alt=&quot;icon&quot;&gt;&lt;/div&gt;',
-            '{% } %}',
-            '&lt;label&gt;{%: $.label %}&lt;/label&gt;',
-            '&lt;span&gt;{%= $.value %}&lt;/span&gt;',
-            '&lt;/a&gt;',
-            '&lt;/li&gt;'
-        ]),
-<span id='argos-_DetailBase-property-notAvailableTemplate'>        /**
-</span>         * @property {Simplate}
-         * HTML that is shown when not available
-         *
-         * `$` =&gt; the view instance
-         */
-        notAvailableTemplate: new Simplate([
-            '&lt;div class=&quot;not-available&quot;&gt;{%: $.notAvailableText %}&lt;/div&gt;'
-        ]),
-<span id='argos-_DetailBase-property-id'>        /**
-</span>         * @property {String}
-         * The unique identifier of the view
-         */
-        id: 'generic_detail',
-<span id='argos-_DetailBase-property-store'>        /**
-</span>         * @property {Object}
-         * The dojo store this view will use for data exchange.
-         */
-        store: null,
-<span id='argos-_DetailBase-property-entry'>        /**
-</span>         * @property {Object}
-         * The data entry
-         */
-        entry: null,
-<span id='argos-_DetailBase-property-layout'>        /**
-</span>         * @property {Object}
-         * The layout definition that constructs the detail view with sections and rows
-         */
-        layout: null,
-<span id='argos-_DetailBase-cfg-security'>        /**
-</span>         * @cfg {String/Object}
-         * May be used for verifying the view is accessible
-         */
-        security: false,
-<span id='argos-_DetailBase-property-customizationSet'>        /**
-</span>         * @property {String}
-         * The customization identifier for this class. When a customization is registered it is passed
-         * a path/identifier which is then matched to this property.
-         */
-        customizationSet: 'detail',
-<span id='argos-_DetailBase-property-expose'>        /**
-</span>         * @property {Boolean}
-         * Controls if the view should be exposed
-         */
-        expose: false,
-<span id='argos-_DetailBase-property-editText'>        /**
-</span>         * @deprecated
-         */
-        editText: 'Edit',
-<span id='argos-_DetailBase-cfg-titleText'>        /**
-</span>         * @cfg {String}
-         * Default title text shown in the top toolbar
-         */
-        titleText: 'Detail',
-<span id='argos-_DetailBase-property-detailsText'>        /**
-</span>         * @property {String}
-         * Helper string for a basic section header text
-         */
-        detailsText: 'Details',
-<span id='argos-_DetailBase-property-loadingText'>        /**
-</span>         * @property {String}
-         * Text shown while loading and used in loadingTemplate
-         */
-        loadingText: 'loading...',
-<span id='argos-_DetailBase-property-notAvailableText'>        /**
-</span>         * @property {String}
-         * Text used in the notAvailableTemplate
-         */
-        notAvailableText: 'The requested data is not available.',
-<span id='argos-_DetailBase-property-toggleCollapseText'>        /**
-</span>         * @property {String}
-         * ARIA label text for a collapsible section header
-         */
-        toggleCollapseText: 'toggle collapse',
-<span id='argos-_DetailBase-property-toggleCollapseClass'>        /**
-</span>         * @property {String}
-         * CSS class for the collapse button when in a expanded state
-         */
-        toggleCollapseClass: 'fa fa-chevron-down',
-<span id='argos-_DetailBase-property-toggleExpandClass'>        /**
-</span>         * @property {String}
-         * CSS class for the collapse button when in a collapsed state
-         */
-        toggleExpandClass: 'fa fa-chevron-right',
-<span id='argos-_DetailBase-cfg-editView'>        /**
-</span>         * @cfg {String}
-         * The view id to be taken to when the Edit button is pressed in the toolbar
-         */
-        editView: false,
-<span id='argos-_DetailBase-property-_navigationOptions'>        /**
-</span>         * @property {Object[]}
-         * Store for mapping layout options to an index on the HTML node
-         */
-        _navigationOptions: null,
-
-        // Store properties
-        itemsProperty: '',
-        idProperty: '',
-        labelProperty: '',
-        entityProperty: '',
-        versionProperty: '',
-
-<span id='argos-_DetailBase-method-postCreate'>        /**
-</span>         * Extends the dijit widget postCreate to subscribe to the global `/app/refresh` event and clear the view.
-         */
-        postCreate: function() {
-            this.inherited(arguments);
-            this.subscribe('/app/refresh', this._onRefresh);
-            this.clear();
-        },
-        createErrorHandlers: function() {
-            this.errorHandlers = this.errorHandlers || [{
-                name: 'Aborted',
-                test: function(error) {
-                    return error.aborted;
-                },
-                handle: function(error, next) {
-                    this.options = false; // force a refresh
-                    next();
-                }
-            }, {
-                name: 'AlertError',
-                test: function(error) {
-                    return error.status !== this.HTTP_STATUS.NOT_FOUND &amp;&amp; !error.aborted;
-                },
-                handle: function(error, next) {
-                    alert(this.getErrorMessage(error));
-                    next();
-                }
-            }, {
-                name: 'NotFound',
-                test: function(error) {
-                    return error.status === this.HTTP_STATUS.NOT_FOUND;
-                },
-                handle: function(error, next) {
-                    domConstruct.place(this.notAvailableTemplate.apply(this), this.contentNode, 'only');
-                    next();
-                }
-            }, {
-                name: 'CatchAll',
-                test: function(error) {
-                    return true;
-                },
-                handle: function(error, next) {
-                    var errorItem = {
-                        viewOptions: this.options,
-                        serverError: error
-                    };
-
-                    ErrorManager.addError(this.getErrorMessage(error), errorItem);
-                    domClass.remove(this.domNode, 'panel-loading');
-                    next();
-                }
-            }
-            ];
-
-            return this.errorHandlers;
-        },
-<span id='argos-_DetailBase-method-createToolLayout'>        /**
-</span>         * Sets and returns the toolbar item layout definition, this method should be overriden in the view
-         * so that you may define the views toolbar items.
-         * @return {Object} this.tools
-         * @template
-         */
-        createToolLayout: function() {
-            return this.tools || (this.tools = {
-                'tbar': [{
-                    id: 'edit',
-                    cls: 'fa fa-pencil fa-fw fa-lg',
-                    action: 'navigateToEditView',
-                    security: App.getViewSecurity(this.editView, 'update')
-                }, {
-                    id: 'refresh',
-                    cls: 'fa fa-refresh fa-fw fa-lg',
-                    action: '_refreshClicked'
-                }]
-            });
-        },
-        _refreshClicked: function() {
-            this.clear();
-            this.refreshRequired = true;
-            this.refresh();
-
-            this.onRefreshClicked();
-        },
-<span id='argos-_DetailBase-method-onRefreshClicked'>        /**
-</span>         * Called when the user clicks the refresh toolbar button.
-         */
-        onRefreshClicked: function() {
-        },
-<span id='argos-_DetailBase-method-invokeAction'>        /**
-</span>         * Extends the {@link _ActionMixin#invokeAction mixins invokeAction} to stop if `data-disableAction` is true
-         * @param name
-         * @param {Object} parameters Collection of `data-` attributes from the node
-         * @param {Event} evt
-         * @param {HTMLElement} el
-         */
-        invokeAction: function(name, parameters, evt, el) {
-            if (parameters &amp;&amp; /true/i.test(parameters['disableAction'])) {
-                return;
-            }
-            return this.inherited(arguments);
-        },
-<span id='argos-_DetailBase-method-toggleSection'>        /**
-</span>         * Toggles the collapsed state of the section.
-         */
-        toggleSection: function(params) {
-            var node = dom.byId(params.$source), button = null;
-            if (node) {
-                domClass.toggle(node, 'collapsed');
-                button = query('button', node)[0];
-                if (button) {
-                    domClass.toggle(button, this.toggleCollapseClass);
-                    domClass.toggle(button, this.toggleExpandClass);
-                }
-            }
-        },
-<span id='argos-_DetailBase-method-_onRefresh'>        /**
-</span>         * Handler for the global `/app/refresh` event. Sets `refreshRequired` to true if the key matches.
-         * @param {Object} options The object published by the event.
-         * @private
-         */
-        _onRefresh: function(o) {
-            var descriptor = o.data &amp;&amp; o.data[this.labelProperty];
-
-            if (this.options &amp;&amp; this.options.key === o.key) {
-                this.refreshRequired = true;
-
-                if (descriptor) {
-                    this.options.title = descriptor;
-                    this.set('title', descriptor);
-                }
-            }
-        },
-<span id='argos-_DetailBase-method-activateRelatedEntry'>        /**
-</span>         * Handler for the related entry action, navigates to the defined `data-view` passing the `data-context`.
-         * @param {Object} params Collection of `data-` attributes from the source node.
-         */
-        activateRelatedEntry: function(params) {
-            if (params.context) {
-                this.navigateToRelatedView(params.view, parseInt(params.context, 10), params.descriptor);
-            }
-        },
-<span id='argos-_DetailBase-method-activateRelatedList'>        /**
-</span>         * Handler for the related list action, navigates to the defined `data-view` passing the `data-context`.
-         * @param {Object} params Collection of `data-` attributes from the source node.
-         */
-        activateRelatedList: function(params) {
-            if (params.context) {
-                this.navigateToRelatedView(params.view, parseInt(params.context, 10), params.descriptor);
-            }
-        },
-<span id='argos-_DetailBase-method-navigateToEditView'>        /**
-</span>         * Navigates to the defined `this.editView` passing the current `this.entry` as default data.
-         * @param {HTMLElement} el
-         */
-        navigateToEditView: function(el) {
-            var view, entry;
-            view = App.getView(this.editView);
-            if (view) {
-                entry = this.entry;
-                view.show({ entry: entry, fromContext:this });
-            }
-        },
-<span id='argos-_DetailBase-method-navigateToRelatedView'>        /**
-</span>         * Navigates to a given view id passing the options retrieved using the slot index to `this._navigationOptions`.
-         * @param {String} id View id to go to
-         * @param {Number} slot Index of the context to use in `this._navigationOptions`.
-         * @param {String} descriptor Optional descriptor option that is mixed in.
-         */
-        navigateToRelatedView: function(id, slot, descriptor) {
-            var options = this._navigationOptions[slot],
-                view = App.getView(id);
-
-            if (descriptor &amp;&amp; options) {
-                options['descriptor'] = descriptor;
-            }
-
-            if (this.entry) {
-                options.selectedEntry = this.entry;
-            }
-            options.fromContext = this;
-            if (view &amp;&amp; options) {
-                view.show(options);
-            }
-        },
-<span id='argos-_DetailBase-method-createLayout'>        /**
-</span>         * Sets and returns the Detail view layout by following a standard for section and rows:
-         *
-         * The `this.layout` itself is an array of section objects where a section object is defined as such:
-         *
-         *     {
-         *        name: 'String', // Required. unique name for identification/customization purposes
-         *        title: 'String', // Required. Text shown in the section header
-         *        list: boolean, // Optional. Default false. Controls if the group container for child rows should be a div (false) or ul (true)
-         *        children: [], // Array of child row objects
-         *     }
-         *
-         * A child row object has:
-         *
-         *     {
-         *        name: 'String', // Required. unique name for identification/customization purposes
-         *        property: 'String', // Optional. The property of the current entity to bind to
-         *        label: 'String', // Optional. Text shown in the label to the left of the property
-         *        onCreate: function(), // Optional. You may pass a function to be called when the row is added to the DOM
-         *        include: boolean, // Optional. If false the row will not be included in the layout
-         *        exclude: boolean, // Optional. If true the row will not be included in the layout
-         *        template: Simplate, // Optional. Override the HTML Simplate used for rendering the value (not the row) where `$` is the row object
-         *        tpl: Simplate, // Optional. Same as template.
-         *        renderer: function(), // Optional. Pass a function that receives the current value and returns a value to be rendered
-         *        encode: boolean, // Optional. If true it will encode HTML entities
-         *        cls: 'String', // Optional. Additional CSS class string to be added to the row div
-         *        use: Simplate, // Optional. Override the HTML Simplate used for rendering the row (not value)
-         *        provider: function(entry, propertyName), // Optional. Function that accepts the data entry and the property name and returns the extracted value. By default simply extracts directly.
-         *        value: Any // Optional. Provide a value directly instead of binding
-         *     }
-         *
-         * @return {Object[]} Detail layout definition
-         */
-        createLayout: function() {
-            return this.layout || [];
-        },
-<span id='argos-_DetailBase-method-processLayout'>        /**
-</span>         * Processes the given layout definition using the data entry response by rendering and inserting the HTML nodes and
-         * firing any onCreate events defined.
-         * @param {Object[]} layout Layout definition
-         * @param {Object} entry data response
-         */
-        processLayout: function(layout, entry) {
-            var rows = (layout['children'] || layout['as'] || layout),
-                options = layout['options'] || (layout['options'] = {
-                    title: this.detailsText
-                }),
-                sectionQueue = [],
-                sectionStarted = false,
-                callbacks = [],
-                current,
-                i,
-                section,
-                sectionNode,
-                include,
-                exclude,
-                provider,
-                property,
-                value,
-                rendered,
-                formatted,
-                data,
-                hasAccess,
-                context,
-                useListTemplate,
-                template,
-                rowNode,
-                rowHtml,
-                item;
-
-            for (i = 0; i &lt; rows.length; i++) {
-                current = rows[i];
-                include = this.expandExpression(current['include'], entry);
-                exclude = this.expandExpression(current['exclude'], entry);
-
-                if (include !== undefined &amp;&amp; !include) {
-                    continue;
-                }
-
-                if (exclude !== undefined &amp;&amp; exclude) {
-                    continue;
-                }
-
-                if (current['children'] || current['as']) {
-                    if (sectionStarted) {
-                        sectionQueue.push(current);
-                    } else {
-                        this.processLayout(current, entry);
-                    }
-
-                    continue;
-                }
-
-                if (!sectionStarted) {
-                    sectionStarted = true;
-                    section = domConstruct.toDom(this.sectionBeginTemplate.apply(layout, this) + this.sectionEndTemplate.apply(layout, this));
-                    sectionNode = section.childNodes[1];
-                    domConstruct.place(section, this.contentNode);
-                }
-
-                provider = current['provider'] || utility.getValue;
-                property = typeof current['property'] === 'string'
-                    ? current['property']
-                    : current['name'];
-                value = typeof current['value'] === 'undefined'
-                    ? provider(entry, property, entry)
-                    : current['value'];
-
-                if (current['template'] || current['tpl']) {
-                    rendered = (current['template'] || current['tpl']).apply(value, this);
-                    formatted = current['encode'] === true
-                        ? format.encode(rendered)
-                        : rendered;
-                }
-                else if (current['renderer'] &amp;&amp; typeof current['renderer'] === 'function') {
-                    rendered = current['renderer'].call(this, value);
-                    formatted = current['encode'] === true
-                        ? format.encode(rendered)
-                        : rendered;
-                } else {
-                    formatted = current['encode'] !== false
-                        ? format.encode(value)
-                        : value;
-                }
-
-                data = lang.mixin({}, {
-                    entry: entry,
-                    value: formatted,
-                    raw: value
-                }, current);
-
-                if (current['descriptor']) {
-                    data['descriptor'] = typeof current['descriptor'] === 'function'
-                        ? this.expandExpression(current['descriptor'], entry, value)
-                        : provider(entry, current['descriptor']);
-                }
-
-                if (current['action']) {
-                    data['action'] = this.expandExpression(current['action'], entry, value);
-                }
-
-                hasAccess = App.hasAccessTo(current['security']);
-
-                if (current['security']) {
-                    data['disabled'] = !hasAccess;
-                }
-
-                if (current['disabled'] &amp;&amp; hasAccess) {
-                    data['disabled'] = this.expandExpression(current['disabled'], entry, value);
-                }
-
-                if (current['view']) {
-                    context = lang.mixin({}, current['options']);
-
-                    if (current['key']) {
-                        context['key'] = typeof current['key'] === 'function'
-                            ? this.expandExpression(current['key'], entry)
-                            : provider(entry, current['key']);
-                    }
-                    if (current['where']) {
-                        context['where'] = this.expandExpression(current['where'], entry);
-                    }
-                    if (current['resourceKind']) {
-                        context['resourceKind'] = this.expandExpression(current['resourceKind'], entry);
-                    }
-                    if (current['resourceProperty']) {
-                        context['resourceProperty'] = this.expandExpression(current['resourceProperty'], entry);
-                    }
-                    if (current['resourcePredicate']) {
-                        context['resourcePredicate'] = this.expandExpression(current['resourcePredicate'], entry);
-                    }
-                    if (current['dataSet']) {
-                        context['dataSet'] = this.expandExpression(current['dataSet'], entry);
-                    }
-                    if (current['title']) {
-                        context['title'] = current['title'];
-                    }
-
-                    if (current['resetSearch']) {
-                        context['resetSearch'] = current['resetSearch'];
-                    } else {
-                        context['resetSearch'] = true;
-                    }
-
-                    data['view'] = current['view'];
-                    data['context'] = (this._navigationOptions.push(context) - 1);
-                }
-
-                useListTemplate = (layout['list'] || options['list']);
-
-                // priority: use &gt; (relatedPropertyTemplate | relatedTemplate) &gt; (actionPropertyTemplate | actionTemplate) &gt; propertyTemplate
-                if (current['use']) {
-                    template = current['use'];
-                } else if (current['view'] &amp;&amp; useListTemplate) {
-                    template = this.relatedTemplate;
-                    current['relatedItem'] = true;
-                } else if (current['view']) {
-                    template = this.relatedPropertyTemplate;
-                } else if (current['action'] &amp;&amp; useListTemplate) {
-                    template = this.actionTemplate;
-                } else if (current['action']) {
-                    template = this.actionPropertyTemplate;
-                } else {
-                    template = this.propertyTemplate;
-                }
-
-                rowNode = this.createRowNode(current, sectionNode, entry, template, data);
-                if (current['relatedItem']) {
-                    try {
-                        this._processRelatedItem(data, context, rowNode);
-                    } catch (e) {
-                        //error processing related node
-                        console.error(e);
-                    }
-                }
-
-                if (current['onCreate']) {
-                    callbacks.push({ row: current, node: rowNode, value: value, entry: entry });
-                }
-            }
-
-            for (i = 0; i &lt; callbacks.length; i++) {
-                item = callbacks[i];
-                item.row['onCreate'].apply(this, [item.row, item.node, item.value, item.entry]);
-            }
-
-            for (i = 0; i &lt; sectionQueue.length; i++) {
-                current = sectionQueue[i];
-
-                this.processLayout(current, entry);
-            }
-        },
-        createRowNode: function(layout, sectionNode, entry, template, data) {
-            return domConstruct.place(template.apply(data, this), sectionNode);
-        },
-        _getStoreAttr: function() {
-            return this.store || (this.store = this.createStore());
-        },
-<span id='argos-_DetailBase-method-createStore'>        /**
-</span>         * CreateStore is the core of the data handling for Detail Views. By default it is empty but it should return
-         * a dojo store of your choosing. There are {@link _SDataDetailMixin Mixins} available for SData.
-         * @return {*}
-         */
-        createStore: function() {
-            return null;
-        },
-<span id='argos-_DetailBase-method-onContentChange'>        /**
-</span>         * Required for binding to ScrollContainer which utilizes iScroll that requires to be refreshed when the
-         * content (therefor scrollable area) changes.
-         */
-        onContentChange: function() {
-        },
-<span id='argos-_DetailBase-method-preProcessEntry'>        /**
-</span>         * @template
-         * Optional processing of the returned entry before it gets processed into layout.
-         * @param {Object} entry Entry from data store
-         * @return {Object} By default does not do any processing
-         */
-        preProcessEntry: function(entry) {
-            return entry;
-        },
-<span id='argos-_DetailBase-method-processEntry'>        /**
-</span>         * Takes the entry from the data store, applies customization, applies any custom item process and then
-         * passes it to process layout.
-         * @param {Object} entry Entry from data store
-         */
-        processEntry: function(entry) {
-            this.entry = this.preProcessEntry(entry);
-
-            if (this.entry) {
-                this.processLayout(this._createCustomizedLayout(this.createLayout()), this.entry);
-            } else {
-                this.set('detailContent', '');
-            }
-        },
-        _onGetComplete: function(entry) {
-            try {
-                if (entry) {
-                    this.processEntry(entry);
-                } else {
-                    domConstruct.place(this.notAvailableTemplate.apply(this), this.contentNode, 'only');
-                }
-
-                domClass.remove(this.domNode, 'panel-loading');
-
-                /* this must take place when the content is visible */
-                this.onContentChange();
-            } catch (e) {
-                console.error(e);
-            }
-        },
-        _onGetError: function(getOptions, error) {
-            this.handleError(error);
-        },
-<span id='argos-_DetailBase-method-requestData'>        /**
-</span>         * Initiates the request.
-         */
-        requestData: function() {
-            var request, store, getExpression, getResults, getOptions;
-
-            domClass.add(this.domNode, 'panel-loading');
-
-            store = this.get('store');
-            if (store) {
-                getOptions = {};
-
-                this._applyStateToGetOptions(getOptions);
-
-                getExpression = this._buildGetExpression() || null;
-                getResults = store.get(getExpression, getOptions);
-
-                Deferred.when(getResults,
-                    this._onGetComplete.bind(this),
-                    this._onGetError.bind(this, getOptions)
-                );
-
-                return getResults;
-            }
-
-            console.warn('Error requesting data, no store was defined. Did you mean to mixin _SDataDetailMixin to your detail view?');
-        },
-        _buildGetExpression: function() {
-            var options = this.options;
-
-            return options &amp;&amp; (options.id || options.key);
-        },
-        _applyStateToGetOptions: function(getOptions) {
-        },
-<span id='argos-_DetailBase-method-refreshRequiredFor'>        /**
-</span>         * Determines if the view should be refresh by inspecting and comparing the passed navigation option key with current key.
-         * @param {Object} options Passed navigation options.
-         * @return {Boolean} True if the view should be refreshed, false if not.
-         */
-        refreshRequiredFor: function(options) {
-            if (this.options) {
-                if (options) {
-                    if (this.options.key !== options.key) {
-                        return true;
-                    }
-                }
-
-                return false;
-            } else {
-                return this.inherited(arguments);
-            }
-        },
-<span id='argos-_DetailBase-method-activate'>        /**
-</span>         * Extends the {@link View#activate parent implementation} to set the nav options title attribute to the descriptor
-         * @param tag
-         * @param data
-         */
-        activate: function(tag, data) {
-            var options = data &amp;&amp; data.options;
-            if (options &amp;&amp; options.descriptor) {
-                options.title = options.title || options.descriptor;
-            }
-
-            this.inherited(arguments);
-        },
-        show: function(options) {
-            if (options &amp;&amp; options.descriptor) {
-                options.title = options.title || options.descriptor;
-            }
-
-            this.inherited(arguments);
-        },
-<span id='argos-_DetailBase-method-getTag'>        /**
-</span>         * Returns the view key
-         * @return {String} View key
-         */
-        getTag: function() {
-            return this.options &amp;&amp; this.options.key;
-        },
-<span id='argos-_DetailBase-method-getContext'>        /**
-</span>         * Extends the {@link View#getContext parent implementation} to also set the resourceKind, key and descriptor
-         * @return {Object} View context object
-         */
-        getContext: function() {
-            return lang.mixin(this.inherited(arguments), {
-                resourceKind: this.resourceKind,
-                key: this.options.key,
-                descriptor: this.options.descriptor
-            });
-        },
-<span id='argos-_DetailBase-method-beforeTransitionTo'>        /**
-</span>         * Extends the {@link View#beforeTransitionTo parent implementation} to also clear the view if `refreshRequired` is true
-         * @return {Object} View context object
-         */
-        beforeTransitionTo: function() {
-            this.inherited(arguments);
-
-            if (this.refreshRequired) {
-                this.clear();
-            }
-        },
-<span id='argos-_DetailBase-method-refresh'>        /**
-</span>         * If a security breach is detected it sets the content to the notAvailableTemplate, otherwise it calls
-         * {@link #requestData requestData} which starts the process sequence.
-         */
-        refresh: function() {
-            if (this.security &amp;&amp; !App.hasAccessTo(this.expandExpression(this.security))) {
-                domConstruct.place(this.notAvailableTemplate.apply(this), this.contentNode, 'last');
-                return;
-            }
-
-            this.requestData();
-        },
-<span id='argos-_DetailBase-method-clear'>        /**
-</span>         * Clears the view by replacing the content with the empty template and emptying the stored row contexts.
-         */
-        clear: function() {
-            this.set('detailContent', this.emptyTemplate.apply(this));
-
-            this._navigationOptions = [];
-        },
-        _processRelatedItem: function(data, context, rowNode) {
-            var view = App.getView(data['view']), options = {};
-
-            if (view) {
-                options.where = context ? context['where'] : '';
-                view.getListCount(options).then(function(result) {
-                    var labelNode, html;
-
-                    if (result &gt;= 0) {
-                        labelNode = query('.related-item-label', rowNode)[0];
-                        if (labelNode) {
-                            html = '&lt;span class=&quot;related-item-count&quot;&gt;' + result + '&lt;/span&gt;';
-                            domConstruct.place(html, labelNode, 'before');
-                        } else {
-                            console.warn('Missing the &quot;related-item-label&quot; dom node.');
-                        }
-                    }
-                });
-            }
-        },
-        destroy: function() {
-            this.inherited(arguments);
+        handle: function handle(error, next) {
+          _this.options = false; // force a refresh
+          next();
         }
-    });
+      }, {
+        name: 'AlertError',
+        test: function test(error) {
+          return error.status !== _this.HTTP_STATUS.NOT_FOUND &amp;&amp; !error.aborted;
+        },
+        handle: function handle(error, next) {
+          alert(_this.getErrorMessage(error)); //eslint-disable-line
+          next();
+        }
+      }, {
+        name: 'NotFound',
+        test: function test(error) {
+          return error.status === _this.HTTP_STATUS.NOT_FOUND;
+        },
+        handle: function handle(error, next) {
+          _domConstruct['default'].place(_this.notAvailableTemplate.apply(_this), _this.contentNode, 'only');
+          next();
+        }
+      }, {
+        name: 'CatchAll',
+        test: function test() {
+          return true;
+        },
+        handle: function handle(error, next) {
+          var fromContext = _this.options.fromContext;
+          _this.options.fromContext = null;
+          var errorItem = {
+            viewOptions: _this.options,
+            serverError: error
+          };
 
-    lang.setObject('Sage.Platform.Mobile._DetailBase', __class);
-    return __class;
+          _ErrorManager2['default'].addError(_this.getErrorMessage(error), errorItem);
+          _this.options.fromContext = fromContext;
+          _domClass['default'].remove(_this.domNode, 'panel-loading');
+          next();
+        }
+      }];
+
+      return this.errorHandlers;
+    },
+<span id='argos-_DetailBase-method-createToolLayout'>    /**
+</span>     * Sets and returns the toolbar item layout definition, this method should be overriden in the view
+     * so that you may define the views toolbar items.
+     * @return {Object} this.tools
+     * @template
+     */
+    createToolLayout: function createToolLayout() {
+      var tools = [];
+
+      if (this.editView) {
+        tools.push({
+          id: 'edit',
+          cls: 'fa fa-pencil fa-fw fa-lg',
+          action: 'navigateToEditView',
+          security: App.getViewSecurity(this.editView, 'update')
+        });
+      }
+
+      tools.push({
+        id: 'refresh',
+        cls: 'fa fa-refresh fa-fw fa-lg',
+        action: '_refreshClicked'
+      });
+
+      return this.tools || (this.tools = {
+        'tbar': tools
+      });
+    },
+    _refreshClicked: function _refreshClicked() {
+      this.clear();
+      this.refreshRequired = true;
+      this.refresh();
+
+      this.onRefreshClicked();
+    },
+<span id='argos-_DetailBase-method-onRefreshClicked'>    /**
+</span>     * Called when the user clicks the refresh toolbar button.
+     */
+    onRefreshClicked: function onRefreshClicked() {},
+<span id='argos-_DetailBase-method-invokeAction'>    /**
+</span>     * Extends the {@link _ActionMixin#invokeAction mixins invokeAction} to stop if `data-disableAction` is true
+     * @param name
+     * @param {Object} parameters Collection of `data-` attributes from the node
+     * @param {Event} evt
+     * @param {HTMLElement} el
+     */
+    invokeAction: function invokeAction(name, parameters /*, evt, el*/) {
+      if (parameters &amp;&amp; /true/i.test(parameters.disableAction)) {
+        return null;
+      }
+      return this.inherited(arguments);
+    },
+<span id='argos-_DetailBase-method-toggleSection'>    /**
+</span>     * Toggles the collapsed state of the section.
+     */
+    toggleSection: function toggleSection(params) {
+      var node = _dom['default'].byId(params.$source);
+      if (node) {
+        _domClass['default'].toggle(node, 'collapsed');
+        var button = (0, _query['default'])('button', node)[0];
+        if (button) {
+          _domClass['default'].toggle(button, this.toggleCollapseClass);
+          _domClass['default'].toggle(button, this.toggleExpandClass);
+        }
+      }
+    },
+<span id='argos-_DetailBase-method-placeDetailHeader'>    /**
+</span>     * Handler for the getting the detail resource type from the id and placing the header into the detail view..
+     * @private
+     */
+    placeDetailHeader: function placeDetailHeader() {
+      var value = this.entityText + ' ' + this.informationText;
+      _domConstruct['default'].place(this.detailHeaderTemplate.apply({ value: value }, this), this.tabList, 'before');
+    },
+<span id='argos-_DetailBase-method-_onRefresh'>    /**
+</span>     * Handler for the global `/app/refresh` event. Sets `refreshRequired` to true if the key matches.
+     * @param {Object} options The object published by the event.
+     * @private
+     */
+    _onRefresh: function _onRefresh(o) {
+      var descriptor = o.data &amp;&amp; o.data[this.labelProperty];
+
+      if (this.options &amp;&amp; this.options.key === o.key) {
+        this.refreshRequired = true;
+
+        if (descriptor) {
+          this.options.title = descriptor;
+          this.set('title', descriptor);
+        }
+      }
+    },
+<span id='argos-_DetailBase-method-activateRelatedEntry'>    /**
+</span>     * Handler for the related entry action, navigates to the defined `data-view` passing the `data-context`.
+     * @param {Object} params Collection of `data-` attributes from the source node.
+     */
+    activateRelatedEntry: function activateRelatedEntry(params) {
+      if (params.context) {
+        this.navigateToRelatedView(params.view, parseInt(params.context, 10), params.descriptor);
+      }
+    },
+<span id='argos-_DetailBase-method-activateRelatedList'>    /**
+</span>     * Handler for the related list action, navigates to the defined `data-view` passing the `data-context`.
+     * @param {Object} params Collection of `data-` attributes from the source node.
+     */
+    activateRelatedList: function activateRelatedList(params) {
+      if (params.context) {
+        this.navigateToRelatedView(params.view, parseInt(params.context, 10), params.descriptor);
+      }
+    },
+<span id='argos-_DetailBase-method-navigateToEditView'>    /**
+</span>     * Navigates to the defined `this.editView` passing the current `this.entry` as default data.
+     * @param {HTMLElement} el
+     */
+    navigateToEditView: function navigateToEditView() /*el*/{
+      var view = App.getView(this.editView);
+      if (view) {
+        var entry = this.entry;
+        view.show({
+          entry: entry,
+          fromContext: this
+        });
+      }
+    },
+<span id='argos-_DetailBase-method-navigateToRelatedView'>    /**
+</span>     * Navigates to a given view id passing the options retrieved using the slot index to `this._navigationOptions`.
+     * @param {String} id View id to go to
+     * @param {Number} slot Index of the context to use in `this._navigationOptions`.
+     * @param {String} descriptor Optional descriptor option that is mixed in.
+     */
+    navigateToRelatedView: function navigateToRelatedView(id, slot, descriptor) {
+      var options = this._navigationOptions[slot];
+      var view = App.getView(id);
+
+      if (descriptor &amp;&amp; options) {
+        options.descriptor = descriptor;
+      }
+
+      if (this.entry) {
+        options.selectedEntry = this.entry;
+      }
+
+      options.fromContext = this;
+      if (view &amp;&amp; options) {
+        view.show(options);
+      }
+    },
+<span id='argos-_DetailBase-method-createLayout'>    /**
+</span>     * Sets and returns the Detail view layout by following a standard for section and rows:
+     *
+     * The `this.layout` itself is an array of section objects where a section object is defined as such:
+     *
+     *     {
+     *        name: 'String', // Required. unique name for identification/customization purposes
+     *        title: 'String', // Required. Text shown in the section header
+     *        list: boolean, // Optional. Default false. Controls if the group container for child rows should be a div (false) or ul (true)
+     *        children: [], // Array of child row objects
+     *     }
+     *
+     * A child row object has:
+     *
+     *     {
+     *        name: 'String', // Required. unique name for identification/customization purposes
+     *        property: 'String', // Optional. The property of the current entity to bind to
+     *        label: 'String', // Optional. Text shown in the label to the left of the property
+     *        onCreate: function(), // Optional. You may pass a function to be called when the row is added to the DOM
+     *        include: boolean, // Optional. If false the row will not be included in the layout
+     *        exclude: boolean, // Optional. If true the row will not be included in the layout
+     *        template: Simplate, // Optional. Override the HTML Simplate used for rendering the value (not the row) where `$` is the row object
+     *        tpl: Simplate, // Optional. Same as template.
+     *        renderer: function(), // Optional. Pass a function that receives the current value and returns a value to be rendered
+     *        encode: boolean, // Optional. If true it will encode HTML entities
+     *        cls: 'String', // Optional. Additional CSS class string to be added to the row div
+     *        use: Simplate, // Optional. Override the HTML Simplate used for rendering the row (not value)
+     *        provider: function(entry, propertyName), // Optional. Function that accepts the data entry and the property name and returns the extracted value. By default simply extracts directly.
+     *        value: Any // Optional. Provide a value directly instead of binding
+     *     }
+     *
+     * @return {Object[]} Detail layout definition
+     */
+    createLayout: function createLayout() {
+      return this.layout || [];
+    },
+<span id='argos-_DetailBase-method-processLayout'>    /**
+</span>     * Processes the given layout definition using the data entry response by rendering and inserting the HTML nodes and
+     * firing any onCreate events defined.
+     * @param {Object[]} layout Layout definition
+     * @param {Object} entry data response
+     */
+    processLayout: function processLayout(layout, entry) {
+      var rows = layout.children || layout.as || layout;
+      var options = layout.options || (layout.options = {
+        title: this.detailsText
+      });
+      var sectionQueue = [];
+      var sectionStarted = false;
+      var callbacks = [];
+
+      var sectionNode = undefined;
+
+      if (this.isTabbed) {
+        this.placeTabList(this.contentNode);
+      }
+
+      for (var i = 0; i &lt; rows.length; i++) {
+        var current = rows[i];
+        var include = this.expandExpression(current.include, entry);
+        var exclude = this.expandExpression(current.exclude, entry);
+        var context = undefined;
+
+        if (include !== undefined &amp;&amp; !include) {
+          continue;
+        }
+
+        if (exclude !== undefined &amp;&amp; exclude) {
+          continue;
+        }
+
+        if (current.children || current.as) {
+          if (sectionStarted) {
+            sectionQueue.push(current);
+          } else {
+            this.processLayout(current, entry);
+          }
+
+          continue;
+        }
+
+        if (!sectionStarted) {
+          var section = undefined;
+          sectionStarted = true;
+          if (this.isTabbed) {
+            if (layout.name === this.quickActionSection) {
+              section = _domConstruct['default'].toDom(this.sectionBeginTemplate.apply(layout, this) + this.sectionEndTemplate.apply(layout, this));
+              sectionNode = section;
+              _domConstruct['default'].place(section, this.quickActions);
+            } else {
+              var tab = _domConstruct['default'].toDom(this.tabListItemTemplate.apply(layout, this));
+              section = _domConstruct['default'].toDom(this.sectionBeginTemplate.apply(layout, this) + this.sectionEndTemplate.apply(layout, this));
+              sectionNode = section;
+              _domStyle['default'].set(section, {
+                display: 'none'
+              });
+              this.tabMapping.push(section);
+              this.tabs.push(tab);
+              _domConstruct['default'].place(section, this.contentNode);
+            }
+          } else {
+            section = _domConstruct['default'].toDom(this.sectionBeginTemplate.apply(layout, this) + this.sectionEndTemplate.apply(layout, this));
+            sectionNode = section.childNodes[1];
+            _domConstruct['default'].place(section, this.contentNode);
+          }
+        }
+
+        var provider = current.provider || _utility['default'].getValue;
+        var property = typeof current.property === 'string' ? current.property : current.name;
+        var value = typeof current.value === 'undefined' ? provider(entry, property, entry) : current.value;
+        var rendered = undefined;
+        var formatted = undefined;
+        if (current.template || current.tpl) {
+          rendered = (current.template || current.tpl).apply(value, this);
+          formatted = current.encode === true ? _format['default'].encode(rendered) : rendered;
+        } else if (current.renderer &amp;&amp; typeof current.renderer === 'function') {
+          rendered = current.renderer.call(this, value);
+          formatted = current.encode === true ? _format['default'].encode(rendered) : rendered;
+        } else {
+          formatted = current.encode !== false ? _format['default'].encode(value) : value;
+        }
+
+        var data = _lang['default'].mixin({}, {
+          entry: entry,
+          value: formatted,
+          raw: value
+        }, current);
+
+        if (current.descriptor) {
+          data.descriptor = typeof current.descriptor === 'function' ? this.expandExpression(current.descriptor, entry, value) : provider(entry, current.descriptor);
+        }
+
+        if (current.action) {
+          data.action = this.expandExpression(current.action, entry, value);
+        }
+
+        var hasAccess = App.hasAccessTo(current.security);
+
+        if (current.security) {
+          data.disabled = !hasAccess;
+        }
+
+        if (current.disabled &amp;&amp; hasAccess) {
+          data.disabled = this.expandExpression(current.disabled, entry, value);
+        }
+
+        if (current.view) {
+          context = _lang['default'].mixin({}, current.options);
+
+          if (current.key) {
+            context.key = typeof current.key === 'function' ? this.expandExpression(current.key, entry) : provider(entry, current.key);
+          }
+          if (current.where) {
+            context.where = this.expandExpression(current.where, entry);
+          }
+          if (current.resourceKind) {
+            context.resourceKind = this.expandExpression(current.resourceKind, entry);
+          }
+          if (current.resourceProperty) {
+            context.resourceProperty = this.expandExpression(current.resourceProperty, entry);
+          }
+          if (current.resourcePredicate) {
+            context.resourcePredicate = this.expandExpression(current.resourcePredicate, entry);
+          }
+          if (current.dataSet) {
+            context.dataSet = this.expandExpression(current.dataSet, entry);
+          }
+          if (current.title) {
+            context.title = current.title;
+          }
+
+          if (current.resetSearch) {
+            context.resetSearch = current.resetSearch;
+          } else {
+            context.resetSearch = true;
+          }
+
+          data.view = current.view;
+          data.context = this._navigationOptions.push(context) - 1;
+        }
+
+        var useListTemplate = layout.list || options.list;
+
+        var template = undefined;
+        // priority: use &gt; (relatedPropertyTemplate | relatedTemplate) &gt; (actionPropertyTemplate | actionTemplate) &gt; propertyTemplate
+        if (current.use) {
+          template = current.use;
+        } else if (current.view &amp;&amp; useListTemplate) {
+          template = this.relatedTemplate;
+          current.relatedItem = true;
+        } else if (current.view) {
+          template = this.relatedPropertyTemplate;
+        } else if (current.action &amp;&amp; useListTemplate) {
+          template = this.actionTemplate;
+        } else if (current.action) {
+          template = this.actionPropertyTemplate;
+        } else {
+          template = this.propertyTemplate;
+        }
+
+        var rowNode = this.createRowNode(current, sectionNode, entry, template, data);
+        if (current.relatedItem) {
+          try {
+            this._processRelatedItem(data, context, rowNode);
+          } catch (e) {
+            // error processing related node
+            console.error(e); //eslint-disable-line
+          }
+        }
+
+        if (current.onCreate) {
+          callbacks.push({
+            row: current,
+            node: rowNode,
+            value: value,
+            entry: entry
+          });
+        }
+      }
+
+      for (var i = 0; i &lt; callbacks.length; i++) {
+        var item = callbacks[i];
+        item.row.onCreate.apply(this, [item.row, item.node, item.value, item.entry]);
+      }
+
+      for (var i = 0; i &lt; sectionQueue.length; i++) {
+        var current = sectionQueue[i];
+        this.processLayout(current, entry);
+      }
+    },
+    createRowNode: function createRowNode(layout, sectionNode, entry, template, data) {
+      return _domConstruct['default'].place(template.apply(data, this), sectionNode);
+    },
+    _getStoreAttr: function _getStoreAttr() {
+      return this.store || (this.store = this.createStore());
+    },
+<span id='argos-_DetailBase-method-createStore'>    /**
+</span>     * CreateStore is the core of the data handling for Detail Views. By default it is empty but it should return
+     * a dojo store of your choosing. There are {@link _SDataDetailMixin Mixins} available for SData.
+     * @return {*}
+     */
+    createStore: function createStore() {
+      return null;
+    },
+<span id='argos-_DetailBase-method-preProcessEntry'>    /**
+</span>     * @template
+     * Optional processing of the returned entry before it gets processed into layout.
+     * @param {Object} entry Entry from data store
+     * @return {Object} By default does not do any processing
+     */
+    preProcessEntry: function preProcessEntry(entry) {
+      return entry;
+    },
+<span id='argos-_DetailBase-method-processEntry'>    /**
+</span>     * Takes the entry from the data store, applies customization, applies any custom item process and then
+     * passes it to process layout.
+     * @param {Object} entry Entry from data store
+     */
+    processEntry: function processEntry(entry) {
+      this.entry = this.preProcessEntry(entry);
+
+      if (this.entry) {
+        this.processLayout(this._createCustomizedLayout(this.createLayout()), this.entry);
+        if (this.isTabbed) {
+          this.createTabs(this.tabs);
+          this.placeDetailHeader(this.entry);
+        }
+      } else {
+        this.set('detailContent', '');
+      }
+    },
+    _onGetComplete: function _onGetComplete(entry) {
+      try {
+        if (entry) {
+          this.processEntry(entry);
+        } else {
+          _domConstruct['default'].place(this.notAvailableTemplate.apply(this), this.contentNode, 'only');
+        }
+
+        _domClass['default'].remove(this.domNode, 'panel-loading');
+
+        /* this must take place when the content is visible */
+        this.onContentChange();
+      } catch (e) {
+        console.error(e); //eslint-disable-line
+      }
+    },
+    _onGetError: function _onGetError(getOptions, error) {
+      this.handleError(error);
+    },
+<span id='argos-_DetailBase-method-requestData'>    /**
+</span>     * Initiates the request.
+     */
+    requestData: function requestData() {
+      _domClass['default'].add(this.domNode, 'panel-loading');
+
+      var store = this.get('store');
+
+      if (this._model) {
+        return this.requestDataUsingModel().then((function fulfilled(data) {
+          this._onGetComplete(data);
+        }).bind(this), (function rejected(err) {
+          this._onGetError(null, err);
+        }).bind(this));
+      } else if (store) {
+        var getOptions = {};
+
+        this._applyStateToGetOptions(getOptions);
+
+        var getExpression = this._buildGetExpression() || null;
+        var getResults = this.requestDataUsingStore(getExpression, getOptions);
+
+        _Deferred['default'].when(getResults, this._onGetComplete.bind(this), this._onGetError.bind(this, getOptions));
+
+        return getResults;
+      }
+
+      throw new Error('requestData called without a model or store defined.');
+    },
+    requestDataUsingModel: function requestDataUsingModel() {
+      var key = this._buildGetExpression();
+      return this._model.getEntry(key, this.options);
+    },
+    requestDataUsingStore: function requestDataUsingStore(getExpression, getOptions) {
+      var store = this.get('store');
+      return store.get(getExpression, getOptions);
+    },
+    _buildGetExpression: function _buildGetExpression() {
+      var options = this.options;
+      return options &amp;&amp; (options.id || options.key);
+    },
+    _applyStateToGetOptions: function _applyStateToGetOptions() /*getOptions*/{},
+<span id='argos-_DetailBase-method-refreshRequiredFor'>    /**
+</span>     * Determines if the view should be refresh by inspecting and comparing the passed navigation option key with current key.
+     * @param {Object} options Passed navigation options.
+     * @return {Boolean} True if the view should be refreshed, false if not.
+     */
+    refreshRequiredFor: function refreshRequiredFor(options) {
+      if (this.options) {
+        if (options) {
+          if (this.options.key !== options.key) {
+            return true;
+          }
+        }
+
+        return false;
+      }
+
+      return this.inherited(arguments);
+    },
+<span id='argos-_DetailBase-method-activate'>    /**
+</span>     * Extends the {@link View#activate parent implementation} to set the nav options title attribute to the descriptor
+     * @param tag
+     * @param data
+     */
+    activate: function activate(tag, data) {
+      var options = data &amp;&amp; data.options;
+      if (options &amp;&amp; options.descriptor) {
+        options.title = options.title || options.descriptor;
+      }
+
+      this.inherited(arguments);
+    },
+    show: function show(options) {
+      if (options &amp;&amp; options.descriptor) {
+        options.title = options.title || options.descriptor;
+      }
+
+      this.inherited(arguments);
+    },
+<span id='argos-_DetailBase-method-getTag'>    /**
+</span>     * Returns the view key
+     * @return {String} View key
+     */
+    getTag: function getTag() {
+      return this.options &amp;&amp; this.options.key;
+    },
+<span id='argos-_DetailBase-method-getContext'>    /**
+</span>     * Extends the {@link View#getContext parent implementation} to also set the resourceKind, key and descriptor
+     * @return {Object} View context object
+     */
+    getContext: function getContext() {
+      return _lang['default'].mixin(this.inherited(arguments), {
+        resourceKind: this.resourceKind,
+        key: this.options.key,
+        descriptor: this.options.descriptor
+      });
+    },
+<span id='argos-_DetailBase-method-beforeTransitionTo'>    /**
+</span>     * Extends the {@link View#beforeTransitionTo parent implementation} to also clear the view if `refreshRequired` is true
+     * @return {Object} View context object
+     */
+    beforeTransitionTo: function beforeTransitionTo() {
+      this.inherited(arguments);
+
+      if (this.refreshRequired) {
+        this.clear();
+      }
+    },
+    onTransitionTo: function onTransitionTo() {
+      this.inherited(arguments);
+
+      this.orientation = _connect['default'].subscribe('/app/setOrientation', this, this.reorderTabs);
+    },
+<span id='argos-_DetailBase-method-refresh'>    /**
+</span>     * If a security breach is detected it sets the content to the notAvailableTemplate, otherwise it calls
+     * {@link #requestData requestData} which starts the process sequence.
+     */
+    refresh: function refresh() {
+      if (this.security &amp;&amp; !App.hasAccessTo(this.expandExpression(this.security))) {
+        _domConstruct['default'].place(this.notAvailableTemplate.apply(this), this.contentNode, 'last');
+        return;
+      }
+
+      this.requestData();
+    },
+<span id='argos-_DetailBase-method-clear'>    /**
+</span>     * Clears the view by replacing the content with the empty template and emptying the stored row contexts.
+     */
+    clear: function clear() {
+      this.set('detailContent', this.emptyTemplate.apply(this));
+      this.clearTabs();
+      if (this.quickActions) {
+        _domConstruct['default'].empty(this.quickActions);
+      }
+
+      this._navigationOptions = [];
+    },
+    _processRelatedItem: function _processRelatedItem(data, context, rowNode) {
+      var view = App.getView(data.view);
+      var options = {};
+
+      if (view) {
+        options.where = context ? context.where : '';
+        view.getListCount(options).then(function (result) {
+          if (result &gt;= 0) {
+            var labelNode = (0, _query['default'])('.related-item-label', rowNode)[0];
+            if (labelNode) {
+              var html = '&lt;span class=&quot;related-item-count&quot;&gt;' + result + '&lt;/span&gt;';
+              _domConstruct['default'].place(html, labelNode, 'before');
+            } else {
+              console.warn('Missing the &quot;related-item-label&quot; dom node.'); //eslint-disable-line
+            }
+          }
+        });
+      }
+    },
+    destroy: function destroy() {
+      this.inherited(arguments);
+    }
+  });
+
+  _lang['default'].setObject('Sage.Platform.Mobile._DetailBase', __class);
+  module.exports = __class;
 });
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInNyYy9fRGV0YWlsQmFzZS5qcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7QUE4QkEsTUFBTSxRQUFRLEdBQUcsNkJBQVksWUFBWSxDQUFDLENBQUM7Ozs7Ozs7Ozs7Ozs7O0FBYzNDLE1BQU0sT0FBTyxHQUFHLHlCQUFRLG1CQUFtQixFQUFFLDJDQUFpQixFQUFFOzs7Ozs7OztBQVE5RCxnQkFBWSxFQUFFO0FBQ1osbUJBQWEsRUFBRTtBQUNiLFlBQUksRUFBRSxhQUFhO0FBQ25CLFlBQUksRUFBRSxXQUFXO09BQ2xCO0tBQ0Y7Ozs7Ozs7Ozs7Ozs7Ozs7QUFnQkQsa0JBQWMsRUFBRSxJQUFJLFFBQVEsQ0FBQyxDQUMzQixrTkFBa04sRUFDaE4sMEJBQTBCLEVBQzFCLDhCQUE4QixFQUM5QixrRUFBa0UsRUFDaEUsNkJBQTZCLEVBQzdCLDhCQUE4QixFQUNoQyxRQUFRLEVBQ1YsUUFBUSxDQUNULENBQUM7Ozs7O0FBS0YsaUJBQWEsRUFBRSxJQUFJLFFBQVEsQ0FBQyxFQUFFLENBQUM7Ozs7Ozs7QUFPL0IsbUJBQWUsRUFBRSxJQUFJLFFBQVEsQ0FBQyxDQUM1Qix1Q0FBdUMsRUFDdkMsbUJBQW1CLEVBQ2pCLGlGQUFpRixFQUMvRSxrREFBa0QsRUFDaEQsMEZBQTBGLEVBQzFGLDBGQUEwRixFQUMxRiw0RkFBNEYsRUFDNUYsMkZBQTJGLEVBQzNGLDJGQUEyRixFQUM3RixRQUFRLEVBQ1IsZ0VBQWdFLEVBQ2xFLFFBQVEsRUFDVixRQUFRLEVBQ1IsUUFBUSxDQUNULENBQUM7Ozs7O0FBS0YsdUJBQW1CLEVBQUUsSUFBSSxRQUFRLENBQUMsQ0FDaEMseUVBQXlFLENBQzFFLENBQUM7Ozs7Ozs7QUFPRix3QkFBb0IsRUFBRSxJQUFJLFFBQVEsQ0FBQyxDQUNqQyw2QkFBNkIsRUFDN0IsZ0JBQWdCLEVBQ2hCLFFBQVEsQ0FDVCxDQUFDOzs7Ozs7O0FBT0Ysd0JBQW9CLEVB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O21CQUM3QyxPQUFPIiwiZmlsZSI6InNyYy9fRGV0YWlsQmFzZS5qcyIsInNvdXJjZVJvb3QiOiJzcmMiLCJzb3VyY2VzQ29udGVudCI6WyIvKiBDb3B5cmlnaHQgKGMpIDIwMTAsIFNhZ2UgU29mdHdhcmUsIEluYy4gQWxsIHJpZ2h0cyByZXNlcnZlZC5cclxuICpcclxuICogTGljZW5zZWQgdW5kZXIgdGhlIEFwYWNoZSBMaWNlbnNlLCBWZXJzaW9uIDIuMCAodGhlIFwiTGljZW5zZVwiKTtcclxuICogeW91IG1heSBub3QgdXNlIHRoaXMgZmlsZSBleGNlcHQgaW4gY29tcGxpYW5jZSB3aXRoIHRoZSBMaWNlbnNlLlxyXG4gKiBZb3UgbWF5IG9idGFpbiBhIGNvcHkgb2YgdGhlIExpY2Vuc2UgYXRcclxuICpcclxuICogICAgIGh0dHA6Ly93d3cuYXBhY2hlLm9yZy9saWNlbnNlcy9MSUNFTlNFLTIuMFxyXG4gKlxyXG4gKiBVbmxlc3MgcmVxdWlyZWQgYnkgYXBwbGljYWJsZSBsYXcgb3IgYWdyZWVkIHRvIGluIHdyaXRpbmcsIHNvZnR3YXJlXHJcbiAqIGRpc3RyaWJ1dGVkIHVuZGVyIHRoZSBMaWNlbnNlIGlzIGRpc3RyaWJ1dGVkIG9uIGFuIFwiQVMgSVNcIiBCQVNJUyxcclxuICogV0lUSE9VVCBXQVJSQU5USUVTIE9SIENPTkRJVElPTlMgT0YgQU5ZIEtJTkQsIGVpdGhlciBleHByZXNzIG9yIGltcGxpZWQuXHJcbiAqIFNlZSB0aGUgTGljZW5zZSBmb3IgdGhlIHNwZWNpZmljIGxhbmd1YWdlIGdvdmVybmluZyBwZXJtaXNzaW9ucyBhbmRcclxuICogbGltaXRhdGlvbnMgdW5kZXIgdGhlIExpY2Vuc2UuXHJcbiAqL1xyXG5pbXBvcnQgZGVjbGFyZSBmcm9tICdkb2pvL19iYXNlL2RlY2xhcmUnO1xyXG5pbXBvcnQgbGFuZyBmcm9tICdkb2pvL19iYXNlL2xhbmcnO1xyXG5pbXBvcnQgRGVmZXJyZWQgZnJvbSAnZG9qby9fYmFzZS9EZWZlcnJlZCc7XHJcbmltcG9ydCBjb25uZWN0IGZyb20gJ2Rvam8vX2Jhc2UvY29ubmVjdCc7XHJcbmltcG9ydCBxdWVyeSBmcm9tICdkb2pvL3F1ZXJ5JztcclxuaW1wb3J0IGRvbSBmcm9tICdkb2pvL2RvbSc7XHJcbmltcG9ydCBkb21DbGFzcyBmcm9tICdkb2pvL2RvbS1jbGFzcyc7XHJcbmltcG9ydCBkb21TdHlsZSBmcm9tICdkb2pvL2RvbS1zdHlsZSc7XHJcbmltcG9ydCBkb21Db25zdHJ1Y3QgZnJvbSAnZG9qby9kb20tY29uc3RydWN0JztcclxuaW1wb3J0IGZvcm1hdCBmcm9tICcuL0Zvcm1hdCc7XHJcbmltcG9ydCB1dGlsaXR5IGZyb20gJy4vVXRpbGl0eSc7XHJcbmltcG9ydCBFcnJvck1hbmFnZXIgZnJvbSAnLi9FcnJvck1hbmFnZXInO1xyXG5pbXBvcnQgVmlldyBmcm9tICcuL1ZpZXcnO1xyXG5pbXBvcnQgVGFiV2lkZ2V0IGZyb20gJy4vVGFiV2lkZ2V0JztcclxuaW1wb3J0IGdldFJlc291cmNlIGZyb20gJy4vSTE4bic7XHJcblxyXG5jb25zdCByZXNvdXJjZSA9IGdldFJlc291cmNlKCdkZXRhaWxCYXNlJyk7XHJcblxyXG4vKipcclxuICogQGNsYXNzIGFyZ29zLl9EZXRhaWxCYXNlXHJcbiAqIEEgRGV0YWlsIFZpZXcgcmVwcmVzZW50cyBhIHNpbmdsZSByZWNvcmQgYW5kIHNob3VsZCBkaXNwbGF5IGFsbCB0aGUgaW5mbyB0aGUgdXNlciBtYXkgbmVlZCBhYm91dCB0aGUgZW50cnkuXHJcbiAqXHJcbiAqIEEgRGV0YWlsIGVudHJ5IGlzIGlkZW50aWZpZWQgYnkgaXRzIGtleSAoaWRQcm9wZXJ0eSkgd2hpY2ggaXMgaG93IGl0IHJlcXVlc3RzIHRoZSBkYXRhIHZpYSB0aGUgZW5kcG9pbnQuXHJcbiAqXHJcbiAqIEBhbHRlcm5hdGVDbGFzc05hbWUgX0RldGFpbEJhc2VcclxuICogQGV4dGVuZHMgYXJnb3MuVmlld1xyXG4gKiBAcmVxdWlyZXMgYXJnb3MuRm9ybWF0XHJcbiAqIEByZXF1aXJlcyBhcmdvcy5VdGlsaXR5XHJcbiAqIEByZXF1aXJlcyBhcmdvcy5FcnJvck1hbmFnZXJcclxuICovXHJcbmNvbnN0IF9fY2xhc3MgPSBkZWNsYXJlKCdhcmdvcy5fRGV0YWlsQmFzZScsIFtWaWV3LCBUYWJXaWRnZXRdLCB7XHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtPYmplY3R9XHJcbiAgICogQ3JlYXRlcyBhIHNldHRlciBtYXAgdG8gaHRtbCBub2RlcywgbmFtZWx5OlxyXG4gICAqXHJcbiAgICogKiBkZXRhaWxDb250ZW50ID0+IGNvbnRlbnROb2RlJ3MgaW5uZXJIVE1MXHJcbiAgICpcclxuICAgKi9cclxuICBhdHRyaWJ1dGVNYXA6IHtcclxuICAgIGRldGFpbENvbnRlbnQ6IHtcclxuICAgICAgbm9kZTogJ2NvbnRlbnROb2RlJyxcclxuICAgICAgdHlwZTogJ2lubmVySFRNTCcsXHJcbiAgICB9LFxyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtTaW1wbGF0ZX1cclxuICAgKiBUaGUgdGVtcGxhdGUgdXNlZCB0byByZW5kZXIgdGhlIHZpZXcncyBtYWluIERPTSBlbGVtZW50IHdoZW4gdGhlIHZpZXcgaXMgaW5pdGlhbGl6ZWQuXHJcbiAgICogVGhpcyB0ZW1wbGF0ZSBpbmNsdWRlcyBsb2FkaW5nVGVtcGxhdGUuXHJcbiAgICpcclxuICAgKiBUaGUgZGVmYXVsdCB0ZW1wbGF0ZSB1c2VzIHRoZSBmb2xsb3dpbmcgcHJvcGVydGllczpcclxuICAgKlxyXG4gICAqICAgICAgbmFtZSAgICAgICAgICAgICAgICBkZXNjcmlwdGlvblxyXG4gICAqICAgICAgLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLVxyXG4gICAqICAgICAgaWQgICAgICAgICAgICAgICAgICAgbWFpbiBjb250YWluZXIgZGl2IGlkXHJcbiAgICogICAgICB0aXRsZSAgICAgICAgICAgICAgICBtYWluIGNvbnRhaW5lciBkaXYgdGl0bGUgYXR0clxyXG4gICAqICAgICAgY2xzICAgICAgICAgICAgICAgICAgYWRkaXRpb25hbCBjbGFzcyBzdHJpbmcgYWRkZWQgdG8gdGhlIG1haW4gY29udGFpbmVyIGRpdlxyXG4gICAqICAgICAgcmVzb3VyY2VLaW5kICAgICAgICAgc2V0IHRvIGRhdGEtcmVzb3VyY2Uta2luZFxyXG4gICAqXHJcbiAgICovXHJcbiAgd2lkZ2V0VGVtcGxhdGU6IG5ldyBTaW1wbGF0ZShbXHJcbiAgICAnPGRpdiBpZD1cInslPSAkLmlkICV9XCIgdGl0bGU9XCJ7JT0gJC50aXRsZVRleHQgJX1cIiBjbGFzcz1cImRldGFpbCBwYW5lbCB7JT0gJC5jbHMgJX1cIiBkYXRhLWRvam8tYXR0YWNoLWV2ZW50PVwib25jbGljazp0b2dnbGVEcm9wRG93blwiIHslIGlmICgkLnJlc291cmNlS2luZCkgeyAlfWRhdGEtcmVzb3VyY2Uta2luZD1cInslPSAkLnJlc291cmNlS2luZCAlfVwieyUgfSAlfT4nLFxyXG4gICAgICAneyUhICQubG9hZGluZ1RlbXBsYXRlICV9JyxcclxuICAgICAgJ3slISAkLnF1aWNrQWN0aW9uVGVtcGxhdGUgJX0nLFxyXG4gICAgICAnPGRpdiBjbGFzcz1cInBhbmVsLWNvbnRlbnRcIiBkYXRhLWRvam8tYXR0YWNoLXBvaW50PVwiY29udGVudE5vZGVcIj4nLFxyXG4gICAgICAgICd7JSEgJC50YWJDb250ZW50VGVtcGxhdGUgJX0nLFxyXG4gICAgICAgICd7JSEgJC5tb3JlVGFiTGlzdFRlbXBsYXRlICV9JyxcclxuICAgICAgJzwvZGl2PicsXHJcbiAgICAnPC9kaXY+JyxcclxuICBdKSxcclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge1NpbXBsYXRlfVxyXG4gICAqIEhUTUwgc2hvd24gd2hlbiBubyBkYXRhIGlzIGF2YWlsYWJsZS5cclxuICAgKi9cclxuICBlbXB0eVRlbXBsYXRlOiBuZXcgU2ltcGxhdGUoW10pLFxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7U2ltcGxhdGV9XHJcbiAgICogSFRNTCBzaG93biB3aGVuIGRhdGEgaXMgYmVpbmcgbG9hZGVkLlxyXG4gICAqXHJcbiAgICogYCRgID0+IHRoZSB2aWV3IGluc3RhbmNlXHJcbiAgICovXHJcbiAgbG9hZGluZ1RlbXBsYXRlOiBuZXcgU2ltcGxhdGUoW1xyXG4gICAgJzxkaXYgY2xhc3M9XCJwYW5lbC1sb2FkaW5nLWluZGljYXRvclwiPicsXHJcbiAgICAnPGRpdiBjbGFzcz1cInJvd1wiPicsXHJcbiAgICAgICc8ZGl2IGNsYXNzPVwiYnVzeUluZGljYXRvcl9fY29udGFpbmVyIGJ1c3lJbmRpY2F0b3ItLWFjdGl2ZVwiIGFyaWEtbGl2ZT1cInBvbGl0ZVwiPicsXHJcbiAgICAgICAgJzxkaXYgY2xhc3M9XCJidXN5SW5kaWNhdG9yIGJ1c3lJbmRpY2F0b3ItLWxhcmdlXCI+JyxcclxuICAgICAgICAgICc8ZGl2IGNsYXNzPVwiYnVzeUluZGljYXRvcl9fYmFyIGJ1c3lJbmRpY2F0b3JfX2Jhci0tbGFyZ2UgYnVzeUluZGljYXRvcl9fYmFyLS1vbmVcIj48L2Rpdj4nLFxyXG4gICAgICAgICAgJzxkaXYgY2xhc3M9XCJidXN5SW5kaWNhdG9yX19iYXIgYnVzeUluZGljYXRvcl9fYmFyLS1sYXJnZSBidXN5SW5kaWNhdG9yX19iYXItLXR3b1wiPjwvZGl2PicsXHJcbiAgICAgICAgICAnPGRpdiBjbGFzcz1cImJ1c3lJbmRpY2F0b3JfX2JhciBidXN5SW5kaWNhdG9yX19iYXItLWxhcmdlIGJ1c3lJbmRpY2F0b3JfX2Jhci0tdGhyZWVcIj48L2Rpdj4nLFxyXG4gICAgICAgICAgJzxkaXYgY2xhc3M9XCJidXN5SW5kaWNhdG9yX19iYXIgYnVzeUluZGljYXRvcl9fYmFyLS1sYXJnZSBidXN5SW5kaWNhdG9yX19iYXItLWZvdXJcIj48L2Rpdj4nLFxyXG4gICAgICAgICAgJzxkaXYgY2xhc3M9XCJidXN5SW5kaWNhdG9yX19iYXIgYnVzeUluZGljYXRvcl9fYmFyLS1sYXJnZSBidXN5SW5kaWNhdG9yX19iYXItLWZpdmVcIj48L2Rpdj4nLFxyXG4gICAgICAgICc8L2Rpdj4nLFxyXG4gICAgICAgICc8c3BhbiBjbGFzcz1cImJ1c3lJbmRpY2F0b3JfX2xhYmVsXCI+eyU6ICQubG9hZGluZ1RleHQgJX08L3NwYW4+JyxcclxuICAgICAgJzwvZGl2PicsXHJcbiAgICAnPC9kaXY+JyxcclxuICAgICc8L2Rpdj4nLFxyXG4gIF0pLFxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7U2ltcGxhdGV9XHJcbiAgICogSFRNTCB0aGF0IGNyZWF0ZXMgdGhlIHF1aWNrIGFjdGlvbiBsaXN0XHJcbiAgICovXHJcbiAgcXVpY2tBY3Rpb25UZW1wbGF0ZTogbmV3IFNpbXBsYXRlKFtcclxuICAgICc8ZGl2IGNsYXNzPVwicXVpY2stYWN0aW9uc1wiIGRhdGEtZG9qby1hdHRhY2gtcG9pbnQ9XCJxdWlja0FjdGlvbnNcIj48L2Rpdj4nLFxyXG4gIF0pLFxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7U2ltcGxhdGV9XHJcbiAgICogSFRNTCB0aGF0IGNyZWF0ZXMgdGhlIGRldGFpbCBoZWFkZXIgZGlzcGxheWluZyBpbmZvcm1hdGlvbiBhYm91dCB0aGUgdGFiIGxpc3RcclxuICAgKlxyXG4gICAqIGAkYCA9PiB0aGUgdmlldyBpbnN0YW5jZVxyXG4gICAqL1xyXG4gIGRldGFpbEhlYWRlclRlbXBsYXRlOiBuZXcgU2ltcGxhdGUoW1xyXG4gICAgJzxkaXYgY2xhc3M9XCJkZXRhaWwtaGVhZGVyXCI+JyxcclxuICAgICd7JTogJC52YWx1ZSAlfScsXHJcbiAgICAnPC9kaXY+JyxcclxuICBdKSxcclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge1NpbXBsYXRlfVxyXG4gICAqIEhUTUwgdGhhdCBzdGFydHMgYSBuZXcgc2VjdGlvblxyXG4gICAqXHJcbiAgICogYCRgID0+IHRoZSB2aWV3IGluc3RhbmNlXHJcbiAgICovXHJcbiAgc2VjdGlvbkJlZ2luVGVtcGxhdGU6IG5ldyBTaW1wbGF0ZShbXHJcbiAgICAneyUgaWYgKCEkJC5pc1RhYmJlZCkgeyAlfScsXHJcbiAgICAgICAgJzxoMiBkYXRhLWFjdGlvbj1cInRvZ2dsZVNlY3Rpb25cIiBjbGFzcz1cInslIGlmICgkLmNvbGxhcHNlZCB8fCAkLm9wdGlvbnMuY29sbGFwc2VkKSB7ICV9Y29sbGFwc2VkeyUgfSAlfVwiPicsXHJcbiAgICAgICAgJzxidXR0b24gY2xhc3M9XCJ7JSBpZiAoJC5jb2xsYXBzZWQpIHsgJX17JTogJCQudG9nZ2xlRXhwYW5kQ2xhc3MgJX17JSB9IGVsc2UgeyAlfXslOiAkJC50b2dnbGVDb2xsYXBzZUNsYXNzICV9eyUgfSAlfVwiIGFyaWEtbGFiZWw9XCJ7JTogJCQudG9nZ2xlQ29sbGFwc2VUZXh0ICV9XCI+PC9idXR0b24+JyxcclxuICAgICAgICAneyU6ICgkLnRpdGxlIHx8ICQub3B0aW9ucy50aXRsZSkgJX0nLFxyXG4gICAgICAgICc8L2gyPicsXHJcbiAgICAneyUgfSAlfScsXHJcbiAgICAneyUgaWYgKCQubGlzdCB8fCAkLm9wdGlvbnMubGlzdCkgeyAlfScsXHJcbiAgICAgICd7JSBpZiAoJC5jbHMgfHwgJC5vcHRpb25zLmNscykgeyAlfScsXHJcbiAgICAgICAgJzx1bCBjbGFzcz1cInslPSAoJC5jbHMgfHwgJC5vcHRpb25zLmNscykgJX1cIj4nLFxyXG4gICAgICAneyUgfSBlbHNlIHsgJX0nLFxyXG4gICAgICAgICc8dWwgY2xhc3M9XCJkZXRhaWxDb250ZW50IGxpc3RcIj4nLFxyXG4gICAgICAneyUgfSAlfScsXHJcbiAgICAneyUgfSBlbHNlIHsgJX0nLFxyXG4gICAgICAneyUgaWYgKCQuY2xzIHx8ICQub3B0aW9ucy5jbHMpIHsgJX0nLFxyXG4gICAgICAgICc8ZGl2IGNsYXNzPVwieyU9ICgkLmNscyB8fCAkLm9wdGlvbnMuY2xzKSAlfVwiPicsXHJcbiAgICAgICAgICAneyUgfSBlbHNlIHsgJX0nLFxyXG4gICAgICAgICAgICAnPGRpdiBjbGFzcz1cImRldGFpbENvbnRlbnRcIj4nLFxyXG4gICAgICAgICAgJ3slIH0gJX0nLFxyXG4gICAgJ3slIH0gJX0nLFxyXG4gIF0pLFxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7U2ltcGxhdGV9XHJcbiAgICogSFRNTCB0aGF0IGVuZHMgYSBzZWN0aW9uXHJcbiAgICpcclxuICAgKiBgJGAgPT4gdGhlIHZpZXcgaW5zdGFuY2VcclxuICAgKi9cclxuICBzZWN0aW9uRW5kVGVtcGxhdGU6IG5ldyBTaW1wbGF0ZShbXHJcbiAgICAneyUgaWYgKCQubGlzdCB8fCAkLm9wdGlvbnMubGlzdCkgeyAlfScsXHJcbiAgICAnPC91bD4nLFxyXG4gICAgJ3slIH0gZWxzZSB7ICV9JyxcclxuICAgICc8L2Rpdj4nLFxyXG4gICAgJ3slIH0gJX0nLFxyXG4gIF0pLFxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7U2ltcGxhdGV9XHJcbiAgICogSFRNTCB0aGF0IGlzIHVzZWQgZm9yIGEgcHJvcGVydHkgaW4gdGhlIGRldGFpbCBsYXlvdXRcclxuICAgKlxyXG4gICAqICogYCRgID0+IGRldGFpbCBsYXlvdXQgcm93XHJcbiAgICogKiBgJCRgID0+IHZpZXcgaW5zdGFuY2VcclxuICAgKi9cclxuICBwcm9wZXJ0eVRlbXBsYXRlOiBuZXcgU2ltcGxhdGUoW1xyXG4gICAgJzxkaXYgY2xhc3M9XCJyb3d7JSBpZighJC52YWx1ZSkgeyAlfSBuby12YWx1ZXslIH0gJX0geyU9ICQuY2xzICV9XCIgZGF0YS1wcm9wZXJ0eT1cInslPSAkLnByb3BlcnR5IHx8ICQubmFtZSAlfVwiPicsXHJcbiAgICAnPGxhYmVsPnslOiAkLmxhYmVsICV9PC9sYWJlbD4nLFxyXG4gICAgJzxzcGFuPnslPSAkLnZhbHVlICV9PC9zcGFuPicsIC8vIHRvZG86IGNyZWF0ZSBhIHdheSB0byBhbGxvdyB0aGUgdmFsdWUgdG8gbm90IGJlIHN1cnJvdW5kZWQgd2l0aCBhIHNwYW4gdGFnXHJcbiAgICAnPC9kaXY+JyxcclxuICBdKSxcclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge1NpbXBsYXRlfVxyXG4gICAqIEhUTUwgdGhhdCBpcyB1c2VkIGZvciBkZXRhaWwgbGF5b3V0IGl0ZW1zIHRoYXQgcG9pbnQgdG8gcmVsYXRlZCB2aWV3cywgaW5jbHVkZXMgYSBsYWJlbCBhbmQgbGlua3MgdGhlIHZhbHVlIHRleHRcclxuICAgKlxyXG4gICAqICogYCRgID0+IGRldGFpbCBsYXlvdXQgcm93XHJcbiAgICogKiBgJCRgID0+IHZpZXcgaW5zdGFuY2VcclxuICAgKi9cclxuICByZWxhdGVkUHJvcGVydHlUZW1wbGF0ZTogbmV3IFNpbXBsYXRlKFtcclxuICAgICc8ZGl2IGNsYXNzPVwicm93eyUgaWYoISQudmFsdWUpIHsgJX0gbm8tdmFsdWV7JSB9ICV9IHslPSAkLmNscyAlfVwiPicsXHJcbiAgICAnPGxhYmVsPnslOiAkLmxhYmVsICV9PC9sYWJlbD4nLFxyXG4gICAgJzxzcGFuPicsXHJcbiAgICAnPGEgZGF0YS1hY3Rpb249XCJhY3RpdmF0ZVJlbGF0ZWRFbnRyeVwiIGRhdGEtdmlldz1cInslPSAkLnZpZXcgJX1cIiBkYXRhLWNvbnRleHQ9XCJ7JTogJC5jb250ZXh0ICV9XCIgZGF0YS1kZXNjcmlwdG9yPVwieyU6ICQuZGVzY3JpcHRvciB8fCAkLnZhbHVlICV9XCI+JyxcclxuICAgICd7JT0gJC52YWx1ZSAlfScsXHJcbiAgICAnPC9hPicsXHJcbiAgICAnPC9zcGFuPicsXHJcbiAgICAnPC9kaXY+JyxcclxuICBdKSxcclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge1NpbXBsYXRlfVxyXG4gICAqIEhUTUwgdGhhdCBpcyB1c2VkIGZvciBkZXRhaWwgbGF5b3V0IGl0ZW1zIHRoYXQgcG9pbnQgdG8gcmVsYXRlZCB2aWV3cywgZGlzcGxheWVkIGFzIGFuIGljb24gYW5kIHRleHRcclxuICAgKlxyXG4gICAqICogYCRgID0+IGRldGFpbCBsYXlvdXQgcm93XHJcbiAgICogKiBgJCRgID0+IHZpZXcgaW5zdGFuY2VcclxuICAgKi9cclxuICByZWxhdGVkVGVtcGxhdGU6IG5ldyBTaW1wbGF0ZShbXHJcbiAgICAnPGxpIGNsYXNzPVwieyU9ICQuY2xzICV9XCI+JyxcclxuICAgICc8YSBkYXRhLWFjdGlvbj1cImFjdGl2YXRlUmVsYXRlZExpc3RcIiBkYXRhLXZpZXc9XCJ7JT0gJC52aWV3ICV9XCIgZGF0YS1jb250ZXh0PVwieyU6ICQuY29udGV4dCAlfVwiIHslIGlmICgkLmRpc2FibGVkKSB7ICV9ZGF0YS1kaXNhYmxlLWFjdGlvbj1cInRydWVcInslIH0gJX0gY2xhc3M9XCJ7JSBpZiAoJC5kaXNhYmxlZCkgeyAlfWRpc2FibGVkeyUgfSAlfVwiPicsXHJcbiAgICAneyUgaWYgKCQuaWNvbikgeyAlfScsXHJcbiAgICAnPGltZyBzcmM9XCJ7JT0gJC5pY29uICV9XCIgYWx0PVwiaWNvblwiIGNsYXNzPVwiaWNvblwiIC8+JyxcclxuICAgICd7JSB9IGVsc2UgaWYgKCQuaWNvbkNsYXNzKSB7ICV9JyxcclxuICAgICc8ZGl2IGNsYXNzPVwieyU9ICQuaWNvbkNsYXNzICV9XCIgYWx0PVwiaWNvblwiPjwvZGl2PicsXHJcbiAgICAneyUgfSAlfScsXHJcbiAgICAnPHNwYW4gY2xhc3M9XCJyZWxhdGVkLWl0ZW0tbGFiZWxcIj57JTogJC5sYWJlbCAlfTwvc3Bhbj4nLFxyXG4gICAgJzwvYT4nLFxyXG4gICAgJzwvbGk+JyxcclxuICBdKSxcclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge1NpbXBsYXRlfVxyXG4gICAqIEhUTUwgdGhhdCBpcyB1c2VkIGZvciBkZXRhaWwgbGF5b3V0IGl0ZW1zIHRoYXQgZmlyZSBhbiBhY3Rpb24sIGRpc3BsYXllZCB3aXRoIGxhYmVsIGFuZCBwcm9wZXJ0eSB2YWx1ZVxyXG4gICAqXHJcbiAgICogKiBgJGAgPT4gZGV0YWlsIGxheW91dCByb3dcclxuICAgKiAqIGAkJGAgPT4gdmlldyBpbnN0YW5jZVxyXG4gICAqL1xyXG4gIGFjdGlvblByb3BlcnR5VGVtcGxhdGU6IG5ldyBTaW1wbGF0ZShbXHJcbiAgICAnPGRpdiBjbGFzcz1cInJvdyB7JT0gJC5jbHMgJX1cIj4nLFxyXG4gICAgJzxsYWJlbD57JTogJC5sYWJlbCAlfTwvbGFiZWw+JyxcclxuICAgICc8c3Bhbj4nLFxyXG4gICAgJzxhIGRhdGEtYWN0aW9uPVwieyU9ICQuYWN0aW9uICV9XCIgeyUgaWYgKCQuZGlzYWJsZWQpIHsgJX1kYXRhLWRpc2FibGUtYWN0aW9uPVwidHJ1ZVwieyUgfSAlfSBjbGFzcz1cInslIGlmICgkLmRpc2FibGVkKSB7ICV9ZGlzYWJsZWR7JSB9ICV9XCI+JyxcclxuICAgICd7JT0gJC52YWx1ZSAlfScsXHJcbiAgICAnPC9hPicsXHJcbiAgICAnPC9zcGFuPicsXHJcbiAgICAnPC9kaXY+JyxcclxuICBdKSxcclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge1NpbXBsYXRlfVxyXG4gICAqIEhUTUwgdGhhdCBpcyB1c2VkIGZvciBkZXRhaWwgbGF5b3V0IGl0ZW1zIHRoYXQgZmlyZSBhbiBhY3Rpb24sIGRpc3BsYXllZCBhcyBhbiBpY29uIGFuZCB0ZXh0XHJcbiAgICpcclxuICAgKiAqIGAkYCA9PiBkZXRhaWwgbGF5b3V0IHJvd1xyXG4gICAqICogYCQkYCA9PiB2aWV3IGluc3RhbmNlXHJcbiAgICovXHJcbiAgYWN0aW9uVGVtcGxhdGU6IG5ldyBTaW1wbGF0ZShbXHJcbiAgICAnPGxpIGNsYXNzPVwieyU9ICQuY2xzICV9eyUgaWYgKCQuZGlzYWJsZWQpIHsgJX0gZGlzYWJsZWR7JSB9ICV9XCI+JyxcclxuICAgICc8YSBkYXRhLWFjdGlvbj1cInslPSAkLmFjdGlvbiAlfVwiIHslIGlmICgkLmRpc2FibGVkKSB7ICV9ZGF0YS1kaXNhYmxlLWFjdGlvbj1cInRydWVcInslIH0gJX0gY2xhc3M9XCJ7JSBpZiAoJC5kaXNhYmxlZCkgeyAlfWRpc2FibGVkeyUgfSAlfVwiPicsXHJcbiAgICAneyUgaWYgKCQuaWNvbikgeyAlfScsXHJcbiAgICAnPGltZyBzcmM9XCJ7JT0gJC5pY29uICV9XCIgYWx0PVwiaWNvblwiIGNsYXNzPVwiaWNvblwiIC8+JyxcclxuICAgICd7JSB9IGVsc2UgaWYgKCQuaWNvbkNsYXNzKSB7ICV9JyxcclxuICAgICc8ZGl2IGNsYXNzPVwieyU9ICQuaWNvbkNsYXNzICV9XCIgYWx0PVwiaWNvblwiPjwvZGl2PicsXHJcbiAgICAneyUgfSAlfScsXHJcbiAgICAnPGxhYmVsPnslOiAkLmxhYmVsICV9PC9sYWJlbD4nLFxyXG4gICAgJzxzcGFuPnslPSAkLnZhbHVlICV9PC9zcGFuPicsXHJcbiAgICAnPC9hPicsXHJcbiAgICAnPC9saT4nLFxyXG4gIF0pLFxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7U2ltcGxhdGV9XHJcbiAgICogSFRNTCB0aGF0IGlzIHNob3duIHdoZW4gbm90IGF2YWlsYWJsZVxyXG4gICAqXHJcbiAgICogYCRgID0+IHRoZSB2aWV3IGluc3RhbmNlXHJcbiAgICovXHJcbiAgbm90QXZhaWxhYmxlVGVtcGxhdGU6IG5ldyBTaW1wbGF0ZShbXHJcbiAgICAnPGRpdiBjbGFzcz1cIm5vdC1hdmFpbGFibGVcIj57JTogJC5ub3RBdmFpbGFibGVUZXh0ICV9PC9kaXY+JyxcclxuICBdKSxcclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge1N0cmluZ31cclxuICAgKiBUaGUgdW5pcXVlIGlkZW50aWZpZXIgb2YgdGhlIHZpZXdcclxuICAgKi9cclxuICBpZDogJ2dlbmVyaWNfZGV0YWlsJyxcclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge09iamVjdH1cclxuICAgKiBUaGUgZG9qbyBzdG9yZSB0aGlzIHZpZXcgd2lsbCB1c2UgZm9yIGRhdGEgZXhjaGFuZ2UuXHJcbiAgICovXHJcbiAgc3RvcmU6IG51bGwsXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtPYmplY3R9XHJcbiAgICogVGhlIGRhdGEgZW50cnlcclxuICAgKi9cclxuICBlbnRyeTogbnVsbCxcclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge09iamVjdH1cclxuICAgKiBUaGUgbGF5b3V0IGRlZmluaXRpb24gdGhhdCBjb25zdHJ1Y3RzIHRoZSBkZXRhaWwgdmlldyB3aXRoIHNlY3Rpb25zIGFuZCByb3dzXHJcbiAgICovXHJcbiAgbGF5b3V0OiBudWxsLFxyXG4gIC8qKlxyXG4gICAqIEBjZmcge1N0cmluZy9PYmplY3R9XHJcbiAgICogTWF5IGJlIHVzZWQgZm9yIHZlcmlmeWluZyB0aGUgdmlldyBpcyBhY2Nlc3NpYmxlXHJcbiAgICovXHJcbiAgc2VjdXJpdHk6IGZhbHNlLFxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7U3RyaW5nfVxyXG4gICAqIFRoZSBjdXN0b21pemF0aW9uIGlkZW50aWZpZXIgZm9yIHRoaXMgY2xhc3MuIFdoZW4gYSBjdXN0b21pemF0aW9uIGlzIHJlZ2lzdGVyZWQgaXQgaXMgcGFzc2VkXHJcbiAgICogYSBwYXRoL2lkZW50aWZpZXIgd2hpY2ggaXMgdGhlbiBtYXRjaGVkIHRvIHRoaXMgcHJvcGVydHkuXHJcbiAgICovXHJcbiAgY3VzdG9taXphdGlvblNldDogJ2RldGFpbCcsXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtCb29sZWFufVxyXG4gICAqIENvbnRyb2xzIGlmIHRoZSB2aWV3IHNob3VsZCBiZSBleHBvc2VkXHJcbiAgICovXHJcbiAgZXhwb3NlOiBmYWxzZSxcclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge0Jvb2xlYW59XHJcbiAgICogQ29udHJvbHMgd2hldGhlciB0aGUgdmlldyB3aWxsIHJlbmRlciBhcyBhIHRhYiB2aWV3IG9yIHRoZSBwcmV2aW91cyBsaXN0IHZpZXdcclxuICAgKi9cclxuICBpc1RhYmJlZDogdHJ1ZSxcclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge1N0cmluZ31cclxuICAgKiBDb250cm9scyBob3cgdGhlIHZpZXcgZGV0ZXJtaW5lcyB0aGUgcXVpY2sgYWN0aW9uIHNlY3Rpb24gYnkgbWFwcGluZyB0aGlzIHN0cmluZyB3aXRoIHRoYXQgb24gdGhlIGRldGFpbCB2aWV3IChzaG91bGQgYmUgb3ZlcndyaXR0ZW4pXHJcbiAgICovXHJcbiAgcXVpY2tBY3Rpb25TZWN0aW9uOiAnUXVpY2tBY3Rpb25zU2VjdGlvbicsXHJcbiAgLyoqXHJcbiAgICogQGRlcHJlY2F0ZWRcclxuICAgKi9cclxuICBlZGl0VGV4dDogcmVzb3VyY2UuZWRpdFRleHQsXHJcbiAgLyoqXHJcbiAgICogQGNmZyB7U3RyaW5nfVxyXG4gICAqIEZvbnQgYXdlc29tZSBpY29uIHRvIGJlIHVzZWQgYnkgdGhlIG1vcmUgbGlzdCBpdGVtXHJcbiAgICovXHJcbiAgaWNvbjogJ2ZhIGZhLWNoZXZyb24nLFxyXG5cclxuICB2aWV3VHlwZTogJ2RldGFpbCcsXHJcbiAgLyoqXHJcbiAgICogQGNmZyB7U3RyaW5nfVxyXG4gICAqIEluZm9ybWF0aW9uIHRleHQgdGhhdCBpcyBjb25jYXRlbmF0ZWQgd2l0aCB0aGUgZW50aXR5IHR5cGVcclxuICAgKi9cclxuICBpbmZvcm1hdGlvblRleHQ6IHJlc291cmNlLmluZm9ybWF0aW9uVGV4dCxcclxuICAvKipcclxuICAgKiBAY2ZnIHtTdHJpbmd9XHJcbiAgICogRGVmYXVsdCB0aXRsZSB0ZXh0IHNob3duIGluIHRoZSB0b3AgdG9vbGJhclxyXG4gICAqL1xyXG4gIHRpdGxlVGV4dDogcmVzb3VyY2UudGl0bGVUZXh0LFxyXG4gIC8qKlxyXG4gICAqIEBjZmcge1N0cmluZ31cclxuICAgKiBEZWZhdWx0IHRleHQgdXNlZCBpbiB0aGUgaGVhZGVyIHRpdGxlLCBmb2xsb3dlZCBieSBpbmZvcm1hdGlvblxyXG4gICAqL1xyXG4gIGVudGl0eVRleHQ6IHJlc291cmNlLmVudGl0eVRleHQsXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtTdHJpbmd9XHJcbiAgICogSGVscGVyIHN0cmluZyBmb3IgYSBiYXNpYyBzZWN0aW9uIGhlYWRlciB0ZXh0XHJcbiAgICovXHJcbiAgZGV0YWlsc1RleHQ6IHJlc291cmNlLmRldGFpbHNUZXh0LFxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7U3RyaW5nfVxyXG4gICAqIFRleHQgc2hvd24gd2hpbGUgbG9hZGluZyBhbmQgdXNlZCBpbiBsb2FkaW5nVGVtcGxhdGVcclxuICAgKi9cclxuICBsb2FkaW5nVGV4dDogcmVzb3VyY2UubG9hZGluZ1RleHQsXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtTdHJpbmd9XHJcbiAgICogVGV4dCB1c2VkIGluIHRoZSBub3RBdmFpbGFibGVUZW1wbGF0ZVxyXG4gICAqL1xyXG4gIG5vdEF2YWlsYWJsZVRleHQ6IHJlc291cmNlLm5vdEF2YWlsYWJsZVRleHQsXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtTdHJpbmd9XHJcbiAgICogQVJJQSBsYWJlbCB0ZXh0IGZvciBhIGNvbGxhcHNpYmxlIHNlY3Rpb24gaGVhZGVyXHJcbiAgICovXHJcbiAgdG9nZ2xlQ29sbGFwc2VUZXh0OiByZXNvdXJjZS50b2dnbGVDb2xsYXBzZVRleHQsXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtTdHJpbmd9XHJcbiAgICogQ1NTIGNsYXNzIGZvciB0aGUgY29sbGFwc2UgYnV0dG9uIHdoZW4gaW4gYSBleHBhbmRlZCBzdGF0ZVxyXG4gICAqL1xyXG4gIHRvZ2dsZUNvbGxhcHNlQ2xhc3M6ICdmYSBmYS1jaGV2cm9uLWRvd24nLFxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7U3RyaW5nfVxyXG4gICAqIENTUyBjbGFzcyBmb3IgdGhlIGNvbGxhcHNlIGJ1dHRvbiB3aGVuIGluIGEgY29sbGFwc2VkIHN0YXRlXHJcbiAgICovXHJcbiAgdG9nZ2xlRXhwYW5kQ2xhc3M6ICdmYSBmYS1jaGV2cm9uLXJpZ2h0JyxcclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge09iamVjdH1cclxuICAgKiBkb2pvIGNvbm5lY3Qgb2JqZWN0IGFzc29jaWF0ZWQgdG8gdGhlIHNldE9yaWVudGF0aW9uIGV2ZW50XHJcbiAgICovXHJcbiAgX29yaWVudGF0aW9uOiBudWxsLFxyXG4gIC8qKlxyXG4gICAqIEBjZmcge1N0cmluZ31cclxuICAgKiBUaGUgdmlldyBpZCB0byBiZSB0YWtlbiB0byB3aGVuIHRoZSBFZGl0IGJ1dHRvbiBpcyBwcmVzc2VkIGluIHRoZSB0b29sYmFyXHJcbiAgICovXHJcbiAgZWRpdFZpZXc6IGZhbHNlLFxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7T2JqZWN0W119XHJcbiAgICogU3RvcmUgZm9yIG1hcHBpbmcgbGF5b3V0IG9wdGlvbnMgdG8gYW4gaW5kZXggb24gdGhlIEhUTUwgbm9kZVxyXG4gICAqL1xyXG4gIF9uYXZpZ2F0aW9uT3B0aW9uczogbnVsbCxcclxuXHJcbiAgLy8gU3RvcmUgcHJvcGVydGllc1xyXG4gIGl0ZW1zUHJvcGVydHk6ICcnLFxyXG4gIGlkUHJvcGVydHk6ICcnLFxyXG4gIGxhYmVsUHJvcGVydHk6ICcnLFxyXG4gIGVudGl0eVByb3BlcnR5OiAnJyxcclxuICB2ZXJzaW9uUHJvcGVydHk6ICcnLFxyXG5cclxuICAvKipcclxuICAgKiBFeHRlbmRzIHRoZSBkaWppdCB3aWRnZXQgcG9zdENyZWF0ZSB0byBzdWJzY3JpYmUgdG8gdGhlIGdsb2JhbCBgL2FwcC9yZWZyZXNoYCBldmVudCBhbmQgY2xlYXIgdGhlIHZpZXcuXHJcbiAgICovXHJcbiAgcG9zdENyZWF0ZTogZnVuY3Rpb24gcG9zdENyZWF0ZSgpIHtcclxuICAgIHRoaXMuaW5oZXJpdGVkKGFyZ3VtZW50cyk7XHJcbiAgICB0aGlzLnN1YnNjcmliZSgnL2FwcC9yZWZyZXNoJywgdGhpcy5fb25SZWZyZXNoKTtcclxuICAgIHRoaXMuY2xlYXIoKTtcclxuICB9LFxyXG4gIGNyZWF0ZUVycm9ySGFuZGxlcnM6IGZ1bmN0aW9uIGNyZWF0ZUVycm9ySGFuZGxlcnMoKSB7XHJcbiAgICB0aGlzLmVycm9ySGFuZGxlcnMgPSB0aGlzLmVycm9ySGFuZGxlcnMgfHwgW3tcclxuICAgICAgbmFtZTogJ0Fib3J0ZWQnLFxyXG4gICAgICB0ZXN0OiAoZXJyb3IpID0+IHtcclxuICAgICAgICByZXR1cm4gZXJyb3IuYWJvcnRlZDtcclxuICAgICAgfSxcclxuICAgICAgaGFuZGxlOiAoZXJyb3IsIG5leHQpID0+IHtcclxuICAgICAgICB0aGlzLm9wdGlvbnMgPSBmYWxzZTsgLy8gZm9yY2UgYSByZWZyZXNoXHJcbiAgICAgICAgbmV4dCgpO1xyXG4gICAgICB9LFxyXG4gICAgfSwge1xyXG4gICAgICBuYW1lOiAnQWxlcnRFcnJvcicsXHJcbiAgICAgIHRlc3Q6IChlcnJvcikgPT4ge1xyXG4gICAgICAgIHJldHVybiBlcnJvci5zdGF0dXMgIT09IHRoaXMuSFRUUF9TVEFUVVMuTk9UX0ZPVU5EICYmICFlcnJvci5hYm9ydGVkO1xyXG4gICAgICB9LFxyXG4gICAgICBoYW5kbGU6IChlcnJvciwgbmV4dCkgPT4ge1xyXG4gICAgICAgIGFsZXJ0KHRoaXMuZ2V0RXJyb3JNZXNzYWdlKGVycm9yKSk7IC8vZXNsaW50LWRpc2FibGUtbGluZVxyXG4gICAgICAgIG5leHQoKTtcclxuICAgICAgfSxcclxuICAgIH0sIHtcclxuICAgICAgbmFtZTogJ05vdEZvdW5kJyxcclxuICAgICAgdGVzdDogKGVycm9yKSA9PiB7XHJcbiAgICAgICAgcmV0dXJuIGVycm9yLnN0YXR1cyA9PT0gdGhpcy5IVFRQX1NUQVRVUy5OT1RfRk9VTkQ7XHJcbiAgICAgIH0sXHJcbiAgICAgIGhhbmRsZTogKGVycm9yLCBuZXh0KSA9PiB7XHJcbiAgICAgICAgZG9tQ29uc3RydWN0LnBsYWNlKHRoaXMubm90QXZhaWxhYmxlVGVtcGxhdGUuYXBwbHkodGhpcyksIHRoaXMuY29udGVudE5vZGUsICdvbmx5Jyk7XHJcbiAgICAgICAgbmV4dCgpO1xyXG4gICAgICB9LFxyXG4gICAgfSwge1xyXG4gICAgICBuYW1lOiAnQ2F0Y2hBbGwnLFxyXG4gICAgICB0ZXN0OiAoKSA9PiB0cnVlLFxyXG4gICAgICBoYW5kbGU6IChlcnJvciwgbmV4dCkgPT4ge1xyXG4gICAgICAgIGNvbnN0IGZyb21Db250ZXh0ID0gdGhpcy5vcHRpb25zLmZyb21Db250ZXh0O1xyXG4gICAgICAgIHRoaXMub3B0aW9ucy5mcm9tQ29udGV4dCA9IG51bGw7XHJcbiAgICAgICAgY29uc3QgZXJyb3JJdGVtID0ge1xyXG4gICAgICAgICAgdmlld09wdGlvbnM6IHRoaXMub3B0aW9ucyxcclxuICAgICAgICAgIHNlcnZlckVycm9yOiBlcnJvcixcclxuICAgICAgICB9O1xyXG5cclxuICAgICAgICBFcnJvck1hbmFnZXIuYWRkRXJyb3IodGhpcy5nZXRFcnJvck1lc3NhZ2UoZXJyb3IpLCBlcnJvckl0ZW0pO1xyXG4gICAgICAgIHRoaXMub3B0aW9ucy5mcm9tQ29udGV4dCA9IGZyb21Db250ZXh0O1xyXG4gICAgICAgIGRvbUNsYXNzLnJlbW92ZSh0aGlzLmRvbU5vZGUsICdwYW5lbC1sb2FkaW5nJyk7XHJcbiAgICAgICAgbmV4dCgpO1xyXG4gICAgICB9LFxyXG4gICAgfV07XHJcblxyXG4gICAgcmV0dXJuIHRoaXMuZXJyb3JIYW5kbGVycztcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIFNldHMgYW5kIHJldHVybnMgdGhlIHRvb2xiYXIgaXRlbSBsYXlvdXQgZGVmaW5pdGlvbiwgdGhpcyBtZXRob2Qgc2hvdWxkIGJlIG92ZXJyaWRlbiBpbiB0aGUgdmlld1xyXG4gICAqIHNvIHRoYXQgeW91IG1heSBkZWZpbmUgdGhlIHZpZXdzIHRvb2xiYXIgaXRlbXMuXHJcbiAgICogQHJldHVybiB7T2JqZWN0fSB0aGlzLnRvb2xzXHJcbiAgICogQHRlbXBsYXRlXHJcbiAgICovXHJcbiAgY3JlYXRlVG9vbExheW91dDogZnVuY3Rpb24gY3JlYXRlVG9vbExheW91dCgpIHtcclxuICAgIGNvbnN0IHRvb2xzID0gW107XHJcblxyXG4gICAgaWYgKHRoaXMuZWRpdFZpZXcpIHtcclxuICAgICAgdG9vbHMucHVzaCh7XHJcbiAgICAgICAgaWQ6ICdlZGl0JyxcclxuICAgICAgICBjbHM6ICdmYSBmYS1wZW5jaWwgZmEtZncgZmEtbGcnLFxyXG4gICAgICAgIGFjdGlvbjogJ25hdmlnYXRlVG9FZGl0VmlldycsXHJcbiAgICAgICAgc2VjdXJpdHk6IEFwcC5nZXRWaWV3U2VjdXJpdHkodGhpcy5lZGl0VmlldywgJ3VwZGF0ZScpLFxyXG4gICAgICB9KTtcclxuICAgIH1cclxuXHJcbiAgICB0b29scy5wdXNoKHtcclxuICAgICAgaWQ6ICdyZWZyZXNoJyxcclxuICAgICAgY2xzOiAnZmEgZmEtcmVmcmVzaCBmYS1mdyBmYS1sZycsXHJcbiAgICAgIGFjdGlvbjogJ19yZWZyZXNoQ2xpY2tlZCcsXHJcbiAgICB9KTtcclxuXHJcbiAgICByZXR1cm4gdGhpcy50b29scyB8fCAodGhpcy50b29scyA9IHtcclxuICAgICAgJ3RiYXInOiB0b29scyxcclxuICAgIH0pO1xyXG4gIH0sXHJcbiAgX3JlZnJlc2hDbGlja2VkOiBmdW5jdGlvbiBfcmVmcmVzaENsaWNrZWQoKSB7XHJcbiAgICB0aGlzLmNsZWFyKCk7XHJcbiAgICB0aGlzLnJlZnJlc2hSZXF1aXJlZCA9IHRydWU7XHJcbiAgICB0aGlzLnJlZnJlc2goKTtcclxuXHJcbiAgICB0aGlzLm9uUmVmcmVzaENsaWNrZWQoKTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIENhbGxlZCB3aGVuIHRoZSB1c2VyIGNsaWNrcyB0aGUgcmVmcmVzaCB0b29sYmFyIGJ1dHRvbi5cclxuICAgKi9cclxuICBvblJlZnJlc2hDbGlja2VkOiBmdW5jdGlvbiBvblJlZnJlc2hDbGlja2VkKCkge30sXHJcbiAgLyoqXHJcbiAgICogRXh0ZW5kcyB0aGUge0BsaW5rIF9BY3Rpb25NaXhpbiNpbnZva2VBY3Rpb24gbWl4aW5zIGludm9rZUFjdGlvbn0gdG8gc3RvcCBpZiBgZGF0YS1kaXNhYmxlQWN0aW9uYCBpcyB0cnVlXHJcbiAgICogQHBhcmFtIG5hbWVcclxuICAgKiBAcGFyYW0ge09iamVjdH0gcGFyYW1ldGVycyBDb2xsZWN0aW9uIG9mIGBkYXRhLWAgYXR0cmlidXRlcyBmcm9tIHRoZSBub2RlXHJcbiAgICogQHBhcmFtIHtFdmVudH0gZXZ0XHJcbiAgICogQHBhcmFtIHtIVE1MRWxlbWVudH0gZWxcclxuICAgKi9cclxuICBpbnZva2VBY3Rpb246IGZ1bmN0aW9uIGludm9rZUFjdGlvbihuYW1lLCBwYXJhbWV0ZXJzIC8qLCBldnQsIGVsKi8gKSB7XHJcbiAgICBpZiAocGFyYW1ldGVycyAmJiAvdHJ1ZS9pLnRlc3QocGFyYW1ldGVycy5kaXNhYmxlQWN0aW9uKSkge1xyXG4gICAgICByZXR1cm4gbnVsbDtcclxuICAgIH1cclxuICAgIHJldHVybiB0aGlzLmluaGVyaXRlZChhcmd1bWVudHMpO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogVG9nZ2xlcyB0aGUgY29sbGFwc2VkIHN0YXRlIG9mIHRoZSBzZWN0aW9uLlxyXG4gICAqL1xyXG4gIHRvZ2dsZVNlY3Rpb246IGZ1bmN0aW9uIHRvZ2dsZVNlY3Rpb24ocGFyYW1zKSB7XHJcbiAgICBjb25zdCBub2RlID0gZG9tLmJ5SWQocGFyYW1zLiRzb3VyY2UpO1xyXG4gICAgaWYgKG5vZGUpIHtcclxuICAgICAgZG9tQ2xhc3MudG9nZ2xlKG5vZGUsICdjb2xsYXBzZWQnKTtcclxuICAgICAgY29uc3QgYnV0dG9uID0gcXVlcnkoJ2J1dHRvbicsIG5vZGUpWzBdO1xyXG4gICAgICBpZiAoYnV0dG9uKSB7XHJcbiAgICAgICAgZG9tQ2xhc3MudG9nZ2xlKGJ1dHRvbiwgdGhpcy50b2dnbGVDb2xsYXBzZUNsYXNzKTtcclxuICAgICAgICBkb21DbGFzcy50b2dnbGUoYnV0dG9uLCB0aGlzLnRvZ2dsZUV4cGFuZENsYXNzKTtcclxuICAgICAgfVxyXG4gICAgfVxyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogSGFuZGxlciBmb3IgdGhlIGdldHRpbmcgdGhlIGRldGFpbCByZXNvdXJjZSB0eXBlIGZyb20gdGhlIGlkIGFuZCBwbGFjaW5nIHRoZSBoZWFkZXIgaW50byB0aGUgZGV0YWlsIHZpZXcuLlxyXG4gICAqIEBwcml2YXRlXHJcbiAgICovXHJcbiAgcGxhY2VEZXRhaWxIZWFkZXI6IGZ1bmN0aW9uIHBsYWNlRGV0YWlsSGVhZGVyKCkge1xyXG4gICAgY29uc3QgdmFsdWUgPSB0aGlzLmVudGl0eVRleHQgKyAnICcgKyB0aGlzLmluZm9ybWF0aW9uVGV4dDtcclxuICAgIGRvbUNvbnN0cnVjdC5wbGFjZSh0aGlzLmRldGFpbEhlYWRlclRlbXBsYXRlLmFwcGx5KHsgdmFsdWU6IHZhbHVlIH0sIHRoaXMpLCB0aGlzLnRhYkxpc3QsICdiZWZvcmUnKTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIEhhbmRsZXIgZm9yIHRoZSBnbG9iYWwgYC9hcHAvcmVmcmVzaGAgZXZlbnQuIFNldHMgYHJlZnJlc2hSZXF1aXJlZGAgdG8gdHJ1ZSBpZiB0aGUga2V5IG1hdGNoZXMuXHJcbiAgICogQHBhcmFtIHtPYmplY3R9IG9wdGlvbnMgVGhlIG9iamVjdCBwdWJsaXNoZWQgYnkgdGhlIGV2ZW50LlxyXG4gICAqIEBwcml2YXRlXHJcbiAgICovXHJcbiAgX29uUmVmcmVzaDogZnVuY3Rpb24gX29uUmVmcmVzaChvKSB7XHJcbiAgICBjb25zdCBkZXNjcmlwdG9yID0gby5kYXRhICYmIG8uZGF0YVt0aGlzLmxhYmVsUHJvcGVydHldO1xyXG5cclxuICAgIGlmICh0aGlzLm9wdGlvbnMgJiYgdGhpcy5vcHRpb25zLmtleSA9PT0gby5rZXkpIHtcclxuICAgICAgdGhpcy5yZWZyZXNoUmVxdWlyZWQgPSB0cnVlO1xyXG5cclxuICAgICAgaWYgKGRlc2NyaXB0b3IpIHtcclxuICAgICAgICB0aGlzLm9wdGlvbnMudGl0bGUgPSBkZXNjcmlwdG9yO1xyXG4gICAgICAgIHRoaXMuc2V0KCd0aXRsZScsIGRlc2NyaXB0b3IpO1xyXG4gICAgICB9XHJcbiAgICB9XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBIYW5kbGVyIGZvciB0aGUgcmVsYXRlZCBlbnRyeSBhY3Rpb24sIG5hdmlnYXRlcyB0byB0aGUgZGVmaW5lZCBgZGF0YS12aWV3YCBwYXNzaW5nIHRoZSBgZGF0YS1jb250ZXh0YC5cclxuICAgKiBAcGFyYW0ge09iamVjdH0gcGFyYW1zIENvbGxlY3Rpb24gb2YgYGRhdGEtYCBhdHRyaWJ1dGVzIGZyb20gdGhlIHNvdXJjZSBub2RlLlxyXG4gICAqL1xyXG4gIGFjdGl2YXRlUmVsYXRlZEVudHJ5OiBmdW5jdGlvbiBhY3RpdmF0ZVJlbGF0ZWRFbnRyeShwYXJhbXMpIHtcclxuICAgIGlmIChwYXJhbXMuY29udGV4dCkge1xyXG4gICAgICB0aGlzLm5hdmlnYXRlVG9SZWxhdGVkVmlldyhwYXJhbXMudmlldywgcGFyc2VJbnQocGFyYW1zLmNvbnRleHQsIDEwKSwgcGFyYW1zLmRlc2NyaXB0b3IpO1xyXG4gICAgfVxyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogSGFuZGxlciBmb3IgdGhlIHJlbGF0ZWQgbGlzdCBhY3Rpb24sIG5hdmlnYXRlcyB0byB0aGUgZGVmaW5lZCBgZGF0YS12aWV3YCBwYXNzaW5nIHRoZSBgZGF0YS1jb250ZXh0YC5cclxuICAgKiBAcGFyYW0ge09iamVjdH0gcGFyYW1zIENvbGxlY3Rpb24gb2YgYGRhdGEtYCBhdHRyaWJ1dGVzIGZyb20gdGhlIHNvdXJjZSBub2RlLlxyXG4gICAqL1xyXG4gIGFjdGl2YXRlUmVsYXRlZExpc3Q6IGZ1bmN0aW9uIGFjdGl2YXRlUmVsYXRlZExpc3QocGFyYW1zKSB7XHJcbiAgICBpZiAocGFyYW1zLmNvbnRleHQpIHtcclxuICAgICAgdGhpcy5uYXZpZ2F0ZVRvUmVsYXRlZFZpZXcocGFyYW1zLnZpZXcsIHBhcnNlSW50KHBhcmFtcy5jb250ZXh0LCAxMCksIHBhcmFtcy5kZXNjcmlwdG9yKTtcclxuICAgIH1cclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIE5hdmlnYXRlcyB0byB0aGUgZGVmaW5lZCBgdGhpcy5lZGl0Vmlld2AgcGFzc2luZyB0aGUgY3VycmVudCBgdGhpcy5lbnRyeWAgYXMgZGVmYXVsdCBkYXRhLlxyXG4gICAqIEBwYXJhbSB7SFRNTEVsZW1lbnR9IGVsXHJcbiAgICovXHJcbiAgbmF2aWdhdGVUb0VkaXRWaWV3OiBmdW5jdGlvbiBuYXZpZ2F0ZVRvRWRpdFZpZXcoIC8qZWwqLyApIHtcclxuICAgIGNvbnN0IHZpZXcgPSBBcHAuZ2V0Vmlldyh0aGlzLmVkaXRWaWV3KTtcclxuICAgIGlmICh2aWV3KSB7XHJcbiAgICAgIGNvbnN0IGVudHJ5ID0gdGhpcy5lbnRyeTtcclxuICAgICAgdmlldy5zaG93KHtcclxuICAgICAgICBlbnRyeTogZW50cnksXHJcbiAgICAgICAgZnJvbUNvbnRleHQ6IHRoaXMsXHJcbiAgICAgIH0pO1xyXG4gICAgfVxyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogTmF2aWdhdGVzIHRvIGEgZ2l2ZW4gdmlldyBpZCBwYXNzaW5nIHRoZSBvcHRpb25zIHJldHJpZXZlZCB1c2luZyB0aGUgc2xvdCBpbmRleCB0byBgdGhpcy5fbmF2aWdhdGlvbk9wdGlvbnNgLlxyXG4gICAqIEBwYXJhbSB7U3RyaW5nfSBpZCBWaWV3IGlkIHRvIGdvIHRvXHJcbiAgICogQHBhcmFtIHtOdW1iZXJ9IHNsb3QgSW5kZXggb2YgdGhlIGNvbnRleHQgdG8gdXNlIGluIGB0aGlzLl9uYXZpZ2F0aW9uT3B0aW9uc2AuXHJcbiAgICogQHBhcmFtIHtTdHJpbmd9IGRlc2NyaXB0b3IgT3B0aW9uYWwgZGVzY3JpcHRvciBvcHRpb24gdGhhdCBpcyBtaXhlZCBpbi5cclxuICAgKi9cclxuICBuYXZpZ2F0ZVRvUmVsYXRlZFZpZXc6IGZ1bmN0aW9uIG5hdmlnYXRlVG9SZWxhdGVkVmlldyhpZCwgc2xvdCwgZGVzY3JpcHRvcikge1xyXG4gICAgY29uc3Qgb3B0aW9ucyA9IHRoaXMuX25hdmlnYXRpb25PcHRpb25zW3Nsb3RdO1xyXG4gICAgY29uc3QgdmlldyA9IEFwcC5nZXRWaWV3KGlkKTtcclxuXHJcbiAgICBpZiAoZGVzY3JpcHRvciAmJiBvcHRpb25zKSB7XHJcbiAgICAgIG9wdGlvbnMuZGVzY3JpcHRvciA9IGRlc2NyaXB0b3I7XHJcbiAgICB9XHJcblxyXG4gICAgaWYgKHRoaXMuZW50cnkpIHtcclxuICAgICAgb3B0aW9ucy5zZWxlY3RlZEVudHJ5ID0gdGhpcy5lbnRyeTtcclxuICAgIH1cclxuXHJcbiAgICBvcHRpb25zLmZyb21Db250ZXh0ID0gdGhpcztcclxuICAgIGlmICh2aWV3ICYmIG9wdGlvbnMpIHtcclxuICAgICAgdmlldy5zaG93KG9wdGlvbnMpO1xyXG4gICAgfVxyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogU2V0cyBhbmQgcmV0dXJucyB0aGUgRGV0YWlsIHZpZXcgbGF5b3V0IGJ5IGZvbGxvd2luZyBhIHN0YW5kYXJkIGZvciBzZWN0aW9uIGFuZCByb3dzOlxyXG4gICAqXHJcbiAgICogVGhlIGB0aGlzLmxheW91dGAgaXRzZWxmIGlzIGFuIGFycmF5IG9mIHNlY3Rpb24gb2JqZWN0cyB3aGVyZSBhIHNlY3Rpb24gb2JqZWN0IGlzIGRlZmluZWQgYXMgc3VjaDpcclxuICAgKlxyXG4gICAqICAgICB7XHJcbiAgICogICAgICAgIG5hbWU6ICdTdHJpbmcnLCAvLyBSZXF1aXJlZC4gdW5pcXVlIG5hbWUgZm9yIGlkZW50aWZpY2F0aW9uL2N1c3RvbWl6YXRpb24gcHVycG9zZXNcclxuICAgKiAgICAgICAgdGl0bGU6ICdTdHJpbmcnLCAvLyBSZXF1aXJlZC4gVGV4dCBzaG93biBpbiB0aGUgc2VjdGlvbiBoZWFkZXJcclxuICAgKiAgICAgICAgbGlzdDogYm9vbGVhbiwgLy8gT3B0aW9uYWwuIERlZmF1bHQgZmFsc2UuIENvbnRyb2xzIGlmIHRoZSBncm91cCBjb250YWluZXIgZm9yIGNoaWxkIHJvd3Mgc2hvdWxkIGJlIGEgZGl2IChmYWxzZSkgb3IgdWwgKHRydWUpXHJcbiAgICogICAgICAgIGNoaWxkcmVuOiBbXSwgLy8gQXJyYXkgb2YgY2hpbGQgcm93IG9iamVjdHNcclxuICAgKiAgICAgfVxyXG4gICAqXHJcbiAgICogQSBjaGlsZCByb3cgb2JqZWN0IGhhczpcclxuICAgKlxyXG4gICAqICAgICB7XHJcbiAgICogICAgICAgIG5hbWU6ICdTdHJpbmcnLCAvLyBSZXF1aXJlZC4gdW5pcXVlIG5hbWUgZm9yIGlkZW50aWZpY2F0aW9uL2N1c3RvbWl6YXRpb24gcHVycG9zZXNcclxuICAgKiAgICAgICAgcHJvcGVydHk6ICdTdHJpbmcnLCAvLyBPcHRpb25hbC4gVGhlIHByb3BlcnR5IG9mIHRoZSBjdXJyZW50IGVudGl0eSB0byBiaW5kIHRvXHJcbiAgICogICAgICAgIGxhYmVsOiAnU3RyaW5nJywgLy8gT3B0aW9uYWwuIFRleHQgc2hvd24gaW4gdGhlIGxhYmVsIHRvIHRoZSBsZWZ0IG9mIHRoZSBwcm9wZXJ0eVxyXG4gICAqICAgICAgICBvbkNyZWF0ZTogZnVuY3Rpb24oKSwgLy8gT3B0aW9uYWwuIFlvdSBtYXkgcGFzcyBhIGZ1bmN0aW9uIHRvIGJlIGNhbGxlZCB3aGVuIHRoZSByb3cgaXMgYWRkZWQgdG8gdGhlIERPTVxyXG4gICAqICAgICAgICBpbmNsdWRlOiBib29sZWFuLCAvLyBPcHRpb25hbC4gSWYgZmFsc2UgdGhlIHJvdyB3aWxsIG5vdCBiZSBpbmNsdWRlZCBpbiB0aGUgbGF5b3V0XHJcbiAgICogICAgICAgIGV4Y2x1ZGU6IGJvb2xlYW4sIC8vIE9wdGlvbmFsLiBJZiB0cnVlIHRoZSByb3cgd2lsbCBub3QgYmUgaW5jbHVkZWQgaW4gdGhlIGxheW91dFxyXG4gICAqICAgICAgICB0ZW1wbGF0ZTogU2ltcGxhdGUsIC8vIE9wdGlvbmFsLiBPdmVycmlkZSB0aGUgSFRNTCBTaW1wbGF0ZSB1c2VkIGZvciByZW5kZXJpbmcgdGhlIHZhbHVlIChub3QgdGhlIHJvdykgd2hlcmUgYCRgIGlzIHRoZSByb3cgb2JqZWN0XHJcbiAgICogICAgICAgIHRwbDogU2ltcGxhdGUsIC8vIE9wdGlvbmFsLiBTYW1lIGFzIHRlbXBsYXRlLlxyXG4gICAqICAgICAgICByZW5kZXJlcjogZnVuY3Rpb24oKSwgLy8gT3B0aW9uYWwuIFBhc3MgYSBmdW5jdGlvbiB0aGF0IHJlY2VpdmVzIHRoZSBjdXJyZW50IHZhbHVlIGFuZCByZXR1cm5zIGEgdmFsdWUgdG8gYmUgcmVuZGVyZWRcclxuICAgKiAgICAgICAgZW5jb2RlOiBib29sZWFuLCAvLyBPcHRpb25hbC4gSWYgdHJ1ZSBpdCB3aWxsIGVuY29kZSBIVE1MIGVudGl0aWVzXHJcbiAgICogICAgICAgIGNsczogJ1N0cmluZycsIC8vIE9wdGlvbmFsLiBBZGRpdGlvbmFsIENTUyBjbGFzcyBzdHJpbmcgdG8gYmUgYWRkZWQgdG8gdGhlIHJvdyBkaXZcclxuICAgKiAgICAgICAgdXNlOiBTaW1wbGF0ZSwgLy8gT3B0aW9uYWwuIE92ZXJyaWRlIHRoZSBIVE1MIFNpbXBsYXRlIHVzZWQgZm9yIHJlbmRlcmluZyB0aGUgcm93IChub3QgdmFsdWUpXHJcbiAgICogICAgICAgIHByb3ZpZGVyOiBmdW5jdGlvbihlbnRyeSwgcHJvcGVydHlOYW1lKSwgLy8gT3B0aW9uYWwuIEZ1bmN0aW9uIHRoYXQgYWNjZXB0cyB0aGUgZGF0YSBlbnRyeSBhbmQgdGhlIHByb3BlcnR5IG5hbWUgYW5kIHJldHVybnMgdGhlIGV4dHJhY3RlZCB2YWx1ZS4gQnkgZGVmYXVsdCBzaW1wbHkgZXh0cmFjdHMgZGlyZWN0bHkuXHJcbiAgICogICAgICAgIHZhbHVlOiBBbnkgLy8gT3B0aW9uYWwuIFByb3ZpZGUgYSB2YWx1ZSBkaXJlY3RseSBpbnN0ZWFkIG9mIGJpbmRpbmdcclxuICAgKiAgICAgfVxyXG4gICAqXHJcbiAgICogQHJldHVybiB7T2JqZWN0W119IERldGFpbCBsYXlvdXQgZGVmaW5pdGlvblxyXG4gICAqL1xyXG4gIGNyZWF0ZUxheW91dDogZnVuY3Rpb24gY3JlYXRlTGF5b3V0KCkge1xyXG4gICAgcmV0dXJuIHRoaXMubGF5b3V0IHx8IFtdO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogUHJvY2Vzc2VzIHRoZSBnaXZlbiBsYXlvdXQgZGVmaW5pdGlvbiB1c2luZyB0aGUgZGF0YSBlbnRyeSByZXNwb25zZSBieSByZW5kZXJpbmcgYW5kIGluc2VydGluZyB0aGUgSFRNTCBub2RlcyBhbmRcclxuICAgKiBmaXJpbmcgYW55IG9uQ3JlYXRlIGV2ZW50cyBkZWZpbmVkLlxyXG4gICAqIEBwYXJhbSB7T2JqZWN0W119IGxheW91dCBMYXlvdXQgZGVmaW5pdGlvblxyXG4gICAqIEBwYXJhbSB7T2JqZWN0fSBlbnRyeSBkYXRhIHJlc3BvbnNlXHJcbiAgICovXHJcbiAgcHJvY2Vzc0xheW91dDogZnVuY3Rpb24gcHJvY2Vzc0xheW91dChsYXlvdXQsIGVudHJ5KSB7XHJcbiAgICBjb25zdCByb3dzID0gKGxheW91dC5jaGlsZHJlbiB8fCBsYXlvdXQuYXMgfHwgbGF5b3V0KTtcclxuICAgIGNvbnN0IG9wdGlvbnMgPSBsYXlvdXQub3B0aW9ucyB8fCAobGF5b3V0Lm9wdGlvbnMgPSB7XHJcbiAgICAgIHRpdGxlOiB0aGlzLmRldGFpbHNUZXh0LFxyXG4gICAgfSk7XHJcbiAgICBjb25zdCBzZWN0aW9uUXVldWUgPSBbXTtcclxuICAgIGxldCBzZWN0aW9uU3RhcnRlZCA9IGZhbHNlO1xyXG4gICAgY29uc3QgY2FsbGJhY2tzID0gW107XHJcblxyXG4gICAgbGV0IHNlY3Rpb25Ob2RlO1xyXG5cclxuICAgIGlmICh0aGlzLmlzVGFiYmVkKSB7XHJcbiAgICAgIHRoaXMucGxhY2VUYWJMaXN0KHRoaXMuY29udGVudE5vZGUpO1xyXG4gICAgfVxyXG5cclxuICAgIGZvciAobGV0IGkgPSAwOyBpIDwgcm93cy5sZW5ndGg7IGkrKykge1xyXG4gICAgICBjb25zdCBjdXJyZW50ID0gcm93c1tpXTtcclxuICAgICAgY29uc3QgaW5jbHVkZSA9IHRoaXMuZXhwYW5kRXhwcmVzc2lvbihjdXJyZW50LmluY2x1ZGUsIGVudHJ5KTtcclxuICAgICAgY29uc3QgZXhjbHVkZSA9IHRoaXMuZXhwYW5kRXhwcmVzc2lvbihjdXJyZW50LmV4Y2x1ZGUsIGVudHJ5KTtcclxuICAgICAgbGV0IGNvbnRleHQ7XHJcblxyXG4gICAgICBpZiAoaW5jbHVkZSAhPT0gdW5kZWZpbmVkICYmICFpbmNsdWRlKSB7XHJcbiAgICAgICAgY29udGludWU7XHJcbiAgICAgIH1cclxuXHJcbiAgICAgIGlmIChleGNsdWRlICE9PSB1bmRlZmluZWQgJiYgZXhjbHVkZSkge1xyXG4gICAgICAgIGNvbnRpbnVlO1xyXG4gICAgICB9XHJcblxyXG4gICAgICBpZiAoY3VycmVudC5jaGlsZHJlbiB8fCBjdXJyZW50LmFzKSB7XHJcbiAgICAgICAgaWYgKHNlY3Rpb25TdGFydGVkKSB7XHJcbiAgICAgICAgICBzZWN0aW9uUXVldWUucHVzaChjdXJyZW50KTtcclxuICAgICAgICB9IGVsc2Uge1xyXG4gICAgICAgICAgdGhpcy5wcm9jZXNzTGF5b3V0KGN1cnJlbnQsIGVudHJ5KTtcclxuICAgICAgICB9XHJcblxyXG4gICAgICAgIGNvbnRpbnVlO1xyXG4gICAgICB9XHJcblxyXG4gICAgICBpZiAoIXNlY3Rpb25TdGFydGVkKSB7XHJcbiAgICAgICAgbGV0IHNlY3Rpb247XHJcbiAgICAgICAgc2VjdGlvblN0YXJ0ZWQgPSB0cnVlO1xyXG4gICAgICAgIGlmICh0aGlzLmlzVGFiYmVkKSB7XHJcbiAgICAgICAgICBpZiAobGF5b3V0Lm5hbWUgPT09IHRoaXMucXVpY2tBY3Rpb25TZWN0aW9uKSB7XHJcbiAgICAgICAgICAgIHNlY3Rpb24gPSBkb21Db25zdHJ1Y3QudG9Eb20odGhpcy5zZWN0aW9uQmVnaW5UZW1wbGF0ZS5hcHBseShsYXlvdXQsIHRoaXMpICsgdGhpcy5zZWN0aW9uRW5kVGVtcGxhdGUuYXBwbHkobGF5b3V0LCB0aGlzKSk7XHJcbiAgICAgICAgICAgIHNlY3Rpb25Ob2RlID0gc2VjdGlvbjtcclxuICAgICAgICAgICAgZG9tQ29uc3RydWN0LnBsYWNlKHNlY3Rpb24sIHRoaXMucXVpY2tBY3Rpb25zKTtcclxuICAgICAgICAgIH0gZWxzZSB7XHJcbiAgICAgICAgICAgIGNvbnN0IHRhYiA9IGRvbUNvbnN0cnVjdC50b0RvbSh0aGlzLnRhYkxpc3RJdGVtVGVtcGxhdGUuYXBwbHkobGF5b3V0LCB0aGlzKSk7XHJcbiAgICAgICAgICAgIHNlY3Rpb24gPSBkb21Db25zdHJ1Y3QudG9Eb20odGhpcy5zZWN0aW9uQmVnaW5UZW1wbGF0ZS5hcHBseShsYXlvdXQsIHRoaXMpICsgdGhpcy5zZWN0aW9uRW5kVGVtcGxhdGUuYXBwbHkobGF5b3V0LCB0aGlzKSk7XHJcbiAgICAgICAgICAgIHNlY3Rpb25Ob2RlID0gc2VjdGlvbjtcclxuICAgICAgICAgICAgZG9tU3R5bGUuc2V0KHNlY3Rpb24sIHtcclxuICAgICAgICAgICAgICBkaXNwbGF5OiAnbm9uZScsXHJcbiAgICAgICAgICAgIH0pO1xyXG4gICAgICAgICAgICB0aGlzLnRhYk1hcHBpbmcucHVzaChzZWN0aW9uKTtcclxuICAgICAgICAgICAgdGhpcy50YWJzLnB1c2godGFiKTtcclxuICAgICAgICAgICAgZG9tQ29uc3RydWN0LnBsYWNlKHNlY3Rpb24sIHRoaXMuY29udGVudE5vZGUpO1xyXG4gICAgICAgICAgfVxyXG4gICAgICAgIH0gZWxzZSB7XHJcbiAgICAgICAgICBzZWN0aW9uID0gZG9tQ29uc3RydWN0LnRvRG9tKHRoaXMuc2VjdGlvbkJlZ2luVGVtcGxhdGUuYXBwbHkobGF5b3V0LCB0aGlzKSArIHRoaXMuc2VjdGlvbkVuZFRlbXBsYXRlLmFwcGx5KGxheW91dCwgdGhpcykpO1xyXG4gICAgICAgICAgc2VjdGlvbk5vZGUgPSBzZWN0aW9uLmNoaWxkTm9kZXNbMV07XHJcbiAgICAgICAgICBkb21Db25zdHJ1Y3QucGxhY2Uoc2VjdGlvbiwgdGhpcy5jb250ZW50Tm9kZSk7XHJcbiAgICAgICAgfVxyXG4gICAgICB9XHJcblxyXG4gICAgICBjb25zdCBwcm92aWRlciA9IGN1cnJlbnQucHJvdmlkZXIgfHwgdXRpbGl0eS5nZXRWYWx1ZTtcclxuICAgICAgY29uc3QgcHJvcGVydHkgPSB0eXBlb2YgY3VycmVudC5wcm9wZXJ0eSA9PT0gJ3N0cmluZycgPyBjdXJyZW50LnByb3BlcnR5IDogY3VycmVudC5uYW1lO1xyXG4gICAgICBjb25zdCB2YWx1ZSA9IHR5cGVvZiBjdXJyZW50LnZhbHVlID09PSAndW5kZWZpbmVkJyA/IHByb3ZpZGVyKGVudHJ5LCBwcm9wZXJ0eSwgZW50cnkpIDogY3VycmVudC52YWx1ZTtcclxuICAgICAgbGV0IHJlbmRlcmVkO1xyXG4gICAgICBsZXQgZm9ybWF0dGVkO1xyXG4gICAgICBpZiAoY3VycmVudC50ZW1wbGF0ZSB8fCBjdXJyZW50LnRwbCkge1xyXG4gICAgICAgIHJlbmRlcmVkID0gKGN1cnJlbnQudGVtcGxhdGUgfHwgY3VycmVudC50cGwpLmFwcGx5KHZhbHVlLCB0aGlzKTtcclxuICAgICAgICBmb3JtYXR0ZWQgPSBjdXJyZW50LmVuY29kZSA9PT0gdHJ1ZSA/IGZvcm1hdC5lbmNvZGUocmVuZGVyZWQpIDogcmVuZGVyZWQ7XHJcbiAgICAgIH0gZWxzZSBpZiAoY3VycmVudC5yZW5kZXJlciAmJiB0eXBlb2YgY3VycmVudC5yZW5kZXJlciA9PT0gJ2Z1bmN0aW9uJykge1xyXG4gICAgICAgIHJlbmRlcmVkID0gY3VycmVudC5yZW5kZXJlci5jYWxsKHRoaXMsIHZhbHVlKTtcclxuICAgICAgICBmb3JtYXR0ZWQgPSBjdXJyZW50LmVuY29kZSA9PT0gdHJ1ZSA/IGZvcm1hdC5lbmNvZGUocmVuZGVyZWQpIDogcmVuZGVyZWQ7XHJcbiAgICAgIH0gZWxzZSB7XHJcbiAgICAgICAgZm9ybWF0dGVkID0gY3VycmVudC5lbmNvZGUgIT09IGZhbHNlID8gZm9ybWF0LmVuY29kZSh2YWx1ZSkgOiB2YWx1ZTtcclxuICAgICAgfVxyXG5cclxuICAgICAgY29uc3QgZGF0YSA9IGxhbmcubWl4aW4oe30sIHtcclxuICAgICAgICBlbnRyeTogZW50cnksXHJcbiAgICAgICAgdmFsdWU6IGZvcm1hdHRlZCxcclxuICAgICAgICByYXc6IHZhbHVlLFxyXG4gICAgICB9LCBjdXJyZW50KTtcclxuXHJcbiAgICAgIGlmIChjdXJyZW50LmRlc2NyaXB0b3IpIHtcclxuICAgICAgICBkYXRhLmRlc2NyaXB0b3IgPSB0eXBlb2YgY3VycmVudC5kZXNjcmlwdG9yID09PSAnZnVuY3Rpb24nID8gdGhpcy5leHBhbmRFeHByZXNzaW9uKGN1cnJlbnQuZGVzY3JpcHRvciwgZW50cnksIHZhbHVlKSA6IHByb3ZpZGVyKGVudHJ5LCBjdXJyZW50LmRlc2NyaXB0b3IpO1xyXG4gICAgICB9XHJcblxyXG4gICAgICBpZiAoY3VycmVudC5hY3Rpb24pIHtcclxuICAgICAgICBkYXRhLmFjdGlvbiA9IHRoaXMuZXhwYW5kRXhwcmVzc2lvbihjdXJyZW50LmFjdGlvbiwgZW50cnksIHZhbHVlKTtcclxuICAgICAgfVxyXG5cclxuICAgICAgY29uc3QgaGFzQWNjZXNzID0gQXBwLmhhc0FjY2Vzc1RvKGN1cnJlbnQuc2VjdXJpdHkpO1xyXG5cclxuICAgICAgaWYgKGN1cnJlbnQuc2VjdXJpdHkpIHtcclxuICAgICAgICBkYXRhLmRpc2FibGVkID0gIWhhc0FjY2VzcztcclxuICAgICAgfVxyXG5cclxuICAgICAgaWYgKGN1cnJlbnQuZGlzYWJsZWQgJiYgaGFzQWNjZXNzKSB7XHJcbiAgICAgICAgZGF0YS5kaXNhYmxlZCA9IHRoaXMuZXhwYW5kRXhwcmVzc2lvbihjdXJyZW50LmRpc2FibGVkLCBlbnRyeSwgdmFsdWUpO1xyXG4gICAgICB9XHJcblxyXG4gICAgICBpZiAoY3VycmVudC52aWV3KSB7XHJcbiAgICAgICAgY29udGV4dCA9IGxhbmcubWl4aW4oe30sIGN1cnJlbnQub3B0aW9ucyk7XHJcblxyXG4gICAgICAgIGlmIChjdXJyZW50LmtleSkge1xyXG4gICAgICAgICAgY29udGV4dC5rZXkgPSB0eXBlb2YgY3VycmVudC5rZXkgPT09ICdmdW5jdGlvbicgPyB0aGlzLmV4cGFuZEV4cHJlc3Npb24oY3VycmVudC5rZXksIGVudHJ5KSA6IHByb3ZpZGVyKGVudHJ5LCBjdXJyZW50LmtleSk7XHJcbiAgICAgICAgfVxyXG4gICAgICAgIGlmIChjdXJyZW50LndoZXJlKSB7XHJcbiAgICAgICAgICBjb250ZXh0LndoZXJlID0gdGhpcy5leHBhbmRFeHByZXNzaW9uKGN1cnJlbnQud2hlcmUsIGVudHJ5KTtcclxuICAgICAgICB9XHJcbiAgICAgICAgaWYgKGN1cnJlbnQucmVzb3VyY2VLaW5kKSB7XHJcbiAgICAgICAgICBjb250ZXh0LnJlc291cmNlS2luZCA9IHRoaXMuZXhwYW5kRXhwcmVzc2lvbihjdXJyZW50LnJlc291cmNlS2luZCwgZW50cnkpO1xyXG4gICAgICAgIH1cclxuICAgICAgICBpZiAoY3VycmVudC5yZXNvdXJjZVByb3BlcnR5KSB7XHJcbiAgICAgICAgICBjb250ZXh0LnJlc291cmNlUHJvcGVydHkgPSB0aGlzLmV4cGFuZEV4cHJlc3Npb24oY3VycmVudC5yZXNvdXJjZVByb3BlcnR5LCBlbnRyeSk7XHJcbiAgICAgICAgfVxyXG4gICAgICAgIGlmIChjdXJyZW50LnJlc291cmNlUHJlZGljYXRlKSB7XHJcbiAgICAgICAgICBjb250ZXh0LnJlc291cmNlUHJlZGljYXRlID0gdGhpcy5leHBhbmRFeHByZXNzaW9uKGN1cnJlbnQucmVzb3VyY2VQcmVkaWNhdGUsIGVudHJ5KTtcclxuICAgICAgICB9XHJcbiAgICAgICAgaWYgKGN1cnJlbnQuZGF0YVNldCkge1xyXG4gICAgICAgICAgY29udGV4dC5kYXRhU2V0ID0gdGhpcy5leHBhbmRFeHByZXNzaW9uKGN1cnJlbnQuZGF0YVNldCwgZW50cnkpO1xyXG4gICAgICAgIH1cclxuICAgICAgICBpZiAoY3VycmVudC50aXRsZSkge1xyXG4gICAgICAgICAgY29udGV4dC50aXRsZSA9IGN1cnJlbnQudGl0bGU7XHJcbiAgICAgICAgfVxyXG5cclxuICAgICAgICBpZiAoY3VycmVudC5yZXNldFNlYXJjaCkge1xyXG4gICAgICAgICAgY29udGV4dC5yZXNldFNlYXJjaCA9IGN1cnJlbnQucmVzZXRTZWFyY2g7XHJcbiAgICAgICAgfSBlbHNlIHtcclxuICAgICAgICAgIGNvbnRleHQucmVzZXRTZWFyY2ggPSB0cnVlO1xyXG4gICAgICAgIH1cclxuXHJcbiAgICAgICAgZGF0YS52aWV3ID0gY3VycmVudC52aWV3O1xyXG4gICAgICAgIGRhdGEuY29udGV4dCA9ICh0aGlzLl9uYXZpZ2F0aW9uT3B0aW9ucy5wdXNoKGNvbnRleHQpIC0gMSk7XHJcbiAgICAgIH1cclxuXHJcbiAgICAgIGNvbnN0IHVzZUxpc3RUZW1wbGF0ZSA9IChsYXlvdXQubGlzdCB8fCBvcHRpb25zLmxpc3QpO1xyXG5cclxuICAgICAgbGV0IHRlbXBsYXRlO1xyXG4gICAgICAvLyBwcmlvcml0eTogdXNlID4gKHJlbGF0ZWRQcm9wZXJ0eVRlbXBsYXRlIHwgcmVsYXRlZFRlbXBsYXRlKSA+IChhY3Rpb25Qcm9wZXJ0eVRlbXBsYXRlIHwgYWN0aW9uVGVtcGxhdGUpID4gcHJvcGVydHlUZW1wbGF0ZVxyXG4gICAgICBpZiAoY3VycmVudC51c2UpIHtcclxuICAgICAgICB0ZW1wbGF0ZSA9IGN1cnJlbnQudXNlO1xyXG4gICAgICB9IGVsc2UgaWYgKGN1cnJlbnQudmlldyAmJiB1c2VMaXN0VGVtcGxhdGUpIHtcclxuICAgICAgICB0ZW1wbGF0ZSA9IHRoaXMucmVsYXRlZFRlbXBsYXRlO1xyXG4gICAgICAgIGN1cnJlbnQucmVsYXRlZEl0ZW0gPSB0cnVlO1xyXG4gICAgICB9IGVsc2UgaWYgKGN1cnJlbnQudmlldykge1xyXG4gICAgICAgIHRlbXBsYXRlID0gdGhpcy5yZWxhdGVkUHJvcGVydHlUZW1wbGF0ZTtcclxuICAgICAgfSBlbHNlIGlmIChjdXJyZW50LmFjdGlvbiAmJiB1c2VMaXN0VGVtcGxhdGUpIHtcclxuICAgICAgICB0ZW1wbGF0ZSA9IHRoaXMuYWN0aW9uVGVtcGxhdGU7XHJcbiAgICAgIH0gZWxzZSBpZiAoY3VycmVudC5hY3Rpb24pIHtcclxuICAgICAgICB0ZW1wbGF0ZSA9IHRoaXMuYWN0aW9uUHJvcGVydHlUZW1wbGF0ZTtcclxuICAgICAgfSBlbHNlIHtcclxuICAgICAgICB0ZW1wbGF0ZSA9IHRoaXMucHJvcGVydHlUZW1wbGF0ZTtcclxuICAgICAgfVxyXG5cclxuICAgICAgY29uc3Qgcm93Tm9kZSA9IHRoaXMuY3JlYXRlUm93Tm9kZShjdXJyZW50LCBzZWN0aW9uTm9kZSwgZW50cnksIHRlbXBsYXRlLCBkYXRhKTtcclxuICAgICAgaWYgKGN1cnJlbnQucmVsYXRlZEl0ZW0pIHtcclxuICAgICAgICB0cnkge1xyXG4gICAgICAgICAgdGhpcy5fcHJvY2Vzc1JlbGF0ZWRJdGVtKGRhdGEsIGNvbnRleHQsIHJvd05vZGUpO1xyXG4gICAgICAgIH0gY2F0Y2ggKGUpIHtcclxuICAgICAgICAgIC8vIGVycm9yIHByb2Nlc3NpbmcgcmVsYXRlZCBub2RlXHJcbiAgICAgICAgICBjb25zb2xlLmVycm9yKGUpOyAvL2VzbGludC1kaXNhYmxlLWxpbmVcclxuICAgICAgICB9XHJcbiAgICAgIH1cclxuXHJcbiAgICAgIGlmIChjdXJyZW50Lm9uQ3JlYXRlKSB7XHJcbiAgICAgICAgY2FsbGJhY2tzLnB1c2goe1xyXG4gICAgICAgICAgcm93OiBjdXJyZW50LFxyXG4gICAgICAgICAgbm9kZTogcm93Tm9kZSxcclxuICAgICAgICAgIHZhbHVlOiB2YWx1ZSxcclxuICAgICAgICAgIGVudHJ5OiBlbnRyeSxcclxuICAgICAgICB9KTtcclxuICAgICAgfVxyXG4gICAgfVxyXG5cclxuICAgIGZvciAobGV0IGkgPSAwOyBpIDwgY2FsbGJhY2tzLmxlbmd0aDsgaSsrKSB7XHJcbiAgICAgIGNvbnN0IGl0ZW0gPSBjYWxsYmFja3NbaV07XHJcbiAgICAgIGl0ZW0ucm93Lm9uQ3JlYXRlLmFwcGx5KHRoaXMsIFtpdGVtLnJvdywgaXRlbS5ub2RlLCBpdGVtLnZhbHVlLCBpdGVtLmVudHJ5XSk7XHJcbiAgICB9XHJcblxyXG4gICAgZm9yIChsZXQgaSA9IDA7IGkgPCBzZWN0aW9uUXVldWUubGVuZ3RoOyBpKyspIHtcclxuICAgICAgY29uc3QgY3VycmVudCA9IHNlY3Rpb25RdWV1ZVtpXTtcclxuICAgICAgdGhpcy5wcm9jZXNzTGF5b3V0KGN1cnJlbnQsIGVudHJ5KTtcclxuICAgIH1cclxuICB9LFxyXG4gIGNyZWF0ZVJvd05vZGU6IGZ1bmN0aW9uIGNyZWF0ZVJvd05vZGUobGF5b3V0LCBzZWN0aW9uTm9kZSwgZW50cnksIHRlbXBsYXRlLCBkYXRhKSB7XHJcbiAgICByZXR1cm4gZG9tQ29uc3RydWN0LnBsYWNlKHRlbXBsYXRlLmFwcGx5KGRhdGEsIHRoaXMpLCBzZWN0aW9uTm9kZSk7XHJcbiAgfSxcclxuICBfZ2V0U3RvcmVBdHRyOiBmdW5jdGlvbiBfZ2V0U3RvcmVBdHRyKCkge1xyXG4gICAgcmV0dXJuIHRoaXMuc3RvcmUgfHwgKHRoaXMuc3RvcmUgPSB0aGlzLmNyZWF0ZVN0b3JlKCkpO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogQ3JlYXRlU3RvcmUgaXMgdGhlIGNvcmUgb2YgdGhlIGRhdGEgaGFuZGxpbmcgZm9yIERldGFpbCBWaWV3cy4gQnkgZGVmYXVsdCBpdCBpcyBlbXB0eSBidXQgaXQgc2hvdWxkIHJldHVyblxyXG4gICAqIGEgZG9qbyBzdG9yZSBvZiB5b3VyIGNob29zaW5nLiBUaGVyZSBhcmUge0BsaW5rIF9TRGF0YURldGFpbE1peGluIE1peGluc30gYXZhaWxhYmxlIGZvciBTRGF0YS5cclxuICAgKiBAcmV0dXJuIHsqfVxyXG4gICAqL1xyXG4gIGNyZWF0ZVN0b3JlOiBmdW5jdGlvbiBjcmVhdGVTdG9yZSgpIHtcclxuICAgIHJldHVybiBudWxsO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogQHRlbXBsYXRlXHJcbiAgICogT3B0aW9uYWwgcHJvY2Vzc2luZyBvZiB0aGUgcmV0dXJuZWQgZW50cnkgYmVmb3JlIGl0IGdldHMgcHJvY2Vzc2VkIGludG8gbGF5b3V0LlxyXG4gICAqIEBwYXJhbSB7T2JqZWN0fSBlbnRyeSBFbnRyeSBmcm9tIGRhdGEgc3RvcmVcclxuICAgKiBAcmV0dXJuIHtPYmplY3R9IEJ5IGRlZmF1bHQgZG9lcyBub3QgZG8gYW55IHByb2Nlc3NpbmdcclxuICAgKi9cclxuICBwcmVQcm9jZXNzRW50cnk6IGZ1bmN0aW9uIHByZVByb2Nlc3NFbnRyeShlbnRyeSkge1xyXG4gICAgcmV0dXJuIGVudHJ5O1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogVGFrZXMgdGhlIGVudHJ5IGZyb20gdGhlIGRhdGEgc3RvcmUsIGFwcGxpZXMgY3VzdG9taXphdGlvbiwgYXBwbGllcyBhbnkgY3VzdG9tIGl0ZW0gcHJvY2VzcyBhbmQgdGhlblxyXG4gICAqIHBhc3NlcyBpdCB0byBwcm9jZXNzIGxheW91dC5cclxuICAgKiBAcGFyYW0ge09iamVjdH0gZW50cnkgRW50cnkgZnJvbSBkYXRhIHN0b3JlXHJcbiAgICovXHJcbiAgcHJvY2Vzc0VudHJ5OiBmdW5jdGlvbiBwcm9jZXNzRW50cnkoZW50cnkpIHtcclxuICAgIHRoaXMuZW50cnkgPSB0aGlzLnByZVByb2Nlc3NFbnRyeShlbnRyeSk7XHJcblxyXG4gICAgaWYgKHRoaXMuZW50cnkpIHtcclxuICAgICAgdGhpcy5wcm9jZXNzTGF5b3V0KHRoaXMuX2NyZWF0ZUN1c3RvbWl6ZWRMYXlvdXQodGhpcy5jcmVhdGVMYXlvdXQoKSksIHRoaXMuZW50cnkpO1xyXG4gICAgICBpZiAodGhpcy5pc1RhYmJlZCkge1xyXG4gICAgICAgIHRoaXMuY3JlYXRlVGFicyh0aGlzLnRhYnMpO1xyXG4gICAgICAgIHRoaXMucGxhY2VEZXRhaWxIZWFkZXIodGhpcy5lbnRyeSk7XHJcbiAgICAgIH1cclxuICAgIH0gZWxzZSB7XHJcbiAgICAgIHRoaXMuc2V0KCdkZXRhaWxDb250ZW50JywgJycpO1xyXG4gICAgfVxyXG4gIH0sXHJcbiAgX29uR2V0Q29tcGxldGU6IGZ1bmN0aW9uIF9vbkdldENvbXBsZXRlKGVudHJ5KSB7XHJcbiAgICB0cnkge1xyXG4gICAgICBpZiAoZW50cnkpIHtcclxuICAgICAgICB0aGlzLnByb2Nlc3NFbnRyeShlbnRyeSk7XHJcbiAgICAgIH0gZWxzZSB7XHJcbiAgICAgICAgZG9tQ29uc3RydWN0LnBsYWNlKHRoaXMubm90QXZhaWxhYmxlVGVtcGxhdGUuYXBwbHkodGhpcyksIHRoaXMuY29udGVudE5vZGUsICdvbmx5Jyk7XHJcbiAgICAgIH1cclxuXHJcbiAgICAgIGRvbUNsYXNzLnJlbW92ZSh0aGlzLmRvbU5vZGUsICdwYW5lbC1sb2FkaW5nJyk7XHJcblxyXG4gICAgICAvKiB0aGlzIG11c3QgdGFrZSBwbGFjZSB3aGVuIHRoZSBjb250ZW50IGlzIHZpc2libGUgKi9cclxuICAgICAgdGhpcy5vbkNvbnRlbnRDaGFuZ2UoKTtcclxuICAgIH0gY2F0Y2ggKGUpIHtcclxuICAgICAgY29uc29sZS5lcnJvcihlKTsgLy9lc2xpbnQtZGlzYWJsZS1saW5lXHJcbiAgICB9XHJcbiAgfSxcclxuICBfb25HZXRFcnJvcjogZnVuY3Rpb24gX29uR2V0RXJyb3IoZ2V0T3B0aW9ucywgZXJyb3IpIHtcclxuICAgIHRoaXMuaGFuZGxlRXJyb3IoZXJyb3IpO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogSW5pdGlhdGVzIHRoZSByZXF1ZXN0LlxyXG4gICAqL1xyXG4gIHJlcXVlc3REYXRhOiBmdW5jdGlvbiByZXF1ZXN0RGF0YSgpIHtcclxuICAgIGRvbUNsYXNzLmFkZCh0aGlzLmRvbU5vZGUsICdwYW5lbC1sb2FkaW5nJyk7XHJcblxyXG4gICAgY29uc3Qgc3RvcmUgPSB0aGlzLmdldCgnc3RvcmUnKTtcclxuXHJcbiAgICBpZiAodGhpcy5fbW9kZWwpIHtcclxuICAgICAgcmV0dXJuIHRoaXMucmVxdWVzdERhdGFVc2luZ01vZGVsKCkudGhlbihmdW5jdGlvbiBmdWxmaWxsZWQoZGF0YSkge1xyXG4gICAgICAgIHRoaXMuX29uR2V0Q29tcGxldGUoZGF0YSk7XHJcbiAgICAgIH0uYmluZCh0aGlzKSwgZnVuY3Rpb24gcmVqZWN0ZWQoZXJyKSB7XHJcbiAgICAgICAgdGhpcy5fb25HZXRFcnJvcihudWxsLCBlcnIpO1xyXG4gICAgICB9LmJpbmQodGhpcykpO1xyXG4gICAgfSBlbHNlIGlmIChzdG9yZSkge1xyXG4gICAgICBjb25zdCBnZXRPcHRpb25zID0ge307XHJcblxyXG4gICAgICB0aGlzLl9hcHBseVN0YXRlVG9HZXRPcHRpb25zKGdldE9wdGlvbnMpO1xyXG5cclxuICAgICAgY29uc3QgZ2V0RXhwcmVzc2lvbiA9IHRoaXMuX2J1aWxkR2V0RXhwcmVzc2lvbigpIHx8IG51bGw7XHJcbiAgICAgIGNvbnN0IGdldFJlc3VsdHMgPSB0aGlzLnJlcXVlc3REYXRhVXNpbmdTdG9yZShnZXRFeHByZXNzaW9uLCBnZXRPcHRpb25zKTtcclxuXHJcbiAgICAgIERlZmVycmVkLndoZW4oZ2V0UmVzdWx0cyxcclxuICAgICAgICB0aGlzLl9vbkdldENvbXBsZXRlLmJpbmQodGhpcyksXHJcbiAgICAgICAgdGhpcy5fb25HZXRFcnJvci5iaW5kKHRoaXMsIGdldE9wdGlvbnMpXHJcbiAgICAgICk7XHJcblxyXG4gICAgICByZXR1cm4gZ2V0UmVzdWx0cztcclxuICAgIH1cclxuXHJcbiAgICB0aHJvdyBuZXcgRXJyb3IoJ3JlcXVlc3REYXRhIGNhbGxlZCB3aXRob3V0IGEgbW9kZWwgb3Igc3RvcmUgZGVmaW5lZC4nKTtcclxuICB9LFxyXG4gIHJlcXVlc3REYXRhVXNpbmdNb2RlbDogZnVuY3Rpb24gcmVxdWVzdERhdGFVc2luZ01vZGVsKCkge1xyXG4gICAgY29uc3Qga2V5ID0gdGhpcy5fYnVpbGRHZXRFeHByZXNzaW9uKCk7XHJcbiAgICByZXR1cm4gdGhpcy5fbW9kZWwuZ2V0RW50cnkoa2V5LCB0aGlzLm9wdGlvbnMpO1xyXG4gIH0sXHJcbiAgcmVxdWVzdERhdGFVc2luZ1N0b3JlOiBmdW5jdGlvbiByZXF1ZXN0RGF0YVVzaW5nU3RvcmUoZ2V0RXhwcmVzc2lvbiwgZ2V0T3B0aW9ucykge1xyXG4gICAgY29uc3Qgc3RvcmUgPSB0aGlzLmdldCgnc3RvcmUnKTtcclxuICAgIHJldHVybiBzdG9yZS5nZXQoZ2V0RXhwcmVzc2lvbiwgZ2V0T3B0aW9ucyk7XHJcbiAgfSxcclxuICBfYnVpbGRHZXRFeHByZXNzaW9uOiBmdW5jdGlvbiBfYnVpbGRHZXRFeHByZXNzaW9uKCkge1xyXG4gICAgY29uc3Qgb3B0aW9ucyA9IHRoaXMub3B0aW9ucztcclxuICAgIHJldHVybiBvcHRpb25zICYmIChvcHRpb25zLmlkIHx8IG9wdGlvbnMua2V5KTtcclxuICB9LFxyXG4gIF9hcHBseVN0YXRlVG9HZXRPcHRpb25zOiBmdW5jdGlvbiBfYXBwbHlTdGF0ZVRvR2V0T3B0aW9ucyggLypnZXRPcHRpb25zKi8gKSB7fSxcclxuICAvKipcclxuICAgKiBEZXRlcm1pbmVzIGlmIHRoZSB2aWV3IHNob3VsZCBiZSByZWZyZXNoIGJ5IGluc3BlY3RpbmcgYW5kIGNvbXBhcmluZyB0aGUgcGFzc2VkIG5hdmlnYXRpb24gb3B0aW9uIGtleSB3aXRoIGN1cnJlbnQga2V5LlxyXG4gICAqIEBwYXJhbSB7T2JqZWN0fSBvcHRpb25zIFBhc3NlZCBuYXZpZ2F0aW9uIG9wdGlvbnMuXHJcbiAgICogQHJldHVybiB7Qm9vbGVhbn0gVHJ1ZSBpZiB0aGUgdmlldyBzaG91bGQgYmUgcmVmcmVzaGVkLCBmYWxzZSBpZiBub3QuXHJcbiAgICovXHJcbiAgcmVmcmVzaFJlcXVpcmVkRm9yOiBmdW5jdGlvbiByZWZyZXNoUmVxdWlyZWRGb3Iob3B0aW9ucykge1xyXG4gICAgaWYgKHRoaXMub3B0aW9ucykge1xyXG4gICAgICBpZiAob3B0aW9ucykge1xyXG4gICAgICAgIGlmICh0aGlzLm9wdGlvbnMua2V5ICE9PSBvcHRpb25zLmtleSkge1xyXG4gICAgICAgICAgcmV0dXJuIHRydWU7XHJcbiAgICAgICAgfVxyXG4gICAgICB9XHJcblxyXG4gICAgICByZXR1cm4gZmFsc2U7XHJcbiAgICB9XHJcblxyXG4gICAgcmV0dXJuIHRoaXMuaW5oZXJpdGVkKGFyZ3VtZW50cyk7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBFeHRlbmRzIHRoZSB7QGxpbmsgVmlldyNhY3RpdmF0ZSBwYXJlbnQgaW1wbGVtZW50YXRpb259IHRvIHNldCB0aGUgbmF2IG9wdGlvbnMgdGl0bGUgYXR0cmlidXRlIHRvIHRoZSBkZXNjcmlwdG9yXHJcbiAgICogQHBhcmFtIHRhZ1xyXG4gICAqIEBwYXJhbSBkYXRhXHJcbiAgICovXHJcbiAgYWN0aXZhdGU6IGZ1bmN0aW9uIGFjdGl2YXRlKHRhZywgZGF0YSkge1xyXG4gICAgY29uc3Qgb3B0aW9ucyA9IGRhdGEgJiYgZGF0YS5vcHRpb25zO1xyXG4gICAgaWYgKG9wdGlvbnMgJiYgb3B0aW9ucy5kZXNjcmlwdG9yKSB7XHJcbiAgICAgIG9wdGlvbnMudGl0bGUgPSBvcHRpb25zLnRpdGxlIHx8IG9wdGlvbnMuZGVzY3JpcHRvcjtcclxuICAgIH1cclxuXHJcbiAgICB0aGlzLmluaGVyaXRlZChhcmd1bWVudHMpO1xyXG4gIH0sXHJcbiAgc2hvdzogZnVuY3Rpb24gc2hvdyhvcHRpb25zKSB7XHJcbiAgICBpZiAob3B0aW9ucyAmJiBvcHRpb25zLmRlc2NyaXB0b3IpIHtcclxuICAgICAgb3B0aW9ucy50aXRsZSA9IG9wdGlvbnMudGl0bGUgfHwgb3B0aW9ucy5kZXNjcmlwdG9yO1xyXG4gICAgfVxyXG5cclxuICAgIHRoaXMuaW5oZXJpdGVkKGFyZ3VtZW50cyk7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBSZXR1cm5zIHRoZSB2aWV3IGtleVxyXG4gICAqIEByZXR1cm4ge1N0cmluZ30gVmlldyBrZXlcclxuICAgKi9cclxuICBnZXRUYWc6IGZ1bmN0aW9uIGdldFRhZygpIHtcclxuICAgIHJldHVybiB0aGlzLm9wdGlvbnMgJiYgdGhpcy5vcHRpb25zLmtleTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIEV4dGVuZHMgdGhlIHtAbGluayBWaWV3I2dldENvbnRleHQgcGFyZW50IGltcGxlbWVudGF0aW9ufSB0byBhbHNvIHNldCB0aGUgcmVzb3VyY2VLaW5kLCBrZXkgYW5kIGRlc2NyaXB0b3JcclxuICAgKiBAcmV0dXJuIHtPYmplY3R9IFZpZXcgY29udGV4dCBvYmplY3RcclxuICAgKi9cclxuICBnZXRDb250ZXh0OiBmdW5jdGlvbiBnZXRDb250ZXh0KCkge1xyXG4gICAgcmV0dXJuIGxhbmcubWl4aW4odGhpcy5pbmhlcml0ZWQoYXJndW1lbnRzKSwge1xyXG4gICAgICByZXNvdXJjZUtpbmQ6IHRoaXMucmVzb3VyY2VLaW5kLFxyXG4gICAgICBrZXk6IHRoaXMub3B0aW9ucy5rZXksXHJcbiAgICAgIGRlc2NyaXB0b3I6IHRoaXMub3B0aW9ucy5kZXNjcmlwdG9yLFxyXG4gICAgfSk7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBFeHRlbmRzIHRoZSB7QGxpbmsgVmlldyNiZWZvcmVUcmFuc2l0aW9uVG8gcGFyZW50IGltcGxlbWVudGF0aW9ufSB0byBhbHNvIGNsZWFyIHRoZSB2aWV3IGlmIGByZWZyZXNoUmVxdWlyZWRgIGlzIHRydWVcclxuICAgKiBAcmV0dXJuIHtPYmplY3R9IFZpZXcgY29udGV4dCBvYmplY3RcclxuICAgKi9cclxuICBiZWZvcmVUcmFuc2l0aW9uVG86IGZ1bmN0aW9uIGJlZm9yZVRyYW5zaXRpb25UbygpIHtcclxuICAgIHRoaXMuaW5oZXJpdGVkKGFyZ3VtZW50cyk7XHJcblxyXG4gICAgaWYgKHRoaXMucmVmcmVzaFJlcXVpcmVkKSB7XHJcbiAgICAgIHRoaXMuY2xlYXIoKTtcclxuICAgIH1cclxuICB9LFxyXG4gIG9uVHJhbnNpdGlvblRvOiBmdW5jdGlvbiBvblRyYW5zaXRpb25UbygpIHtcclxuICAgIHRoaXMuaW5oZXJpdGVkKGFyZ3VtZW50cyk7XHJcblxyXG4gICAgdGhpcy5vcmllbnRhdGlvbiA9IGNvbm5lY3Quc3Vic2NyaWJlKCcvYXBwL3NldE9yaWVudGF0aW9uJywgdGhpcywgdGhpcy5yZW9yZGVyVGFicyk7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBJZiBhIHNlY3VyaXR5IGJyZWFjaCBpcyBkZXRlY3RlZCBpdCBzZXRzIHRoZSBjb250ZW50IHRvIHRoZSBub3RBdmFpbGFibGVUZW1wbGF0ZSwgb3RoZXJ3aXNlIGl0IGNhbGxzXHJcbiAgICoge0BsaW5rICNyZXF1ZXN0RGF0YSByZXF1ZXN0RGF0YX0gd2hpY2ggc3RhcnRzIHRoZSBwcm9jZXNzIHNlcXVlbmNlLlxyXG4gICAqL1xyXG4gIHJlZnJlc2g6IGZ1bmN0aW9uIHJlZnJlc2goKSB7XHJcbiAgICBpZiAodGhpcy5zZWN1cml0eSAmJiAhQXBwLmhhc0FjY2Vzc1RvKHRoaXMuZXhwYW5kRXhwcmVzc2lvbih0aGlzLnNlY3VyaXR5KSkpIHtcclxuICAgICAgZG9tQ29uc3RydWN0LnBsYWNlKHRoaXMubm90QXZhaWxhYmxlVGVtcGxhdGUuYXBwbHkodGhpcyksIHRoaXMuY29udGVudE5vZGUsICdsYXN0Jyk7XHJcbiAgICAgIHJldHVybjtcclxuICAgIH1cclxuXHJcbiAgICB0aGlzLnJlcXVlc3REYXRhKCk7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBDbGVhcnMgdGhlIHZpZXcgYnkgcmVwbGFjaW5nIHRoZSBjb250ZW50IHdpdGggdGhlIGVtcHR5IHRlbXBsYXRlIGFuZCBlbXB0eWluZyB0aGUgc3RvcmVkIHJvdyBjb250ZXh0cy5cclxuICAgKi9cclxuICBjbGVhcjogZnVuY3Rpb24gY2xlYXIoKSB7XHJcbiAgICB0aGlzLnNldCgnZGV0YWlsQ29udGVudCcsIHRoaXMuZW1wdHlUZW1wbGF0ZS5hcHBseSh0aGlzKSk7XHJcbiAgICB0aGlzLmNsZWFyVGFicygpO1xyXG4gICAgaWYgKHRoaXMucXVpY2tBY3Rpb25zKSB7XHJcbiAgICAgIGRvbUNvbnN0cnVjdC5lbXB0eSh0aGlzLnF1aWNrQWN0aW9ucyk7XHJcbiAgICB9XHJcblxyXG4gICAgdGhpcy5fbmF2aWdhdGlvbk9wdGlvbnMgPSBbXTtcclxuICB9LFxyXG4gIF9wcm9jZXNzUmVsYXRlZEl0ZW06IGZ1bmN0aW9uIF9wcm9jZXNzUmVsYXRlZEl0ZW0oZGF0YSwgY29udGV4dCwgcm93Tm9kZSkge1xyXG4gICAgY29uc3QgdmlldyA9IEFwcC5nZXRWaWV3KGRhdGEudmlldyk7XHJcbiAgICBjb25zdCBvcHRpb25zID0ge307XHJcblxyXG4gICAgaWYgKHZpZXcpIHtcclxuICAgICAgb3B0aW9ucy53aGVyZSA9IGNvbnRleHQgPyBjb250ZXh0LndoZXJlIDogJyc7XHJcbiAgICAgIHZpZXcuZ2V0TGlzdENvdW50KG9wdGlvbnMpLnRoZW4oKHJlc3VsdCkgPT4ge1xyXG4gICAgICAgIGlmIChyZXN1bHQgPj0gMCkge1xyXG4gICAgICAgICAgY29uc3QgbGFiZWxOb2RlID0gcXVlcnkoJy5yZWxhdGVkLWl0ZW0tbGFiZWwnLCByb3dOb2RlKVswXTtcclxuICAgICAgICAgIGlmIChsYWJlbE5vZGUpIHtcclxuICAgICAgICAgICAgY29uc3QgaHRtbCA9ICc8c3BhbiBjbGFzcz1cInJlbGF0ZWQtaXRlbS1jb3VudFwiPicgKyByZXN1bHQgKyAnPC9zcGFuPic7XHJcbiAgICAgICAgICAgIGRvbUNvbnN0cnVjdC5wbGFjZShodG1sLCBsYWJlbE5vZGUsICdiZWZvcmUnKTtcclxuICAgICAgICAgIH0gZWxzZSB7XHJcbiAgICAgICAgICAgIGNvbnNvbGUud2FybignTWlzc2luZyB0aGUgXCJyZWxhdGVkLWl0ZW0tbGFiZWxcIiBkb20gbm9kZS4nKTsgLy9lc2xpbnQtZGlzYWJsZS1saW5lXHJcbiAgICAgICAgICB9XHJcbiAgICAgICAgfVxyXG4gICAgICB9KTtcclxuICAgIH1cclxuICB9LFxyXG4gIGRlc3Ryb3k6IGZ1bmN0aW9uIGRlc3Ryb3koKSB7XHJcbiAgICB0aGlzLmluaGVyaXRlZChhcmd1bWVudHMpO1xyXG4gIH0sXHJcbn0pO1xyXG5cclxubGFuZy5zZXRPYmplY3QoJ1NhZ2UuUGxhdGZvcm0uTW9iaWxlLl9EZXRhaWxCYXNlJywgX19jbGFzcyk7XHJcbmV4cG9ydCBkZWZhdWx0IF9fY2xhc3M7XHJcbiJdfQ==
 </pre>
 </body>
 </html>

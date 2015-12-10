@@ -15,668 +15,630 @@
   </script>
 </head>
 <body onload="prettyPrint(); highlight();">
-  <pre class="prettyprint lang-js">/*
- * Copyright (c) 1997-2013, SalesLogix, NA., LLC. All rights reserved.
- */
+  <pre class="prettyprint lang-js">define('crm/Views/Activity/Recurring', ['exports', 'module', 'dojo/_base/declare', 'dojo/_base/lang', 'dojo/_base/array', '../../Format', '../../Validator', 'argos/Edit', '../../Recurrence', 'argos/I18n'], function (exports, module, _dojo_baseDeclare, _dojo_baseLang, _dojo_baseArray, _Format, _Validator, _argosEdit, _Recurrence, _argosI18n) {
+  function _interopRequireDefault(obj) { return obj &amp;&amp; obj.__esModule ? obj : { 'default': obj }; }
 
-<span id='crm-Views-Activity-Recurring'>/**
-</span> * @class crm.Views.Activity.Recurring
- *
- * @extends argos.Edit
- *
- * @requires argos.Edit
- * @requires argos.Utility
- *
- * @requires crm.Format
- * @requires crm.Validator
- * @requires crm.Recurrence
- *
- * @requires moment
- *
- */
-define('crm/Views/Activity/Recurring', [
-    'dojo/_base/declare',
-    'dojo/_base/lang',
-    'dojo/_base/array',
-    'dojo/string',
-    '../../Format',
-    '../../Validator',
-    'argos/Utility',
-    'argos/Edit',
-    '../../Recurrence',
-    'moment'
-], function(
-    declare,
-    lang,
-    array,
-    string,
-    format,
-    validator,
-    utility,
-    Edit,
-    recur,
-    moment
-) {
-    var __class = declare('crm.Views.Activity.Recurring', [Edit], {
-        //Localization
-        startingText: 'start date',
-        endingText: 'end date',
-        repeatsText: 'repeats',
-        everyText: 'every',
-        afterCompletionText: 'after completed',
-        singleWeekdayText: 'weekday',
-        weekdaysText: 'weekday(s)',
-        dayText: 'day',
-        monthText: 'month',
-        onText: 'on',
-        occurrencesText: 'occurrences',
-        summaryText: 'summary',
-        weekDaysText: [
-            'Sunday',
-            'Monday',
-            'Tuesday',
-            'Wednesday',
-            'Thursday',
-            'Friday',
-            'Saturday'
-        ],
-        monthsText: [
-            'January',
-            'February',
-            'March',
-            'April',
-            'May',
-            'June',
-            'July',
-            'August',
-            'September',
-            'October',
-            'November',
-            'December'
-        ],
-        frequencyOptionsText: [
-            'days',
-            'weeks',
-            'months',
-            'years'
-        ],
-        recurringFrequencyText: 'Recurring Frequency',
-        yesText: 'Yes',
-        noText: 'No',
-        titleText: 'Recurrence',
+  var _declare = _interopRequireDefault(_dojo_baseDeclare);
 
-        //View Properties
-        monthNames: moment.monthsShort,
+  var _lang = _interopRequireDefault(_dojo_baseLang);
 
-        id: 'recurrence_edit',
+  var _array = _interopRequireDefault(_dojo_baseArray);
 
-        init: function() {
-            this.inherited(arguments);
-            this.connect(this.fields['AfterCompletion'], 'onChange', this.onAfterCompletionChange);
-            this.connect(this.fields['Interval'], 'onChange', this.onIntervalChange);
-            this.connect(this.fields['RecurIterations'], 'onChange', this.onRecurIterationsChange);
-            this.connect(this.fields['EndDate'], 'onChange', this.onEndDateChange);
-            // these affect the StartDate:
-            this.connect(this.fields['Scale'], 'onChange', this.onScaleChange);
-            this.connect(this.fields['Day'], 'onChange', this.onDayChange); // Day of the month
-            this.connect(this.fields['Weekdays'], 'onChange', this.onStartDateChange); // One or more days on Weekly options
-            this.connect(this.fields['OrdWeekday'], 'onChange', this.onStartDateChange); // Single day of week
-            this.connect(this.fields['OrdWeek'], 'onChange', this.onStartDateChange); // 1st..last week of month, or on Day #
-            this.connect(this.fields['OrdMonth'], 'onChange', this.onStartDateChange); // Month of year
-        },
-        resetUI: function() {
-            // hide or reveal and set fields according to panel/RecurPeriod
-            var rp = parseInt(this.fields['RecurPeriod'].getValue(), 10),
-                startDate = this.fields['StartDate'].getValue(),
-                interval = this.fields['RecurPeriodSpec'].getValue() % 65536,
-                showthese = 'Interval,AfterCompletion,',
-                i;
+  var _format = _interopRequireDefault(_Format);
 
-            if (!recur.isAfterCompletion(rp)) {
-                showthese += 'RecurIterations,EndDate,';
-            }
+  var _validator = _interopRequireDefault(_Validator);
 
-            this.fields['RecurrenceState'].setValue('rstMaster'); // undone when Once panel selected
+  var _Edit = _interopRequireDefault(_argosEdit);
 
-            // determine which fields to hide according to panel
-            switch (rp) {
-                case 0:
-                // daily
-                case 1:
-                    break;
-                case 2:
-                    // weekly
-                    showthese += 'Weekdays,';
-                    this.formatWeekdays(this.entry.Weekdays);
-                    break;
-                case 3:
-                    break;
-                case 4:
-                    // monthly
-                    showthese += 'Day,OrdWeek';
-                    break;
-                case 5:
-                    showthese += 'OrdWeek,OrdWeekday,';
-                    break;
-                case 6:
-                    break;
-                case 7:
-                    // yearly
-                    showthese += 'Day,OrdWeek,OrdMonth';
-                    break;
-                case 8:
-                    showthese += 'OrdWeek,OrdWeekday,OrdMonth,';
-                    break;
-                case 9:
-                    break;
-                default:
-                    // once
-                    showthese = '';
-            }
+  var _recur = _interopRequireDefault(_Recurrence);
 
-            for (i in this.fields) {
-                if (0 &lt;= showthese.indexOf(i)) {
-                    this.fields[i].show();
-                } else {
-                    this.fields[i].hide();
-                }
-            }
-            // always show these:
-            if (0 &lt;= rp) {
-                this.fields['Scale'].show();
-            }
-            this.fields['Summary'].show();
+  var _getResource = _interopRequireDefault(_argosI18n);
 
-            // refresh some field values
-            this.fields['RecurPeriod'].setValue(rp);
-            this.fields['RecurPeriodSpec'].setValue(recur.getRecurPeriodSpec(rp, startDate, this.entry.Weekdays, interval));
+  var resource = (0, _getResource['default'])('activityRecurring');
 
-            this.summarize();
-        },
-        summarize: function() {
-            this.fields['Summary'].setValue(recur.toString(this.getRecurrence()));
-            this.fields['Scale'].setValue(recur.getPanel(parseInt(this.fields['RecurPeriod'].getValue(), 10), true));
-        },
-        onAfterCompletionChange: function(value) {
-            var rp = parseInt(this.fields['RecurPeriod'].getValue(), 10);
+<span id='crm-Views-Activity-Recurring'>  /**
+</span>   * @class crm.Views.Activity.Recurring
+   *
+   * @extends argos.Edit
+   *
+   * @requires argos.Edit
+   * @requires argos.Utility
+   *
+   * @requires crm.Format
+   * @requires crm.Validator
+   * @requires crm.Recurrence
+   *
+   * @requires moment
+   *
+   */
+  var __class = (0, _declare['default'])('crm.Views.Activity.Recurring', [_Edit['default']], {
+    // Localization
+    startingText: resource.startingText,
+    endingText: resource.endingText,
+    repeatsText: resource.repeatsText,
+    everyText: resource.everyText,
+    afterCompletionText: resource.afterCompletionText,
+    singleWeekdayText: resource.singleWeekdayText,
+    weekdaysText: resource.weekdaysText,
+    dayText: resource.dayText,
+    monthText: resource.monthText,
+    onText: resource.onText,
+    occurrencesText: resource.occurrencesText,
+    summaryText: resource.summaryText,
+    weekDaysText: [resource.sunday, resource.monday, resource.tuesday, resource.wednesday, resource.thursday, resource.friday, resource.saturday],
+    monthsText: [resource.january, resource.february, resource.march, resource.april, resource.may, resource.june, resource.july, resource.august, resource.september, resource.october, resource.november, resource.december],
+    frequencyOptionsText: [resource.days, resource.weeks, resource.months, resource.years],
+    recurringFrequencyText: resource.recurringFrequencyText,
+    yesText: resource.yesText,
+    noText: resource.noText,
+    titleText: resource.titleText,
 
-            if (value) {
-                rp += (0 &lt;= '0258'.indexOf(rp)) ? 1 : 2;
-                this.fields['RecurIterations'].setValue(-1);
+    // View Properties
+    monthNames: moment.monthsShort,
 
-            } else {
-                rp -= (0 &lt;= '69'.indexOf(rp)) ? (parseInt(this.fields['OrdWeek'].getValue(), 10) ? 1 : 2) : 1;
-                this.fields['RecurIterations'].setValue(0 &lt; this.entry.RecurIterations ? this.entry.RecurIterations : recur.defaultIterations[rp]);
-            }
+    id: 'recurrence_edit',
 
-            this.fields['RecurPeriod'].setValue(rp);
-            this.resetUI();
-        },
-        onIntervalChange: function(value, field) {
-            var currentSpec = parseInt(this.fields['RecurPeriodSpec'].getValue(), 10),
-                interval = currentSpec % 65536;
+    init: function init() {
+      this.inherited(arguments);
+      this.connect(this.fields.AfterCompletion, 'onChange', this.onAfterCompletionChange);
+      this.connect(this.fields.Interval, 'onChange', this.onIntervalChange);
+      this.connect(this.fields.RecurIterations, 'onChange', this.onRecurIterationsChange);
+      this.connect(this.fields.EndDate, 'onChange', this.onEndDateChange);
+      // these affect the StartDate:
+      this.connect(this.fields.Scale, 'onChange', this.onScaleChange);
+      this.connect(this.fields.Day, 'onChange', this.onDayChange); // Day of the month
+      this.connect(this.fields.Weekdays, 'onChange', this.onStartDateChange); // One or more days on Weekly options
+      this.connect(this.fields.OrdWeekday, 'onChange', this.onStartDateChange); // Single day of week
+      this.connect(this.fields.OrdWeek, 'onChange', this.onStartDateChange); // 1st..last week of month, or on Day #
+      this.connect(this.fields.OrdMonth, 'onChange', this.onStartDateChange); // Month of year
+    },
+    resetUI: function resetUI() {
+      // hide or reveal and set fields according to panel/RecurPeriod
+      var rp = parseInt(this.fields.RecurPeriod.getValue(), 10);
+      var startDate = this.fields.StartDate.getValue();
+      var interval = this.fields.RecurPeriodSpec.getValue() % 65536;
+      var showthese = 'Interval,AfterCompletion,';
 
-            value = parseInt(value, 10);
-            if (value &amp;&amp; 0 &lt; value) {
-                this.fields['RecurPeriodSpec'].setValue(currentSpec - interval + parseInt(value, 10));
-                this.fields['EndDate'].setValue(recur.calcEndDate(this.fields['StartDate'].getValue(), this.getRecurrence()).toDate());
-            } else {
-                // Invalid input, reset to current Interval
-                field.setValue(interval);
-            }
+      if (!_recur['default'].isAfterCompletion(rp)) {
+        showthese += 'RecurIterations,EndDate,';
+      }
 
-            this.summarize();
-        },
-        onRecurIterationsChange: function(value) {
-            value = parseInt(value, 10);
-            if (value &amp;&amp; 0 &lt; value) {
-                this.entry.RecurIterations = value;
-                var newEndDate = recur.calcEndDate(this.fields['StartDate'].getValue(), this.getRecurrence()).toDate();
+      this.fields.RecurrenceState.setValue('rstMaster'); // undone when Once panel selected
 
-                if (newEndDate !== this.fields['EndDate'].getValue()) {
-                    this.fields['EndDate'].setValue(newEndDate);
-                }
+      // determine which fields to hide according to panel
+      switch (rp) {
+        case 0:
+        // daily
+        case 1:
+          break;
+        case 2:
+          // weekly
+          showthese += 'Weekdays,';
+          this.formatWeekdays(this.entry.Weekdays);
+          break;
+        case 3:
+          break;
+        case 4:
+          // monthly
+          showthese += 'Day,OrdWeek';
+          break;
+        case 5:
+          showthese += 'OrdWeek,OrdWeekday,';
+          break;
+        case 6:
+          break;
+        case 7:
+          // yearly
+          showthese += 'Day,OrdWeek,OrdMonth';
+          break;
+        case 8:
+          showthese += 'OrdWeek,OrdWeekday,OrdMonth,';
+          break;
+        case 9:
+          break;
+        default:
+          // once
+          showthese = '';
+      }
 
-            } else {
-                // Invalid input, reset to value calculated from EndDate
-                this.onEndDateChange(this.fields['EndDate'].getValue());
-            }
-
-            this.summarize();
-        },
-        onEndDateChange: function(value) {
-            if (value &gt; this.fields['StartDate'].getValue()) {
-                var iterations = recur.calcRecurIterations(
-                    value,
-                    this.fields['StartDate'].getValue(),
-                    this.fields['Interval'].getValue(),
-                    this.fields['RecurPeriod'].getValue()
-                );
-
-                if (iterations !== parseInt(this.fields['RecurIterations'].getValue(), 10)) {
-                    this.fields['RecurIterations'].setValue(iterations);
-                }
-
-            } else {
-                // can't end before start! reset.
-                this.onRecurIterationsChange(this.fields['RecurIterations'].getValue());
-            }
-
-            this.summarize();
-        },
-        onDayChange: function(value, field) {
-            var startDate = this.fields['StartDate'].getValue(),
-                maxValue = startDate.getDaysInMonth(); // &lt;-- from lib date.js
-
-            if (0 &lt; value &amp;&amp; value &lt;= maxValue) {
-                startDate.setDate(value);
-
-            } else { // reset field to acceptable value
-                if (0 &lt; value) {
-                    startDate.setDate(maxValue);
-                }
-                field.setValue(startDate.getDate());
-            }
-
-            this.fields['StartDate'].setValue(startDate);
-            // weekday(s)/ordWeek/EndDate may need adjusting
-            this.onStartDateChange(value, field);
-        },
-        onStartDateChange: function(value, field) {
-            // when field alters StartDate, other fields need to be adjusted
-            var startDate = this.fields['StartDate'].getValue(),
-                weekday = startDate.getDay(),
-                weekdays = recur.getWeekdays(parseInt(this.fields['RecurPeriodSpec'].getValue(), 10)),
-                ordWeek = parseInt((startDate.getDate() - 1) / 7, 10) + 1,
-                panel = parseInt(this.fields['RecurPeriod'].getValue(), 10),
-                wd;
-
-            value = parseInt(value.key || value, 10);
-            switch (field.name) {
-                case 'Weekdays':
-                    // only change StartDate if original weekday not included
-                    for (wd = 0; wd &lt; 7; wd++) {
-                        if (weekdays[wd] &amp;&amp; !weekdays[weekday]) {
-                            weekday = wd;
-                        }
-                    }
-
-                    break;
-                case 'OrdWeekday':
-                    weekday = value;
-                    break;
-                case 'OrdWeek':
-                    if (value) {
-                        ordWeek = value;
-                        if (panel === 4 || panel === 7) {
-                            this.fields['RecurPeriod'].setValue(panel + 1);
-                            this.resetUI();
-                        }
-                    } else if (panel === 5 || panel === 8) {
-                        this.fields['RecurPeriod'].setValue(panel - 1);
-                        this.resetUI();
-                    }
-                    break;
-                case 'OrdMonth':
-                    startDate.setMonth(value);
-                    weekday = startDate.getDay();
-                    ordWeek = parseInt((startDate.getDate() - 1) / 7, 10) + 1;
-                    break;
-                default:
-            }
-
-            startDate = recur.calcDateOfNthWeekday(startDate, weekday, ordWeek).toDate();
-            this.fields['StartDate'].setValue(startDate);
-            this.fields['EndDate'].setValue(recur.calcEndDate(startDate, this.getRecurrence()).toDate());
-            this.fields['Day'].setValue(startDate.getDate());
-            this.fields['OrdWeekday'].setValue(startDate.getDay());
-
-            this.summarize();
-        },
-        onScaleChange: function(value) {
-            var startDate = this.fields['StartDate'].getValue(),
-                afterCompletion = this.fields['AfterCompletion'].getValue() ? 1 : 0,
-                interval = parseInt(this.fields['Interval'].getValue(), 10),
-                recurPeriod = parseInt(this.fields['RecurPeriod'].getValue(), 10);
-
-            switch (parseInt(value.key, 10)) {
-                case 0:
-                    // days
-                    if (2 &gt; recurPeriod) {
-                        return;
-                    }
-                    recurPeriod = 0 + afterCompletion;
-                    break;
-                case 1:
-                    // weeks
-                    if (1 &lt; recurPeriod &amp;&amp; recurPeriod &lt; 4) {
-                        return;
-                    }
-                    recurPeriod = 2 + afterCompletion;
-                    break;
-                case 2:
-                    // months
-                    if (3 &lt; recurPeriod &amp;&amp; recurPeriod &lt; 7) {
-                        return;
-                    }
-                    recurPeriod = 4 + afterCompletion + afterCompletion;
-                    break;
-                case 3:
-                    // years
-                    if (6 &lt; recurPeriod) {
-                        return;
-                    }
-                    recurPeriod = 7 + afterCompletion + afterCompletion;
-                    break;
-                default:
-            }
-            this.fields['RecurPeriod'].setValue(recurPeriod);
-            this.fields['RecurIterations'].setValue(recur.defaultIterations[recurPeriod]);
-            this.fields['RecurPeriodSpec'].setValue(recur.getRecurPeriodSpec(recurPeriod, startDate, [], interval));
-            this.fields['Weekdays'].setValue(recur.getWeekdays(this.fields['RecurPeriodSpec'].getValue()));
-            this.fields['Day'].setValue(startDate.getDate());
-            this.fields['OrdMonth'].setValue(startDate.getMonth() + 1);
-            this.fields['OrdWeek'].setValue(0);
-            this.fields['EndDate'].setValue(recur.calcEndDate(startDate, this.getRecurrence()).toDate());
-
-            this.resetUI();
-        },
-
-        formatWeekdays: function(selections) {
-            var values = [],
-                key,
-                weekdays = [0, 0, 0, 0, 0, 0, 0];
-
-            for (key in selections) {
-                if (selections[key]) {
-                    values.push(this.weekDaysText[key]);
-                    weekdays[key] = 1;
-                }
-            }
-            this.fields['RecurPeriodSpec'].setValue(recur.getRecurPeriodSpec(
-                parseInt(this.fields['RecurPeriod'].getValue(), 10),
-                this.fields['StartDate'].getValue(),
-                weekdays,
-                parseInt(this.fields['Interval'].getValue(), 10)
-            ));
-
-            this.entry.Weekdays = weekdays;
-            return values.join(', ');
-        },
-        formatSingleWeekday: function(selection) {
-            if (selection['$descriptor']) {
-                return selection['$descriptor'];
-            }
-
-            return this.weekDaysText[parseInt(selection, 10)];
-        },
-        formatMonth: function(selection) {
-            if (selection['$descriptor']) {
-                return selection['$descriptor'];
-            }
-
-            return this.monthsText[parseInt(selection, 10) - 1];
-        },
-        formatOrd: function(selection) {
-            if (selection['$descriptor']) {
-                return selection['$descriptor'];
-            }
-            return recur.ordText[parseInt(selection, 10)];
-        },
-        preselectWeekdays: function() {
-            var previousSelections = [],
-                i,
-                weekdays = recur.getWeekdays(this.fields['RecurPeriodSpec'].getValue());
-
-            for (i = 0; i &lt; weekdays.length; i++) {
-                if (weekdays[i]) {
-                    previousSelections.push(i);
-                }
-            }
-            return previousSelections;
-        },
-        createScaleData: function() {
-            var list = [], opt;
-            for (opt in this.frequencyOptionsText) {
-                if (this.frequencyOptionsText.hasOwnProperty(opt)) {
-                    list.push({
-                        '$key': opt,
-                        '$descriptor': this.frequencyOptionsText[opt]
-                    });
-                }
-            }
-
-            return {'$resources': list};
-        },
-        createWeekdaysData: function() {
-            var list = [];
-
-            array.forEach(this.weekDaysText, function(name, idx) {
-                list.push({
-                    '$key': idx,
-                    '$descriptor': name
-                });
-            });
-
-            return {'$resources': list};
-        },
-        createMonthsData: function() {
-            var list = [];
-            array.forEach(this.monthsText, function(name, idx) {
-                list.push({
-                    '$key': idx,
-                    '$descriptor': name
-                });
-            });
-            return {'$resources': list};
-        },
-        createOrdData: function() {
-            var list = [], ord;
-            for (ord in recur.ordText) {
-                if (recur.ordText.hasOwnProperty(ord)) {
-                    list.push({
-                        '$key': ord,
-                        '$descriptor': recur.ordText[ord]
-                    });
-                }
-            }
-
-            return {'$resources': list};
-        },
-        setValues: function(values) {
-            this.inherited(arguments);
-            var field,
-                name,
-                ord;
-
-            // calculate some values from the ones provided
-            this.entry = values;
-            this.entry.StartDate = argos.Convert.toDateFromString(values['StartDate']);
-            this.entry.EndDate = recur.calcEndDate(values.StartDate, values).toDate();
-            this.entry.Recurring = (typeof values.Recurring === 'string') ? /^true$/i.test(values.Recurring) : values.Recurring;
-            ord = recur.getOrd(this.entry);
-            this.entry.Interval = values.RecurPeriodSpec % 65536;
-            this.entry.AfterCompletion = recur.isAfterCompletion(values.RecurPeriod);
-            this.entry.Day = this.entry.StartDate.getDate();
-            this.entry.Weekdays = recur.getWeekdays(values.RecurPeriodSpec);
-            this.entry.OrdWeek = ord.week;
-            this.entry.OrdWeekday = ord.weekday;
-            this.entry.OrdMonth = ord.month;
-
-            // Even hidden and falsy fields need their values set (not from parent)
-            for (name in this.fields) {
-                if (this.fields.hasOwnProperty(name)) {
-                    field = this.fields[name];
-                    // 0 (Daily panel) or false (AfterCompletion) are legitimate values!
-                    if (typeof this.entry[name] !== 'undefined') {
-                        field.setValue(this.entry[name]);
-                    }
-                }
-            }
-
-            this.resetUI();
-        },
-        getValues: function() {
-            var o = this.getRecurrence();
-
-            o['Recurring'] = (0 &lt;= o['RecurPeriod']);
-            o['EndDate'] = recur.calcEndDate(o.StartDate, o).toDate();
-
-            return o;
-        },
-        getRecurrence: function() {
-            return {
-                'StartDate': this.fields['StartDate'].getValue(),
-                'RecurPeriod': parseInt(this.fields['RecurPeriod'].getValue(), 10),
-                'RecurPeriodSpec': parseInt(this.fields['RecurPeriodSpec'].getValue(), 10),
-                'RecurIterations': parseInt(this.fields['RecurIterations'].getValue(), 10),
-                'RecurrenceState': this.fields['RecurrenceState'].getValue()
-            };
-        },
-        createLayout: function() {
-            return this.layout || (this.layout = [
-                {
-                    label: this.summaryText,
-                    name: 'Summary',
-                    property: 'Summary',
-                    exclude: true,
-                    type: 'textarea',
-                    readonly: true
-                }, {
-                    label: this.startingText,
-                    name: 'StartDate',
-                    property: 'StartDate',
-                    type: 'date',
-                    dateFormatText: this.startingFormatText
-                }, {
-                    label: this.everyText,
-                    name: 'Interval',
-                    property: 'Interval',
-                    type: 'text',
-                    inputType: 'numeric',
-                    exclude: true,
-                    notificationTrigger: 'blur'
-                }, {
-                    label: '',
-                    title: this.recurringFrequencyText,
-                    name: 'Scale',
-                    property: 'Scale',
-                    type: 'select',
-                    view: 'select_list',
-                    exclude: true,
-                    data: this.createScaleData()
-                }, {
-                    label: this.afterCompletionText,
-                    name: 'AfterCompletion',
-                    property: 'AfterCompletion',
-                    type: 'boolean',
-                    exclude: true,
-                    onText: this.yesText,
-                    offText: this.noText
-                }, {
-                    label: this.onText,
-                    title: this.onText,
-                    name: 'OrdWeek',
-                    property: 'OrdWeek',
-                    exclude: true,
-                    type: 'select',
-                    view: 'select_list',
-                    data: this.createOrdData(),
-                    textRenderer: this.formatOrd.bindDelegate(this)
-                }, {
-                    label: this.dayText,
-                    title: this.dayText,
-                    name: 'Day',
-                    property: 'Day',
-                    type: 'text',
-                    inputType: 'numeric',
-                    exclude: true,
-                    notificationTrigger: 'blur'
-                }, {
-                    label: this.weekdaysText,
-                    title: this.weekdaysText,
-                    name: 'Weekdays',
-                    property: 'Weekdays',
-                    exclude: true,
-                    type: 'select',
-                    singleSelect: false,
-                    view: 'select_list',
-                    data: this.createWeekdaysData(),
-                    previousSelections: this.preselectWeekdays.bindDelegate(this),
-                    textRenderer: this.formatWeekdays.bindDelegate(this),
-                    formatValue: this.formatWeekdays.bindDelegate(this)
-                }, {
-                    label: this.singleWeekdayText,
-                    title: this.singleWeekdayText,
-                    name: 'OrdWeekday',
-                    property: 'OrdWeekday',
-                    exclude: true,
-                    type: 'select',
-                    singleSelect: true,
-                    view: 'select_list',
-                    data: this.createWeekdaysData(),
-                    textRenderer: this.formatSingleWeekday.bindDelegate(this)
-                }, {
-                    label: this.monthText,
-                    title: this.monthText,
-                    name: 'OrdMonth',
-                    property: 'OrdMonth',
-                    exclude: true,
-                    type: 'select',
-                    singleSelect: true,
-                    view: 'select_list',
-                    data: this.createMonthsData(),
-                    textRenderer: this.formatMonth.bindDelegate(this)
-                }, {
-                    name: 'RecurIterations',
-                    property: 'RecurIterations',
-                    label: this.occurrencesText,
-                    type: 'text',
-                    inputType: 'numeric',
-                    include: true,
-                    notificationTrigger: 'blur'
-                }, {
-                    type: 'hidden',
-                    name: 'RecurPeriod',
-                    property: 'RecurPeriod',
-                    include: true
-                }, {
-                    type: 'hidden',
-                    name: 'RecurPeriodSpec',
-                    property: 'RecurPeriodSpec',
-                    include: true
-                }, {
-                    type: 'hidden',
-                    name: 'RecurrenceState',
-                    property: 'RecurrenceState',
-                    include: true
-                }, {
-                    type: 'hidden',
-                    name: 'Recurring',
-                    property: 'Recurring',
-                    include: true,
-                    formatValue: format.bool
-                }, {
-                    label: this.endingText,
-                    name: 'EndDate',
-                    property: 'EndDate',
-                    type: 'date',
-                    timeless: false,
-                    showTimePicker: false,
-                    dateFormatText: this.startingFormatText,
-                    minValue: (new Date(1900, 0, 1)),
-                    validator: [
-                        validator.exists,
-                        validator.isDateInRange
-                    ]
-                }]);
+      for (var i in this.fields) {
+        if (showthese.indexOf(i) &gt;= 0) {
+          this.fields[i].show();
+        } else {
+          this.fields[i].hide();
         }
-    });
+      }
+      // always show these:
+      if (rp &gt;= 0) {
+        this.fields.Scale.show();
+      }
+      this.fields.Summary.show();
 
-    lang.setObject('Mobile.SalesLogix.Views.Activity.Recurring', __class);
-    return __class;
+      // refresh some field values
+      this.fields.RecurPeriod.setValue(rp);
+      this.fields.RecurPeriodSpec.setValue(_recur['default'].getRecurPeriodSpec(rp, startDate, this.entry.Weekdays, interval));
+
+      this.summarize();
+    },
+    summarize: function summarize() {
+      this.fields.Summary.setValue(_recur['default'].toString(this.getRecurrence()));
+      this.fields.Scale.setValue(_recur['default'].getPanel(parseInt(this.fields.RecurPeriod.getValue(), 10), true));
+    },
+    onAfterCompletionChange: function onAfterCompletionChange(value) {
+      var rp = parseInt(this.fields.RecurPeriod.getValue(), 10);
+
+      if (value) {
+        rp += '0258'.indexOf(rp) &gt;= 0 ? 1 : 2;
+        this.fields.RecurIterations.setValue(-1);
+      } else {
+        if ('69'.indexOf(rp) &gt;= 0) {
+          if (parseInt(this.fields.OrdWeek.getValue(), 10)) {
+            rp -= 1;
+          } else {
+            rp -= 2;
+          }
+        } else {
+          rp -= 1;
+        }
+        this.fields.RecurIterations.setValue(this.entry.RecurIterations &gt; 0 ? this.entry.RecurIterations : _recur['default'].defaultIterations[rp]);
+      }
+
+      this.fields.RecurPeriod.setValue(rp);
+      this.resetUI();
+    },
+    onIntervalChange: function onIntervalChange(value, field) {
+      var currentSpec = parseInt(this.fields.RecurPeriodSpec.getValue(), 10);
+      var interval = currentSpec % 65536;
+
+      var theValue = parseInt(value, 10);
+      if (theValue &amp;&amp; theValue &gt; 0) {
+        this.fields.RecurPeriodSpec.setValue(currentSpec - interval + parseInt(theValue, 10));
+        this.fields.EndDate.setValue(_recur['default'].calcEndDate(this.fields.StartDate.getValue(), this.getRecurrence()).toDate());
+      } else {
+        // Invalid input, reset to current Interval
+        field.setValue(interval);
+      }
+
+      this.summarize();
+    },
+    onRecurIterationsChange: function onRecurIterationsChange(value) {
+      var theValue = parseInt(value, 10);
+      if (theValue &amp;&amp; theValue &gt; 0) {
+        this.entry.RecurIterations = value;
+        var newEndDate = _recur['default'].calcEndDate(this.fields.StartDate.getValue(), this.getRecurrence()).toDate();
+
+        if (newEndDate !== this.fields.EndDate.getValue()) {
+          this.fields.EndDate.setValue(newEndDate);
+        }
+      } else {
+        // Invalid input, reset to value calculated from EndDate
+        this.onEndDateChange(this.fields.EndDate.getValue());
+      }
+
+      this.summarize();
+    },
+    onEndDateChange: function onEndDateChange(value) {
+      if (value &gt; this.fields.StartDate.getValue()) {
+        var iterations = _recur['default'].calcRecurIterations(value, this.fields.StartDate.getValue(), this.fields.Interval.getValue(), this.fields.RecurPeriod.getValue());
+
+        if (iterations !== parseInt(this.fields.RecurIterations.getValue(), 10)) {
+          this.fields.RecurIterations.setValue(iterations);
+        }
+      } else {
+        // can't end before start! reset.
+        this.onRecurIterationsChange(this.fields.RecurIterations.getValue());
+      }
+
+      this.summarize();
+    },
+    onDayChange: function onDayChange(value, field) {
+      var startDate = this.fields.StartDate.getValue();
+      var maxValue = startDate.getDaysInMonth(); // &lt;-- from lib date.js
+
+      if (value &gt; 0 &amp;&amp; value &lt;= maxValue) {
+        startDate.setDate(value);
+      } else {
+        // reset field to acceptable value
+        if (value &gt; 0) {
+          startDate.setDate(maxValue);
+        }
+        field.setValue(startDate.getDate());
+      }
+
+      this.fields.StartDate.setValue(startDate);
+      // weekday(s)/ordWeek/EndDate may need adjusting
+      this.onStartDateChange(value, field);
+    },
+    onStartDateChange: function onStartDateChange(value, field) {
+      // when field alters StartDate, other fields need to be adjusted
+      var weekdays = _recur['default'].getWeekdays(parseInt(this.fields.RecurPeriodSpec.getValue(), 10));
+      var panel = parseInt(this.fields.RecurPeriod.getValue(), 10);
+      var theValue = parseInt(value.key || value, 10);
+      var startDate = this.fields.StartDate.getValue();
+      var weekday = startDate.getDay();
+      var ordWeek = parseInt(((startDate.getDate() - 1) / 7).toString(), 10) + 1;
+
+      switch (field.name) {
+        case 'Weekdays':
+          // only change StartDate if original weekday not included
+          for (var wd = 0; wd &lt; 7; wd++) {
+            if (weekdays[wd] &amp;&amp; !weekdays[weekday]) {
+              weekday = wd;
+            }
+          }
+
+          break;
+        case 'OrdWeekday':
+          weekday = theValue;
+          break;
+        case 'OrdWeek':
+          if (theValue) {
+            ordWeek = theValue;
+            if (panel === 4 || panel === 7) {
+              this.fields.RecurPeriod.setValue(panel + 1);
+              this.resetUI();
+            }
+          } else if (panel === 5 || panel === 8) {
+            this.fields.RecurPeriod.setValue(panel - 1);
+            this.resetUI();
+          }
+          break;
+        case 'OrdMonth':
+          startDate.setMonth(theValue);
+          weekday = startDate.getDay();
+          ordWeek = parseInt(((startDate.getDate() - 1) / 7).toString(), 10) + 1;
+          break;
+        default:
+      }
+
+      startDate = _recur['default'].calcDateOfNthWeekday(startDate, weekday, ordWeek).toDate();
+      this.fields.StartDate.setValue(startDate);
+      this.fields.EndDate.setValue(_recur['default'].calcEndDate(startDate, this.getRecurrence()).toDate());
+      this.fields.Day.setValue(startDate.getDate());
+      this.fields.OrdWeekday.setValue(startDate.getDay());
+
+      this.summarize();
+    },
+    onScaleChange: function onScaleChange(value) {
+      var startDate = this.fields.StartDate.getValue();
+      var afterCompletion = this.fields.AfterCompletion.getValue() ? 1 : 0;
+      var interval = parseInt(this.fields.Interval.getValue(), 10);
+      var recurPeriod = parseInt(this.fields.RecurPeriod.getValue(), 10);
+
+      switch (parseInt(value.key, 10)) {
+        case 0:
+          // days
+          if (recurPeriod &lt; 2) {
+            return;
+          }
+          recurPeriod = 0 + afterCompletion;
+          break;
+        case 1:
+          // weeks
+          if (recurPeriod &gt; 1 &amp;&amp; recurPeriod &lt; 4) {
+            return;
+          }
+          recurPeriod = 2 + afterCompletion;
+          break;
+        case 2:
+          // months
+          if (recurPeriod &gt; 3 &amp;&amp; recurPeriod &lt; 7) {
+            return;
+          }
+          recurPeriod = 4 + afterCompletion + afterCompletion;
+          break;
+        case 3:
+          // years
+          if (recurPeriod &gt; 6) {
+            return;
+          }
+          recurPeriod = 7 + afterCompletion + afterCompletion;
+          break;
+        default:
+      }
+      this.fields.RecurPeriod.setValue(recurPeriod);
+      this.fields.RecurIterations.setValue(_recur['default'].defaultIterations[recurPeriod]);
+      this.fields.RecurPeriodSpec.setValue(_recur['default'].getRecurPeriodSpec(recurPeriod, startDate, [], interval));
+      this.fields.Weekdays.setValue(_recur['default'].getWeekdays(this.fields.RecurPeriodSpec.getValue()));
+      this.fields.Day.setValue(startDate.getDate());
+      this.fields.OrdMonth.setValue(startDate.getMonth() + 1);
+      this.fields.OrdWeek.setValue(0);
+      this.fields.EndDate.setValue(_recur['default'].calcEndDate(startDate, this.getRecurrence()).toDate());
+
+      this.resetUI();
+    },
+
+    formatWeekdays: function formatWeekdays(selections) {
+      var values = [];
+      var weekdays = [0, 0, 0, 0, 0, 0, 0];
+
+      for (var key in selections) {
+        if (selections[key]) {
+          values.push(this.weekDaysText[key]);
+          weekdays[key] = 1;
+        }
+      }
+      this.fields.RecurPeriodSpec.setValue(_recur['default'].getRecurPeriodSpec(parseInt(this.fields.RecurPeriod.getValue(), 10), this.fields.StartDate.getValue(), weekdays, parseInt(this.fields.Interval.getValue(), 10)));
+
+      this.entry.Weekdays = weekdays;
+      return values.join(', ');
+    },
+    formatSingleWeekday: function formatSingleWeekday(selection) {
+      if (selection.$descriptor) {
+        return selection.$descriptor;
+      }
+
+      return this.weekDaysText[parseInt(selection, 10)];
+    },
+    formatMonth: function formatMonth(selection) {
+      if (selection.$descriptor) {
+        return selection.$descriptor;
+      }
+
+      return this.monthsText[parseInt(selection, 10) - 1];
+    },
+    formatOrd: function formatOrd(selection) {
+      if (selection.$descriptor) {
+        return selection.$descriptor;
+      }
+      return _recur['default'].ordText[parseInt(selection, 10)];
+    },
+    preselectWeekdays: function preselectWeekdays() {
+      var previousSelections = [];
+      var weekdays = _recur['default'].getWeekdays(this.fields.RecurPeriodSpec.getValue());
+
+      for (var i = 0; i &lt; weekdays.length; i++) {
+        if (weekdays[i]) {
+          previousSelections.push(i);
+        }
+      }
+      return previousSelections;
+    },
+    createScaleData: function createScaleData() {
+      var list = [];
+
+      for (var opt in this.frequencyOptionsText) {
+        if (this.frequencyOptionsText.hasOwnProperty(opt)) {
+          list.push({
+            '$key': opt,
+            '$descriptor': this.frequencyOptionsText[opt]
+          });
+        }
+      }
+
+      return {
+        '$resources': list
+      };
+    },
+    createWeekdaysData: function createWeekdaysData() {
+      var list = [];
+
+      _array['default'].forEach(this.weekDaysText, function makeWeekdayList(name, idx) {
+        list.push({
+          '$key': idx,
+          '$descriptor': name
+        });
+      });
+
+      return {
+        '$resources': list
+      };
+    },
+    createMonthsData: function createMonthsData() {
+      var list = [];
+      _array['default'].forEach(this.monthsText, function makeMonthList(name, idx) {
+        list.push({
+          '$key': idx,
+          '$descriptor': name
+        });
+      });
+      return {
+        '$resources': list
+      };
+    },
+    createOrdData: function createOrdData() {
+      var list = [];
+
+      for (var ord in _recur['default'].ordText) {
+        if (_recur['default'].ordText.hasOwnProperty(ord)) {
+          list.push({
+            '$key': ord,
+            '$descriptor': _recur['default'].ordText[ord]
+          });
+        }
+      }
+
+      return {
+        '$resources': list
+      };
+    },
+    setValues: function setValues(values) {
+      this.inherited(arguments);
+
+      // calculate some values from the ones provided
+      this.entry = values;
+      this.entry.StartDate = argos.Convert.toDateFromString(values.StartDate);
+      this.entry.EndDate = _recur['default'].calcEndDate(values.StartDate, values).toDate();
+      this.entry.Recurring = typeof values.Recurring === 'string' ? /^true$/i.test(values.Recurring) : values.Recurring;
+      var ord = _recur['default'].getOrd(this.entry);
+      this.entry.Interval = values.RecurPeriodSpec % 65536;
+      this.entry.AfterCompletion = _recur['default'].isAfterCompletion(values.RecurPeriod);
+      this.entry.Day = this.entry.StartDate.getDate();
+      this.entry.Weekdays = _recur['default'].getWeekdays(values.RecurPeriodSpec);
+      this.entry.OrdWeek = ord.week;
+      this.entry.OrdWeekday = ord.weekday;
+      this.entry.OrdMonth = ord.month;
+
+      // Even hidden and falsy fields need their values set (not from parent)
+      for (var _name in this.fields) {
+        if (this.fields.hasOwnProperty(_name)) {
+          var field = this.fields[_name];
+          // 0 (Daily panel) or false (AfterCompletion) are legitimate values!
+          if (typeof this.entry[_name] !== 'undefined') {
+            field.setValue(this.entry[_name]);
+          }
+        }
+      }
+
+      this.resetUI();
+    },
+    getValues: function getValues() {
+      var o = this.getRecurrence();
+
+      o.Recurring = o.RecurPeriod &gt;= 0;
+      o.EndDate = _recur['default'].calcEndDate(o.StartDate, o).toDate();
+
+      return o;
+    },
+    getRecurrence: function getRecurrence() {
+      return {
+        'StartDate': this.fields.StartDate.getValue(),
+        'RecurPeriod': parseInt(this.fields.RecurPeriod.getValue(), 10),
+        'RecurPeriodSpec': parseInt(this.fields.RecurPeriodSpec.getValue(), 10),
+        'RecurIterations': parseInt(this.fields.RecurIterations.getValue(), 10),
+        'RecurrenceState': this.fields.RecurrenceState.getValue()
+      };
+    },
+    createLayout: function createLayout() {
+      return this.layout || (this.layout = [{
+        label: this.summaryText,
+        name: 'Summary',
+        property: 'Summary',
+        exclude: true,
+        type: 'textarea',
+        readonly: true
+      }, {
+        label: this.startingText,
+        name: 'StartDate',
+        property: 'StartDate',
+        type: 'date',
+        dateFormatText: this.startingFormatText
+      }, {
+        label: this.everyText,
+        name: 'Interval',
+        property: 'Interval',
+        type: 'text',
+        inputType: 'numeric',
+        exclude: true,
+        notificationTrigger: 'blur'
+      }, {
+        label: '',
+        title: this.recurringFrequencyText,
+        name: 'Scale',
+        property: 'Scale',
+        type: 'select',
+        view: 'select_list',
+        exclude: true,
+        data: this.createScaleData()
+      }, {
+        label: this.afterCompletionText,
+        name: 'AfterCompletion',
+        property: 'AfterCompletion',
+        type: 'boolean',
+        exclude: true,
+        onText: this.yesText,
+        offText: this.noText
+      }, {
+        label: this.onText,
+        title: this.onText,
+        name: 'OrdWeek',
+        property: 'OrdWeek',
+        exclude: true,
+        type: 'select',
+        view: 'select_list',
+        data: this.createOrdData(),
+        textRenderer: this.formatOrd.bindDelegate(this)
+      }, {
+        label: this.dayText,
+        title: this.dayText,
+        name: 'Day',
+        property: 'Day',
+        type: 'text',
+        inputType: 'numeric',
+        exclude: true,
+        notificationTrigger: 'blur'
+      }, {
+        label: this.weekdaysText,
+        title: this.weekdaysText,
+        name: 'Weekdays',
+        property: 'Weekdays',
+        exclude: true,
+        type: 'select',
+        singleSelect: false,
+        view: 'select_list',
+        data: this.createWeekdaysData(),
+        previousSelections: this.preselectWeekdays.bindDelegate(this),
+        textRenderer: this.formatWeekdays.bindDelegate(this),
+        formatValue: this.formatWeekdays.bindDelegate(this)
+      }, {
+        label: this.singleWeekdayText,
+        title: this.singleWeekdayText,
+        name: 'OrdWeekday',
+        property: 'OrdWeekday',
+        exclude: true,
+        type: 'select',
+        singleSelect: true,
+        view: 'select_list',
+        data: this.createWeekdaysData(),
+        textRenderer: this.formatSingleWeekday.bindDelegate(this)
+      }, {
+        label: this.monthText,
+        title: this.monthText,
+        name: 'OrdMonth',
+        property: 'OrdMonth',
+        exclude: true,
+        type: 'select',
+        singleSelect: true,
+        view: 'select_list',
+        data: this.createMonthsData(),
+        textRenderer: this.formatMonth.bindDelegate(this)
+      }, {
+        name: 'RecurIterations',
+        property: 'RecurIterations',
+        label: this.occurrencesText,
+        type: 'text',
+        inputType: 'numeric',
+        include: true,
+        notificationTrigger: 'blur'
+      }, {
+        type: 'hidden',
+        name: 'RecurPeriod',
+        property: 'RecurPeriod',
+        include: true
+      }, {
+        type: 'hidden',
+        name: 'RecurPeriodSpec',
+        property: 'RecurPeriodSpec',
+        include: true
+      }, {
+        type: 'hidden',
+        name: 'RecurrenceState',
+        property: 'RecurrenceState',
+        include: true
+      }, {
+        type: 'hidden',
+        name: 'Recurring',
+        property: 'Recurring',
+        include: true,
+        formatValue: _format['default'].bool
+      }, {
+        label: this.endingText,
+        name: 'EndDate',
+        property: 'EndDate',
+        type: 'date',
+        timeless: false,
+        showTimePicker: false,
+        dateFormatText: this.startingFormatText,
+        minValue: new Date(1900, 0, 1),
+        validator: [_validator['default'].exists, _validator['default'].isDateInRange]
+      }]);
+    }
+  });
+
+  _lang['default'].setObject('Mobile.SalesLogix.Views.Activity.Recurring', __class);
+  module.exports = __class;
 });
-
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInNyYy9WaWV3cy9BY3Rpdml0eS9SZWN1cnJpbmcuanMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7Ozs7Ozs7OztBQVNBLE1BQU0sUUFBUSxHQUFHLDZCQUFZLG1CQUFtQixDQUFDLENBQUM7Ozs7Ozs7Ozs7Ozs7Ozs7O0FBaUJsRCxNQUFNLE9BQU8sR0FBRyx5QkFBUSw4QkFBOEIsRUFBRSxrQkFBTSxFQUFFOztBQUU5RCxnQkFBWSxFQUFFLFFBQVEsQ0FBQyxZQUFZO0FBQ25DLGNBQVUsRUFBRSxRQUFRLENBQUMsVUFBVTtBQUMvQixlQUFXLEVBQUUsUUFBUSxDQUFDLFdBQVc7QUFDakMsYUFBUyxFQUFFLFFBQVEsQ0FBQyxTQUFTO0FBQzdCLHVCQUFtQixFQUFFLFFBQVEsQ0FBQyxtQkFBbUI7QUFDakQscUJBQWlCLEVBQUUsUUFBUSxDQUFDLGlCQUFpQjtBQUM3QyxnQkFBWSxFQUFFLFFBQVEsQ0FBQyxZQUFZO0FBQ25DLFdBQU8sRUFBRSxRQUFRLENBQUMsT0FBTztBQUN6QixhQUFTLEVBQUUsUUFBUSxDQUFDLFNBQVM7QUFDN0IsVUFBTSxFQUFFLFFBQVEsQ0FBQyxNQUFNO0FBQ3ZCLG1CQUFlLEVBQUUsUUFBUSxDQUFDLGVBQWU7QUFDekMsZUFBVyxFQUFFLFFBQVEsQ0FBQyxXQUFXO0FBQ2pDLGdCQUFZLEVBQUUsQ0FDWixRQUFRLENBQUMsTUFBTSxFQUNmLFFBQVEsQ0FBQyxNQUFNLEVBQ2YsUUFBUSxDQUFDLE9BQU8sRUFDaEIsUUFBUSxDQUFDLFNBQVMsRUFDbEIsUUFBUSxDQUFDLFFBQVEsRUFDakIsUUFBUSxDQUFDLE1BQU0sRUFDZixRQUFRLENBQUMsUUFBUSxDQUNsQjtBQUNELGNBQVUsRUFBRSxDQUNWLFFBQVEsQ0FBQyxPQUFPLEVBQ2hCLFFBQVEsQ0FBQyxRQUFRLEVBQ2pCLFFBQVEsQ0FBQyxLQUFLLEVBQ2QsUUFBUSxDQUFDLEtBQUssRUFDZCxRQUFRLENBQUMsR0FBRyxFQUNaLFFBQVEsQ0FBQyxJQUFJLEVB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QixnQkFBUSxFQUFFLFdBQVc7QUFDckIsZUFBTyxFQUFFLElBQUk7QUFDYixtQkFBVyxFQUFFLG1CQUFPLElBQUk7T0FDekIsRUFBRTtBQUNELGFBQUssRUFBRSxJQUFJLENBQUMsVUFBVTtBQUN0QixZQUFJLEVBQUUsU0FBUztBQUNmLGdCQUFRLEVBQUUsU0FBUztBQUNuQixZQUFJLEVBQUUsTUFBTTtBQUNaLGdCQUFRLEVBQUUsS0FBSztBQUNmLHNCQUFjLEVBQUUsS0FBSztBQUNyQixzQkFBYyxFQUFFLElBQUksQ0FBQyxrQkFBa0I7QUFDdkMsZ0JBQVEsRUFBRyxJQUFJLElBQUksQ0FBQyxJQUFJLEVBQUUsQ0FBQyxFQUFFLENBQUMsQ0FBQyxBQUFDO0FBQ2hDLGlCQUFTLEVBQUUsQ0FDVCxzQkFBVSxNQUFNLEVBQ2hCLHNCQUFVLGFBQWEsQ0FDeEI7T0FDRixDQUFDLENBQUEsQUFBQyxDQUFDO0tBQ0w7R0FDRixDQUFDLENBQUM7O0FBRUgsbUJBQUssU0FBUyxDQUFDLDRDQUE0QyxFQUFFLE9BQU8sQ0FBQyxDQUFDO21CQUN2RCxPQUFPIiwiZmlsZSI6InNyYy9WaWV3cy9BY3Rpdml0eS9SZWN1cnJpbmcuanMiLCJzb3VyY2VSb290Ijoic3JjIiwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IGRlY2xhcmUgZnJvbSAnZG9qby9fYmFzZS9kZWNsYXJlJztcclxuaW1wb3J0IGxhbmcgZnJvbSAnZG9qby9fYmFzZS9sYW5nJztcclxuaW1wb3J0IGFycmF5IGZyb20gJ2Rvam8vX2Jhc2UvYXJyYXknO1xyXG5pbXBvcnQgZm9ybWF0IGZyb20gJy4uLy4uL0Zvcm1hdCc7XHJcbmltcG9ydCB2YWxpZGF0b3IgZnJvbSAnLi4vLi4vVmFsaWRhdG9yJztcclxuaW1wb3J0IEVkaXQgZnJvbSAnYXJnb3MvRWRpdCc7XHJcbmltcG9ydCByZWN1ciBmcm9tICcuLi8uLi9SZWN1cnJlbmNlJztcclxuaW1wb3J0IGdldFJlc291cmNlIGZyb20gJ2FyZ29zL0kxOG4nO1xyXG5cclxuY29uc3QgcmVzb3VyY2UgPSBnZXRSZXNvdXJjZSgnYWN0aXZpdHlSZWN1cnJpbmcnKTtcclxuXHJcbi8qKlxyXG4gKiBAY2xhc3MgY3JtLlZpZXdzLkFjdGl2aXR5LlJlY3VycmluZ1xyXG4gKlxyXG4gKiBAZXh0ZW5kcyBhcmdvcy5FZGl0XHJcbiAqXHJcbiAqIEByZXF1aXJlcyBhcmdvcy5FZGl0XHJcbiAqIEByZXF1aXJlcyBhcmdvcy5VdGlsaXR5XHJcbiAqXHJcbiAqIEByZXF1aXJlcyBjcm0uRm9ybWF0XHJcbiAqIEByZXF1aXJlcyBjcm0uVmFsaWRhdG9yXHJcbiAqIEByZXF1aXJlcyBjcm0uUmVjdXJyZW5jZVxyXG4gKlxyXG4gKiBAcmVxdWlyZXMgbW9tZW50XHJcbiAqXHJcbiAqL1xyXG5jb25zdCBfX2NsYXNzID0gZGVjbGFyZSgnY3JtLlZpZXdzLkFjdGl2aXR5LlJlY3VycmluZycsIFtFZGl0XSwge1xyXG4gIC8vIExvY2FsaXphdGlvblxyXG4gIHN0YXJ0aW5nVGV4dDogcmVzb3VyY2Uuc3RhcnRpbmdUZXh0LFxyXG4gIGVuZGluZ1RleHQ6IHJlc291cmNlLmVuZGluZ1RleHQsXHJcbiAgcmVwZWF0c1RleHQ6IHJlc291cmNlLnJlcGVhdHNUZXh0LFxyXG4gIGV2ZXJ5VGV4dDogcmVzb3VyY2UuZXZlcnlUZXh0LFxyXG4gIGFmdGVyQ29tcGxldGlvblRleHQ6IHJlc291cmNlLmFmdGVyQ29tcGxldGlvblRleHQsXHJcbiAgc2luZ2xlV2Vla2RheVRleHQ6IHJlc291cmNlLnNpbmdsZVdlZWtkYXlUZXh0LFxyXG4gIHdlZWtkYXlzVGV4dDogcmVzb3VyY2Uud2Vla2RheXNUZXh0LFxyXG4gIGRheVRleHQ6IHJlc291cmNlLmRheVRleHQsXHJcbiAgbW9udGhUZXh0OiByZXNvdXJjZS5tb250aFRleHQsXHJcbiAgb25UZXh0OiByZXNvdXJjZS5vblRleHQsXHJcbiAgb2NjdXJyZW5jZXNUZXh0OiByZXNvdXJjZS5vY2N1cnJlbmNlc1RleHQsXHJcbiAgc3VtbWFyeVRleHQ6IHJlc291cmNlLnN1bW1hcnlUZXh0LFxyXG4gIHdlZWtEYXlzVGV4dDogW1xyXG4gICAgcmVzb3VyY2Uuc3VuZGF5LFxyXG4gICAgcmVzb3VyY2UubW9uZGF5LFxyXG4gICAgcmVzb3VyY2UudHVlc2RheSxcclxuICAgIHJlc291cmNlLndlZG5lc2RheSxcclxuICAgIHJlc291cmNlLnRodXJzZGF5LFxyXG4gICAgcmVzb3VyY2UuZnJpZGF5LFxyXG4gICAgcmVzb3VyY2Uuc2F0dXJkYXksXHJcbiAgXSxcclxuICBtb250aHNUZXh0OiBbXHJcbiAgICByZXNvdXJjZS5qYW51YXJ5LFxyXG4gICAgcmVzb3VyY2UuZmVicnVhcnksXHJcbiAgICByZXNvdXJjZS5tYXJjaCxcclxuICAgIHJlc291cmNlLmFwcmlsLFxyXG4gICAgcmVzb3VyY2UubWF5LFxyXG4gICAgcmVzb3VyY2UuanVuZSxcclxuICAgIHJlc291cmNlLmp1bHksXHJcbiAgICByZXNvdXJjZS5hdWd1c3QsXHJcbiAgICByZXNvdXJjZS5zZXB0ZW1iZXIsXHJcbiAgICByZXNvdXJjZS5vY3RvYmVyLFxyXG4gICAgcmVzb3VyY2Uubm92ZW1iZXIsXHJcbiAgICByZXNvdXJjZS5kZWNlbWJlcixcclxuICBdLFxyXG4gIGZyZXF1ZW5jeU9wdGlvbnNUZXh0OiBbXHJcbiAgICByZXNvdXJjZS5kYXlzLFxyXG4gICAgcmVzb3VyY2Uud2Vla3MsXHJcbiAgICByZXNvdXJjZS5tb250aHMsXHJcbiAgICByZXNvdXJjZS55ZWFycyxcclxuICBdLFxyXG4gIHJlY3VycmluZ0ZyZXF1ZW5jeVRleHQ6IHJlc291cmNlLnJlY3VycmluZ0ZyZXF1ZW5jeVRleHQsXHJcbiAgeWVzVGV4dDogcmVzb3VyY2UueWVzVGV4dCxcclxuICBub1RleHQ6IHJlc291cmNlLm5vVGV4dCxcclxuICB0aXRsZVRleHQ6IHJlc291cmNlLnRpdGxlVGV4dCxcclxuXHJcbiAgLy8gVmlldyBQcm9wZXJ0aWVzXHJcbiAgbW9udGhOYW1lczogbW9tZW50Lm1vbnRoc1Nob3J0LFxyXG5cclxuICBpZDogJ3JlY3VycmVuY2VfZWRpdCcsXHJcblxyXG4gIGluaXQ6IGZ1bmN0aW9uIGluaXQoKSB7XHJcbiAgICB0aGlzLmluaGVyaXRlZChhcmd1bWVudHMpO1xyXG4gICAgdGhpcy5jb25uZWN0KHRoaXMuZmllbGRzLkFmdGVyQ29tcGxldGlvbiwgJ29uQ2hhbmdlJywgdGhpcy5vbkFmdGVyQ29tcGxldGlvbkNoYW5nZSk7XHJcbiAgICB0aGlzLmNvbm5lY3QodGhpcy5maWVsZHMuSW50ZXJ2YWwsICdvbkNoYW5nZScsIHRoaXMub25JbnRlcnZhbENoYW5nZSk7XHJcbiAgICB0aGlzLmNvbm5lY3QodGhpcy5maWVsZHMuUmVjdXJJdGVyYXRpb25zLCAnb25DaGFuZ2UnLCB0aGlzLm9uUmVjdXJJdGVyYXRpb25zQ2hhbmdlKTtcclxuICAgIHRoaXMuY29ubmVjdCh0aGlzLmZpZWxkcy5FbmREYXRlLCAnb25DaGFuZ2UnLCB0aGlzLm9uRW5kRGF0ZUNoYW5nZSk7XHJcbiAgICAvLyB0aGVzZSBhZmZlY3QgdGhlIFN0YXJ0RGF0ZTpcclxuICAgIHRoaXMuY29ubmVjdCh0aGlzLmZpZWxkcy5TY2FsZSwgJ29uQ2hhbmdlJywgdGhpcy5vblNjYWxlQ2hhbmdlKTtcclxuICAgIHRoaXMuY29ubmVjdCh0aGlzLmZpZWxkcy5EYXksICdvbkNoYW5nZScsIHRoaXMub25EYXlDaGFuZ2UpOyAvLyBEYXkgb2YgdGhlIG1vbnRoXHJcbiAgICB0aGlzLmNvbm5lY3QodGhpcy5maWVsZHMuV2Vla2RheXMsICdvbkNoYW5nZScsIHRoaXMub25TdGFydERhdGVDaGFuZ2UpOyAvLyBPbmUgb3IgbW9yZSBkYXlzIG9uIFdlZWtseSBvcHRpb25zXHJcbiAgICB0aGlzLmNvbm5lY3QodGhpcy5maWVsZHMuT3JkV2Vla2RheSwgJ29uQ2hhbmdlJywgdGhpcy5vblN0YXJ0RGF0ZUNoYW5nZSk7IC8vIFNpbmdsZSBkYXkgb2Ygd2Vla1xyXG4gICAgdGhpcy5jb25uZWN0KHRoaXMuZmllbGRzLk9yZFdlZWssICdvbkNoYW5nZScsIHRoaXMub25TdGFydERhdGVDaGFuZ2UpOyAvLyAxc3QuLmxhc3Qgd2VlayBvZiBtb250aCwgb3Igb24gRGF5ICNcclxuICAgIHRoaXMuY29ubmVjdCh0aGlzLmZpZWxkcy5PcmRNb250aCwgJ29uQ2hhbmdlJywgdGhpcy5vblN0YXJ0RGF0ZUNoYW5nZSk7IC8vIE1vbnRoIG9mIHllYXJcclxuICB9LFxyXG4gIHJlc2V0VUk6IGZ1bmN0aW9uIHJlc2V0VUkoKSB7XHJcbiAgICAvLyBoaWRlIG9yIHJldmVhbCBhbmQgc2V0IGZpZWxkcyBhY2NvcmRpbmcgdG8gcGFuZWwvUmVjdXJQZXJpb2RcclxuICAgIGNvbnN0IHJwID0gcGFyc2VJbnQodGhpcy5maWVsZHMuUmVjdXJQZXJpb2QuZ2V0VmFsdWUoKSwgMTApO1xyXG4gICAgY29uc3Qgc3RhcnREYXRlID0gdGhpcy5maWVsZHMuU3RhcnREYXRlLmdldFZhbHVlKCk7XHJcbiAgICBjb25zdCBpbnRlcnZhbCA9IHRoaXMuZmllbGRzLlJlY3VyUGVyaW9kU3BlYy5nZXRWYWx1ZSgpICUgNjU1MzY7XHJcbiAgICBsZXQgc2hvd3RoZXNlID0gJ0ludGVydmFsLEFmdGVyQ29tcGxldGlvbiwnO1xyXG5cclxuICAgIGlmICghcmVjdXIuaXNBZnRlckNvbXBsZXRpb24ocnApKSB7XHJcbiAgICAgIHNob3d0aGVzZSArPSAnUmVjdXJJdGVyYXRpb25zLEVuZERhdGUsJztcclxuICAgIH1cclxuXHJcbiAgICB0aGlzLmZpZWxkcy5SZWN1cnJlbmNlU3RhdGUuc2V0VmFsdWUoJ3JzdE1hc3RlcicpOyAvLyB1bmRvbmUgd2hlbiBPbmNlIHBhbmVsIHNlbGVjdGVkXHJcblxyXG4gICAgLy8gZGV0ZXJtaW5lIHdoaWNoIGZpZWxkcyB0byBoaWRlIGFjY29yZGluZyB0byBwYW5lbFxyXG4gICAgc3dpdGNoIChycCkge1xyXG4gICAgICBjYXNlIDA6XHJcbiAgICAgICAgLy8gZGFpbHlcclxuICAgICAgY2FzZSAxOlxyXG4gICAgICAgIGJyZWFrO1xyXG4gICAgICBjYXNlIDI6XHJcbiAgICAgICAgLy8gd2Vla2x5XHJcbiAgICAgICAgc2hvd3RoZXNlICs9ICdXZWVrZGF5cywnO1xyXG4gICAgICAgIHRoaXMuZm9ybWF0V2Vla2RheXModGhpcy5lbnRyeS5XZWVrZGF5cyk7XHJcbiAgICAgICAgYnJlYWs7XHJcbiAgICAgIGNhc2UgMzpcclxuICAgICAgICBicmVhaztcclxuICAgICAgY2FzZSA0OlxyXG4gICAgICAgIC8vIG1vbnRobHlcclxuICAgICAgICBzaG93dGhlc2UgKz0gJ0RheSxPcmRXZWVrJztcclxuICAgICAgICBicmVhaztcclxuICAgICAgY2FzZSA1OlxyXG4gICAgICAgIHNob3d0aGVzZSArPSAnT3JkV2VlayxPcmRXZWVrZGF5LCc7XHJcbiAgICAgICAgYnJlYWs7XHJcbiAgICAgIGNhc2UgNjpcclxuICAgICAgICBicmVhaztcclxuICAgICAgY2FzZSA3OlxyXG4gICAgICAgIC8vIHllYXJseVxyXG4gICAgICAgIHNob3d0aGVzZSArPSAnRGF5LE9yZFdlZWssT3JkTW9udGgnO1xyXG4gICAgICAgIGJyZWFrO1xyXG4gICAgICBjYXNlIDg6XHJcbiAgICAgICAgc2hvd3RoZXNlICs9ICdPcmRXZWVrLE9yZFdlZWtkYXksT3JkTW9udGgsJztcclxuICAgICAgICBicmVhaztcclxuICAgICAgY2FzZSA5OlxyXG4gICAgICAgIGJyZWFrO1xyXG4gICAgICBkZWZhdWx0OlxyXG4gICAgICAgIC8vIG9uY2VcclxuICAgICAgICBzaG93dGhlc2UgPSAnJztcclxuICAgIH1cclxuXHJcbiAgICBmb3IgKGNvbnN0IGkgaW4gdGhpcy5maWVsZHMpIHtcclxuICAgICAgaWYgKHNob3d0aGVzZS5pbmRleE9mKGkpID49IDApIHtcclxuICAgICAgICB0aGlzLmZpZWxkc1tpXS5zaG93KCk7XHJcbiAgICAgIH0gZWxzZSB7XHJcbiAgICAgICAgdGhpcy5maWVsZHNbaV0uaGlkZSgpO1xyXG4gICAgICB9XHJcbiAgICB9XHJcbiAgICAvLyBhbHdheXMgc2hvdyB0aGVzZTpcclxuICAgIGlmIChycCA+PSAwKSB7XHJcbiAgICAgIHRoaXMuZmllbGRzLlNjYWxlLnNob3coKTtcclxuICAgIH1cclxuICAgIHRoaXMuZmllbGRzLlN1bW1hcnkuc2hvdygpO1xyXG5cclxuICAgIC8vIHJlZnJlc2ggc29tZSBmaWVsZCB2YWx1ZXNcclxuICAgIHRoaXMuZmllbGRzLlJlY3VyUGVyaW9kLnNldFZhbHVlKHJwKTtcclxuICAgIHRoaXMuZmllbGRzLlJlY3VyUGVyaW9kU3BlYy5zZXRWYWx1ZShyZWN1ci5nZXRSZWN1clBlcmlvZFNwZWMocnAsIHN0YXJ0RGF0ZSwgdGhpcy5lbnRyeS5XZWVrZGF5cywgaW50ZXJ2YWwpKTtcclxuXHJcbiAgICB0aGlzLnN1bW1hcml6ZSgpO1xyXG4gIH0sXHJcbiAgc3VtbWFyaXplOiBmdW5jdGlvbiBzdW1tYXJpemUoKSB7XHJcbiAgICB0aGlzLmZpZWxkcy5TdW1tYXJ5LnNldFZhbHVlKHJlY3VyLnRvU3RyaW5nKHRoaXMuZ2V0UmVjdXJyZW5jZSgpKSk7XHJcbiAgICB0aGlzLmZpZWxkcy5TY2FsZS5zZXRWYWx1ZShyZWN1ci5nZXRQYW5lbChwYXJzZUludCh0aGlzLmZpZWxkcy5SZWN1clBlcmlvZC5nZXRWYWx1ZSgpLCAxMCksIHRydWUpKTtcclxuICB9LFxyXG4gIG9uQWZ0ZXJDb21wbGV0aW9uQ2hhbmdlOiBmdW5jdGlvbiBvbkFmdGVyQ29tcGxldGlvbkNoYW5nZSh2YWx1ZSkge1xyXG4gICAgbGV0IHJwID0gcGFyc2VJbnQodGhpcy5maWVsZHMuUmVjdXJQZXJpb2QuZ2V0VmFsdWUoKSwgMTApO1xyXG5cclxuICAgIGlmICh2YWx1ZSkge1xyXG4gICAgICBycCArPSAoJzAyNTgnLmluZGV4T2YocnApID49IDApID8gMSA6IDI7XHJcbiAgICAgIHRoaXMuZmllbGRzLlJlY3VySXRlcmF0aW9ucy5zZXRWYWx1ZSgtMSk7XHJcbiAgICB9IGVsc2Uge1xyXG4gICAgICBpZiAoJzY5Jy5pbmRleE9mKHJwKSA+PSAwKSB7XHJcbiAgICAgICAgaWYgKHBhcnNlSW50KHRoaXMuZmllbGRzLk9yZFdlZWsuZ2V0VmFsdWUoKSwgMTApKSB7XHJcbiAgICAgICAgICBycCAtPSAxO1xyXG4gICAgICAgIH0gZWxzZSB7XHJcbiAgICAgICAgICBycCAtPSAyO1xyXG4gICAgICAgIH1cclxuICAgICAgfSBlbHNlIHtcclxuICAgICAgICBycCAtPSAxO1xyXG4gICAgICB9XHJcbiAgICAgIHRoaXMuZmllbGRzLlJlY3VySXRlcmF0aW9ucy5zZXRWYWx1ZSh0aGlzLmVudHJ5LlJlY3VySXRlcmF0aW9ucyA+IDAgPyB0aGlzLmVudHJ5LlJlY3VySXRlcmF0aW9ucyA6IHJlY3VyLmRlZmF1bHRJdGVyYXRpb25zW3JwXSk7XHJcbiAgICB9XHJcblxyXG4gICAgdGhpcy5maWVsZHMuUmVjdXJQZXJpb2Quc2V0VmFsdWUocnApO1xyXG4gICAgdGhpcy5yZXNldFVJKCk7XHJcbiAgfSxcclxuICBvbkludGVydmFsQ2hhbmdlOiBmdW5jdGlvbiBvbkludGVydmFsQ2hhbmdlKHZhbHVlLCBmaWVsZCkge1xyXG4gICAgY29uc3QgY3VycmVudFNwZWMgPSBwYXJzZUludCh0aGlzLmZpZWxkcy5SZWN1clBlcmlvZFNwZWMuZ2V0VmFsdWUoKSwgMTApO1xyXG4gICAgY29uc3QgaW50ZXJ2YWwgPSBjdXJyZW50U3BlYyAlIDY1NTM2O1xyXG5cclxuICAgIGNvbnN0IHRoZVZhbHVlID0gcGFyc2VJbnQodmFsdWUsIDEwKTtcclxuICAgIGlmICh0aGVWYWx1ZSAmJiB0aGVWYWx1ZSA+IDApIHtcclxuICAgICAgdGhpcy5maWVsZHMuUmVjdXJQZXJpb2RTcGVjLnNldFZhbHVlKGN1cnJlbnRTcGVjIC0gaW50ZXJ2YWwgKyBwYXJzZUludCh0aGVWYWx1ZSwgMTApKTtcclxuICAgICAgdGhpcy5maWVsZHMuRW5kRGF0ZS5zZXRWYWx1ZShyZWN1ci5jYWxjRW5kRGF0ZSh0aGlzLmZpZWxkcy5TdGFydERhdGUuZ2V0VmFsdWUoKSwgdGhpcy5nZXRSZWN1cnJlbmNlKCkpLnRvRGF0ZSgpKTtcclxuICAgIH0gZWxzZSB7XHJcbiAgICAgIC8vIEludmFsaWQgaW5wdXQsIHJlc2V0IHRvIGN1cnJlbnQgSW50ZXJ2YWxcclxuICAgICAgZmllbGQuc2V0VmFsdWUoaW50ZXJ2YWwpO1xyXG4gICAgfVxyXG5cclxuICAgIHRoaXMuc3VtbWFyaXplKCk7XHJcbiAgfSxcclxuICBvblJlY3VySXRlcmF0aW9uc0NoYW5nZTogZnVuY3Rpb24gb25SZWN1ckl0ZXJhdGlvbnNDaGFuZ2UodmFsdWUpIHtcclxuICAgIGNvbnN0IHRoZVZhbHVlID0gcGFyc2VJbnQodmFsdWUsIDEwKTtcclxuICAgIGlmICh0aGVWYWx1ZSAmJiB0aGVWYWx1ZSA+IDApIHtcclxuICAgICAgdGhpcy5lbnRyeS5SZWN1ckl0ZXJhdGlvbnMgPSB2YWx1ZTtcclxuICAgICAgY29uc3QgbmV3RW5kRGF0ZSA9IHJlY3VyLmNhbGNFbmREYXRlKHRoaXMuZmllbGRzLlN0YXJ0RGF0ZS5nZXRWYWx1ZSgpLCB0aGlzLmdldFJlY3VycmVuY2UoKSkudG9EYXRlKCk7XHJcblxyXG4gICAgICBpZiAobmV3RW5kRGF0ZSAhPT0gdGhpcy5maWVsZHMuRW5kRGF0ZS5nZXRWYWx1ZSgpKSB7XHJcbiAgICAgICAgdGhpcy5maWVsZHMuRW5kRGF0ZS5zZXRWYWx1ZShuZXdFbmREYXRlKTtcclxuICAgICAgfVxyXG4gICAgfSBlbHNlIHtcclxuICAgICAgLy8gSW52YWxpZCBpbnB1dCwgcmVzZXQgdG8gdmFsdWUgY2FsY3VsYXRlZCBmcm9tIEVuZERhdGVcclxuICAgICAgdGhpcy5vbkVuZERhdGVDaGFuZ2UodGhpcy5maWVsZHMuRW5kRGF0ZS5nZXRWYWx1ZSgpKTtcclxuICAgIH1cclxuXHJcbiAgICB0aGlzLnN1bW1hcml6ZSgpO1xyXG4gIH0sXHJcbiAgb25FbmREYXRlQ2hhbmdlOiBmdW5jdGlvbiBvbkVuZERhdGVDaGFuZ2UodmFsdWUpIHtcclxuICAgIGlmICh2YWx1ZSA+IHRoaXMuZmllbGRzLlN0YXJ0RGF0ZS5nZXRWYWx1ZSgpKSB7XHJcbiAgICAgIGNvbnN0IGl0ZXJhdGlvbnMgPSByZWN1ci5jYWxjUmVjdXJJdGVyYXRpb25zKFxyXG4gICAgICAgIHZhbHVlLFxyXG4gICAgICAgIHRoaXMuZmllbGRzLlN0YXJ0RGF0ZS5nZXRWYWx1ZSgpLFxyXG4gICAgICAgIHRoaXMuZmllbGRzLkludGVydmFsLmdldFZhbHVlKCksXHJcbiAgICAgICAgdGhpcy5maWVsZHMuUmVjdXJQZXJpb2QuZ2V0VmFsdWUoKVxyXG4gICAgICApO1xyXG5cclxuICAgICAgaWYgKGl0ZXJhdGlvbnMgIT09IHBhcnNlSW50KHRoaXMuZmllbGRzLlJlY3VySXRlcmF0aW9ucy5nZXRWYWx1ZSgpLCAxMCkpIHtcclxuICAgICAgICB0aGlzLmZpZWxkcy5SZWN1ckl0ZXJhdGlvbnMuc2V0VmFsdWUoaXRlcmF0aW9ucyk7XHJcbiAgICAgIH1cclxuICAgIH0gZWxzZSB7XHJcbiAgICAgIC8vIGNhbid0IGVuZCBiZWZvcmUgc3RhcnQhIHJlc2V0LlxyXG4gICAgICB0aGlzLm9uUmVjdXJJdGVyYXRpb25zQ2hhbmdlKHRoaXMuZmllbGRzLlJlY3VySXRlcmF0aW9ucy5nZXRWYWx1ZSgpKTtcclxuICAgIH1cclxuXHJcbiAgICB0aGlzLnN1bW1hcml6ZSgpO1xyXG4gIH0sXHJcbiAgb25EYXlDaGFuZ2U6IGZ1bmN0aW9uIG9uRGF5Q2hhbmdlKHZhbHVlLCBmaWVsZCkge1xyXG4gICAgY29uc3Qgc3RhcnREYXRlID0gdGhpcy5maWVsZHMuU3RhcnREYXRlLmdldFZhbHVlKCk7XHJcbiAgICBjb25zdCBtYXhWYWx1ZSA9IHN0YXJ0RGF0ZS5nZXREYXlzSW5Nb250aCgpOyAvLyA8LS0gZnJvbSBsaWIgZGF0ZS5qc1xyXG5cclxuICAgIGlmICh2YWx1ZSA+IDAgJiYgdmFsdWUgPD0gbWF4VmFsdWUpIHtcclxuICAgICAgc3RhcnREYXRlLnNldERhdGUodmFsdWUpO1xyXG4gICAgfSBlbHNlIHsgLy8gcmVzZXQgZmllbGQgdG8gYWNjZXB0YWJsZSB2YWx1ZVxyXG4gICAgICBpZiAodmFsdWUgPiAwKSB7XHJcbiAgICAgICAgc3RhcnREYXRlLnNldERhdGUobWF4VmFsdWUpO1xyXG4gICAgICB9XHJcbiAgICAgIGZpZWxkLnNldFZhbHVlKHN0YXJ0RGF0ZS5nZXREYXRlKCkpO1xyXG4gICAgfVxyXG5cclxuICAgIHRoaXMuZmllbGRzLlN0YXJ0RGF0ZS5zZXRWYWx1ZShzdGFydERhdGUpO1xyXG4gICAgLy8gd2Vla2RheShzKS9vcmRXZWVrL0VuZERhdGUgbWF5IG5lZWQgYWRqdXN0aW5nXHJcbiAgICB0aGlzLm9uU3RhcnREYXRlQ2hhbmdlKHZhbHVlLCBmaWVsZCk7XHJcbiAgfSxcclxuICBvblN0YXJ0RGF0ZUNoYW5nZTogZnVuY3Rpb24gb25TdGFydERhdGVDaGFuZ2UodmFsdWUsIGZpZWxkKSB7XHJcbiAgICAvLyB3aGVuIGZpZWxkIGFsdGVycyBTdGFydERhdGUsIG90aGVyIGZpZWxkcyBuZWVkIHRvIGJlIGFkanVzdGVkXHJcbiAgICBjb25zdCB3ZWVrZGF5cyA9IHJlY3VyLmdldFdlZWtkYXlzKHBhcnNlSW50KHRoaXMuZmllbGRzLlJlY3VyUGVyaW9kU3BlYy5nZXRWYWx1ZSgpLCAxMCkpO1xyXG4gICAgY29uc3QgcGFuZWwgPSBwYXJzZUludCh0aGlzLmZpZWxkcy5SZWN1clBlcmlvZC5nZXRWYWx1ZSgpLCAxMCk7XHJcbiAgICBjb25zdCB0aGVWYWx1ZSA9IHBhcnNlSW50KHZhbHVlLmtleSB8fCB2YWx1ZSwgMTApO1xyXG4gICAgbGV0IHN0YXJ0RGF0ZSA9IHRoaXMuZmllbGRzLlN0YXJ0RGF0ZS5nZXRWYWx1ZSgpO1xyXG4gICAgbGV0IHdlZWtkYXkgPSBzdGFydERhdGUuZ2V0RGF5KCk7XHJcbiAgICBsZXQgb3JkV2VlayA9IHBhcnNlSW50KCgoc3RhcnREYXRlLmdldERhdGUoKSAtIDEpIC8gNykudG9TdHJpbmcoKSwgMTApICsgMTtcclxuXHJcbiAgICBzd2l0Y2ggKGZpZWxkLm5hbWUpIHtcclxuICAgICAgY2FzZSAnV2Vla2RheXMnOlxyXG4gICAgICAgIC8vIG9ubHkgY2hhbmdlIFN0YXJ0RGF0ZSBpZiBvcmlnaW5hbCB3ZWVrZGF5IG5vdCBpbmNsdWRlZFxyXG4gICAgICAgIGZvciAobGV0IHdkID0gMDsgd2QgPCA3OyB3ZCsrKSB7XHJcbiAgICAgICAgICBpZiAod2Vla2RheXNbd2RdICYmICF3ZWVrZGF5c1t3ZWVrZGF5XSkge1xyXG4gICAgICAgICAgICB3ZWVrZGF5ID0gd2Q7XHJcbiAgICAgICAgICB9XHJcbiAgICAgICAgfVxyXG5cclxuICAgICAgICBicmVhaztcclxuICAgICAgY2FzZSAnT3JkV2Vla2RheSc6XHJcbiAgICAgICAgd2Vla2RheSA9IHRoZVZhbHVlO1xyXG4gICAgICAgIGJyZWFrO1xyXG4gICAgICBjYXNlICdPcmRXZWVrJzpcclxuICAgICAgICBpZiAodGhlVmFsdWUpIHtcclxuICAgICAgICAgIG9yZFdlZWsgPSB0aGVWYWx1ZTtcclxuICAgICAgICAgIGlmIChwYW5lbCA9PT0gNCB8fCBwYW5lbCA9PT0gNykge1xyXG4gICAgICAgICAgICB0aGlzLmZpZWxkcy5SZWN1clBlcmlvZC5zZXRWYWx1ZShwYW5lbCArIDEpO1xyXG4gICAgICAgICAgICB0aGlzLnJlc2V0VUkoKTtcclxuICAgICAgICAgIH1cclxuICAgICAgICB9IGVsc2UgaWYgKHBhbmVsID09PSA1IHx8IHBhbmVsID09PSA4KSB7XHJcbiAgICAgICAgICB0aGlzLmZpZWxkcy5SZWN1clBlcmlvZC5zZXRWYWx1ZShwYW5lbCAtIDEpO1xyXG4gICAgICAgICAgdGhpcy5yZXNldFVJKCk7XHJcbiAgICAgICAgfVxyXG4gICAgICAgIGJyZWFrO1xyXG4gICAgICBjYXNlICdPcmRNb250aCc6XHJcbiAgICAgICAgc3RhcnREYXRlLnNldE1vbnRoKHRoZVZhbHVlKTtcclxuICAgICAgICB3ZWVrZGF5ID0gc3RhcnREYXRlLmdldERheSgpO1xyXG4gICAgICAgIG9yZFdlZWsgPSBwYXJzZUludCgoKHN0YXJ0RGF0ZS5nZXREYXRlKCkgLSAxKSAvIDcpLnRvU3RyaW5nKCksIDEwKSArIDE7XHJcbiAgICAgICAgYnJlYWs7XHJcbiAgICAgIGRlZmF1bHQ6XHJcbiAgICB9XHJcblxyXG4gICAgc3RhcnREYXRlID0gcmVjdXIuY2FsY0RhdGVPZk50aFdlZWtkYXkoc3RhcnREYXRlLCB3ZWVrZGF5LCBvcmRXZWVrKS50b0RhdGUoKTtcclxuICAgIHRoaXMuZmllbGRzLlN0YXJ0RGF0ZS5zZXRWYWx1ZShzdGFydERhdGUpO1xyXG4gICAgdGhpcy5maWVsZHMuRW5kRGF0ZS5zZXRWYWx1ZShyZWN1ci5jYWxjRW5kRGF0ZShzdGFydERhdGUsIHRoaXMuZ2V0UmVjdXJyZW5jZSgpKS50b0RhdGUoKSk7XHJcbiAgICB0aGlzLmZpZWxkcy5EYXkuc2V0VmFsdWUoc3RhcnREYXRlLmdldERhdGUoKSk7XHJcbiAgICB0aGlzLmZpZWxkcy5PcmRXZWVrZGF5LnNldFZhbHVlKHN0YXJ0RGF0ZS5nZXREYXkoKSk7XHJcblxyXG4gICAgdGhpcy5zdW1tYXJpemUoKTtcclxuICB9LFxyXG4gIG9uU2NhbGVDaGFuZ2U6IGZ1bmN0aW9uIG9uU2NhbGVDaGFuZ2UodmFsdWUpIHtcclxuICAgIGNvbnN0IHN0YXJ0RGF0ZSA9IHRoaXMuZmllbGRzLlN0YXJ0RGF0ZS5nZXRWYWx1ZSgpO1xyXG4gICAgY29uc3QgYWZ0ZXJDb21wbGV0aW9uID0gdGhpcy5maWVsZHMuQWZ0ZXJDb21wbGV0aW9uLmdldFZhbHVlKCkgPyAxIDogMDtcclxuICAgIGNvbnN0IGludGVydmFsID0gcGFyc2VJbnQodGhpcy5maWVsZHMuSW50ZXJ2YWwuZ2V0VmFsdWUoKSwgMTApO1xyXG4gICAgbGV0IHJlY3VyUGVyaW9kID0gcGFyc2VJbnQodGhpcy5maWVsZHMuUmVjdXJQZXJpb2QuZ2V0VmFsdWUoKSwgMTApO1xyXG5cclxuICAgIHN3aXRjaCAocGFyc2VJbnQodmFsdWUua2V5LCAxMCkpIHtcclxuICAgICAgY2FzZSAwOlxyXG4gICAgICAgIC8vIGRheXNcclxuICAgICAgICBpZiAocmVjdXJQZXJpb2QgPCAyKSB7XHJcbiAgICAgICAgICByZXR1cm47XHJcbiAgICAgICAgfVxyXG4gICAgICAgIHJlY3VyUGVyaW9kID0gMCArIGFmdGVyQ29tcGxldGlvbjtcclxuICAgICAgICBicmVhaztcclxuICAgICAgY2FzZSAxOlxyXG4gICAgICAgIC8vIHdlZWtzXHJcbiAgICAgICAgaWYgKHJlY3VyUGVyaW9kID4gMSAmJiByZWN1clBlcmlvZCA8IDQpIHtcclxuICAgICAgICAgIHJldHVybjtcclxuICAgICAgICB9XHJcbiAgICAgICAgcmVjdXJQZXJpb2QgPSAyICsgYWZ0ZXJDb21wbGV0aW9uO1xyXG4gICAgICAgIGJyZWFrO1xyXG4gICAgICBjYXNlIDI6XHJcbiAgICAgICAgLy8gbW9udGhzXHJcbiAgICAgICAgaWYgKHJlY3VyUGVyaW9kID4gMyAmJiByZWN1clBlcmlvZCA8IDcpIHtcclxuICAgICAgICAgIHJldHVybjtcclxuICAgICAgICB9XHJcbiAgICAgICAgcmVjdXJQZXJpb2QgPSA0ICsgYWZ0ZXJDb21wbGV0aW9uICsgYWZ0ZXJDb21wbGV0aW9uO1xyXG4gICAgICAgIGJyZWFrO1xyXG4gICAgICBjYXNlIDM6XHJcbiAgICAgICAgLy8geWVhcnNcclxuICAgICAgICBpZiAocmVjdXJQZXJpb2QgPiA2KSB7XHJcbiAgICAgICAgICByZXR1cm47XHJcbiAgICAgICAgfVxyXG4gICAgICAgIHJlY3VyUGVyaW9kID0gNyArIGFmdGVyQ29tcGxldGlvbiArIGFmdGVyQ29tcGxldGlvbjtcclxuICAgICAgICBicmVhaztcclxuICAgICAgZGVmYXVsdDpcclxuICAgIH1cclxuICAgIHRoaXMuZmllbGRzLlJlY3VyUGVyaW9kLnNldFZhbHVlKHJlY3VyUGVyaW9kKTtcclxuICAgIHRoaXMuZmllbGRzLlJlY3VySXRlcmF0aW9ucy5zZXRWYWx1ZShyZWN1ci5kZWZhdWx0SXRlcmF0aW9uc1tyZWN1clBlcmlvZF0pO1xyXG4gICAgdGhpcy5maWVsZHMuUmVjdXJQZXJpb2RTcGVjLnNldFZhbHVlKHJlY3VyLmdldFJlY3VyUGVyaW9kU3BlYyhyZWN1clBlcmlvZCwgc3RhcnREYXRlLCBbXSwgaW50ZXJ2YWwpKTtcclxuICAgIHRoaXMuZmllbGRzLldlZWtkYXlzLnNldFZhbHVlKHJlY3VyLmdldFdlZWtkYXlzKHRoaXMuZmllbGRzLlJlY3VyUGVyaW9kU3BlYy5nZXRWYWx1ZSgpKSk7XHJcbiAgICB0aGlzLmZpZWxkcy5EYXkuc2V0VmFsdWUoc3RhcnREYXRlLmdldERhdGUoKSk7XHJcbiAgICB0aGlzLmZpZWxkcy5PcmRNb250aC5zZXRWYWx1ZShzdGFydERhdGUuZ2V0TW9udGgoKSArIDEpO1xyXG4gICAgdGhpcy5maWVsZHMuT3JkV2Vlay5zZXRWYWx1ZSgwKTtcclxuICAgIHRoaXMuZmllbGRzLkVuZERhdGUuc2V0VmFsdWUocmVjdXIuY2FsY0VuZERhdGUoc3RhcnREYXRlLCB0aGlzLmdldFJlY3VycmVuY2UoKSkudG9EYXRlKCkpO1xyXG5cclxuICAgIHRoaXMucmVzZXRVSSgpO1xyXG4gIH0sXHJcblxyXG4gIGZvcm1hdFdlZWtkYXlzOiBmdW5jdGlvbiBmb3JtYXRXZWVrZGF5cyhzZWxlY3Rpb25zKSB7XHJcbiAgICBjb25zdCB2YWx1ZXMgPSBbXTtcclxuICAgIGNvbnN0IHdlZWtkYXlzID0gWzAsIDAsIDAsIDAsIDAsIDAsIDBdO1xyXG5cclxuICAgIGZvciAoY29uc3Qga2V5IGluIHNlbGVjdGlvbnMpIHtcclxuICAgICAgaWYgKHNlbGVjdGlvbnNba2V5XSkge1xyXG4gICAgICAgIHZhbHVlcy5wdXNoKHRoaXMud2Vla0RheXNUZXh0W2tleV0pO1xyXG4gICAgICAgIHdlZWtkYXlzW2tleV0gPSAxO1xyXG4gICAgICB9XHJcbiAgICB9XHJcbiAgICB0aGlzLmZpZWxkcy5SZWN1clBlcmlvZFNwZWMuc2V0VmFsdWUocmVjdXIuZ2V0UmVjdXJQZXJpb2RTcGVjKFxyXG4gICAgICBwYXJzZUludCh0aGlzLmZpZWxkcy5SZWN1clBlcmlvZC5nZXRWYWx1ZSgpLCAxMCksXHJcbiAgICAgIHRoaXMuZmllbGRzLlN0YXJ0RGF0ZS5nZXRWYWx1ZSgpLFxyXG4gICAgICB3ZWVrZGF5cyxcclxuICAgICAgcGFyc2VJbnQodGhpcy5maWVsZHMuSW50ZXJ2YWwuZ2V0VmFsdWUoKSwgMTApXHJcbiAgICApKTtcclxuXHJcbiAgICB0aGlzLmVudHJ5LldlZWtkYXlzID0gd2Vla2RheXM7XHJcbiAgICByZXR1cm4gdmFsdWVzLmpvaW4oJywgJyk7XHJcbiAgfSxcclxuICBmb3JtYXRTaW5nbGVXZWVrZGF5OiBmdW5jdGlvbiBmb3JtYXRTaW5nbGVXZWVrZGF5KHNlbGVjdGlvbikge1xyXG4gICAgaWYgKHNlbGVjdGlvbi4kZGVzY3JpcHRvcikge1xyXG4gICAgICByZXR1cm4gc2VsZWN0aW9uLiRkZXNjcmlwdG9yO1xyXG4gICAgfVxyXG5cclxuICAgIHJldHVybiB0aGlzLndlZWtEYXlzVGV4dFtwYXJzZUludChzZWxlY3Rpb24sIDEwKV07XHJcbiAgfSxcclxuICBmb3JtYXRNb250aDogZnVuY3Rpb24gZm9ybWF0TW9udGgoc2VsZWN0aW9uKSB7XHJcbiAgICBpZiAoc2VsZWN0aW9uLiRkZXNjcmlwdG9yKSB7XHJcbiAgICAgIHJldHVybiBzZWxlY3Rpb24uJGRlc2NyaXB0b3I7XHJcbiAgICB9XHJcblxyXG4gICAgcmV0dXJuIHRoaXMubW9udGhzVGV4dFtwYXJzZUludChzZWxlY3Rpb24sIDEwKSAtIDFdO1xyXG4gIH0sXHJcbiAgZm9ybWF0T3JkOiBmdW5jdGlvbiBmb3JtYXRPcmQoc2VsZWN0aW9uKSB7XHJcbiAgICBpZiAoc2VsZWN0aW9uLiRkZXNjcmlwdG9yKSB7XHJcbiAgICAgIHJldHVybiBzZWxlY3Rpb24uJGRlc2NyaXB0b3I7XHJcbiAgICB9XHJcbiAgICByZXR1cm4gcmVjdXIub3JkVGV4dFtwYXJzZUludChzZWxlY3Rpb24sIDEwKV07XHJcbiAgfSxcclxuICBwcmVzZWxlY3RXZWVrZGF5czogZnVuY3Rpb24gcHJlc2VsZWN0V2Vla2RheXMoKSB7XHJcbiAgICBjb25zdCBwcmV2aW91c1NlbGVjdGlvbnMgPSBbXTtcclxuICAgIGNvbnN0IHdlZWtkYXlzID0gcmVjdXIuZ2V0V2Vla2RheXModGhpcy5maWVsZHMuUmVjdXJQZXJpb2RTcGVjLmdldFZhbHVlKCkpO1xyXG5cclxuICAgIGZvciAobGV0IGkgPSAwOyBpIDwgd2Vla2RheXMubGVuZ3RoOyBpKyspIHtcclxuICAgICAgaWYgKHdlZWtkYXlzW2ldKSB7XHJcbiAgICAgICAgcHJldmlvdXNTZWxlY3Rpb25zLnB1c2goaSk7XHJcbiAgICAgIH1cclxuICAgIH1cclxuICAgIHJldHVybiBwcmV2aW91c1NlbGVjdGlvbnM7XHJcbiAgfSxcclxuICBjcmVhdGVTY2FsZURhdGE6IGZ1bmN0aW9uIGNyZWF0ZVNjYWxlRGF0YSgpIHtcclxuICAgIGNvbnN0IGxpc3QgPSBbXTtcclxuXHJcbiAgICBmb3IgKGNvbnN0IG9wdCBpbiB0aGlzLmZyZXF1ZW5jeU9wdGlvbnNUZXh0KSB7XHJcbiAgICAgIGlmICh0aGlzLmZyZXF1ZW5jeU9wdGlvbnNUZXh0Lmhhc093blByb3BlcnR5KG9wdCkpIHtcclxuICAgICAgICBsaXN0LnB1c2goe1xyXG4gICAgICAgICAgJyRrZXknOiBvcHQsXHJcbiAgICAgICAgICAnJGRlc2NyaXB0b3InOiB0aGlzLmZyZXF1ZW5jeU9wdGlvbnNUZXh0W29wdF0sXHJcbiAgICAgICAgfSk7XHJcbiAgICAgIH1cclxuICAgIH1cclxuXHJcbiAgICByZXR1cm4ge1xyXG4gICAgICAnJHJlc291cmNlcyc6IGxpc3QsXHJcbiAgICB9O1xyXG4gIH0sXHJcbiAgY3JlYXRlV2Vla2RheXNEYXRhOiBmdW5jdGlvbiBjcmVhdGVXZWVrZGF5c0RhdGEoKSB7XHJcbiAgICBjb25zdCBsaXN0ID0gW107XHJcblxyXG4gICAgYXJyYXkuZm9yRWFjaCh0aGlzLndlZWtEYXlzVGV4dCwgZnVuY3Rpb24gbWFrZVdlZWtkYXlMaXN0KG5hbWUsIGlkeCkge1xyXG4gICAgICBsaXN0LnB1c2goe1xyXG4gICAgICAgICcka2V5JzogaWR4LFxyXG4gICAgICAgICckZGVzY3JpcHRvcic6IG5hbWUsXHJcbiAgICAgIH0pO1xyXG4gICAgfSk7XHJcblxyXG4gICAgcmV0dXJuIHtcclxuICAgICAgJyRyZXNvdXJjZXMnOiBsaXN0LFxyXG4gICAgfTtcclxuICB9LFxyXG4gIGNyZWF0ZU1vbnRoc0RhdGE6IGZ1bmN0aW9uIGNyZWF0ZU1vbnRoc0RhdGEoKSB7XHJcbiAgICBjb25zdCBsaXN0ID0gW107XHJcbiAgICBhcnJheS5mb3JFYWNoKHRoaXMubW9udGhzVGV4dCwgZnVuY3Rpb24gbWFrZU1vbnRoTGlzdChuYW1lLCBpZHgpIHtcclxuICAgICAgbGlzdC5wdXNoKHtcclxuICAgICAgICAnJGtleSc6IGlkeCxcclxuICAgICAgICAnJGRlc2NyaXB0b3InOiBuYW1lLFxyXG4gICAgICB9KTtcclxuICAgIH0pO1xyXG4gICAgcmV0dXJuIHtcclxuICAgICAgJyRyZXNvdXJjZXMnOiBsaXN0LFxyXG4gICAgfTtcclxuICB9LFxyXG4gIGNyZWF0ZU9yZERhdGE6IGZ1bmN0aW9uIGNyZWF0ZU9yZERhdGEoKSB7XHJcbiAgICBjb25zdCBsaXN0ID0gW107XHJcblxyXG4gICAgZm9yIChjb25zdCBvcmQgaW4gcmVjdXIub3JkVGV4dCkge1xyXG4gICAgICBpZiAocmVjdXIub3JkVGV4dC5oYXNPd25Qcm9wZXJ0eShvcmQpKSB7XHJcbiAgICAgICAgbGlzdC5wdXNoKHtcclxuICAgICAgICAgICcka2V5Jzogb3JkLFxyXG4gICAgICAgICAgJyRkZXNjcmlwdG9yJzogcmVjdXIub3JkVGV4dFtvcmRdLFxyXG4gICAgICAgIH0pO1xyXG4gICAgICB9XHJcbiAgICB9XHJcblxyXG4gICAgcmV0dXJuIHtcclxuICAgICAgJyRyZXNvdXJjZXMnOiBsaXN0LFxyXG4gICAgfTtcclxuICB9LFxyXG4gIHNldFZhbHVlczogZnVuY3Rpb24gc2V0VmFsdWVzKHZhbHVlcykge1xyXG4gICAgdGhpcy5pbmhlcml0ZWQoYXJndW1lbnRzKTtcclxuXHJcbiAgICAvLyBjYWxjdWxhdGUgc29tZSB2YWx1ZXMgZnJvbSB0aGUgb25lcyBwcm92aWRlZFxyXG4gICAgdGhpcy5lbnRyeSA9IHZhbHVlcztcclxuICAgIHRoaXMuZW50cnkuU3RhcnREYXRlID0gYXJnb3MuQ29udmVydC50b0RhdGVGcm9tU3RyaW5nKHZhbHVlcy5TdGFydERhdGUpO1xyXG4gICAgdGhpcy5lbnRyeS5FbmREYXRlID0gcmVjdXIuY2FsY0VuZERhdGUodmFsdWVzLlN0YXJ0RGF0ZSwgdmFsdWVzKS50b0RhdGUoKTtcclxuICAgIHRoaXMuZW50cnkuUmVjdXJyaW5nID0gKHR5cGVvZiB2YWx1ZXMuUmVjdXJyaW5nID09PSAnc3RyaW5nJykgPyAvXnRydWUkL2kudGVzdCh2YWx1ZXMuUmVjdXJyaW5nKSA6IHZhbHVlcy5SZWN1cnJpbmc7XHJcbiAgICBjb25zdCBvcmQgPSByZWN1ci5nZXRPcmQodGhpcy5lbnRyeSk7XHJcbiAgICB0aGlzLmVudHJ5LkludGVydmFsID0gdmFsdWVzLlJlY3VyUGVyaW9kU3BlYyAlIDY1NTM2O1xyXG4gICAgdGhpcy5lbnRyeS5BZnRlckNvbXBsZXRpb24gPSByZWN1ci5pc0FmdGVyQ29tcGxldGlvbih2YWx1ZXMuUmVjdXJQZXJpb2QpO1xyXG4gICAgdGhpcy5lbnRyeS5EYXkgPSB0aGlzLmVudHJ5LlN0YXJ0RGF0ZS5nZXREYXRlKCk7XHJcbiAgICB0aGlzLmVudHJ5LldlZWtkYXlzID0gcmVjdXIuZ2V0V2Vla2RheXModmFsdWVzLlJlY3VyUGVyaW9kU3BlYyk7XHJcbiAgICB0aGlzLmVudHJ5Lk9yZFdlZWsgPSBvcmQud2VlaztcclxuICAgIHRoaXMuZW50cnkuT3JkV2Vla2RheSA9IG9yZC53ZWVrZGF5O1xyXG4gICAgdGhpcy5lbnRyeS5PcmRNb250aCA9IG9yZC5tb250aDtcclxuXHJcbiAgICAvLyBFdmVuIGhpZGRlbiBhbmQgZmFsc3kgZmllbGRzIG5lZWQgdGhlaXIgdmFsdWVzIHNldCAobm90IGZyb20gcGFyZW50KVxyXG4gICAgZm9yIChjb25zdCBuYW1lIGluIHRoaXMuZmllbGRzKSB7XHJcbiAgICAgIGlmICh0aGlzLmZpZWxkcy5oYXNPd25Qcm9wZXJ0eShuYW1lKSkge1xyXG4gICAgICAgIGNvbnN0IGZpZWxkID0gdGhpcy5maWVsZHNbbmFtZV07XHJcbiAgICAgICAgLy8gMCAoRGFpbHkgcGFuZWwpIG9yIGZhbHNlIChBZnRlckNvbXBsZXRpb24pIGFyZSBsZWdpdGltYXRlIHZhbHVlcyFcclxuICAgICAgICBpZiAodHlwZW9mIHRoaXMuZW50cnlbbmFtZV0gIT09ICd1bmRlZmluZWQnKSB7XHJcbiAgICAgICAgICBmaWVsZC5zZXRWYWx1ZSh0aGlzLmVudHJ5W25hbWVdKTtcclxuICAgICAgICB9XHJcbiAgICAgIH1cclxuICAgIH1cclxuXHJcbiAgICB0aGlzLnJlc2V0VUkoKTtcclxuICB9LFxyXG4gIGdldFZhbHVlczogZnVuY3Rpb24gZ2V0VmFsdWVzKCkge1xyXG4gICAgY29uc3QgbyA9IHRoaXMuZ2V0UmVjdXJyZW5jZSgpO1xyXG5cclxuICAgIG8uUmVjdXJyaW5nID0gKG8uUmVjdXJQZXJpb2QgPj0gMCk7XHJcbiAgICBvLkVuZERhdGUgPSByZWN1ci5jYWxjRW5kRGF0ZShvLlN0YXJ0RGF0ZSwgbykudG9EYXRlKCk7XHJcblxyXG4gICAgcmV0dXJuIG87XHJcbiAgfSxcclxuICBnZXRSZWN1cnJlbmNlOiBmdW5jdGlvbiBnZXRSZWN1cnJlbmNlKCkge1xyXG4gICAgcmV0dXJuIHtcclxuICAgICAgJ1N0YXJ0RGF0ZSc6IHRoaXMuZmllbGRzLlN0YXJ0RGF0ZS5nZXRWYWx1ZSgpLFxyXG4gICAgICAnUmVjdXJQZXJpb2QnOiBwYXJzZUludCh0aGlzLmZpZWxkcy5SZWN1clBlcmlvZC5nZXRWYWx1ZSgpLCAxMCksXHJcbiAgICAgICdSZWN1clBlcmlvZFNwZWMnOiBwYXJzZUludCh0aGlzLmZpZWxkcy5SZWN1clBlcmlvZFNwZWMuZ2V0VmFsdWUoKSwgMTApLFxyXG4gICAgICAnUmVjdXJJdGVyYXRpb25zJzogcGFyc2VJbnQodGhpcy5maWVsZHMuUmVjdXJJdGVyYXRpb25zLmdldFZhbHVlKCksIDEwKSxcclxuICAgICAgJ1JlY3VycmVuY2VTdGF0ZSc6IHRoaXMuZmllbGRzLlJlY3VycmVuY2VTdGF0ZS5nZXRWYWx1ZSgpLFxyXG4gICAgfTtcclxuICB9LFxyXG4gIGNyZWF0ZUxheW91dDogZnVuY3Rpb24gY3JlYXRlTGF5b3V0KCkge1xyXG4gICAgcmV0dXJuIHRoaXMubGF5b3V0IHx8ICh0aGlzLmxheW91dCA9IFt7XHJcbiAgICAgIGxhYmVsOiB0aGlzLnN1bW1hcnlUZXh0LFxyXG4gICAgICBuYW1lOiAnU3VtbWFyeScsXHJcbiAgICAgIHByb3BlcnR5OiAnU3VtbWFyeScsXHJcbiAgICAgIGV4Y2x1ZGU6IHRydWUsXHJcbiAgICAgIHR5cGU6ICd0ZXh0YXJlYScsXHJcbiAgICAgIHJlYWRvbmx5OiB0cnVlLFxyXG4gICAgfSwge1xyXG4gICAgICBsYWJlbDogdGhpcy5zdGFydGluZ1RleHQsXHJcbiAgICAgIG5hbWU6ICdTdGFydERhdGUnLFxyXG4gICAgICBwcm9wZXJ0eTogJ1N0YXJ0RGF0ZScsXHJcbiAgICAgIHR5cGU6ICdkYXRlJyxcclxuICAgICAgZGF0ZUZvcm1hdFRleHQ6IHRoaXMuc3RhcnRpbmdGb3JtYXRUZXh0LFxyXG4gICAgfSwge1xyXG4gICAgICBsYWJlbDogdGhpcy5ldmVyeVRleHQsXHJcbiAgICAgIG5hbWU6ICdJbnRlcnZhbCcsXHJcbiAgICAgIHByb3BlcnR5OiAnSW50ZXJ2YWwnLFxyXG4gICAgICB0eXBlOiAndGV4dCcsXHJcbiAgICAgIGlucHV0VHlwZTogJ251bWVyaWMnLFxyXG4gICAgICBleGNsdWRlOiB0cnVlLFxyXG4gICAgICBub3RpZmljYXRpb25UcmlnZ2VyOiAnYmx1cicsXHJcbiAgICB9LCB7XHJcbiAgICAgIGxhYmVsOiAnJyxcclxuICAgICAgdGl0bGU6IHRoaXMucmVjdXJyaW5nRnJlcXVlbmN5VGV4dCxcclxuICAgICAgbmFtZTogJ1NjYWxlJyxcclxuICAgICAgcHJvcGVydHk6ICdTY2FsZScsXHJcbiAgICAgIHR5cGU6ICdzZWxlY3QnLFxyXG4gICAgICB2aWV3OiAnc2VsZWN0X2xpc3QnLFxyXG4gICAgICBleGNsdWRlOiB0cnVlLFxyXG4gICAgICBkYXRhOiB0aGlzLmNyZWF0ZVNjYWxlRGF0YSgpLFxyXG4gICAgfSwge1xyXG4gICAgICBsYWJlbDogdGhpcy5hZnRlckNvbXBsZXRpb25UZXh0LFxyXG4gICAgICBuYW1lOiAnQWZ0ZXJDb21wbGV0aW9uJyxcclxuICAgICAgcHJvcGVydHk6ICdBZnRlckNvbXBsZXRpb24nLFxyXG4gICAgICB0eXBlOiAnYm9vbGVhbicsXHJcbiAgICAgIGV4Y2x1ZGU6IHRydWUsXHJcbiAgICAgIG9uVGV4dDogdGhpcy55ZXNUZXh0LFxyXG4gICAgICBvZmZUZXh0OiB0aGlzLm5vVGV4dCxcclxuICAgIH0sIHtcclxuICAgICAgbGFiZWw6IHRoaXMub25UZXh0LFxyXG4gICAgICB0aXRsZTogdGhpcy5vblRleHQsXHJcbiAgICAgIG5hbWU6ICdPcmRXZWVrJyxcclxuICAgICAgcHJvcGVydHk6ICdPcmRXZWVrJyxcclxuICAgICAgZXhjbHVkZTogdHJ1ZSxcclxuICAgICAgdHlwZTogJ3NlbGVjdCcsXHJcbiAgICAgIHZpZXc6ICdzZWxlY3RfbGlzdCcsXHJcbiAgICAgIGRhdGE6IHRoaXMuY3JlYXRlT3JkRGF0YSgpLFxyXG4gICAgICB0ZXh0UmVuZGVyZXI6IHRoaXMuZm9ybWF0T3JkLmJpbmREZWxlZ2F0ZSh0aGlzKSxcclxuICAgIH0sIHtcclxuICAgICAgbGFiZWw6IHRoaXMuZGF5VGV4dCxcclxuICAgICAgdGl0bGU6IHRoaXMuZGF5VGV4dCxcclxuICAgICAgbmFtZTogJ0RheScsXHJcbiAgICAgIHByb3BlcnR5OiAnRGF5JyxcclxuICAgICAgdHlwZTogJ3RleHQnLFxyXG4gICAgICBpbnB1dFR5cGU6ICdudW1lcmljJyxcclxuICAgICAgZXhjbHVkZTogdHJ1ZSxcclxuICAgICAgbm90aWZpY2F0aW9uVHJpZ2dlcjogJ2JsdXInLFxyXG4gICAgfSwge1xyXG4gICAgICBsYWJlbDogdGhpcy53ZWVrZGF5c1RleHQsXHJcbiAgICAgIHRpdGxlOiB0aGlzLndlZWtkYXlzVGV4dCxcclxuICAgICAgbmFtZTogJ1dlZWtkYXlzJyxcclxuICAgICAgcHJvcGVydHk6ICdXZWVrZGF5cycsXHJcbiAgICAgIGV4Y2x1ZGU6IHRydWUsXHJcbiAgICAgIHR5cGU6ICdzZWxlY3QnLFxyXG4gICAgICBzaW5nbGVTZWxlY3Q6IGZhbHNlLFxyXG4gICAgICB2aWV3OiAnc2VsZWN0X2xpc3QnLFxyXG4gICAgICBkYXRhOiB0aGlzLmNyZWF0ZVdlZWtkYXlzRGF0YSgpLFxyXG4gICAgICBwcmV2aW91c1NlbGVjdGlvbnM6IHRoaXMucHJlc2VsZWN0V2Vla2RheXMuYmluZERlbGVnYXRlKHRoaXMpLFxyXG4gICAgICB0ZXh0UmVuZGVyZXI6IHRoaXMuZm9ybWF0V2Vla2RheXMuYmluZERlbGVnYXRlKHRoaXMpLFxyXG4gICAgICBmb3JtYXRWYWx1ZTogdGhpcy5mb3JtYXRXZWVrZGF5cy5iaW5kRGVsZWdhdGUodGhpcyksXHJcbiAgICB9LCB7XHJcbiAgICAgIGxhYmVsOiB0aGlzLnNpbmdsZVdlZWtkYXlUZXh0LFxyXG4gICAgICB0aXRsZTogdGhpcy5zaW5nbGVXZWVrZGF5VGV4dCxcclxuICAgICAgbmFtZTogJ09yZFdlZWtkYXknLFxyXG4gICAgICBwcm9wZXJ0eTogJ09yZFdlZWtkYXknLFxyXG4gICAgICBleGNsdWRlOiB0cnVlLFxyXG4gICAgICB0eXBlOiAnc2VsZWN0JyxcclxuICAgICAgc2luZ2xlU2VsZWN0OiB0cnVlLFxyXG4gICAgICB2aWV3OiAnc2VsZWN0X2xpc3QnLFxyXG4gICAgICBkYXRhOiB0aGlzLmNyZWF0ZVdlZWtkYXlzRGF0YSgpLFxyXG4gICAgICB0ZXh0UmVuZGVyZXI6IHRoaXMuZm9ybWF0U2luZ2xlV2Vla2RheS5iaW5kRGVsZWdhdGUodGhpcyksXHJcbiAgICB9LCB7XHJcbiAgICAgIGxhYmVsOiB0aGlzLm1vbnRoVGV4dCxcclxuICAgICAgdGl0bGU6IHRoaXMubW9udGhUZXh0LFxyXG4gICAgICBuYW1lOiAnT3JkTW9udGgnLFxyXG4gICAgICBwcm9wZXJ0eTogJ09yZE1vbnRoJyxcclxuICAgICAgZXhjbHVkZTogdHJ1ZSxcclxuICAgICAgdHlwZTogJ3NlbGVjdCcsXHJcbiAgICAgIHNpbmdsZVNlbGVjdDogdHJ1ZSxcclxuICAgICAgdmlldzogJ3NlbGVjdF9saXN0JyxcclxuICAgICAgZGF0YTogdGhpcy5jcmVhdGVNb250aHNEYXRhKCksXHJcbiAgICAgIHRleHRSZW5kZXJlcjogdGhpcy5mb3JtYXRNb250aC5iaW5kRGVsZWdhdGUodGhpcyksXHJcbiAgICB9LCB7XHJcbiAgICAgIG5hbWU6ICdSZWN1ckl0ZXJhdGlvbnMnLFxyXG4gICAgICBwcm9wZXJ0eTogJ1JlY3VySXRlcmF0aW9ucycsXHJcbiAgICAgIGxhYmVsOiB0aGlzLm9jY3VycmVuY2VzVGV4dCxcclxuICAgICAgdHlwZTogJ3RleHQnLFxyXG4gICAgICBpbnB1dFR5cGU6ICdudW1lcmljJyxcclxuICAgICAgaW5jbHVkZTogdHJ1ZSxcclxuICAgICAgbm90aWZpY2F0aW9uVHJpZ2dlcjogJ2JsdXInLFxyXG4gICAgfSwge1xyXG4gICAgICB0eXBlOiAnaGlkZGVuJyxcclxuICAgICAgbmFtZTogJ1JlY3VyUGVyaW9kJyxcclxuICAgICAgcHJvcGVydHk6ICdSZWN1clBlcmlvZCcsXHJcbiAgICAgIGluY2x1ZGU6IHRydWUsXHJcbiAgICB9LCB7XHJcbiAgICAgIHR5cGU6ICdoaWRkZW4nLFxyXG4gICAgICBuYW1lOiAnUmVjdXJQZXJpb2RTcGVjJyxcclxuICAgICAgcHJvcGVydHk6ICdSZWN1clBlcmlvZFNwZWMnLFxyXG4gICAgICBpbmNsdWRlOiB0cnVlLFxyXG4gICAgfSwge1xyXG4gICAgICB0eXBlOiAnaGlkZGVuJyxcclxuICAgICAgbmFtZTogJ1JlY3VycmVuY2VTdGF0ZScsXHJcbiAgICAgIHByb3BlcnR5OiAnUmVjdXJyZW5jZVN0YXRlJyxcclxuICAgICAgaW5jbHVkZTogdHJ1ZSxcclxuICAgIH0sIHtcclxuICAgICAgdHlwZTogJ2hpZGRlbicsXHJcbiAgICAgIG5hbWU6ICdSZWN1cnJpbmcnLFxyXG4gICAgICBwcm9wZXJ0eTogJ1JlY3VycmluZycsXHJcbiAgICAgIGluY2x1ZGU6IHRydWUsXHJcbiAgICAgIGZvcm1hdFZhbHVlOiBmb3JtYXQuYm9vbCxcclxuICAgIH0sIHtcclxuICAgICAgbGFiZWw6IHRoaXMuZW5kaW5nVGV4dCxcclxuICAgICAgbmFtZTogJ0VuZERhdGUnLFxyXG4gICAgICBwcm9wZXJ0eTogJ0VuZERhdGUnLFxyXG4gICAgICB0eXBlOiAnZGF0ZScsXHJcbiAgICAgIHRpbWVsZXNzOiBmYWxzZSxcclxuICAgICAgc2hvd1RpbWVQaWNrZXI6IGZhbHNlLFxyXG4gICAgICBkYXRlRm9ybWF0VGV4dDogdGhpcy5zdGFydGluZ0Zvcm1hdFRleHQsXHJcbiAgICAgIG1pblZhbHVlOiAobmV3IERhdGUoMTkwMCwgMCwgMSkpLFxyXG4gICAgICB2YWxpZGF0b3I6IFtcclxuICAgICAgICB2YWxpZGF0b3IuZXhpc3RzLFxyXG4gICAgICAgIHZhbGlkYXRvci5pc0RhdGVJblJhbmdlLFxyXG4gICAgICBdLFxyXG4gICAgfV0pO1xyXG4gIH0sXHJcbn0pO1xyXG5cclxubGFuZy5zZXRPYmplY3QoJ01vYmlsZS5TYWxlc0xvZ2l4LlZpZXdzLkFjdGl2aXR5LlJlY3VycmluZycsIF9fY2xhc3MpO1xyXG5leHBvcnQgZGVmYXVsdCBfX2NsYXNzO1xyXG4iXX0=
 </pre>
 </body>
 </html>

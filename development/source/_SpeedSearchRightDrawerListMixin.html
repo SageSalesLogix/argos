@@ -15,170 +15,164 @@
   </script>
 </head>
 <body onload="prettyPrint(); highlight();">
-  <pre class="prettyprint lang-js">/*
- * Copyright (c) 1997-2013, SalesLogix, NA., LLC. All rights reserved.
- */
+  <pre class="prettyprint lang-js">define('crm/Views/_SpeedSearchRightDrawerListMixin', ['exports', 'module', 'dojo/_base/declare', 'dojo/_base/array', 'dojo/_base/lang', 'dojo/dom-attr', './_RightDrawerBaseMixin', 'argos/I18n'], function (exports, module, _dojo_baseDeclare, _dojo_baseArray, _dojo_baseLang, _dojoDomAttr, _RightDrawerBaseMixin2, _argosI18n) {
+  function _interopRequireDefault(obj) { return obj &amp;&amp; obj.__esModule ? obj : { 'default': obj }; }
 
-<span id='crm-Views-_SpeedSearchRightDrawerListMixin'>/**
-</span> * @class crm.Views._SpeedSearchRightDrawerListMixin
- *
- * Speedsearch specific mixin for right drawer functionality.
- *
- * @mixins crm.Views._RightDrawerBaseMixin
- *
- */
-define('crm/Views/_SpeedSearchRightDrawerListMixin', [
-    'dojo/_base/declare',
-    'dojo/_base/array',
-    'dojo/_base/lang',
-    'dojo/dom-construct',
-    'dojo/dom-attr',
-    './_RightDrawerBaseMixin'
-], function(
-    declare,
-    array,
-    lang,
-    domConstruct,
-    domAttr,
-    _RightDrawerBaseMixin
-) {
+  var _declare = _interopRequireDefault(_dojo_baseDeclare);
 
-    var mixinName,
-        __class;
+  var _array = _interopRequireDefault(_dojo_baseArray);
 
-    mixinName = 'crm.Views._SpeedSearchRightDrawerListMixin';
+  var _lang = _interopRequireDefault(_dojo_baseLang);
 
-    __class = declare('crm.Views._SpeedSearchRightDrawerListMixin', [_RightDrawerBaseMixin], {
-        //Localization
-        indexSectionText: 'Indexes',
+  var _domAttr = _interopRequireDefault(_dojoDomAttr);
 
-        _hasChangedIndexPrefs: false,// Dirty flag so we know when to reload the widgets
+  var _RightDrawerBaseMixin3 = _interopRequireDefault(_RightDrawerBaseMixin2);
 
-        onShow: function() {
-            this.setDefaultIndexPreferences();
-        },
-        setDefaultIndexPreferences: function() {
-            var defaults;
-            if (!App.preferences.speedSeacrchIndexes) {
-                defaults = this.getDefaultIndexPrefences();
-                App.preferences.speedSearchIndexes = defaults;
-                App.persistPreferences();
+  var _getResource = _interopRequireDefault(_argosI18n);
+
+  var resource = (0, _getResource['default'])('speedSearchRightDrawerListMixin');
+
+<span id='crm-Views-_SpeedSearchRightDrawerListMixin'>  /**
+</span>   * @class crm.Views._SpeedSearchRightDrawerListMixin
+   *
+   * Speedsearch specific mixin for right drawer functionality.
+   *
+   * @mixins crm.Views._RightDrawerBaseMixin
+   *
+   */
+  var __class = (0, _declare['default'])('crm.Views._SpeedSearchRightDrawerListMixin', [_RightDrawerBaseMixin3['default']], {
+    // Localization
+    indexSectionText: resource.indexSectionText,
+
+    _hasChangedIndexPrefs: false, // Dirty flag so we know when to reload the widgets
+
+    onShow: function onShow() {
+      this.setDefaultIndexPreferences();
+    },
+    setDefaultIndexPreferences: function setDefaultIndexPreferences() {
+      if (!App.preferences.speedSeacrchIndexes) {
+        var defaults = this.getDefaultIndexPrefences();
+        App.preferences.speedSearchIndexes = defaults;
+        App.persistPreferences();
+      }
+    },
+    getDefaultIndexPrefences: function getDefaultIndexPrefences() {
+      var defaults = [];
+      var self = this;
+      _array['default'].forEach(this.indexes, function setDefaults(index) {
+        defaults.push({
+          indexName: index.indexName,
+          enabled: self._isIndexActive(index.indexName)
+        });
+      });
+      return defaults;
+    },
+    setupRightDrawer: function setupRightDrawer() {
+      var drawer = App.getView('right_drawer');
+      if (drawer) {
+        _lang['default'].mixin(drawer, this._createActions());
+        drawer.setLayout(this.createRightDrawerLayout());
+        drawer.getGroupForEntry = _lang['default'].hitch(this, function getGroupForRightDrawerEntry(entry) {
+          return this.getGroupForRightDrawerEntry(entry);
+        });
+
+        if (this.rebuildWidgets) {
+          App.snapper.on('close', _lang['default'].hitch(this, function onSnapperClose() {
+            if (this._hasChangedIndexPrefs) {
+              this.rebuildWidgets();
+              this._hasChangedIndexPrefs = false;
             }
-        },
-        getDefaultIndexPrefences: function() {
-            var defaults = [], self = this;
-            array.forEach(this.indexes, function(index) {
-                defaults.push({
-                    indexName: index.indexName,
-                    enabled: self._isIndexActive(index.indexName)
-                });
-            });
-            return defaults;
-        },
-        setupRightDrawer: function() {
-            var drawer = App.getView('right_drawer');
-            if (drawer) {
-                lang.mixin(drawer, this._createActions());
-                drawer.setLayout(this.createRightDrawerLayout());
-                drawer.getGroupForEntry = lang.hitch(this, function(entry) {
-                    return this.getGroupForRightDrawerEntry(entry);
-                });
-
-                if (this.rebuildWidgets) {
-                    App.snapper.on('close', lang.hitch(this, function() {
-                        if (this._hasChangedIndexPrefs) {
-                            this.rebuildWidgets();
-                            this._hasChangedIndexPrefs = false;
-                        }
-                    }));
-                }
-            }
-        },
-        unloadRightDrawer: function() {
-            var drawer = App.getView('right_drawer');
-            if (drawer) {
-                drawer.setLayout([]);
-                drawer.getGroupForEntry = function() {};
-                App.snapper.off('close');
-            }
-        },
-        _onSearchExpression: function() {
-            // TODO: Don't extend this private function - connect to the search widget onSearchExpression instead
-            this.inherited(arguments);
-        },
-        _createActions: function() {
-            // These actions will get mixed into the right drawer view.
-            var actions = {
-                indexClicked: lang.hitch(this, function(params) {
-                    var prefs, results, enabled;
-                    prefs = App.preferences &amp;&amp; App.preferences.speedSearchIndexes;
-
-                    results = array.filter(prefs, function(pref) {
-                        return pref.indexName === params.indexname; //the index name is lower cased.
-                    });
-                    this.activateIndex(params.indexname);
-                    if (results.length &gt; 0) {
-                        enabled = !!results[0].enabled;
-                        results[0].enabled = !enabled;
-                        App.persistPreferences();
-                        this._hasChangedIndexPrefs = true;
-                        domAttr.set(params.$source, 'data-enabled', (!enabled).toString());
-                    }
-                })
-            };
-
-            return actions;
-        },
-        getGroupForRightDrawerEntry: function(entry) {
-            if (entry.dataProps &amp;&amp; entry.dataProps.indexname) {
-                var mixin = lang.getObject(mixinName);
-                return {
-                    tag: 'view',
-                    title: mixin.prototype.indexSectionText
-                };
-            }
-        },
-        createRightDrawerLayout: function() {
-            var indexSection, index, layout, prefs, indexPref, i;
-            layout = [];
-
-            indexSection = {
-                id: 'actions',
-                children: []
-            };
-            prefs = App.preferences &amp;&amp; App.preferences.speedSearchIndexes;
-            if (this.indexes) {
-                for (i in this.indexes) {
-                    if (this.indexes.hasOwnProperty(i)) {
-                        index = this.indexes[i];
-                        indexPref = array.filter(prefs, function(pref) {
-                            return pref.indexName === index.indexName;
-                        });
-                        index = this.indexes[i];
-                        if (index.hasOwnProperty('indexName')) {
-                            indexSection.children.push({
-                                'name': index.indexName,
-                                'action': 'indexClicked',
-                                'title': this.indexesText[index.indexName] || index.indexName,
-                                'dataProps': {
-                                    'indexname': index.indexName,
-                                    'enabled':!!indexPref[0].enabled
-                                }
-                            });
-                        }
-                    }
-                }
-            }
-
-            layout.push(indexSection);
-            return layout;
+          }));
         }
-    });
+      }
+    },
+    unloadRightDrawer: function unloadRightDrawer() {
+      var drawer = App.getView('right_drawer');
+      if (drawer) {
+        drawer.setLayout([]);
+        drawer.getGroupForEntry = function snapperOff() {};
+        App.snapper.off('close');
+      }
+    },
+    _onSearchExpression: function _onSearchExpression() {
+      // TODO: Don't extend this private function - connect to the search widget onSearchExpression instead
+      this.inherited(arguments);
+    },
+    _createActions: function _createActions() {
+      // These actions will get mixed into the right drawer view.
+      var actions = {
+        indexClicked: _lang['default'].hitch(this, function onIndexClicked(params) {
+          var prefs = App.preferences &amp;&amp; App.preferences.speedSearchIndexes;
 
-    lang.setObject('Mobile.SalesLogix.Views._SpeedSearchRightDrawerListMixin', __class);
-    return __class;
+          var results = _array['default'].filter(prefs, function getResults(pref) {
+            return pref.indexName === params.indexname; // the index name is lower cased.
+          });
+          this.activateIndex(params.indexname);
+          if (results.length &gt; 0) {
+            var enabled = !!results[0].enabled;
+            results[0].enabled = !enabled;
+            App.persistPreferences();
+            this._hasChangedIndexPrefs = true;
+            _domAttr['default'].set(params.$source, 'data-enabled', (!enabled).toString());
+          }
+        })
+      };
+
+      return actions;
+    },
+    getGroupForRightDrawerEntry: function getGroupForRightDrawerEntry(entry) {
+      if (entry.dataProps &amp;&amp; entry.dataProps.indexname) {
+        return {
+          tag: 'view',
+          title: resource.indexSectionText
+        };
+      }
+    },
+    createRightDrawerLayout: function createRightDrawerLayout() {
+      var _this = this;
+
+      var layout = [];
+
+      var indexSection = {
+        id: 'actions',
+        children: []
+      };
+      var prefs = App.preferences &amp;&amp; App.preferences.speedSearchIndexes;
+      if (this.indexes) {
+        for (var i in this.indexes) {
+          if (this.indexes.hasOwnProperty(i)) {
+            (function () {
+              var index = _this.indexes[i];
+              var indexPref = _array['default'].filter(prefs, function getIndexPref(pref) {
+                // eslint-disable-line
+                return pref.indexName === index.indexName;
+              });
+              index = _this.indexes[i];
+              if (index.hasOwnProperty('indexName')) {
+                indexSection.children.push({
+                  'name': index.indexName,
+                  'action': 'indexClicked',
+                  'title': _this.indexesText[index.indexName] || index.indexName,
+                  'dataProps': {
+                    'indexname': index.indexName,
+                    'enabled': !!indexPref[0].enabled
+                  }
+                });
+              }
+            })();
+          }
+        }
+      }
+
+      layout.push(indexSection);
+      return layout;
+    }
+  });
+
+  _lang['default'].setObject('Mobile.SalesLogix.Views._SpeedSearchRightDrawerListMixin', __class);
+  module.exports = __class;
 });
-
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInNyYy9WaWV3cy9fU3BlZWRTZWFyY2hSaWdodERyYXdlckxpc3RNaXhpbi5qcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7Ozs7Ozs7QUFPQSxNQUFNLFFBQVEsR0FBRyw2QkFBWSxpQ0FBaUMsQ0FBQyxDQUFDOzs7Ozs7Ozs7O0FBVWhFLE1BQU0sT0FBTyxHQUFHLHlCQUFRLDRDQUE0QyxFQUFFLG1DQUF1QixFQUFFOztBQUU3RixvQkFBZ0IsRUFBRSxRQUFRLENBQUMsZ0JBQWdCOztBQUUzQyx5QkFBcUIsRUFBRSxLQUFLOztBQUU1QixVQUFNLEVBQUUsU0FBUyxNQUFNLEdBQUc7QUFDeEIsVUFBSSxDQUFDLDBCQUEwQixFQUFFLENBQUM7S0FDbkM7QUFDRCw4QkFBMEIsRUFBRSxTQUFTLDBCQUEwQixHQUFHO0FBQ2hFLFVBQUksQ0FBQyxHQUFHLENBQUMsV0FBVyxDQUFDLG1CQUFtQixFQUFFO0FBQ3hDLFlBQU0sUUFBUSxHQUFHLElBQUksQ0FBQyx3QkFBd0IsRUFBRSxDQUFDO0FBQ2pELFdBQUcsQ0FBQyxXQUFXLENBQUMsa0JBQWtCLEdBQUcsUUFBUSxDQUFDO0FBQzlDLFdBQUcsQ0FBQyxrQkFBa0IsRUFBRSxDQUFDO09BQzFCO0tBQ0Y7QUFDRCw0QkFBd0IsRUFBRSxTQUFTLHdCQUF3QixHQUFHO0FBQzVELFVBQU0sUUFBUSxHQUFHLEVBQUUsQ0FBQztBQUNwQixVQUFNLElBQUksR0FBRyxJQUFJLENBQUM7QUFDbEIsd0JBQU0sT0FBTyxDQUFDLElBQUksQ0FBQyxPQUFPLEVBQUUsU0FBUyxXQUFXLENBQUMsS0FBSyxFQUFFO0FBQ3RELGdCQUFRLENBQUMsSUFBSSxDQUFDO0FBQ1osbUJBQVMsRUFBRSxLQUFLLENBQUMsU0FBUztBQUMxQixpQkFBTyxFQUFFLElBQUksQ0FBQyxjQUFjLENBQUMsS0FBSyxDQUFDLFNBQVMsQ0FBQztTQUM5QyxDQUFDLENBQUM7T0FDSixDQUFDLENBQUM7QUFDSCxhQUFPLFFBQVEsQ0FBQztLQUNq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VyxDQUFDLEtBQUssQ0FBQyxTQUFTLENBQUMsSUFBSSxLQUFLLENBQUMsU0FBUztBQUM3RCw2QkFBVyxFQUFFO0FBQ1gsK0JBQVcsRUFBRSxLQUFLLENBQUMsU0FBUztBQUM1Qiw2QkFBUyxFQUFFLENBQUMsQ0FBQyxTQUFTLENBQUMsQ0FBQyxDQUFDLENBQUMsT0FBTzttQkFDbEM7aUJBQ0YsQ0FBQyxDQUFDO2VBQ0o7O1dBQ0Y7U0FDRjtPQUNGOztBQUVELFlBQU0sQ0FBQyxJQUFJLENBQUMsWUFBWSxDQUFDLENBQUM7QUFDMUIsYUFBTyxNQUFNLENBQUM7S0FDZjtHQUNGLENBQUMsQ0FBQzs7QUFFSCxtQkFBSyxTQUFTLENBQUMsMERBQTBELEVBQUUsT0FBTyxDQUFDLENBQUM7bUJBQ3JFLE9BQU8iLCJmaWxlIjoic3JjL1ZpZXdzL19TcGVlZFNlYXJjaFJpZ2h0RHJhd2VyTGlzdE1peGluLmpzIiwic291cmNlUm9vdCI6InNyYyIsInNvdXJjZXNDb250ZW50IjpbImltcG9ydCBkZWNsYXJlIGZyb20gJ2Rvam8vX2Jhc2UvZGVjbGFyZSc7XHJcbmltcG9ydCBhcnJheSBmcm9tICdkb2pvL19iYXNlL2FycmF5JztcclxuaW1wb3J0IGxhbmcgZnJvbSAnZG9qby9fYmFzZS9sYW5nJztcclxuaW1wb3J0IGRvbUF0dHIgZnJvbSAnZG9qby9kb20tYXR0cic7XHJcbmltcG9ydCBfUmlnaHREcmF3ZXJCYXNlTWl4aW4gZnJvbSAnLi9fUmlnaHREcmF3ZXJCYXNlTWl4aW4nO1xyXG5pbXBvcnQgZ2V0UmVzb3VyY2UgZnJvbSAnYXJnb3MvSTE4bic7XHJcblxyXG5jb25zdCByZXNvdXJjZSA9IGdldFJlc291cmNlKCdzcGVlZFNlYXJjaFJpZ2h0RHJhd2VyTGlzdE1peGluJyk7XHJcblxyXG4vKipcclxuICogQGNsYXNzIGNybS5WaWV3cy5fU3BlZWRTZWFyY2hSaWdodERyYXdlckxpc3RNaXhpblxyXG4gKlxyXG4gKiBTcGVlZHNlYXJjaCBzcGVjaWZpYyBtaXhpbiBmb3IgcmlnaHQgZHJhd2VyIGZ1bmN0aW9uYWxpdHkuXHJcbiAqXHJcbiAqIEBtaXhpbnMgY3JtLlZpZXdzLl9SaWdodERyYXdlckJhc2VNaXhpblxyXG4gKlxyXG4gKi9cclxuY29uc3QgX19jbGFzcyA9IGRlY2xhcmUoJ2NybS5WaWV3cy5fU3BlZWRTZWFyY2hSaWdodERyYXdlckxpc3RNaXhpbicsIFtfUmlnaHREcmF3ZXJCYXNlTWl4aW5dLCB7XHJcbiAgLy8gTG9jYWxpemF0aW9uXHJcbiAgaW5kZXhTZWN0aW9uVGV4dDogcmVzb3VyY2UuaW5kZXhTZWN0aW9uVGV4dCxcclxuXHJcbiAgX2hhc0NoYW5nZWRJbmRleFByZWZzOiBmYWxzZSwgLy8gRGlydHkgZmxhZyBzbyB3ZSBrbm93IHdoZW4gdG8gcmVsb2FkIHRoZSB3aWRnZXRzXHJcblxyXG4gIG9uU2hvdzogZnVuY3Rpb24gb25TaG93KCkge1xyXG4gICAgdGhpcy5zZXREZWZhdWx0SW5kZXhQcmVmZXJlbmNlcygpO1xyXG4gIH0sXHJcbiAgc2V0RGVmYXVsdEluZGV4UHJlZmVyZW5jZXM6IGZ1bmN0aW9uIHNldERlZmF1bHRJbmRleFByZWZlcmVuY2VzKCkge1xyXG4gICAgaWYgKCFBcHAucHJlZmVyZW5jZXMuc3BlZWRTZWFjcmNoSW5kZXhlcykge1xyXG4gICAgICBjb25zdCBkZWZhdWx0cyA9IHRoaXMuZ2V0RGVmYXVsdEluZGV4UHJlZmVuY2VzKCk7XHJcbiAgICAgIEFwcC5wcmVmZXJlbmNlcy5zcGVlZFNlYXJjaEluZGV4ZXMgPSBkZWZhdWx0cztcclxuICAgICAgQXBwLnBlcnNpc3RQcmVmZXJlbmNlcygpO1xyXG4gICAgfVxyXG4gIH0sXHJcbiAgZ2V0RGVmYXVsdEluZGV4UHJlZmVuY2VzOiBmdW5jdGlvbiBnZXREZWZhdWx0SW5kZXhQcmVmZW5jZXMoKSB7XHJcbiAgICBjb25zdCBkZWZhdWx0cyA9IFtdO1xyXG4gICAgY29uc3Qgc2VsZiA9IHRoaXM7XHJcbiAgICBhcnJheS5mb3JFYWNoKHRoaXMuaW5kZXhlcywgZnVuY3Rpb24gc2V0RGVmYXVsdHMoaW5kZXgpIHtcclxuICAgICAgZGVmYXVsdHMucHVzaCh7XHJcbiAgICAgICAgaW5kZXhOYW1lOiBpbmRleC5pbmRleE5hbWUsXHJcbiAgICAgICAgZW5hYmxlZDogc2VsZi5faXNJbmRleEFjdGl2ZShpbmRleC5pbmRleE5hbWUpLFxyXG4gICAgICB9KTtcclxuICAgIH0pO1xyXG4gICAgcmV0dXJuIGRlZmF1bHRzO1xyXG4gIH0sXHJcbiAgc2V0dXBSaWdodERyYXdlcjogZnVuY3Rpb24gc2V0dXBSaWdodERyYXdlcigpIHtcclxuICAgIGNvbnN0IGRyYXdlciA9IEFwcC5nZXRWaWV3KCdyaWdodF9kcmF3ZXInKTtcclxuICAgIGlmIChkcmF3ZXIpIHtcclxuICAgICAgbGFuZy5taXhpbihkcmF3ZXIsIHRoaXMuX2NyZWF0ZUFjdGlvbnMoKSk7XHJcbiAgICAgIGRyYXdlci5zZXRMYXlvdXQodGhpcy5jcmVhdGVSaWdodERyYXdlckxheW91dCgpKTtcclxuICAgICAgZHJhd2VyLmdldEdyb3VwRm9yRW50cnkgPSBsYW5nLmhpdGNoKHRoaXMsIGZ1bmN0aW9uIGdldEdyb3VwRm9yUmlnaHREcmF3ZXJFbnRyeShlbnRyeSkge1xyXG4gICAgICAgIHJldHVybiB0aGlzLmdldEdyb3VwRm9yUmlnaHREcmF3ZXJFbnRyeShlbnRyeSk7XHJcbiAgICAgIH0pO1xyXG5cclxuICAgICAgaWYgKHRoaXMucmVidWlsZFdpZGdldHMpIHtcclxuICAgICAgICBBcHAuc25hcHBlci5vbignY2xvc2UnLCBsYW5nLmhpdGNoKHRoaXMsIGZ1bmN0aW9uIG9uU25hcHBlckNsb3NlKCkge1xyXG4gICAgICAgICAgaWYgKHRoaXMuX2hhc0NoYW5nZWRJbmRleFByZWZzKSB7XHJcbiAgICAgICAgICAgIHRoaXMucmVidWlsZFdpZGdldHMoKTtcclxuICAgICAgICAgICAgdGhpcy5faGFzQ2hhbmdlZEluZGV4UHJlZnMgPSBmYWxzZTtcclxuICAgICAgICAgIH1cclxuICAgICAgICB9KSk7XHJcbiAgICAgIH1cclxuICAgIH1cclxuICB9LFxyXG4gIHVubG9hZFJpZ2h0RHJhd2VyOiBmdW5jdGlvbiB1bmxvYWRSaWdodERyYXdlcigpIHtcclxuICAgIGNvbnN0IGRyYXdlciA9IEFwcC5nZXRWaWV3KCdyaWdodF9kcmF3ZXInKTtcclxuICAgIGlmIChkcmF3ZXIpIHtcclxuICAgICAgZHJhd2VyLnNldExheW91dChbXSk7XHJcbiAgICAgIGRyYXdlci5nZXRHcm91cEZvckVudHJ5ID0gZnVuY3Rpb24gc25hcHBlck9mZigpIHt9O1xyXG4gICAgICBBcHAuc25hcHBlci5vZmYoJ2Nsb3NlJyk7XHJcbiAgICB9XHJcbiAgfSxcclxuICBfb25TZWFyY2hFeHByZXNzaW9uOiBmdW5jdGlvbiBfb25TZWFyY2hFeHByZXNzaW9uKCkge1xyXG4gICAgLy8gVE9ETzogRG9uJ3QgZXh0ZW5kIHRoaXMgcHJpdmF0ZSBmdW5jdGlvbiAtIGNvbm5lY3QgdG8gdGhlIHNlYXJjaCB3aWRnZXQgb25TZWFyY2hFeHByZXNzaW9uIGluc3RlYWRcclxuICAgIHRoaXMuaW5oZXJpdGVkKGFyZ3VtZW50cyk7XHJcbiAgfSxcclxuICBfY3JlYXRlQWN0aW9uczogZnVuY3Rpb24gX2NyZWF0ZUFjdGlvbnMoKSB7XHJcbiAgICAvLyBUaGVzZSBhY3Rpb25zIHdpbGwgZ2V0IG1peGVkIGludG8gdGhlIHJpZ2h0IGRyYXdlciB2aWV3LlxyXG4gICAgY29uc3QgYWN0aW9ucyA9IHtcclxuICAgICAgaW5kZXhDbGlja2VkOiBsYW5nLmhpdGNoKHRoaXMsIGZ1bmN0aW9uIG9uSW5kZXhDbGlja2VkKHBhcmFtcykge1xyXG4gICAgICAgIGNvbnN0IHByZWZzID0gQXBwLnByZWZlcmVuY2VzICYmIEFwcC5wcmVmZXJlbmNlcy5zcGVlZFNlYXJjaEluZGV4ZXM7XHJcblxyXG4gICAgICAgIGNvbnN0IHJlc3VsdHMgPSBhcnJheS5maWx0ZXIocHJlZnMsIGZ1bmN0aW9uIGdldFJlc3VsdHMocHJlZikge1xyXG4gICAgICAgICAgcmV0dXJuIHByZWYuaW5kZXhOYW1lID09PSBwYXJhbXMuaW5kZXhuYW1lOyAvLyB0aGUgaW5kZXggbmFtZSBpcyBsb3dlciBjYXNlZC5cclxuICAgICAgICB9KTtcclxuICAgICAgICB0aGlzLmFjdGl2YXRlSW5kZXgocGFyYW1zLmluZGV4bmFtZSk7XHJcbiAgICAgICAgaWYgKHJlc3VsdHMubGVuZ3RoID4gMCkge1xyXG4gICAgICAgICAgY29uc3QgZW5hYmxlZCA9ICEhcmVzdWx0c1swXS5lbmFibGVkO1xyXG4gICAgICAgICAgcmVzdWx0c1swXS5lbmFibGVkID0gIWVuYWJsZWQ7XHJcbiAgICAgICAgICBBcHAucGVyc2lzdFByZWZlcmVuY2VzKCk7XHJcbiAgICAgICAgICB0aGlzLl9oYXNDaGFuZ2VkSW5kZXhQcmVmcyA9IHRydWU7XHJcbiAgICAgICAgICBkb21BdHRyLnNldChwYXJhbXMuJHNvdXJjZSwgJ2RhdGEtZW5hYmxlZCcsICghZW5hYmxlZCkudG9TdHJpbmcoKSk7XHJcbiAgICAgICAgfVxyXG4gICAgICB9KSxcclxuICAgIH07XHJcblxyXG4gICAgcmV0dXJuIGFjdGlvbnM7XHJcbiAgfSxcclxuICBnZXRHcm91cEZvclJpZ2h0RHJhd2VyRW50cnk6IGZ1bmN0aW9uIGdldEdyb3VwRm9yUmlnaHREcmF3ZXJFbnRyeShlbnRyeSkge1xyXG4gICAgaWYgKGVudHJ5LmRhdGFQcm9wcyAmJiBlbnRyeS5kYXRhUHJvcHMuaW5kZXhuYW1lKSB7XHJcbiAgICAgIHJldHVybiB7XHJcbiAgICAgICAgdGFnOiAndmlldycsXHJcbiAgICAgICAgdGl0bGU6IHJlc291cmNlLmluZGV4U2VjdGlvblRleHQsXHJcbiAgICAgIH07XHJcbiAgICB9XHJcbiAgfSxcclxuICBjcmVhdGVSaWdodERyYXdlckxheW91dDogZnVuY3Rpb24gY3JlYXRlUmlnaHREcmF3ZXJMYXlvdXQoKSB7XHJcbiAgICBjb25zdCBsYXlvdXQgPSBbXTtcclxuXHJcbiAgICBjb25zdCBpbmRleFNlY3Rpb24gPSB7XHJcbiAgICAgIGlkOiAnYWN0aW9ucycsXHJcbiAgICAgIGNoaWxkcmVuOiBbXSxcclxuICAgIH07XHJcbiAgICBjb25zdCBwcmVmcyA9IEFwcC5wcmVmZXJlbmNlcyAmJiBBcHAucHJlZmVyZW5jZXMuc3BlZWRTZWFyY2hJbmRleGVzO1xyXG4gICAgaWYgKHRoaXMuaW5kZXhlcykge1xyXG4gICAgICBmb3IgKGNvbnN0IGkgaW4gdGhpcy5pbmRleGVzKSB7XHJcbiAgICAgICAgaWYgKHRoaXMuaW5kZXhlcy5oYXNPd25Qcm9wZXJ0eShpKSkge1xyXG4gICAgICAgICAgbGV0IGluZGV4ID0gdGhpcy5pbmRleGVzW2ldO1xyXG4gICAgICAgICAgY29uc3QgaW5kZXhQcmVmID0gYXJyYXkuZmlsdGVyKHByZWZzLCBmdW5jdGlvbiBnZXRJbmRleFByZWYocHJlZikgeyAvLyBlc2xpbnQtZGlzYWJsZS1saW5lXHJcbiAgICAgICAgICAgIHJldHVybiBwcmVmLmluZGV4TmFtZSA9PT0gaW5kZXguaW5kZXhOYW1lO1xyXG4gICAgICAgICAgfSk7XHJcbiAgICAgICAgICBpbmRleCA9IHRoaXMuaW5kZXhlc1tpXTtcclxuICAgICAgICAgIGlmIChpbmRleC5oYXNPd25Qcm9wZXJ0eSgnaW5kZXhOYW1lJykpIHtcclxuICAgICAgICAgICAgaW5kZXhTZWN0aW9uLmNoaWxkcmVuLnB1c2goe1xyXG4gICAgICAgICAgICAgICduYW1lJzogaW5kZXguaW5kZXhOYW1lLFxyXG4gICAgICAgICAgICAgICdhY3Rpb24nOiAnaW5kZXhDbGlja2VkJyxcclxuICAgICAgICAgICAgICAndGl0bGUnOiB0aGlzLmluZGV4ZXNUZXh0W2luZGV4LmluZGV4TmFtZV0gfHwgaW5kZXguaW5kZXhOYW1lLFxyXG4gICAgICAgICAgICAgICdkYXRhUHJvcHMnOiB7XHJcbiAgICAgICAgICAgICAgICAnaW5kZXhuYW1lJzogaW5kZXguaW5kZXhOYW1lLFxyXG4gICAgICAgICAgICAgICAgJ2VuYWJsZWQnOiAhIWluZGV4UHJlZlswXS5lbmFibGVkLFxyXG4gICAgICAgICAgICAgIH0sXHJcbiAgICAgICAgICAgIH0pO1xyXG4gICAgICAgICAgfVxyXG4gICAgICAgIH1cclxuICAgICAgfVxyXG4gICAgfVxyXG5cclxuICAgIGxheW91dC5wdXNoKGluZGV4U2VjdGlvbik7XHJcbiAgICByZXR1cm4gbGF5b3V0O1xyXG4gIH0sXHJcbn0pO1xyXG5cclxubGFuZy5zZXRPYmplY3QoJ01vYmlsZS5TYWxlc0xvZ2l4LlZpZXdzLl9TcGVlZFNlYXJjaFJpZ2h0RHJhd2VyTGlzdE1peGluJywgX19jbGFzcyk7XHJcbmV4cG9ydCBkZWZhdWx0IF9fY2xhc3M7XHJcbiJdfQ==
 </pre>
 </body>
 </html>

@@ -15,444 +15,133 @@
   </script>
 </head>
 <body onload="prettyPrint(); highlight();">
-  <pre class="prettyprint lang-js">/*
- * Copyright (c) 1997-2013, SalesLogix, NA., LLC. All rights reserved.
- */
+  <pre class="prettyprint lang-js">define('crm/Views/OpportunityContact/Edit', ['exports', 'module', 'dojo/_base/declare', 'dojo/_base/lang', '../../Format', 'argos/Edit', 'argos/I18n'], function (exports, module, _dojo_baseDeclare, _dojo_baseLang, _Format, _argosEdit, _argosI18n) {
+  function _interopRequireDefault(obj) { return obj &amp;&amp; obj.__esModule ? obj : { 'default': obj }; }
 
-<span id='crm-Views-OpportunityProduct-Edit'>/**
-</span> * @class crm.Views.OpportunityProduct.Edit
- *
- * @extends argos.Edit
- *
- * @requires argos.Utility
- *
- * @requires crm.Validator
- * @requires crm.Template
- */
-define('crm/Views/OpportunityProduct/Edit', [
-    'dojo/_base/declare',
-    'dojo/_base/lang',
-    'dojo/_base/array',
-    'dojo/string',
-    '../../Validator',
-    '../../Template',
-    'argos/Utility',
-    'argos/Edit',
-    'argos/Utility'
-], function(
-    declare,
-    lang,
-    array,
-    string,
-    validator,
-    template,
-    utility,
-    Edit,
-    Utility
-) {
+  var _declare = _interopRequireDefault(_dojo_baseDeclare);
 
-    var __class = declare('crm.Views.OpportunityProduct.Edit', [Edit], {
-        //Localization
-        titleText: 'Opportunity Product',
-        detailsText: 'Details',
-        opportunityText: 'opportunity',
-        productText: 'product',
-        productFamilyText: 'product family',
-        priceLevelText: 'price level',
-        priceText: 'price',
-        basePriceText: 'base price',
-        discountText: 'discount %',
-        adjustedPriceText: 'adjusted price',
-        myAdjustedPriceText: 'user',
-        baseAdjustedPriceText: 'base',
-        quantityText: 'quantity',
-        baseExtendedPriceText: 'base',
-        extendedPriceText: 'extended price',
-        extendedPriceSectionText: 'Extended Price',
-        adjustedPriceSectionText: 'Adjusted Price',
+  var _lang = _interopRequireDefault(_dojo_baseLang);
 
-        //View Properties
-        entityName: 'Opportunity',
-        id: 'opportunityproduct_edit',
-        resourceKind: 'opportunityProducts',
-        insertSecurity: 'Entities/Opportunity/Add',
-        updateSecurity: 'Entities/Opportunity/Edit',
-        querySelect: [
-            'Opportunity/Description',
-            'Product/Name',
-            'Product/Family',
-            'Program',
-            'Price',
-            'Discount',
-            'AdjustedPrice',
-            'CalculatedPrice',
-            'Quantity',
-            'ExtendedPrice'
-        ],
-        init: function() {
-            this.inherited(arguments);
-            this.connect(this.fields['Product'], 'onChange', this.onProductChange);
-            this.connect(this.fields['Program'], 'onChange', this.onProgramChange);
-            this.connect(this.fields['Discount'], 'onChange', this.onDiscountChange);
-            this.connect(this.fields['CalculatedPrice'], 'onChange', this.onAdjustedPriceChange);
-            this.connect(this.fields['CalculatedPriceMine'], 'onChange', this.onAdjustedPriceMineChange);
-            this.connect(this.fields['Quantity'], 'onChange', this.onQuantityChange);
-        },
-        setValues: function(values) {
-            this.inherited(arguments);
-            var adjusted, myCode, baseCode;
-            this.fields['Program'].setValue({'$key': '', 'Program': values.Program});
+  var _format = _interopRequireDefault(_Format);
 
-            if (values.Discount &gt; 0) {
-                adjusted = values.Price - (values.Discount * values.Price);
-                // transform the discount into a percentage number 0.10 to 10.00%
-                this.fields['Discount'].setValue(values.Discount * 100);
-            } else {
-                adjusted = values.Price;
-            }
+  var _Edit = _interopRequireDefault(_argosEdit);
 
-            myCode = App.getMyExchangeRate().code;
-            baseCode = App.getBaseExchangeRate().code;
-            this.fields['Price'].setCurrencyCode(baseCode);
-            this.fields['CalculatedPrice'].setCurrencyCode(baseCode);
+  var _getResource = _interopRequireDefault(_argosI18n);
 
-            if (App.hasMultiCurrency()) {
-                this.fields['CalculatedPriceMine'].setValueNoTrigger(this._getMyRate() * values.CalculatedPrice);
-                this.fields['CalculatedPriceMine'].setCurrencyCode(myCode);
-            }
+  var resource = (0, _getResource['default'])('opportunityContactEdit');
 
-            this.fields['ExtendedPrice'].setCurrencyCode(baseCode);
-            this._updateExtendedPrice();
+<span id='crm-Views-OpportunityContact-Edit'>  /**
+</span>   * @class crm.Views.OpportunityContact.Edit
+   *
+   * @extends argos.Edit
+   *
+   * @requires argos.Utility
+   */
+  var __class = (0, _declare['default'])('crm.Views.OpportunityContact.Edit', [_Edit['default']], {
+    // Localization
+    titleText: resource.titleText,
+    nameText: resource.nameText,
+    accountNameText: resource.accountNameText,
+    contactTitleText: resource.contactTitleText,
+    salesRoleText: resource.salesRoleText,
+    salesRoleTitleText: resource.salesRoleTitleText,
+    personalBenefitsText: resource.personalBenefitsText,
+    strategyText: resource.strategyText,
+    issuesText: resource.issuesText,
+    standingText: resource.standingText,
+    standingTitleText: resource.standingTitleText,
+    contactText: resource.contactText,
+    competitorPrefText: resource.competitorPrefText,
 
-            if ((values.Product.Family !== null) &amp;&amp; (values.Price !== null)) {
-                this._enableUI(true);
-            } else {
-                this._enableUI(false);
-            }
-        },
-        _enableUI: function(enable) {
-            if (enable) {
-                this.fields['Discount'].enable();
-                this.fields['Quantity'].enable();
-                this.fields['CalculatedPrice'].enable();
-                if (App.hasMultiCurrency()) {
-                    this.fields['CalculatedPriceMine'].enable();
-                }
-            } else {
-                this.fields['Discount'].disable();
-                this.fields['Quantity'].disable();
-                this.fields['CalculatedPrice'].disable();
-                if (App.hasMultiCurrency()) {
-                    this.fields['CalculatedPriceMine'].disable();
-                }
-            }
-        },
-        _getMyRate: function() {
-            return App.getMyExchangeRate().rate;
-        },
-        getValues: function() {
-            var o = this.inherited(arguments);
-            o.Program = o.Program.Program;
+    // View Properties
+    entityName: 'OpportunityContact',
+    id: 'opportunitycontact_edit',
+    insertSecurity: 'Entities/Contact/Add',
+    updateSecurity: 'Entities/Contact/Edit',
+    querySelect: ['Contact/Account/AccountName', 'Contact/NameLF', 'Contact/Title'],
+    resourceKind: 'opportunityContacts',
 
-            /*
-             * 'AdjustedPrice' is a lie. The underlying database field is actually PRICEADJUSTED and
-             * is a boolean, not a price that has been adjusted. Since we use the adjusted price to calculate
-             * the discount %, we will remove it from getValues so we aren't trying to save the wrong data type when sending
-             * the sdata request.
-             */
-            delete o.AdjustedPrice;
-            delete o.CalculatedPriceMine;
-            // transform the discount back into a decimal
-            o.Discount = o.Discount / 100;
+    createLayout: function createLayout() {
+      return this.layout || (this.layout = [{
+        title: this.contactText,
+        name: 'ContactSection',
+        children: [{
+          formatValue: _format['default'].nameLF,
+          label: this.nameText,
+          name: 'ContactName',
+          type: 'text',
+          property: 'Contact.NameLF',
+          readonly: true,
+          exclude: true
+        }, {
+          label: this.accountNameText,
+          name: 'ContactAccountName',
+          property: 'Contact.AccountName',
+          type: 'text',
+          readonly: true,
+          exclude: true
+        }, {
+          label: this.contactTitleText,
+          name: 'ContactTitle',
+          property: 'Contact.Title',
+          type: 'text',
+          readonly: true,
+          exclude: true
+        }]
+      }, {
+        label: this.salesRoleText,
+        name: 'SalesRole',
+        property: 'SalesRole',
+        type: 'picklist',
+        title: this.salesRoleTitleText,
+        picklist: 'Role'
+      }, {
+        label: this.standingText,
+        name: 'Standing',
+        property: 'Standing',
+        type: 'picklist',
+        title: this.standingTitleText,
+        picklist: 'Standing'
+      }, {
+        label: this.personalBenefitsText,
+        name: 'PersonalBenefits',
+        property: 'PersonalBenefits',
+        type: 'text'
+      }, {
+        label: this.competitorPrefText,
+        name: 'Competitors',
+        property: 'Competitors',
+        textProperty: 'CompetitorName',
+        view: 'competitor_related',
+        type: 'lookup'
+      }, {
+        label: this.strategyText,
+        name: 'Strategy',
+        property: 'Strategy',
+        type: 'textarea'
+      }, {
+        label: this.issuesText,
+        name: 'Issues',
+        property: 'Issues',
+        type: 'textarea'
+      }, {
+        name: 'OpportunityKey',
+        property: 'Opportunity.$key',
+        type: 'hidden',
+        include: true
+      }, {
+        name: 'ContactKey',
+        property: 'Contact.$key',
+        type: 'hidden',
+        include: true
+      }]);
+    }
+  });
 
-            return o;
-        },
-        applyContext: function() {
-            var entry = this.options &amp;&amp; this.options.selectedEntry;
-
-            if (entry) {
-                this.fields['Opportunity'].setValue(entry);
-            }
-        },
-        onProductChange: function(value, field) {
-            var selection = field &amp;&amp; field.currentSelection;
-            if (selection) {
-                this.fields['ProductId'].setValueNoTrigger(value.key);
-                this.fields['Product.Family'].setValueNoTrigger(selection.Family);
-                this.fields['Program'].clearValue();
-
-                this.fields['Price'].setValueNoTrigger(selection.Price);
-                this.fields['Discount'].clearValue();
-                this.fields['CalculatedPrice'].setValueNoTrigger(selection.Price);
-
-                if (App.hasMultiCurrency()) {
-                    this.fields['CalculatedPriceMine'].setValueNoTrigger(this._getMyRate() * selection.Price);
-                }
-                this.fields['Quantity'].setValueNoTrigger(1);
-                this._updateExtendedPrice();
-            }
-        },
-        onProgramChange: function(value, field) {
-            var selection = field &amp;&amp; field.currentSelection;
-            if (selection) {
-                this.fields['Price'].setValueNoTrigger(selection.Price);
-                this.fields['Discount'].clearValue();
-                this.fields['CalculatedPrice'].setValueNoTrigger(selection.Price);
-                if (App.hasMultiCurrency()) {
-                    this.fields['CalculatedPriceMine'].setValueNoTrigger(this._getMyRate() * selection.Price);
-                }
-                this._updateExtendedPrice();
-                this._enableUI(true);
-            }
-        },
-        onDiscountChange: function() {
-            var price, discount, adjusted, quantity;
-            price = parseFloat(this.fields['Price'].getValue(), 10) || 0;
-            discount = this.fields['Discount'].getValue();
-            quantity = parseFloat(this.fields['Quantity'].getValue(), 10) || 0;
-
-            adjusted = this._calculateAdjustedPrice(price, discount);
-            this.fields['CalculatedPrice'].setValueNoTrigger(adjusted);
-
-            this._updateAdjustedPrices(adjusted);
-            this._updateExtendedPrice();
-        },
-        onAdjustedPriceChange: function() {
-            var price, discount, adjusted, myadjusted;
-            price = parseFloat(this.fields['Price'].getValue(), 10) || 0;
-            adjusted = parseFloat(this.fields['CalculatedPrice'].getValue(), 10) || 0;
-
-            discount = this._calculateDiscount(price, adjusted);
-            this.fields['Discount'].setValueNoTrigger(discount);
-
-            if (App.hasMultiCurrency()) {
-                myadjusted = this._getMyRate() * adjusted;
-                this.fields['CalculatedPriceMine'].setValueNoTrigger(myadjusted);
-            }
-            this._updateExtendedPrice();
-        },
-        onAdjustedPriceMineChange: function() {
-            var price, myprice, discount, myadjusted, adjusted, myrate;
-            myadjusted = this.fields['CalculatedPriceMine'].getValue();
-            price = this.fields['Price'].getValue() || 0;
-
-            myrate = this._getMyRate();
-            myprice = price * myrate; // get the price in the users exchange rate
-
-            discount = this._calculateDiscount(myprice, myadjusted);
-            this.fields['Discount'].setValueNoTrigger(discount);
-
-            adjusted = this._calculateAdjustedPrice(price, discount);
-            this.fields['CalculatedPrice'].setValueNoTrigger(adjusted);
-
-            this._updateExtendedPrice();
-        },
-        onQuantityChange: function(value) {
-            if (isNaN(value)) {
-                this.fields['Quantity'].setValueNoTrigger(0);
-            }
-            this._updateExtendedPrice();
-        },
-        _calculateDiscount: function(price, adjusted) {
-            var discount;
-            if (price === 0) {
-                discount = 0.0;
-            } else {
-                discount = (1 - (adjusted / price)) * 100;
-            }
-            return discount;
-        },
-        _calculateAdjustedPrice: function(price, discount) {
-            var adjusted;
-            if (discount === 0) {
-                adjusted = price;
-            } else {
-                adjusted = price - (price * (discount / 100));
-            }
-            return adjusted;
-        },
-        _updateAdjustedPrices: function(adjusted) {
-            var myadjusted;
-            this.fields['CalculatedPrice'].setValueNoTrigger(adjusted);
-            if (App.hasMultiCurrency()) {
-                myadjusted = this._getMyRate() * adjusted;
-                this.fields['CalculatedPriceMine'].setValueNoTrigger(myadjusted);
-            }
-        },
-        _updateExtendedPrice: function() {
-            var adjusted, quantity, extended;
-            quantity = parseFloat(this.fields['Quantity'].getValue(), 10) || 0;
-            adjusted = parseFloat(this.fields['CalculatedPrice'].getValue(), 10) || 0;
-            extended = adjusted * quantity;
-            this.fields['ExtendedPrice'].setValueNoTrigger(extended);
-        },
-        onUpdateCompleted: function() {
-            this._refreshOpportunityViews();
-            this.inherited(arguments);
-        },
-        onInsertCompleted: function() {
-            this._refreshOpportunityViews();
-            this.inherited(arguments);
-        },
-        _refreshOpportunityViews: function() {
-            var views = [
-                App.getView('opportunityproduct_related'),
-                App.getView('opportunity_detail'),
-                App.getView('opportunity_list')
-            ];
-
-            array.forEach(views, function(view) {
-                if (view) {
-                    view.refreshRequired = true;
-                }
-            }, this);
-        },
-        createLayout: function() {
-            var layout, details, extendedPrice, adjustedPrice;
-
-            details = {
-                title: this.detailsText,
-                name: 'OpportunityProductDetailsEdit',
-                children: [
-                    {
-                        label: this.opportunityText,
-                        name: 'Opportunity',
-                        property: 'Opportunity',
-                        type: 'lookup',
-                        textProperty: 'Description',
-                        view: 'opportunity_related',
-                        validator: validator.exists
-                    },
-                    {
-                        name: 'ProductId',
-                        property: 'ProductId',
-                        type: 'hidden'
-                    },
-                    {
-                        label: this.productText,
-                        name: 'Product',
-                        property: 'Product',
-                        type: 'lookup',
-                        textProperty: 'Name',
-                        view: 'product_related',
-                        validator: validator.exists
-                    },
-                    {
-                        label: this.productFamilyText,
-                        name: 'Product.Family',
-                        property: 'Product.Family',
-                        type: 'text',
-                        readonly: true
-                    },
-                    {
-                        label: this.priceLevelText,
-                        name: 'Program',
-                        property: 'Program',
-                        textProperty: 'Program',
-                        type: 'lookup',
-                        view: 'productprogram_related',
-                        validator: validator.exists,
-                        where: (function() {
-                            var val = this.fields['Product'].getValue();
-                            return string.substitute('Product.Name eq &quot;${0}&quot;', [Utility.escapeSearchQuery(val.Name)]);
-                        }).bindDelegate(this)
-                    },
-                    {
-                        label: App.hasMultiCurrency() ? this.basePriceText : this.priceText,
-                        name: 'Price',
-                        property: 'Price',
-                        type: 'multiCurrency',
-                        readonly: true
-                    },
-                    {
-                        label: this.discountText,
-                        name: 'Discount',
-                        property: 'Discount',
-                        type: 'decimal',
-                        notificationTrigger: 'blur'
-                    },
-                    {
-                        label: this.quantityText,
-                        name: 'Quantity',
-                        property: 'Quantity',
-                        type: 'decimal',
-                        notificationTrigger: 'blur'
-                    }
-                ]
-            };
-
-            if (!App.hasMultiCurrency()) {
-                details.children.push({
-                    label: this.adjustedPriceText,
-                    name: 'CalculatedPrice',
-                    property: 'CalculatedPrice',
-                    type: 'multiCurrency',
-                    notificationTrigger: 'blur'
-                });
-                details.children.push({
-                    label: this.extendedPriceText,
-                    name: 'ExtendedPrice',
-                    property: 'ExtendedPrice',
-                    type: 'multiCurrency',
-                    readonly: true
-                });
-            }
-
-            extendedPrice = {
-                title: this.extendedPriceSectionText,
-                name: 'OpportunityProductExtendedPriceEdit',
-                children: [
-                    {
-                        label: this.baseExtendedPriceText,
-                        name: 'ExtendedPrice',
-                        property: 'ExtendedPrice',
-                        type: 'multiCurrency',
-                        readonly: true
-                    }
-                ]
-            };
-
-            adjustedPrice = {
-                title: this.adjustedPriceSectionText,
-                name: 'OpportunityProductAdjustedPriceEdit',
-                children: [
-                    {
-                        label: this.baseAdjustedPriceText,
-                        name: 'CalculatedPrice',
-                        property: 'CalculatedPrice',
-                        type: 'multiCurrency',
-                        notificationTrigger: 'blur'
-                    },
-                    {
-                        label: this.myAdjustedPriceText,
-                        name: 'CalculatedPriceMine',
-                        property: 'CalculatedPriceMine',
-                        type: App.hasMultiCurrency() ? 'multiCurrency' : 'hidden',
-                        notificationTrigger: 'blur'
-                    }
-                ]
-            };
-
-            layout = this.layout || (this.layout = []);
-
-            if (layout.length &gt; 0) {
-                return layout;
-            }
-
-            layout.push(details);
-
-            if (App.hasMultiCurrency()) {
-                layout.push(adjustedPrice);
-                layout.push(extendedPrice);
-            }
-            return layout;
-        }
-    });
-
-    lang.setObject('Mobile.SalesLogix.Views.OpportunityProduct.Edit', __class);
-    return __class;
+  _lang['default'].setObject('Mobile.SalesLogix.Views.OpportunityContact.Edit', __class);
+  module.exports = __class;
 });
-
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInNyYy9WaWV3cy9PcHBvcnR1bml0eUNvbnRhY3QvRWRpdC5qcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7Ozs7O0FBTUEsTUFBTSxRQUFRLEdBQUcsNkJBQVksd0JBQXdCLENBQUMsQ0FBQzs7Ozs7Ozs7O0FBU3ZELE1BQU0sT0FBTyxHQUFHLHlCQUFRLG1DQUFtQyxFQUFFLGtCQUFNLEVBQUU7O0FBRW5FLGFBQVMsRUFBRSxRQUFRLENBQUMsU0FBUztBQUM3QixZQUFRLEVBQUUsUUFBUSxDQUFDLFFBQVE7QUFDM0IsbUJBQWUsRUFBRSxRQUFRLENBQUMsZUFBZTtBQUN6QyxvQkFBZ0IsRUFBRSxRQUFRLENBQUMsZ0JBQWdCO0FBQzNDLGlCQUFhLEVBQUUsUUFBUSxDQUFDLGFBQWE7QUFDckMsc0JBQWtCLEVBQUUsUUFBUSxDQUFDLGtCQUFrQjtBQUMvQyx3QkFBb0IsRUFBRSxRQUFRLENBQUMsb0JBQW9CO0FBQ25ELGdCQUFZLEVBQUUsUUFBUSxDQUFDLFlBQVk7QUFDbkMsY0FBVSxFQUFFLFFBQVEsQ0FBQyxVQUFVO0FBQy9CLGdCQUFZLEVBQUUsUUFBUSxDQUFDLFlBQVk7QUFDbkMscUJBQWlCLEVBQUUsUUFBUSxDQUFDLGlCQUFpQjtBQUM3QyxlQUFXLEVBQUUsUUFBUSxDQUFDLFdBQVc7QUFDakMsc0JBQWtCLEVBQUUsUUFBUSxDQUFDLGtCQUFrQjs7O0FBRy9DLGNBQVUsRUFBRSxvQkFBb0I7QUFDaEMsTUFBRSxFQUFFLHlCQUF5QjtBQUM3QixrQkFBYyxFQUFFLHNCQUFzQjtBQUN0QyxrQkFBYyxFQUFFLHVCQUF1QjtBQUN2QyxlQUFXLEVBQUUsQ0FDWCw2QkFBNkIsRUFDN0IsZ0JBQWdCLEVBQ2hCLGVBQWUsQ0FDaEI7QUFDRCxnQkFBWSxFQUFFLHFCQUFxQjs7QUFFbkMsZ0JBQVksRUFBRSxTQUFTLFlBQVksR0FBRztBQUNwQyxhQUFPLElBQUksQ0FBQyxNQUFNLEtBQUssSUFBSSxDQUFDLE1BQU0sR0FBRyxDQUFDO0FBQ3BDLGFBQUssRUFBRSxJQUFJLENBQUMsV0FBVztBQUN2QixZQUFJLEVBQUUsZ0JBQWdCO0FBQ3RCLGdCQUFRLEVBQUUsQ0FBQztBQUNULHFCQUFXLEVBQUUsbUJBQU8sTUFBTTtBQUMxQixlQUFLLEVBQUUsSUFBSSxDQUFDLFFBQVE7QUFDcEIsY0FBSSxFQUFFLGFBQWE7QUFDbkIsY0FBSSxFQUFFLE1BQU07QUFDWixrQkFBUSxFQUFFLGdCQUFnQjtBQUMxQixrQkFBUSxFQUFFLElBQUk7QUFDZCxpQkFBTyxFQUFFLElBQUk7U0FDZCxFQUFFO0FBQ0QsZUFBSyxFQUFFLElBQUksQ0FBQyxlQUFlO0FBQzNCLGNBQUksRUFBRSxvQkFBb0I7QUFDMUIsa0JBQVEsRUFBRSxxQkFBcUI7QUFDL0IsY0FBSSxFQUFFLE1BQU07QUFDWixrQkFBUSxFQUFFLElBQUk7QUFDZCxpQkFBTyxFQUFFLElBQUk7U0FDZCxFQUFFO0FBQ0QsZUFBSyxFQUFFLElBQUksQ0FBQyxnQkFBZ0I7QUFDNUIsY0FBSSxFQUFFLGNBQWM7QUFDcEIsa0JBQVEsRUFBRSxlQUFlO0FBQ3pCLGNBQUksRUFBRSxNQUFNO0FBQ1osa0JBQVEsRUFBRSxJQUFJO0FBQ2QsaUJBQU8sRUFBRSxJQUFJO1NBQ2QsQ0FBQztPQUNILEVBQUU7QUFDRCxhQUFLLEVBQUUsSUFBSSxDQUFDLGFBQWE7QUFDekIsWUFBSSxFQUFFLFdBQVc7QUFDakIsZ0JBQVEsRUFBRSxXQUFXO0FBQ3JCLFlBQUksRUFBRSxVQUFVO0FBQ2hCLGFBQUssRUFBRSxJQUFJLENBQUMsa0JBQWtCO0FBQzlCLGdCQUFRLEVBQUUsTUFBTTtPQUNqQixFQUFFO0FBQ0QsYUFBSyxFQUFFLElBQUksQ0FBQyxZQUFZO0FBQ3hCLFlBQUksRUFBRSxVQUFVO0FBQ2hCLGdCQUFRLEVBQUUsVUFBVTtBQUNwQixZQUFJLEVBQUUsVUFBVTtBQUNoQixhQUFLLEVBQUUsSUFBSSxDQUFDLGlCQUFpQjtBQUM3QixnQkFBUSxFQUFFLFVBQVU7T0FDckIsRUFBRTtBQUNELGFBQUssRUFBRSxJQUFJLENBQUMsb0JBQW9CO0FBQ2hDLFlBQUksRUFBRSxrQkFBa0I7QUFDeEIsZ0JBQVEsRUFBRSxrQkFBa0I7QUFDNUIsWUFBSSxFQUFFLE1BQU07T0FDYixFQUFFO0FBQ0QsYUFBSyxFQUFFLElBQUksQ0FBQyxrQkFBa0I7QUFDOUIsWUFBSSxFQUFFLGFBQWE7QUFDbkIsZ0JBQVEsRUFBRSxhQUFhO0FBQ3ZCLG9CQUFZLEVBQUUsZ0JBQWdCO0FBQzlCLFlBQUksRUFBRSxvQkFBb0I7QUFDMUIsWUFBSSxFQUFFLFFBQVE7T0FDZixFQUFFO0FBQ0QsYUFBSyxFQUFFLElBQUksQ0FBQyxZQUFZO0FBQ3hCLFlBQUksRUFBRSxVQUFVO0FBQ2hCLGdCQUFRLEVBQUUsVUFBVTtBQUNwQixZQUFJLEVBQUUsVUFBVTtPQUNqQixFQUFFO0FBQ0QsYUFBSyxFQUFFLElBQUksQ0FBQyxVQUFVO0FBQ3RCLFlBQUksRUFBRSxRQUFRO0FBQ2QsZ0JBQVEsRUFBRSxRQUFRO0FBQ2xCLFlBQUksRUFBRSxVQUFVO09BQ2pCLEVBQUU7QUFDRCxZQUFJLEVBQUUsZ0JBQWdCO0FBQ3RCLGdCQUFRLEVBQUUsa0JBQWtCO0FBQzVCLFlBQUksRUFBRSxRQUFRO0FBQ2QsZUFBTyxFQUFFLElBQUk7T0FDZCxFQUFFO0FBQ0QsWUFBSSxFQUFFLFlBQVk7QUFDbEIsZ0JBQVEsRUFBRSxjQUFjO0FBQ3hCLFlBQUksRUFBRSxRQUFRO0FBQ2QsZUFBTyxFQUFFLElBQUk7T0FDZCxDQUFDLENBQUEsQUFBQyxDQUFDO0tBQ0w7R0FDRixDQUFDLENBQUM7O0FBRUgsbUJBQUssU0FBUyxDQUFDLGlEQUFpRCxFQUFFLE9BQU8sQ0FBQyxDQUFDO21CQUM1RCxPQUFPIiwiZmlsZSI6InNyYy9WaWV3cy9PcHBvcnR1bml0eUNvbnRhY3QvRWRpdC5qcyIsInNvdXJjZVJvb3QiOiJzcmMiLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgZGVjbGFyZSBmcm9tICdkb2pvL19iYXNlL2RlY2xhcmUnO1xyXG5pbXBvcnQgbGFuZyBmcm9tICdkb2pvL19iYXNlL2xhbmcnO1xyXG5pbXBvcnQgZm9ybWF0IGZyb20gJy4uLy4uL0Zvcm1hdCc7XHJcbmltcG9ydCBFZGl0IGZyb20gJ2FyZ29zL0VkaXQnO1xyXG5pbXBvcnQgZ2V0UmVzb3VyY2UgZnJvbSAnYXJnb3MvSTE4bic7XHJcblxyXG5jb25zdCByZXNvdXJjZSA9IGdldFJlc291cmNlKCdvcHBvcnR1bml0eUNvbnRhY3RFZGl0Jyk7XHJcblxyXG4vKipcclxuICogQGNsYXNzIGNybS5WaWV3cy5PcHBvcnR1bml0eUNvbnRhY3QuRWRpdFxyXG4gKlxyXG4gKiBAZXh0ZW5kcyBhcmdvcy5FZGl0XHJcbiAqXHJcbiAqIEByZXF1aXJlcyBhcmdvcy5VdGlsaXR5XHJcbiAqL1xyXG5jb25zdCBfX2NsYXNzID0gZGVjbGFyZSgnY3JtLlZpZXdzLk9wcG9ydHVuaXR5Q29udGFjdC5FZGl0JywgW0VkaXRdLCB7XHJcbiAgLy8gTG9jYWxpemF0aW9uXHJcbiAgdGl0bGVUZXh0OiByZXNvdXJjZS50aXRsZVRleHQsXHJcbiAgbmFtZVRleHQ6IHJlc291cmNlLm5hbWVUZXh0LFxyXG4gIGFjY291bnROYW1lVGV4dDogcmVzb3VyY2UuYWNjb3VudE5hbWVUZXh0LFxyXG4gIGNvbnRhY3RUaXRsZVRleHQ6IHJlc291cmNlLmNvbnRhY3RUaXRsZVRleHQsXHJcbiAgc2FsZXNSb2xlVGV4dDogcmVzb3VyY2Uuc2FsZXNSb2xlVGV4dCxcclxuICBzYWxlc1JvbGVUaXRsZVRleHQ6IHJlc291cmNlLnNhbGVzUm9sZVRpdGxlVGV4dCxcclxuICBwZXJzb25hbEJlbmVmaXRzVGV4dDogcmVzb3VyY2UucGVyc29uYWxCZW5lZml0c1RleHQsXHJcbiAgc3RyYXRlZ3lUZXh0OiByZXNvdXJjZS5zdHJhdGVneVRleHQsXHJcbiAgaXNzdWVzVGV4dDogcmVzb3VyY2UuaXNzdWVzVGV4dCxcclxuICBzdGFuZGluZ1RleHQ6IHJlc291cmNlLnN0YW5kaW5nVGV4dCxcclxuICBzdGFuZGluZ1RpdGxlVGV4dDogcmVzb3VyY2Uuc3RhbmRpbmdUaXRsZVRleHQsXHJcbiAgY29udGFjdFRleHQ6IHJlc291cmNlLmNvbnRhY3RUZXh0LFxyXG4gIGNvbXBldGl0b3JQcmVmVGV4dDogcmVzb3VyY2UuY29tcGV0aXRvclByZWZUZXh0LFxyXG5cclxuICAvLyBWaWV3IFByb3BlcnRpZXNcclxuICBlbnRpdHlOYW1lOiAnT3Bwb3J0dW5pdHlDb250YWN0JyxcclxuICBpZDogJ29wcG9ydHVuaXR5Y29udGFjdF9lZGl0JyxcclxuICBpbnNlcnRTZWN1cml0eTogJ0VudGl0aWVzL0NvbnRhY3QvQWRkJyxcclxuICB1cGRhdGVTZWN1cml0eTogJ0VudGl0aWVzL0NvbnRhY3QvRWRpdCcsXHJcbiAgcXVlcnlTZWxlY3Q6IFtcclxuICAgICdDb250YWN0L0FjY291bnQvQWNjb3VudE5hbWUnLFxyXG4gICAgJ0NvbnRhY3QvTmFtZUxGJyxcclxuICAgICdDb250YWN0L1RpdGxlJyxcclxuICBdLFxyXG4gIHJlc291cmNlS2luZDogJ29wcG9ydHVuaXR5Q29udGFjdHMnLFxyXG5cclxuICBjcmVhdGVMYXlvdXQ6IGZ1bmN0aW9uIGNyZWF0ZUxheW91dCgpIHtcclxuICAgIHJldHVybiB0aGlzLmxheW91dCB8fCAodGhpcy5sYXlvdXQgPSBbe1xyXG4gICAgICB0aXRsZTogdGhpcy5jb250YWN0VGV4dCxcclxuICAgICAgbmFtZTogJ0NvbnRhY3RTZWN0aW9uJyxcclxuICAgICAgY2hpbGRyZW46IFt7XHJcbiAgICAgICAgZm9ybWF0VmFsdWU6IGZvcm1hdC5uYW1lTEYsXHJcbiAgICAgICAgbGFiZWw6IHRoaXMubmFtZVRleHQsXHJcbiAgICAgICAgbmFtZTogJ0NvbnRhY3ROYW1lJyxcclxuICAgICAgICB0eXBlOiAndGV4dCcsXHJcbiAgICAgICAgcHJvcGVydHk6ICdDb250YWN0Lk5hbWVMRicsXHJcbiAgICAgICAgcmVhZG9ubHk6IHRydWUsXHJcbiAgICAgICAgZXhjbHVkZTogdHJ1ZSxcclxuICAgICAgfSwge1xyXG4gICAgICAgIGxhYmVsOiB0aGlzLmFjY291bnROYW1lVGV4dCxcclxuICAgICAgICBuYW1lOiAnQ29udGFjdEFjY291bnROYW1lJyxcclxuICAgICAgICBwcm9wZXJ0eTogJ0NvbnRhY3QuQWNjb3VudE5hbWUnLFxyXG4gICAgICAgIHR5cGU6ICd0ZXh0JyxcclxuICAgICAgICByZWFkb25seTogdHJ1ZSxcclxuICAgICAgICBleGNsdWRlOiB0cnVlLFxyXG4gICAgICB9LCB7XHJcbiAgICAgICAgbGFiZWw6IHRoaXMuY29udGFjdFRpdGxlVGV4dCxcclxuICAgICAgICBuYW1lOiAnQ29udGFjdFRpdGxlJyxcclxuICAgICAgICBwcm9wZXJ0eTogJ0NvbnRhY3QuVGl0bGUnLFxyXG4gICAgICAgIHR5cGU6ICd0ZXh0JyxcclxuICAgICAgICByZWFkb25seTogdHJ1ZSxcclxuICAgICAgICBleGNsdWRlOiB0cnVlLFxyXG4gICAgICB9XSxcclxuICAgIH0sIHtcclxuICAgICAgbGFiZWw6IHRoaXMuc2FsZXNSb2xlVGV4dCxcclxuICAgICAgbmFtZTogJ1NhbGVzUm9sZScsXHJcbiAgICAgIHByb3BlcnR5OiAnU2FsZXNSb2xlJyxcclxuICAgICAgdHlwZTogJ3BpY2tsaXN0JyxcclxuICAgICAgdGl0bGU6IHRoaXMuc2FsZXNSb2xlVGl0bGVUZXh0LFxyXG4gICAgICBwaWNrbGlzdDogJ1JvbGUnLFxyXG4gICAgfSwge1xyXG4gICAgICBsYWJlbDogdGhpcy5zdGFuZGluZ1RleHQsXHJcbiAgICAgIG5hbWU6ICdTdGFuZGluZycsXHJcbiAgICAgIHByb3BlcnR5OiAnU3RhbmRpbmcnLFxyXG4gICAgICB0eXBlOiAncGlja2xpc3QnLFxyXG4gICAgICB0aXRsZTogdGhpcy5zdGFuZGluZ1RpdGxlVGV4dCxcclxuICAgICAgcGlja2xpc3Q6ICdTdGFuZGluZycsXHJcbiAgICB9LCB7XHJcbiAgICAgIGxhYmVsOiB0aGlzLnBlcnNvbmFsQmVuZWZpdHNUZXh0LFxyXG4gICAgICBuYW1lOiAnUGVyc29uYWxCZW5lZml0cycsXHJcbiAgICAgIHByb3BlcnR5OiAnUGVyc29uYWxCZW5lZml0cycsXHJcbiAgICAgIHR5cGU6ICd0ZXh0JyxcclxuICAgIH0sIHtcclxuICAgICAgbGFiZWw6IHRoaXMuY29tcGV0aXRvclByZWZUZXh0LFxyXG4gICAgICBuYW1lOiAnQ29tcGV0aXRvcnMnLFxyXG4gICAgICBwcm9wZXJ0eTogJ0NvbXBldGl0b3JzJyxcclxuICAgICAgdGV4dFByb3BlcnR5OiAnQ29tcGV0aXRvck5hbWUnLFxyXG4gICAgICB2aWV3OiAnY29tcGV0aXRvcl9yZWxhdGVkJyxcclxuICAgICAgdHlwZTogJ2xvb2t1cCcsXHJcbiAgICB9LCB7XHJcbiAgICAgIGxhYmVsOiB0aGlzLnN0cmF0ZWd5VGV4dCxcclxuICAgICAgbmFtZTogJ1N0cmF0ZWd5JyxcclxuICAgICAgcHJvcGVydHk6ICdTdHJhdGVneScsXHJcbiAgICAgIHR5cGU6ICd0ZXh0YXJlYScsXHJcbiAgICB9LCB7XHJcbiAgICAgIGxhYmVsOiB0aGlzLmlzc3Vlc1RleHQsXHJcbiAgICAgIG5hbWU6ICdJc3N1ZXMnLFxyXG4gICAgICBwcm9wZXJ0eTogJ0lzc3VlcycsXHJcbiAgICAgIHR5cGU6ICd0ZXh0YXJlYScsXHJcbiAgICB9LCB7XHJcbiAgICAgIG5hbWU6ICdPcHBvcnR1bml0eUtleScsXHJcbiAgICAgIHByb3BlcnR5OiAnT3Bwb3J0dW5pdHkuJGtleScsXHJcbiAgICAgIHR5cGU6ICdoaWRkZW4nLFxyXG4gICAgICBpbmNsdWRlOiB0cnVlLFxyXG4gICAgfSwge1xyXG4gICAgICBuYW1lOiAnQ29udGFjdEtleScsXHJcbiAgICAgIHByb3BlcnR5OiAnQ29udGFjdC4ka2V5JyxcclxuICAgICAgdHlwZTogJ2hpZGRlbicsXHJcbiAgICAgIGluY2x1ZGU6IHRydWUsXHJcbiAgICB9XSk7XHJcbiAgfSxcclxufSk7XHJcblxyXG5sYW5nLnNldE9iamVjdCgnTW9iaWxlLlNhbGVzTG9naXguVmlld3MuT3Bwb3J0dW5pdHlDb250YWN0LkVkaXQnLCBfX2NsYXNzKTtcclxuZXhwb3J0IGRlZmF1bHQgX19jbGFzcztcclxuIl19
 </pre>
 </body>
 </html>

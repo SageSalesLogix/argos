@@ -15,184 +15,176 @@
   </script>
 </head>
 <body onload="prettyPrint(); highlight();">
-  <pre class="prettyprint lang-js">/* Copyright (c) 2010, Sage Software, Inc. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+  <pre class="prettyprint lang-js">define('argos/Fields/SignatureField', ['exports', 'module', 'dojo/_base/declare', 'dojo/_base/lang', 'dojo/_base/json', 'dojo/dom-attr', '../Format', './EditorField', '../FieldManager', '../I18n'], function (exports, module, _dojo_baseDeclare, _dojo_baseLang, _dojo_baseJson, _dojoDomAttr, _Format, _EditorField, _FieldManager, _I18n) {
+  function _interopRequireDefault(obj) { return obj &amp;&amp; obj.__esModule ? obj : { 'default': obj }; }
 
-define('argos/Fields/SignatureField', [
-    'dojo/_base/declare',
-    'dojo/_base/lang',
-    'dojo/_base/json',
-    'dojo/dom-attr',
-    '../Format',
-    './EditorField',
-    '../FieldManager'
-], function(
-    declare,
-    lang,
-    json,
-    domAttr,
-    format,
-    EditorField,
-    FieldManager
-) {
+  /* Copyright (c) 2010, Sage Software, Inc. All rights reserved.
+   *
+   * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   * you may not use this file except in compliance with the License.
+   * You may obtain a copy of the License at
+   *
+   *     http://www.apache.org/licenses/LICENSE-2.0
+   *
+   * Unless required by applicable law or agreed to in writing, software
+   * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   * See the License for the specific language governing permissions and
+   * limitations under the License.
+   */
 
-<span id='argos-Fields-SignatureField'>    /**
-</span>     * @class argos.Fields.SignatureField
-     * The SignatureField uses an HTML5 canvas element to render previews of the signature vector
-     * provided by it's editor view {@link SignatureView SignatureView}.
-     *
-     * ###Example:
-     *     {
-     *         name: 'Signature',
-     *         property: 'Signature',
-     *         label: this.signatureText,
-     *         type: 'signature'
-     *     }
-     *
-     * @alternateClassName SignatureField
-     * @extends argos.Fields.EditorField
-     * @requires argos.FieldManager
-     * @requires argos.Views.SignatureView
-     * @requires argos.Format
+  var _declare = _interopRequireDefault(_dojo_baseDeclare);
+
+  var _lang = _interopRequireDefault(_dojo_baseLang);
+
+  var _json = _interopRequireDefault(_dojo_baseJson);
+
+  var _domAttr = _interopRequireDefault(_dojoDomAttr);
+
+  var _format = _interopRequireDefault(_Format);
+
+  var _EditorField2 = _interopRequireDefault(_EditorField);
+
+  var _FieldManager2 = _interopRequireDefault(_FieldManager);
+
+  var _getResource = _interopRequireDefault(_I18n);
+
+  var resource = (0, _getResource['default'])('signatureField');
+
+<span id='argos-Fields-SignatureField'>  /**
+</span>   * @class argos.Fields.SignatureField
+   * The SignatureField uses an HTML5 canvas element to render previews of the signature vector
+   * provided by it's editor view {@link SignatureView SignatureView}.
+   *
+   * ###Example:
+   *     {
+   *         name: 'Signature',
+   *         property: 'Signature',
+   *         label: this.signatureText,
+   *         type: 'signature'
+   *     }
+   *
+   * @alternateClassName SignatureField
+   * @extends argos.Fields.EditorField
+   * @requires argos.FieldManager
+   * @requires argos.Views.SignatureView
+   * @requires argos.Format
+   */
+  var control = (0, _declare['default'])('argos.Fields.SignatureField', [_EditorField2['default']], {
+    // Localization
+<span id='argos-Fields-SignatureField-property-signatureLabelText'>    /**
+</span>     * @property {String}
+     * Text used for ARIA label
      */
-    var control = declare('argos.Fields.SignatureField', [EditorField], {
-        // Localization
-<span id='argos-Fields-SignatureField-property-signatureLabelText'>        /**
-</span>         * @property {String}
-         * Text used for ARIA label
-         */
-        signatureLabelText: 'signature',
-<span id='argos-Fields-SignatureField-property-signatureText'>        /**
-</span>         * @property {String}
-         * Text used within button
-         */
-        signatureText: '...',
+    signatureLabelText: resource.signatureLabelText,
+<span id='argos-Fields-SignatureField-property-signatureText'>    /**
+</span>     * @property {String}
+     * Text used within button
+     */
+    signatureText: resource.signatureText,
 
-<span id='argos-Fields-SignatureField-property-signature'>        /**
-</span>         * @property {Number[][]}
-         * A series of x,y coordinates in the format of: `[[0,0],[1,5]]`
-         */
-        signature: [],
-<span id='argos-Fields-SignatureField-cfg-config'>        /**
-</span>         * @cfg {Object}
-         * If overriding this value make sure to set all the values:
-         *
-         * key          default         description
-         * ---------   ---------        ---------------------------------
-         * scale       1                Ratio in which the vector to canvas should be drawn
-         * lineWidth   1                Stroke thickness of the line
-         * penColor    'blue'           Color of line. Accepts HTML safe string names or hex.
-         * width       180              Width of signature preview in field
-         * height      50               Height of signature preview in field
-         */
-        config: {
-            scale: 1,
-            lineWidth: 1,
-            penColor: 'blue',
-            width: 180,
-            height: 50
-        },
-<span id='argos-Fields-SignatureField-property-widgetTemplate'>        /**
-</span>         * @property {Simplate}
-         * Simplate that defines the fields HTML Markup
-         *
-         * * `$` =&gt; Field instance
-         * * `$$` =&gt; Owner View instance
-         *
-         */
-        widgetTemplate: new Simplate([
-            '&lt;label for=&quot;{%= $.name %}&quot;&gt;{%: $.label %}&lt;/label&gt;',
-            '&lt;button class=&quot;button simpleSubHeaderButton&quot; aria-label=&quot;{%: $.signatureLabelText %}&quot;&gt;&lt;span aria-hidden=&quot;true&quot;&gt;{%: $.signatureText %}&lt;/span&gt;&lt;/button&gt;',
-            '&lt;img data-dojo-attach-point=&quot;signatureNode&quot; src=&quot;&quot; width=&quot;{%: $.config.width %}&quot; height=&quot;{%: $.config.height %}&quot; alt=&quot;&quot; /&gt;',
-            '&lt;input data-dojo-attach-point=&quot;inputNode&quot; type=&quot;hidden&quot;&gt;'
-        ]),
-<span id='argos-Fields-SignatureField-method-createNavigationOptions'>        /**
-</span>         * Extends the {@link EditorField#createNavigationOptions parent} implementation by
-         * also passing the `signature` array.
-         * @return {Object} Navigation options
-         */
-        createNavigationOptions: function() {
-            var options = this.inherited(arguments);
+<span id='argos-Fields-SignatureField-property-signature'>    /**
+</span>     * @property {Number[][]}
+     * A series of x,y coordinates in the format of: `[[0,0],[1,5]]`
+     */
+    signature: [],
+<span id='argos-Fields-SignatureField-cfg-config'>    /**
+</span>     * @cfg {Object}
+     * If overriding this value make sure to set all the values:
+     *
+     * key          default         description
+     * ---------   ---------        ---------------------------------
+     * scale       1                Ratio in which the vector to canvas should be drawn
+     * lineWidth   1                Stroke thickness of the line
+     * penColor    'blue'           Color of line. Accepts HTML safe string names or hex.
+     * width       180              Width of signature preview in field
+     * height      50               Height of signature preview in field
+     */
+    config: {
+      scale: 1,
+      lineWidth: 1,
+      penColor: 'blue',
+      width: 180,
+      height: 50
+    },
+<span id='argos-Fields-SignatureField-property-widgetTemplate'>    /**
+</span>     * @property {Simplate}
+     * Simplate that defines the fields HTML Markup
+     *
+     * * `$` =&gt; Field instance
+     * * `$$` =&gt; Owner View instance
+     *
+     */
+    widgetTemplate: new Simplate(['&lt;label for=&quot;{%= $.name %}&quot;&gt;{%: $.label %}&lt;/label&gt;', '&lt;button class=&quot;button simpleSubHeaderButton&quot; aria-label=&quot;{%: $.signatureLabelText %}&quot;&gt;&lt;span aria-hidden=&quot;true&quot;&gt;{%: $.signatureText %}&lt;/span&gt;&lt;/button&gt;', '&lt;img data-dojo-attach-point=&quot;signatureNode&quot; src=&quot;&quot; width=&quot;{%: $.config.width %}&quot; height=&quot;{%: $.config.height %}&quot; alt=&quot;&quot; /&gt;', '&lt;input data-dojo-attach-point=&quot;inputNode&quot; type=&quot;hidden&quot;&gt;']),
+<span id='argos-Fields-SignatureField-method-createNavigationOptions'>    /**
+</span>     * Extends the {@link EditorField#createNavigationOptions parent} implementation by
+     * also passing the `signature` array.
+     * @return {Object} Navigation options
+     */
+    createNavigationOptions: function createNavigationOptions() {
+      var options = this.inherited(arguments);
+      options.signature = this.signature;
+      return options;
+    },
+<span id='argos-Fields-SignatureField-method-getValuesFromView'>    /**
+</span>     * Complete override that gets the editor view, gets the values and calls set value on the field
+     */
+    getValuesFromView: function getValuesFromView() {
+      var app = this.app;
+      var view = app &amp;&amp; app.getPrimaryActiveView &amp;&amp; app.getPrimaryActiveView();
+      if (view) {
+        var value = view.getValues();
+        this.currentValue = this.validationValue = value;
+        this.setValue(this.currentValue, false);
+      }
+    },
+<span id='argos-Fields-SignatureField-method-setValue'>    /**
+</span>     * Sets the signature value by using {@link format#imageFromVector format.imageFromVector}
+     * to the img node and setting the array directly to `originalValue`.
+     * @param val
+     * @param initial
+     */
+    setValue: function setValue(val, initial) {
+      if (initial) {
+        this.originalValue = val;
+      }
 
-            options.signature = this.signature;
+      this.currentValue = val;
+      _domAttr['default'].set(this.inputNode, 'value', val || '');
 
-            return options;
-        },
-<span id='argos-Fields-SignatureField-method-getValuesFromView'>        /**
-</span>         * Complete override that gets the editor view, gets the values and calls set value on the field
-         */
-        getValuesFromView: function() {
-            var view,
-                app,
-                value;
+      try {
+        this.signature = _json['default'].fromJson(val);
+      } catch (e) {
+        this.signature = [];
+      }
 
-            app = this.app;
+      if (!this.signature || Array !== this.signature.constructor) {
+        this.signature = [];
+      }
 
-            view = app &amp;&amp; app.getPrimaryActiveView &amp;&amp; app.getPrimaryActiveView();
-            if (view) {
-                value = view.getValues();
-                this.currentValue = this.validationValue = value;
-                this.setValue(this.currentValue, false);
-            }
-        },
-<span id='argos-Fields-SignatureField-method-setValue'>        /**
-</span>         * Sets the signature value by using {@link format#imageFromVector format.imageFromVector}
-         * to the img node and setting the array directly to `originalValue`.
-         * @param val
-         * @param initial
-         */
-        setValue: function(val, initial) {
-            if (initial) {
-                this.originalValue = val;
-            }
+      this.signatureNode.src = _format['default'].imageFromVector(this.signature, this.config, false);
+    },
+<span id='argos-Fields-SignatureField-method-clearValue'>    /**
+</span>     * Clears the value set to the hidden field
+     */
+    clearValue: function clearValue() {
+      this.setValue('', true);
+    },
+<span id='argos-Fields-SignatureField-method-formatValue'>    /**
+</span>     * Since the EditorField calls `formatValue` during {@link EditorField#complete complete}
+     * we need to override to simply return the value given.
+     * @param val
+     * @return {Array/String}
+     */
+    formatValue: function formatValue(val) {
+      return val;
+    }
+  });
 
-            this.currentValue = val;
-            domAttr.set(this.inputNode, 'value', val || '');
-
-            try {
-                this.signature = json.fromJson(val);
-            } catch(e) {
-                this.signature = [];
-            }
-
-            if (!this.signature || Array !== this.signature.constructor) {
-                this.signature = [];
-            }
-
-            this.signatureNode.src = format.imageFromVector(this.signature, this.config, false);
-        },
-<span id='argos-Fields-SignatureField-method-clearValue'>        /**
-</span>         * Clears the value set to the hidden field
-         */
-        clearValue: function() {
-            this.setValue('', true);
-        },
-<span id='argos-Fields-SignatureField-method-formatValue'>        /**
-</span>         * Since the EditorField calls `formatValue` during {@link EditorField#complete complete}
-         * we need to override to simply return the value given.
-         * @param val
-         * @return {Array/String}
-         */
-        formatValue: function(val) {
-            return val;
-        }
-    });
-
-    lang.setObject('Sage.Platform.Mobile.Fields.SignatureField', control);
-    return FieldManager.register('signature', control);
+  _lang['default'].setObject('Sage.Platform.Mobile.Fields.SignatureField', control);
+  module.exports = _FieldManager2['default'].register('signature', control);
 });
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInNyYy9GaWVsZHMvU2lnbmF0dXJlRmllbGQuanMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7OztBQXdCQSxNQUFNLFFBQVEsR0FBRyw2QkFBWSxnQkFBZ0IsQ0FBQyxDQUFDOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7QUFxQi9DLE1BQU0sT0FBTyxHQUFHLHlCQUFRLDZCQUE2QixFQUFFLDBCQUFhLEVBQUU7Ozs7OztBQU1wRSxzQkFBa0IsRUFBRSxRQUFRLENBQUMsa0JBQWtCOzs7OztBQUsvQyxpQkFBYSxFQUFFLFFBQVEsQ0FBQyxhQUFhOzs7Ozs7QUFNckMsYUFBUyxFQUFFLEVBQUU7Ozs7Ozs7Ozs7Ozs7QUFhYixVQUFNLEVBQUU7QUFDTixXQUFLLEVBQUUsQ0FBQztBQUNSLGVBQVMsRUFBRSxDQUFDO0FBQ1osY0FBUSxFQUFFLE1BQU07QUFDaEIsV0FBSyxFQUFFLEdBQUc7QUFDVixZQUFNLEVBQUUsRUFBRTtLQUNYOzs7Ozs7Ozs7QUFTRCxrQkFBYyxFQUFFLElBQUksUUFBUSxDQUFDLENBQzNCLG1EQUFtRCxFQUNuRCx1SkFBdUosRUFDdkosNEhBQTRILEVBQzVILDBEQUEwRCxDQUMzRCxDQUFDOzs7Ozs7QUFNRiwyQkFBdUIsRUFBRSxTQUFTLHVCQUF1QixHQUFHO0FBQzFELFVBQU0sT0FBTyxHQUFHLElBQUksQ0FBQyxTQUFTLENBQUMsU0FBUyxDQUFDLENBQUM7QUFDMUMsYUFBTyxDQUFDLFNBQVMsR0FBRyxJQUFJLENBQUMsU0FBUyxDQUFDO0FBQ25DLGFBQU8sT0FBTyxDQUFDO0tBQ2hCOzs7O0FBSUQscUJBQWlCLEVBQUUsU0FBUyxpQkFBaUIsR0FBRztBQUM5QyxVQUFNLEdBQUcsR0FBRyxJQUFJLENBQUMsR0FBRyxDQUFDO0FBQ3JCLFVBQU0sSUFBSSxHQUFHLEdBQUcsSUFBSSxHQUFHLENBQUMsb0JBQW9CLElBQUksR0FBRyxDQUFDLG9CQUFvQixFQUFFLENBQUM7QUFDM0UsVUFBSSxJQUFJLEVBQUU7QUFDUixZQUFNLEtBQUssR0FBRyxJQUFJLENBQUMsU0FBUyxFQUFFLENBQUM7QUFDL0IsWUFBSSxDQUFDLFlBQVksR0FBRyxJQUFJLENBQUMsZUFBZSxHQUFHLEtBQUssQ0FBQztBQUNqRCxZQUFJLENBQUMsUUFBUSxDQUFDLElBQUksQ0FBQyxZQUFZLEVBQUUsS0FBSyxDQUFDLENBQUM7T0FDekM7S0FDRjs7Ozs7OztBQU9ELFlBQVEsRUFBRSxTQUFTLFFBQVEsQ0FBQyxHQUFHLEVBQUUsT0FBTyxFQUFFO0FBQ3hDLFVBQUksT0FBTyxFQUFFO0FBQ1gsWUFBSSxDQUFDLGFBQWEsR0FBRyxHQUFHLENBQUM7T0FDMUI7O0FBRUQsVUFBSSxDQUFDLFlBQVksR0FBRyxHQUFHLENBQUM7QUFDeEIsMEJBQVEsR0FBRyxDQUFDLElBQUksQ0FBQyxTQUFTLEVBQUUsT0FBTyxFQUFFLEdBQUcsSUFBSSxFQUFFLENBQUMsQ0FBQzs7QUFFaEQsVUFBSTtBQUNGLFlBQUksQ0FBQyxTQUFTLEdBQUcsaUJBQUssUUFBUSxDQUFDLEdBQUcsQ0FBQyxDQUFDO09BQ3JDLENBQUMsT0FBTyxDQUFDLEVBQUU7QUFDVixZQUFJLENBQUMsU0FBUyxHQUFHLEVBQUUsQ0FBQztPQUNyQjs7QUFFRCxVQUFJLENBQUMsSUFBSSxDQUFDLFNBQVMsSUFBSSxLQUFLLEtBQUssSUFBSSxDQUFDLFNBQVMsQ0FBQyxXQUFXLEVBQUU7QUFDM0QsWUFBSSxDQUFDLFNBQVMsR0FBRyxFQUFFLENBQUM7T0FDckI7O0FBRUQsVUFBSSxDQUFDLGFBQWEsQ0FBQyxHQUFHLEdBQUcsbUJBQU8sZUFBZSxDQUFDLElBQUksQ0FBQyxTQUFTLEVBQUUsSUFBSSxDQUFDLE1BQU0sRUFBRSxLQUFLLENBQUMsQ0FBQztLQUNyRjs7OztBQUlELGNBQVUsRUFBRSxTQUFTLFVBQVUsR0FBRztBQUNoQyxVQUFJLENBQUMsUUFBUSxDQUFDLEVBQUUsRUFBRSxJQUFJLENBQUMsQ0FBQztLQUN6Qjs7Ozs7OztBQU9ELGVBQVcsRUFBRSxTQUFTLFdBQVcsQ0FBQyxHQUFHLEVBQUU7QUFDckMsYUFBTyxHQUFHLENBQUM7S0FDWjtHQUNGLENBQUMsQ0FBQzs7QUFFSCxtQkFBSyxTQUFTLENBQUMsNENBQTRDLEVBQUUsT0FBTyxDQUFDLENBQUM7bUJBQ3ZELDBCQUFhLFFBQVEsQ0FBQyxXQUFXLEVBQUUsT0FBTyxDQUFDIiwiZmlsZSI6InNyYy9GaWVsZHMvU2lnbmF0dXJlRmllbGQuanMiLCJzb3VyY2VSb290Ijoic3JjIiwic291cmNlc0NvbnRlbnQiOlsiLyogQ29weXJpZ2h0IChjKSAyMDEwLCBTYWdlIFNvZnR3YXJlLCBJbmMuIEFsbCByaWdodHMgcmVzZXJ2ZWQuXHJcbiAqXHJcbiAqIExpY2Vuc2VkIHVuZGVyIHRoZSBBcGFjaGUgTGljZW5zZSwgVmVyc2lvbiAyLjAgKHRoZSBcIkxpY2Vuc2VcIik7XHJcbiAqIHlvdSBtYXkgbm90IHVzZSB0aGlzIGZpbGUgZXhjZXB0IGluIGNvbXBsaWFuY2Ugd2l0aCB0aGUgTGljZW5zZS5cclxuICogWW91IG1heSBvYnRhaW4gYSBjb3B5IG9mIHRoZSBMaWNlbnNlIGF0XHJcbiAqXHJcbiAqICAgICBodHRwOi8vd3d3LmFwYWNoZS5vcmcvbGljZW5zZXMvTElDRU5TRS0yLjBcclxuICpcclxuICogVW5sZXNzIHJlcXVpcmVkIGJ5IGFwcGxpY2FibGUgbGF3IG9yIGFncmVlZCB0byBpbiB3cml0aW5nLCBzb2Z0d2FyZVxyXG4gKiBkaXN0cmlidXRlZCB1bmRlciB0aGUgTGljZW5zZSBpcyBkaXN0cmlidXRlZCBvbiBhbiBcIkFTIElTXCIgQkFTSVMsXHJcbiAqIFdJVEhPVVQgV0FSUkFOVElFUyBPUiBDT05ESVRJT05TIE9GIEFOWSBLSU5ELCBlaXRoZXIgZXhwcmVzcyBvciBpbXBsaWVkLlxyXG4gKiBTZWUgdGhlIExpY2Vuc2UgZm9yIHRoZSBzcGVjaWZpYyBsYW5ndWFnZSBnb3Zlcm5pbmcgcGVybWlzc2lvbnMgYW5kXHJcbiAqIGxpbWl0YXRpb25zIHVuZGVyIHRoZSBMaWNlbnNlLlxyXG4gKi9cclxuXHJcbmltcG9ydCBkZWNsYXJlIGZyb20gJ2Rvam8vX2Jhc2UvZGVjbGFyZSc7XHJcbmltcG9ydCBsYW5nIGZyb20gJ2Rvam8vX2Jhc2UvbGFuZyc7XHJcbmltcG9ydCBqc29uIGZyb20gJ2Rvam8vX2Jhc2UvanNvbic7XHJcbmltcG9ydCBkb21BdHRyIGZyb20gJ2Rvam8vZG9tLWF0dHInO1xyXG5pbXBvcnQgZm9ybWF0IGZyb20gJy4uL0Zvcm1hdCc7XHJcbmltcG9ydCBFZGl0b3JGaWVsZCBmcm9tICcuL0VkaXRvckZpZWxkJztcclxuaW1wb3J0IEZpZWxkTWFuYWdlciBmcm9tICcuLi9GaWVsZE1hbmFnZXInO1xyXG5pbXBvcnQgZ2V0UmVzb3VyY2UgZnJvbSAnLi4vSTE4bic7XHJcblxyXG5jb25zdCByZXNvdXJjZSA9IGdldFJlc291cmNlKCdzaWduYXR1cmVGaWVsZCcpO1xyXG5cclxuLyoqXHJcbiAqIEBjbGFzcyBhcmdvcy5GaWVsZHMuU2lnbmF0dXJlRmllbGRcclxuICogVGhlIFNpZ25hdHVyZUZpZWxkIHVzZXMgYW4gSFRNTDUgY2FudmFzIGVsZW1lbnQgdG8gcmVuZGVyIHByZXZpZXdzIG9mIHRoZSBzaWduYXR1cmUgdmVjdG9yXHJcbiAqIHByb3ZpZGVkIGJ5IGl0J3MgZWRpdG9yIHZpZXcge0BsaW5rIFNpZ25hdHVyZVZpZXcgU2lnbmF0dXJlVmlld30uXHJcbiAqXHJcbiAqICMjI0V4YW1wbGU6XHJcbiAqICAgICB7XHJcbiAqICAgICAgICAgbmFtZTogJ1NpZ25hdHVyZScsXHJcbiAqICAgICAgICAgcHJvcGVydHk6ICdTaWduYXR1cmUnLFxyXG4gKiAgICAgICAgIGxhYmVsOiB0aGlzLnNpZ25hdHVyZVRleHQsXHJcbiAqICAgICAgICAgdHlwZTogJ3NpZ25hdHVyZSdcclxuICogICAgIH1cclxuICpcclxuICogQGFsdGVybmF0ZUNsYXNzTmFtZSBTaWduYXR1cmVGaWVsZFxyXG4gKiBAZXh0ZW5kcyBhcmdvcy5GaWVsZHMuRWRpdG9yRmllbGRcclxuICogQHJlcXVpcmVzIGFyZ29zLkZpZWxkTWFuYWdlclxyXG4gKiBAcmVxdWlyZXMgYXJnb3MuVmlld3MuU2lnbmF0dXJlVmlld1xyXG4gKiBAcmVxdWlyZXMgYXJnb3MuRm9ybWF0XHJcbiAqL1xyXG5jb25zdCBjb250cm9sID0gZGVjbGFyZSgnYXJnb3MuRmllbGRzLlNpZ25hdHVyZUZpZWxkJywgW0VkaXRvckZpZWxkXSwge1xyXG4gIC8vIExvY2FsaXphdGlvblxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7U3RyaW5nfVxyXG4gICAqIFRleHQgdXNlZCBmb3IgQVJJQSBsYWJlbFxyXG4gICAqL1xyXG4gIHNpZ25hdHVyZUxhYmVsVGV4dDogcmVzb3VyY2Uuc2lnbmF0dXJlTGFiZWxUZXh0LFxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7U3RyaW5nfVxyXG4gICAqIFRleHQgdXNlZCB3aXRoaW4gYnV0dG9uXHJcbiAgICovXHJcbiAgc2lnbmF0dXJlVGV4dDogcmVzb3VyY2Uuc2lnbmF0dXJlVGV4dCxcclxuXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtOdW1iZXJbXVtdfVxyXG4gICAqIEEgc2VyaWVzIG9mIHgseSBjb29yZGluYXRlcyBpbiB0aGUgZm9ybWF0IG9mOiBgW1swLDBdLFsxLDVdXWBcclxuICAgKi9cclxuICBzaWduYXR1cmU6IFtdLFxyXG4gIC8qKlxyXG4gICAqIEBjZmcge09iamVjdH1cclxuICAgKiBJZiBvdmVycmlkaW5nIHRoaXMgdmFsdWUgbWFrZSBzdXJlIHRvIHNldCBhbGwgdGhlIHZhbHVlczpcclxuICAgKlxyXG4gICAqIGtleSAgICAgICAgICBkZWZhdWx0ICAgICAgICAgZGVzY3JpcHRpb25cclxuICAgKiAtLS0tLS0tLS0gICAtLS0tLS0tLS0gICAgICAgIC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLVxyXG4gICAqIHNjYWxlICAgICAgIDEgICAgICAgICAgICAgICAgUmF0aW8gaW4gd2hpY2ggdGhlIHZlY3RvciB0byBjYW52YXMgc2hvdWxkIGJlIGRyYXduXHJcbiAgICogbGluZVdpZHRoICAgMSAgICAgICAgICAgICAgICBTdHJva2UgdGhpY2tuZXNzIG9mIHRoZSBsaW5lXHJcbiAgICogcGVuQ29sb3IgICAgJ2JsdWUnICAgICAgICAgICBDb2xvciBvZiBsaW5lLiBBY2NlcHRzIEhUTUwgc2FmZSBzdHJpbmcgbmFtZXMgb3IgaGV4LlxyXG4gICAqIHdpZHRoICAgICAgIDE4MCAgICAgICAgICAgICAgV2lkdGggb2Ygc2lnbmF0dXJlIHByZXZpZXcgaW4gZmllbGRcclxuICAgKiBoZWlnaHQgICAgICA1MCAgICAgICAgICAgICAgIEhlaWdodCBvZiBzaWduYXR1cmUgcHJldmlldyBpbiBmaWVsZFxyXG4gICAqL1xyXG4gIGNvbmZpZzoge1xyXG4gICAgc2NhbGU6IDEsXHJcbiAgICBsaW5lV2lkdGg6IDEsXHJcbiAgICBwZW5Db2xvcjogJ2JsdWUnLFxyXG4gICAgd2lkdGg6IDE4MCxcclxuICAgIGhlaWdodDogNTAsXHJcbiAgfSxcclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge1NpbXBsYXRlfVxyXG4gICAqIFNpbXBsYXRlIHRoYXQgZGVmaW5lcyB0aGUgZmllbGRzIEhUTUwgTWFya3VwXHJcbiAgICpcclxuICAgKiAqIGAkYCA9PiBGaWVsZCBpbnN0YW5jZVxyXG4gICAqICogYCQkYCA9PiBPd25lciBWaWV3IGluc3RhbmNlXHJcbiAgICpcclxuICAgKi9cclxuICB3aWRnZXRUZW1wbGF0ZTogbmV3IFNpbXBsYXRlKFtcclxuICAgICc8bGFiZWwgZm9yPVwieyU9ICQubmFtZSAlfVwiPnslOiAkLmxhYmVsICV9PC9sYWJlbD4nLFxyXG4gICAgJzxidXR0b24gY2xhc3M9XCJidXR0b24gc2ltcGxlU3ViSGVhZGVyQnV0dG9uXCIgYXJpYS1sYWJlbD1cInslOiAkLnNpZ25hdHVyZUxhYmVsVGV4dCAlfVwiPjxzcGFuIGFyaWEtaGlkZGVuPVwidHJ1ZVwiPnslOiAkLnNpZ25hdHVyZVRleHQgJX08L3NwYW4+PC9idXR0b24+JyxcclxuICAgICc8aW1nIGRhdGEtZG9qby1hdHRhY2gtcG9pbnQ9XCJzaWduYXR1cmVOb2RlXCIgc3JjPVwiXCIgd2lkdGg9XCJ7JTogJC5jb25maWcud2lkdGggJX1cIiBoZWlnaHQ9XCJ7JTogJC5jb25maWcuaGVpZ2h0ICV9XCIgYWx0PVwiXCIgLz4nLFxyXG4gICAgJzxpbnB1dCBkYXRhLWRvam8tYXR0YWNoLXBvaW50PVwiaW5wdXROb2RlXCIgdHlwZT1cImhpZGRlblwiPicsXHJcbiAgXSksXHJcbiAgLyoqXHJcbiAgICogRXh0ZW5kcyB0aGUge0BsaW5rIEVkaXRvckZpZWxkI2NyZWF0ZU5hdmlnYXRpb25PcHRpb25zIHBhcmVudH0gaW1wbGVtZW50YXRpb24gYnlcclxuICAgKiBhbHNvIHBhc3NpbmcgdGhlIGBzaWduYXR1cmVgIGFycmF5LlxyXG4gICAqIEByZXR1cm4ge09iamVjdH0gTmF2aWdhdGlvbiBvcHRpb25zXHJcbiAgICovXHJcbiAgY3JlYXRlTmF2aWdhdGlvbk9wdGlvbnM6IGZ1bmN0aW9uIGNyZWF0ZU5hdmlnYXRpb25PcHRpb25zKCkge1xyXG4gICAgY29uc3Qgb3B0aW9ucyA9IHRoaXMuaW5oZXJpdGVkKGFyZ3VtZW50cyk7XHJcbiAgICBvcHRpb25zLnNpZ25hdHVyZSA9IHRoaXMuc2lnbmF0dXJlO1xyXG4gICAgcmV0dXJuIG9wdGlvbnM7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBDb21wbGV0ZSBvdmVycmlkZSB0aGF0IGdldHMgdGhlIGVkaXRvciB2aWV3LCBnZXRzIHRoZSB2YWx1ZXMgYW5kIGNhbGxzIHNldCB2YWx1ZSBvbiB0aGUgZmllbGRcclxuICAgKi9cclxuICBnZXRWYWx1ZXNGcm9tVmlldzogZnVuY3Rpb24gZ2V0VmFsdWVzRnJvbVZpZXcoKSB7XHJcbiAgICBjb25zdCBhcHAgPSB0aGlzLmFwcDtcclxuICAgIGNvbnN0IHZpZXcgPSBhcHAgJiYgYXBwLmdldFByaW1hcnlBY3RpdmVWaWV3ICYmIGFwcC5nZXRQcmltYXJ5QWN0aXZlVmlldygpO1xyXG4gICAgaWYgKHZpZXcpIHtcclxuICAgICAgY29uc3QgdmFsdWUgPSB2aWV3LmdldFZhbHVlcygpO1xyXG4gICAgICB0aGlzLmN1cnJlbnRWYWx1ZSA9IHRoaXMudmFsaWRhdGlvblZhbHVlID0gdmFsdWU7XHJcbiAgICAgIHRoaXMuc2V0VmFsdWUodGhpcy5jdXJyZW50VmFsdWUsIGZhbHNlKTtcclxuICAgIH1cclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIFNldHMgdGhlIHNpZ25hdHVyZSB2YWx1ZSBieSB1c2luZyB7QGxpbmsgZm9ybWF0I2ltYWdlRnJvbVZlY3RvciBmb3JtYXQuaW1hZ2VGcm9tVmVjdG9yfVxyXG4gICAqIHRvIHRoZSBpbWcgbm9kZSBhbmQgc2V0dGluZyB0aGUgYXJyYXkgZGlyZWN0bHkgdG8gYG9yaWdpbmFsVmFsdWVgLlxyXG4gICAqIEBwYXJhbSB2YWxcclxuICAgKiBAcGFyYW0gaW5pdGlhbFxyXG4gICAqL1xyXG4gIHNldFZhbHVlOiBmdW5jdGlvbiBzZXRWYWx1ZSh2YWwsIGluaXRpYWwpIHtcclxuICAgIGlmIChpbml0aWFsKSB7XHJcbiAgICAgIHRoaXMub3JpZ2luYWxWYWx1ZSA9IHZhbDtcclxuICAgIH1cclxuXHJcbiAgICB0aGlzLmN1cnJlbnRWYWx1ZSA9IHZhbDtcclxuICAgIGRvbUF0dHIuc2V0KHRoaXMuaW5wdXROb2RlLCAndmFsdWUnLCB2YWwgfHwgJycpO1xyXG5cclxuICAgIHRyeSB7XHJcbiAgICAgIHRoaXMuc2lnbmF0dXJlID0ganNvbi5mcm9tSnNvbih2YWwpO1xyXG4gICAgfSBjYXRjaCAoZSkge1xyXG4gICAgICB0aGlzLnNpZ25hdHVyZSA9IFtdO1xyXG4gICAgfVxyXG5cclxuICAgIGlmICghdGhpcy5zaWduYXR1cmUgfHwgQXJyYXkgIT09IHRoaXMuc2lnbmF0dXJlLmNvbnN0cnVjdG9yKSB7XHJcbiAgICAgIHRoaXMuc2lnbmF0dXJlID0gW107XHJcbiAgICB9XHJcblxyXG4gICAgdGhpcy5zaWduYXR1cmVOb2RlLnNyYyA9IGZvcm1hdC5pbWFnZUZyb21WZWN0b3IodGhpcy5zaWduYXR1cmUsIHRoaXMuY29uZmlnLCBmYWxzZSk7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBDbGVhcnMgdGhlIHZhbHVlIHNldCB0byB0aGUgaGlkZGVuIGZpZWxkXHJcbiAgICovXHJcbiAgY2xlYXJWYWx1ZTogZnVuY3Rpb24gY2xlYXJWYWx1ZSgpIHtcclxuICAgIHRoaXMuc2V0VmFsdWUoJycsIHRydWUpO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogU2luY2UgdGhlIEVkaXRvckZpZWxkIGNhbGxzIGBmb3JtYXRWYWx1ZWAgZHVyaW5nIHtAbGluayBFZGl0b3JGaWVsZCNjb21wbGV0ZSBjb21wbGV0ZX1cclxuICAgKiB3ZSBuZWVkIHRvIG92ZXJyaWRlIHRvIHNpbXBseSByZXR1cm4gdGhlIHZhbHVlIGdpdmVuLlxyXG4gICAqIEBwYXJhbSB2YWxcclxuICAgKiBAcmV0dXJuIHtBcnJheS9TdHJpbmd9XHJcbiAgICovXHJcbiAgZm9ybWF0VmFsdWU6IGZ1bmN0aW9uIGZvcm1hdFZhbHVlKHZhbCkge1xyXG4gICAgcmV0dXJuIHZhbDtcclxuICB9LFxyXG59KTtcclxuXHJcbmxhbmcuc2V0T2JqZWN0KCdTYWdlLlBsYXRmb3JtLk1vYmlsZS5GaWVsZHMuU2lnbmF0dXJlRmllbGQnLCBjb250cm9sKTtcclxuZXhwb3J0IGRlZmF1bHQgRmllbGRNYW5hZ2VyLnJlZ2lzdGVyKCdzaWduYXR1cmUnLCBjb250cm9sKTtcclxuIl19
 </pre>
 </body>
 </html>

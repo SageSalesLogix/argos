@@ -15,439 +15,485 @@
   </script>
 </head>
 <body onload="prettyPrint(); highlight();">
-  <pre class="prettyprint lang-js">/* Copyright (c) 2010, Sage Software, Inc. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+  <pre class="prettyprint lang-js">define('argos/Calendar', ['exports', 'module', 'dojo/_base/declare', 'dojo/_base/array', 'dojo/_base/lang', 'dojo/query', 'dojo/dom-class', 'dojo/dom-construct', './_ActionMixin', 'dijit/_Widget', './_Templated', 'argos/Dropdown', './I18n'], function (exports, module, _dojo_baseDeclare, _dojo_baseArray, _dojo_baseLang, _dojoQuery, _dojoDomClass, _dojoDomConstruct, _ActionMixin2, _dijit_Widget, _Templated2, _argosDropdown, _I18n) {
+  function _interopRequireDefault(obj) { return obj &amp;&amp; obj.__esModule ? obj : { 'default': obj }; }
 
-<span id='argos-Calendar'>/**
-</span> * @class argos.Calendar
- * @alternateClassName Calendar
- */
-define('argos/Calendar', [
-    'dojo/_base/declare',
-    'dojo/_base/lang',
-    'dojo/string',
-    'dojo/dom-attr',
-    'dojo/dom-class',
-    'dojo/dom-construct',
-    'dojo/dom-style',
-    'argos/View',
-    'moment'
-], function(
-    declare,
-    lang,
-    string,
-    domAttr,
-    domClass,
-    domConstruct,
-    domStyle,
-    View,
-    moment
-) {
-    var pad,
-        uCase,
-        __class;
+  /* Copyright (c) 2010, Sage Software, Inc. All rights reserved.
+   *
+   * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   * you may not use this file except in compliance with the License.
+   * You may obtain a copy of the License at
+   *
+   *     http://www.apache.org/licenses/LICENSE-2.0
+   *
+   * Unless required by applicable law or agreed to in writing, software
+   * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   * See the License for the specific language governing permissions and
+   * limitations under the License.
+   */
 
-    pad = function(n) {
-        return n &lt; 10 ? '0' + n : n;
-    };
+<span id='argos-Calendar'>  /**
+</span>   * @class argos.Calendar
+   * @alternateClassName Calendar
+   */
 
-    uCase = function(str) {
-        return str.charAt(0).toUpperCase() + str.substring(1);
-    };
+  var _declare = _interopRequireDefault(_dojo_baseDeclare);
 
-    __class = declare('argos.Calendar', [View], {
-        // Localization
-        titleText: 'Calendar',
-        amText: 'AM',
-        pmText: 'PM',
+  var _array = _interopRequireDefault(_dojo_baseArray);
 
-        id: 'generic_calendar',
-        contentNode: null,
-        calendarNode: null,
-        timeNode: null,
-        meridiemNode: null,
-        monthsShortText: [
-            'Jan',
-            'Feb',
-            'Mar',
-            'Apr',
-            'May',
-            'Jun',
-            'Jul',
-            'Aug',
-            'Sep',
-            'Oct',
-            'Nov',
-            'Dec'
-        ],
-        months: null,
-        dateFormat: moment().lang()._longDateFormat.L,
-        timeFormatText: 'h:mm A',
-        is24hrTimeFormat: moment().lang()._longDateFormat.LT.match(/H\:/),
-        date: false,
-        showTimePicker: false,
-        timeless: false,
-        selectorTemplate:  '&lt;select id=&quot;${0}-field&quot; data-dojo-attach-point=&quot;${0}Node&quot;&gt;&lt;/select&gt;',
-        incrementTemplate: '&lt;button data-action=&quot;increment${0}&quot; class=&quot;button&quot;&gt;+&lt;/button&gt;',
-        decrementTemplate: '&lt;button data-action=&quot;decrement${0}&quot; class=&quot;button&quot;&gt;-&lt;/button&gt;',
-        widgetTemplate: new Simplate([
-            '&lt;div id=&quot;{%= $.id %}&quot; title=&quot;{%: $.titleText %}&quot; class=&quot;panel {%= $.cls %}&quot;&gt;',
-                '&lt;div class=&quot;panel-content&quot; id=&quot;datetime-picker&quot;&gt;',
-                    '&lt;div class=&quot;calendar-content&quot;&gt;',
-                    '&lt;table id=&quot;datetime-picker-date&quot; data-dojo-attach-point=&quot;datePickControl&quot;&gt;',
-                        '&lt;caption&gt;&amp;nbsp;&lt;/caption&gt;',
-                        '&lt;tr class=&quot;plus&quot;&gt;',
-                            '&lt;td&gt;{%= $.localizeViewTemplate(&quot;incrementTemplate&quot;, 0) %}&lt;/td&gt;',
-                            '&lt;td&gt;{%= $.localizeViewTemplate(&quot;incrementTemplate&quot;, 1) %}&lt;/td&gt;',
-                            '&lt;td&gt;{%= $.localizeViewTemplate(&quot;incrementTemplate&quot;, 2) %}&lt;/td&gt;',
-                        '&lt;/tr&gt;',
-                        '&lt;tr class=&quot;datetime-selects&quot;&gt;',
-                            '&lt;td&gt;{%= $.localizeViewTemplate(&quot;selectorTemplate&quot;, 0) %}&lt;/td&gt;',
-                            '&lt;td&gt;{%= $.localizeViewTemplate(&quot;selectorTemplate&quot;, 1) %}&lt;/td&gt;',
-                            '&lt;td&gt;{%= $.localizeViewTemplate(&quot;selectorTemplate&quot;, 2) %}&lt;/td&gt;',
-                        '&lt;/tr&gt;',
-                        '&lt;tr class=&quot;minus&quot;&gt;',
-                            '&lt;td&gt;{%= $.localizeViewTemplate(&quot;decrementTemplate&quot;, 0) %}&lt;/td&gt;',
-                            '&lt;td&gt;{%= $.localizeViewTemplate(&quot;decrementTemplate&quot;, 1) %}&lt;/td&gt;',
-                            '&lt;td&gt;{%= $.localizeViewTemplate(&quot;decrementTemplate&quot;, 2) %}&lt;/td&gt;',
-                        '&lt;/tr&gt;',
-                    '&lt;/table&gt;',
-                    '&lt;/div&gt;',
-                    '&lt;div class=&quot;time-content&quot; data-dojo-attach-point=&quot;timeNode&quot;&gt;',
-                        '&lt;table id=&quot;datetime-picker-time&quot; data-dojo-attach-point=&quot;timePickControl&quot;&gt;',
-                            '&lt;caption&gt;&amp;nbsp;&lt;/caption&gt;',
-                            '&lt;tr class=&quot;plus&quot;&gt;',
-                                '&lt;td&gt;{%= $.localizeViewTemplate(&quot;incrementTemplate&quot;, 3) %}&lt;/td&gt;',
-                                '&lt;td&gt;{%= $.localizeViewTemplate(&quot;incrementTemplate&quot;, 4) %}&lt;/td&gt;',
-                                '&lt;td rowspan=&quot;3&quot;&gt;',
-                                    '&lt;div class=&quot;toggle toggle-vertical meridiem-field&quot; data-action=&quot;toggleMeridiem&quot; data-dojo-attach-point=&quot;meridiemNode&quot;&gt;',
-                                        '&lt;span class=&quot;thumb vertical&quot;&gt;&lt;/span&gt;',
-                                        '&lt;span class=&quot;toggleOn&quot;&gt;{%= $.amText %}&lt;/span&gt;',
-                                        '&lt;span class=&quot;toggleOff&quot;&gt;{%= $.pmText %}&lt;/span&gt;',
-                                    '&lt;/div&gt;',
-                                '&lt;/td&gt;',
-                            '&lt;/tr&gt;',
-                            '&lt;tr class=&quot;datetime-selects&quot;&gt;',
-                                '&lt;td&gt;{%= $.localizeViewTemplate(&quot;selectorTemplate&quot;, 3) %}&lt;/td&gt;',
-                                '&lt;td&gt;{%= $.localizeViewTemplate(&quot;selectorTemplate&quot;, 4) %}&lt;/td&gt;',
-                            '&lt;/tr&gt;',
-                            '&lt;tr class=&quot;minus&quot;&gt;',
-                                '&lt;td&gt;{%= $.localizeViewTemplate(&quot;decrementTemplate&quot;, 3) %}&lt;/td&gt;',
-                                '&lt;td&gt;{%= $.localizeViewTemplate(&quot;decrementTemplate&quot;, 4) %}&lt;/td&gt;',
-                            '&lt;/tr&gt;',
-                        '&lt;/table&gt;',
-                    '&lt;/div&gt;',
-                    '&lt;div style=&quot;clear:both&quot;&gt;&lt;/div&gt;',
-                '&lt;/div&gt;',
-            '&lt;/div&gt;'
-        ]),
+  var _lang = _interopRequireDefault(_dojo_baseLang);
 
-        dayNode: null,
-        monthNode: null,
-        yearNode: null,
-        hourNode: null,
-        minuteNode: null,
-        datePickControl: null,
-        timePickControl: null,
+  var _query = _interopRequireDefault(_dojoQuery);
 
-        daysInMonth: function() {
-            var date = moment();
-            date.date(1);
-            date.year(this.year);
-            date.month(this.month);
-            return date.daysInMonth();
-        },
-        init: function() {
-            this.inherited(arguments);
-            this.months = this.monthsShortText;
-            this.dateFormat = moment().lang()._longDateFormat.L;
-            this.is24hrTimeFormat = moment().lang()._longDateFormat.LT.match(/H\:/);
-            this.connect(this.dayNode,    'onchange', this.validate);
-            this.connect(this.monthNode,  'onchange', this.validate);
-            this.connect(this.yearNode,   'onchange', this.validate);
-            this.connect(this.hourNode,   'onchange', this.validate);
-            this.connect(this.minuteNode, 'onchange', this.validate);
-        },
+  var _domClass = _interopRequireDefault(_dojoDomClass);
 
-        validate: function() {
-            var daysInMonth, isPM, hours, minutes;
+  var _domConstruct = _interopRequireDefault(_dojoDomConstruct);
 
-            this.year = parseInt(this.yearNode.value, 10);
-            this.month = parseInt(this.monthNode.value, 10);
-            daysInMonth = this.daysInMonth();
+  var _ActionMixin3 = _interopRequireDefault(_ActionMixin2);
 
-            // adjust dayNode selector from changes to monthNode or leap/non-leap year
-            if (this.dayNode.options.length !== daysInMonth) {
-                this.populateSelector(this.dayNode, this.dayNode.selectedIndex + 1, 1, this.daysInMonth());
-            }
+  var _Widget2 = _interopRequireDefault(_dijit_Widget);
 
-            this.date = moment(new Date(this.year, this.month, this.dayNode.value));
-            hours = parseInt(this.hourNode.value, 10);
-            minutes = parseInt(this.minuteNode.value, 10);
-            isPM = this.is24hrTimeFormat ? 11 &lt; hours : domAttr.get(this.meridiemNode, 'toggled') !== true;
-            hours = isPM ? (hours % 12) + 12 : (hours % 12);
+  var _Templated3 = _interopRequireDefault(_Templated2);
 
-            if (!this._isTimeless()) {
-                this.date.hours(hours);
-                this.date.minutes(minutes);
-            }
+  var _Dropdown = _interopRequireDefault(_argosDropdown);
 
-            this.updateDatetimeCaption();
-        },
-        toggleMeridiem: function(params) {
-            var el = params.$source,
-                toggledValue = el &amp;&amp; (domAttr.get(el, 'toggled') !== true);
+  var _getResource = _interopRequireDefault(_I18n);
 
-            if (el) {
-                domClass.toggle(el, 'toggleStateOn');
-                domAttr.set(el, 'toggled', toggledValue);
-            }
+  var resource = (0, _getResource['default'])('calendar');
 
-            this.updateDatetimeCaption();
-        },
-        populateSelector: function(el, val, min, max) {
-            var i,
-                opt;
+  var __class = (0, _declare['default'])('argos.Calendar', [_Widget2['default'], _ActionMixin3['default'], _Templated3['default']], {
+    widgetTemplate: new Simplate(['&lt;div id=&quot;{%= $.id %}&quot; class=&quot;calendar panel&quot;&gt;', '{%! $.calendarHeaderTemplate %}', '{%! $.calendarTableTemplate %}', '{%! $.calendarFooterTemplate %}', '&lt;/div&gt;']),
+    calendarHeaderTemplate: new Simplate(['&lt;div class=&quot;calendar-header&quot;&gt;', '&lt;span class=&quot;calendar__header__icon calendar__header__icon--left fa fa-angle-left&quot; data-action=&quot;decrementMonth&quot;&gt;&lt;/span&gt;', '&lt;div class=&quot;month&quot; data-dojo-attach-point=&quot;monthNode&quot; data-action=&quot;toggleMonthModal&quot;&gt;&lt;/div&gt;', '&lt;div class=&quot;year&quot; data-dojo-attach-point=&quot;yearNode&quot; data-action=&quot;toggleYearModal&quot;&gt;&lt;/div&gt;', '&lt;span class=&quot;fa fa-angle-right calendar__header__icon calendar__header__icon--right &quot; data-action=&quot;incrementMonth&quot;&gt;&lt;/span&gt;', '&lt;/div&gt;']),
+    calendarTableTemplate: new Simplate(['&lt;table class=&quot;calendar-table&quot;&gt;', '&lt;thead&gt;', '{%! $.calendarWeekDaysTemplate %}', '&lt;/thead&gt;', '&lt;tbody data-dojo-attach-point=&quot;weeksNode&quot;&gt;&lt;/tbody&gt;', '&lt;/table&gt;']),
+    calendarFooterTemplate: new Simplate(['&lt;div class=&quot;calendar-footer&quot; data-dojo-attach-point=&quot;footerNode&quot;&gt;', '&lt;div class=&quot;button button--secondary clear&quot; data-action=&quot;clearCalendar&quot; data-dojo-attach-point=&quot;clearButton&quot;&gt;{%= $.clearText %}&lt;/div&gt;', '&lt;div class=&quot;button button--secondary toToday&quot; data-action=&quot;goToToday&quot; data-dojo-attach-point=&quot;todayButton&quot;&gt;{%= $.todayText %}&lt;/div&gt;', '&lt;/div&gt;']),
+    calendarTableDayTemplate: new Simplate(['&lt;td class=&quot;day {%= $.month %} {%= $.weekend %} {%= $.selected %} {%= $.isToday %}&quot; data-action=&quot;changeDay&quot; data-date=&quot;{%= $.date %}&quot;&gt;', '{%= $.day %}', '&lt;/td&gt;']),
+    calendarTableDayActiveTemplate: new Simplate(['&lt;div class=&quot;day__active&quot;&gt;', '&lt;/div&gt;']),
+    calendarTableWeekStartTemplate: new Simplate(['&lt;tr class=&quot;calendar-week&quot;&gt;']),
+    calendarTableWeekEndTemplate: new Simplate(['&lt;/tr&gt;']),
+    calendarWeekDaysTemplate: new Simplate(['&lt;tr class=&quot;calendar-weekdays&quot;&gt;', '&lt;th&gt;{%= $.weekDaysShortText[0] %}&lt;/th&gt;', '&lt;th&gt;{%= $.weekDaysShortText[1] %}&lt;/th&gt;', '&lt;th&gt;{%= $.weekDaysShortText[2] %}&lt;/th&gt;', '&lt;th&gt;{%= $.weekDaysShortText[3] %}&lt;/th&gt;', '&lt;th&gt;{%= $.weekDaysShortText[4] %}&lt;/th&gt;', '&lt;th&gt;{%= $.weekDaysShortText[5] %}&lt;/th&gt;', '&lt;th&gt;{%= $.weekDaysShortText[6] %}&lt;/th&gt;', '&lt;/tr&gt;']),
 
-            if (val &gt; max) {
-                val = max;
-            }
+    // Localization
+    titleText: resource.titleText,
+    amText: resource.amText,
+    pmText: resource.pmText,
+    clearText: resource.clearText,
+    todayText: resource.todayText,
+    monthsText: [{
+      value: resource.january,
+      key: 'january'
+    }, {
+      value: resource.february,
+      key: 'february'
+    }, {
+      value: resource.march,
+      key: 'march'
+    }, {
+      value: resource.april,
+      key: 'april'
+    }, {
+      value: resource.may,
+      key: 'may'
+    }, {
+      value: resource.june,
+      key: 'june'
+    }, {
+      value: resource.july,
+      key: 'july'
+    }, {
+      value: resource.august,
+      key: 'august'
+    }, {
+      value: resource.september,
+      key: 'september'
+    }, {
+      value: resource.october,
+      key: 'october'
+    }, {
+      value: resource.november,
+      key: 'november'
+    }, {
+      value: resource.december,
+      key: 'december'
+    }],
+    weekDaysShortText: [resource.sundayAbbreviated, resource.mondayAbbreviated, resource.tuesdayAbbreviated, resource.wednesdayAbbreviated, resource.thursdayAbbreviated, resource.fridayAbbreviated, resource.saturdayAbbreviated],
 
-            el.options.length = 0;
+    // Date is an object containing selected day, month, year, time, todayMoment (today), selectedDateMoment, etc.
+    date: null,
+    id: 'generic_calendar',
+    // This boolean value is used to trigger the modal hide and show and must be used by each entity
+    isModal: false,
+    noClearButton: false,
+    showTimePicker: true,
+    showSubValues: true,
+    _currentMonth: null,
+    _currentYear: null,
+    _monthDropdown: null,
+    _selectWeek: false,
+    _selectedDay: null,
+    _todayMonth: null,
+    _todayYear: null,
+    _widgetName: 'calendar',
+    _yearDropdown: null,
 
-            for (i = min; i &lt;= max; i++) {
-                opt = domConstruct.create('option', {
-                    innerHTML: (this.monthNode === el) ? uCase(this.months[i]) : pad(i),
-                    value: i,
-                    selected: (i === val)
-                });
+    changeDay: function changeDay(params) {
+      if (!this._selectWeek) {
+        this.changeSingleDay(params);
+      } else {
+        this.changeWeek(params);
+      }
 
-                el.options[el.options.length] = opt;
-            }
-        },
-        localizeViewTemplate: function() {
-            var whichTemplate = arguments[0],
-                formatIndex = arguments[1],
-                fields = { y:'year', Y:'year', M:'month', d:'day', D:'day', h:'hour', H:'hour', m:'minute' },
-                whichField,
-                whichFormat;
+      return this;
+    },
+    changeMonthShown: function changeMonthShown(_ref) {
+      var month = _ref.month;
 
-            whichField = fields[ (3 &gt; formatIndex)
-                ? this.dateFormat.split(/[^a-z]/i)[formatIndex].charAt(0)
-                : this.timeFormatText.split(/[^a-z]/i)[formatIndex - 3].charAt(0)
-                ];
+      this._monthDropdown.setValue(month.toLowerCase());
+      return this;
+    },
+    changeSingleDay: function changeSingleDay(params) {
+      if (params) {
+        var selected = (0, _query['default'])('.selected', this.weeksNode);
 
-            whichFormat = ('selectorTemplate' === whichTemplate)
-                ? whichField
-                : uCase(whichField);
-
-            return string.substitute(this[whichTemplate], [whichFormat]);
-        },
-        show: function(options) {
-            this.inherited(arguments);
-            options = options || this.options;
-
-            this.titleText = options.label ? options.label : this.titleText;
-
-            this.showTimePicker = this.options &amp;&amp; this.options.showTimePicker;
-
-            this.date  = moment((this.options &amp;&amp; this.options.date) || moment());
-            this.year  = this.date.year();
-            this.month = this.date.month();
-
-            if (this._isTimeless()) {
-                this.date.add({minutes: this.date.zone()});
-            }
-
-            var today = moment();
-
-            this.populateSelector(this.yearNode, this.year,
-                    (this.year &lt; today.year() - 10) ? this.year : today.year() - 10, // min 10 years in past - arbitrary min
-                    (10 + today.year()) // max 10 years into future - arbitrary limit
-            );
-
-            this.populateSelector(this.monthNode, this.month, 0, 11);
-            this.populateSelector(this.dayNode, this.date.date(), 1, this.daysInMonth());
-            this.populateSelector(this.hourNode,
-                this.date.hours() &gt; 12 &amp;&amp; !this.is24hrTimeFormat
-                    ? this.date.hours() - 12
-                    : (this.date.hours() || 12),
-                this.is24hrTimeFormat ? 0 : 1,
-                this.is24hrTimeFormat ? 23 : 12
-            );
-
-            this.populateSelector(this.minuteNode, this.date.minutes(), 0, 59);
-
-            if (this.date.hours() &lt; 12) {
-                domAttr.set(this.meridiemNode, 'toggled', true);
-                domClass.add(this.meridiemNode, 'toggleStateOn');
-            } else {
-                domAttr.set(this.meridiemNode, 'toggled', false);
-                domClass.remove(this.meridiemNode, 'toggleStateOn');
-            }
-
-
-            this.updateDatetimeCaption();
-
-            if (this.showTimePicker) {
-                domClass.remove(this.timeNode, 'time-content-hidden');
-                // hide meridiem toggle when using 24hr time format:
-                if (this.is24hrTimeFormat) {
-                    domStyle.set(this.meridiemNode.parentNode, 'display', 'none');
-                } else if (12 &gt; this.date.hours()) {
-                    // ensure initial toggle state reflects actual time
-                    domClass.add(this.meridiemNode, 'toggleStateOn');
-                } else {
-                    domClass.remove(this.meridiemNode, 'toggleStateOn');
-                }
-            } else {
-                domClass.add(this.timeNode, 'time-content-hidden');
-            }
-        },
-
-        decrementYear: function() {
-            this.decrement(this.yearNode);
-        },
-        decrementMonth: function() {
-            this.decrement(this.monthNode);
-        },
-        decrementDay: function() {
-            this.decrement(this.dayNode);
-        },
-        decrementHour: function() {
-            this.decrement(this.hourNode);
-            if (11 === this.hourNode.value % 12) {
-                this.toggleMeridiem({$source:this.meridiemNode});
-            }
-        },
-        decrementMinute: function() {
-            this.decrement(this.minuteNode, 15);
-        },
-        decrement: function(el, inc) { // all fields are &lt;select&gt; elements
-            inc = inc || 1;
-
-            if (0 &lt;= (el.selectedIndex - inc)) {
-                el.selectedIndex = inc * Math.floor((el.selectedIndex - 1) / inc);
-            } else {
-                if (el === this.yearNode) {
-                    return false;
-                }
-
-                if (el === this.dayNode) {
-                    this.decrementMonth();
-                }
-
-                if (el === this.monthNode) {
-                    this.decrementYear();
-                }
-
-                if (el === this.minuteNode) {
-                    this.decrementHour();
-                }
-
-                el.selectedIndex = el.options.length - inc;
-            }
-
-            this.validate(null, el);
-        },
-
-        incrementYear: function() {
-            this.increment(this.yearNode);
-        },
-        incrementMonth: function() {
-            this.increment(this.monthNode);
-        },
-        incrementDay: function() {
-            this.increment(this.dayNode);
-        },
-        incrementHour: function() {
-            this.increment(this.hourNode);
-
-            if (this.hourNode.selectedIndex === (this.hourNode.options.length - 1)) {
-                this.toggleMeridiem({$source:this.meridiemNode});
-            }
-        },
-        incrementMinute: function() {
-            this.increment(this.minuteNode, 15);
-        },
-        increment: function(el, inc) {
-            inc = inc || 1;
-
-            if (el.options.length &gt; (el.selectedIndex + inc)) {
-                el.selectedIndex += inc;
-            } else {
-                if (el === this.yearNode) {
-                    return false;
-                }
-
-                if (el === this.dayNode) {
-                    this.incrementMonth();
-                }
-
-                if (el === this.monthNode) {
-                    this.incrementYear();
-                }
-
-                if (el === this.minuteNode) {
-                    this.incrementHour();
-                }
-
-                el.selectedIndex = 0;
-            }
-
-            this.validate(null, el);
-        },
-        _isTimeless: function() {
-            return (this.options &amp;&amp; this.options.timeless) || this.timeless;
-        },
-        updateDatetimeCaption: function() {
-            var t = moment(this.getDateTime());
-
-            if (this._isTimeless()) {
-                t.utc();
-            }
-
-            this.datePickControl.caption.innerHTML = t.format('dddd'); // weekday text
-            if (this.showTimePicker) {
-                this.timePickControl.caption.innerHTML = t.format(this.timeFormatText);
-            }
-        },
-        getDateTime: function() {
-            var result, hours, isPM, minutes;
-
-            result = moment(this.date);
-            if (!this._isTimeless()) {
-                hours = parseInt(this.hourNode.value, 10);
-                minutes = parseInt(this.minuteNode.value, 10);
-                isPM = this.is24hrTimeFormat ? (11 &lt; hours) : domAttr.get(this.meridiemNode, 'toggled') !== true;
-
-                hours = isPM
-                    ? (hours % 12) + 12
-                    : (hours % 12);
-
-                result.hours(hours);
-                result.minutes(minutes);
-            }
-
-            return result.toDate();
+        if (selected) {
+          _array['default'].forEach(selected, function (day) {
+            _domClass['default'].remove(day, 'selected');
+          });
         }
-    });
 
-    lang.setObject('Sage.Platform.Mobile.Calendar', __class);
-    return __class;
+        if (selected) {
+          _domClass['default'].remove(selected, 'selected');
+        }
+
+        if (params.$source) {
+          this._selectedDay = params.$source;
+          _domClass['default'].add(params.$source, 'selected');
+        }
+
+        if (params.date) {
+          this.date.selectedDateMoment = moment(params.date, 'YYYY-MM-DD');
+        }
+
+        if (this.date.monthNumber !== this.date.selectedDateMoment.month()) {
+          this.refreshCalendar(this.date);
+        }
+      }
+      return this;
+    },
+    changeWeek: function changeWeek(params) {
+      if (params) {
+        var selected = (0, _query['default'])('.selected', this.weeksNode);
+
+        if (selected) {
+          _array['default'].forEach(selected, function (day) {
+            _domClass['default'].remove(day, 'selected');
+          });
+        }
+
+        if (params.$source.parentNode) {
+          this._selectedDay = params.$source;
+          _array['default'].forEach(params.$source.parentNode.children, function (day) {
+            _domClass['default'].add(day, 'selected');
+          });
+        }
+
+        if (params.date) {
+          this.date.selectedDateMoment = moment(params.date, 'YYYY-MM-DD');
+        }
+
+        if (this.date.monthNumber !== this.date.selectedDateMoment.month()) {
+          this.refreshCalendar(this.date);
+        }
+      }
+      return this;
+    },
+    changeYearShown: function changeYearShown(_ref2) {
+      var year = _ref2.year;
+
+      this._yearDropdown.setValue(year);
+      return this;
+    },
+    checkAndRenderDay: function checkAndRenderDay() {
+      var data = arguments.length &lt;= 0 || arguments[0] === undefined ? {} : arguments[0];
+
+      var dayIndexer = data.day + data.startingDay - 1;
+      if (data.day === data.todayMoment.date() &amp;&amp; data.todayMoment.month() === data.dateMoment.month() &amp;&amp; data.todayMoment.year() === data.dateMoment.year()) {
+        data.isToday = 'isToday';
+      } else {
+        data.isToday = '';
+      }
+      if (dayIndexer % 7 === data.weekEnds.Sunday || dayIndexer % 7 === data.weekEnds.Saturday) {
+        data.weekend = 'weekend';
+      } else {
+        data.weekend = '';
+      }
+      data.date = data.dateMoment.clone().date(data.day).format('YYYY-MM-DD');
+      var day = _domConstruct['default'].toDom(this.calendarTableDayTemplate.apply(data, this));
+      if (data.day === this.date.dayNode &amp;&amp; data.month === 'current-month') {
+        this._selectedDay = day;
+      }
+      if (this.showSubValues) {
+        this.setSubValue(day, data).setActiveDay(day);
+      }
+      _domConstruct['default'].place(day, data.week);
+    },
+    clearCalendar: function clearCalendar() {
+      var selected = (0, _query['default'])('.selected', this.weeksNode)[0];
+
+      if (selected) {
+        _domClass['default'].remove(selected, 'selected');
+      }
+      this.date.selectedDateMoment = null;
+    },
+    createMonthDropdown: function createMonthDropdown() {
+      if (!this._monthDropdown) {
+        this._monthDropdown = new _Dropdown['default']({ id: 'month-dropdown ' + this.id, dropdownClass: 'dropdown--medium', onSelect: this.setMonth, onSelectScope: this });
+        this._monthDropdown.createList({ items: this.monthsText, defaultValue: this.date.selectedDateMoment.format('MMMM').toLowerCase() });
+        this._todayMonth = this._monthDropdown.getSelected();
+        _domConstruct['default'].place(this._monthDropdown.domNode, this.monthNode);
+      }
+      return this;
+    },
+    createYearDropdown: function createYearDropdown() {
+      if (!this._yearDropdown) {
+        this._yearDropdown = new _Dropdown['default']({ id: 'year-dropdown ' + this.id, onSelect: this.setYear, onSelectScope: this });
+        this._yearDropdown.createList({ items: this.getYearRange(), defaultValue: this.date.selectedDateMoment.format('YYYY') });
+        this._todayYear = this._yearDropdown.getSelected();
+        _domConstruct['default'].place(this._yearDropdown.domNode, this.yearNode);
+      }
+      return this;
+    },
+    decrementMonth: function decrementMonth() {
+      this.date.selectedDateMoment.subtract({ months: 1 });
+      this.refreshCalendar(this.date);
+    },
+    destroy: function destroy() {
+      this._yearDropdown.destroy();
+      this._monthDropdown.destroy();
+      this.inherited(arguments);
+    },
+    getContent: function getContent() {
+      if (this.options.timeless) {
+        // Revert back to timeless
+        this.date.selectedDateMoment.add({
+          minutes: this.date.selectedDateMoment.utcOffset()
+        });
+      }
+      return this.date;
+    },
+    goToToday: function goToToday() {
+      if (this.date.selectedDateMoment.month() !== this.date.todayMoment.month() || this.date.selectedDateMoment.year() !== this.date.todayMoment.year()) {
+        this.date.selectedDateMoment = this.date.todayMoment;
+        this.refreshCalendar(this.date);
+      }
+      var day = (0, _query['default'])('.isToday', this.weeksNode)[0];
+      var params = {};
+      if (day) {
+        params = { $source: day, date: day.dataset.date };
+      }
+      this.changeDay(params);
+      this.setDropdownsToday();
+    },
+    getDateTime: function getDateTime() {
+      var result = this.date.selectedDateMoment;
+      return result.toDate();
+    },
+    getSelectedDateMoment: function getSelectedDateMoment() {
+      return this.date.selectedDateMoment;
+    },
+    getYearRange: function getYearRange() {
+      var items = [];
+      var thisYear = this.date.todayMoment.year();
+      for (var i = thisYear - 10; i &lt;= thisYear + 10; i++) {
+        items.push({
+          value: i,
+          key: i
+        });
+      }
+      return items;
+    },
+    incrementMonth: function incrementMonth() {
+      this.date.selectedDateMoment.add({ months: 1 });
+      this.refreshCalendar(this.date);
+    },
+    init: function init() {
+      this.inherited(arguments);
+    },
+    isActive: function isActive(day) {
+      if (day) {
+        return (0, _query['default'])('.day__active', day)[0];
+      }
+    },
+    postRenderCalendar: function postRenderCalendar() {
+      if (this._selectWeek) {
+        this.changeWeek({ $source: this._selectedDay });
+      }
+    },
+    refreshCalendar: function refreshCalendar() {
+      var date = arguments.length &lt;= 0 || arguments[0] === undefined ? {} : arguments[0];
+
+      _domConstruct['default'].empty(this.weeksNode);
+      this.renderCalendar(date).changeMonthShown(date).changeYearShown(date);
+      return this;
+    },
+    removeActive: function removeActive(day) {
+      if (day) {
+        var active = this.isActive(day);
+        if (active) {
+          _domConstruct['default'].destroy(active);
+        }
+      }
+      return this;
+    },
+    renderCalendar: function renderCalendar(_ref3) {
+      var todayMoment = _ref3.todayMoment;
+      var selectedDateMoment = _ref3.selectedDateMoment;
+
+      var daysInMonth = selectedDateMoment.daysInMonth();
+      var startingDay = selectedDateMoment.clone().startOf('month').day();
+      var endPrevMonth = selectedDateMoment.clone().startOf('month').subtract({ days: startingDay });
+      var startNextMonth = selectedDateMoment.clone().endOf('month').add({ days: 1 });
+      var data = {
+        todayMoment: todayMoment,
+        selectedDateMoment: selectedDateMoment,
+        dateMoment: endPrevMonth.clone(),
+        week: _domConstruct['default'].toDom(this.calendarTableWeekStartTemplate.apply()),
+        startingDay: endPrevMonth.clone().startOf('month').day(),
+        weekEnds: {
+          Sunday: 0,
+          Saturday: 6
+        }
+      };
+
+      // Iterate through the days that are in the start week of the current month but are in the previous month
+      for (var day = endPrevMonth.date(); day &lt; endPrevMonth.date() + startingDay; day++) {
+        data.day = day;
+        this.checkAndRenderDay(data);
+      }
+
+      data.month = 'current-month';
+      data.startingDay = startingDay;
+      data.dateMoment = selectedDateMoment.clone();
+      for (var day = 1; day &lt;= daysInMonth; day++) {
+        if (day === selectedDateMoment.date()) {
+          data.selected = 'selected';
+          this.date.dayNode = day;
+        } else {
+          data.selected = '';
+        }
+        data.day = day;
+        this.checkAndRenderDay(data);
+        if ((day + startingDay) % 7 === 0) {
+          _domConstruct['default'].place(this.calendarTableWeekEndTemplate.apply(), data.week);
+          _domConstruct['default'].place(data.week, this.weeksNode);
+          data.week = _domConstruct['default'].toDom(this.calendarTableWeekStartTemplate.apply());
+        }
+      }
+
+      data.selected = '';
+      data.month = '';
+      data.startingDay = startNextMonth.day();
+      data.dateMoment = startNextMonth.clone();
+      // Iterate through remaining days of the week based on 7 days in the week and ensure there are 6 weeks shown (for consistency)
+      for (var day = 1; day &lt;= 1 + data.weekEnds.Saturday - startNextMonth.day(); day++) {
+        data.day = day;
+        this.checkAndRenderDay(data);
+      }
+      _domConstruct['default'].place(this.calendarTableWeekEndTemplate.apply(), data.week);
+      _domConstruct['default'].place(data.week, this.weeksNode);
+
+      if (this.weeksNode.children.length === 5) {
+        data.week = _domConstruct['default'].toDom(this.calendarTableWeekStartTemplate.apply());
+        for (var day = 2 + data.weekEnds.Saturday - startNextMonth.day(); day &lt;= 8 + data.weekEnds.Saturday - startNextMonth.day(); day++) {
+          data.day = day;
+          this.checkAndRenderDay(data);
+        }
+        _domConstruct['default'].place(this.calendarTableWeekEndTemplate.apply(), data.week);
+        _domConstruct['default'].place(data.week, this.weeksNode);
+      }
+
+      this.setDateObject(selectedDateMoment);
+
+      this.postRenderCalendar();
+
+      return this;
+    },
+    setActiveDay: function setActiveDay() {
+      var day = arguments.length &lt;= 0 || arguments[0] === undefined ? {} : arguments[0];
+
+      if (day.subValue) {
+        var active = _domConstruct['default'].toDom(this.calendarTableDayActiveTemplate.apply({ count: day.subValue }, this));
+        _domConstruct['default'].place(active, day, 'last');
+      }
+      return this;
+    },
+    setDateObject: function setDateObject() {
+      var dateMoment = arguments.length &lt;= 0 || arguments[0] === undefined ? {} : arguments[0];
+
+      this.date.day = dateMoment.date();
+      this.date.month = dateMoment.format('MMMM');
+      this.date.monthNumber = dateMoment.month();
+      this.date.year = dateMoment.year();
+      this.date.date = moment(dateMoment).toDate();
+
+      return this;
+    },
+    setDropdownsToday: function setDropdownsToday() {
+      if (this._monthDropdown.getSelected() !== this._todayMonth) {
+        this._monthDropdown.setSelected(this._todayMonth);
+      }
+      if (this._yearDropdown.getSelected() !== this._todayYear) {
+        this._yearDropdown.setSelected(this._todayYear);
+      }
+      return this;
+    },
+    setMonth: function setMonth() {
+      this.date.selectedDateMoment.month(this._monthDropdown.getValue());
+      this.refreshCalendar(this.date);
+    },
+    setSubValue: function setSubValue() {
+      return this;
+    },
+    setYear: function setYear() {
+      this.date.selectedDateMoment.year(this._yearDropdown.getValue());
+      this.refreshCalendar(this.date);
+    },
+    show: function show() {
+      var options = arguments.length &lt;= 0 || arguments[0] === undefined ? {} : arguments[0];
+
+      this.date = {};
+      this.options = options || this.options;
+
+      this.titleText = this.options.label ? this.options.label : this.titleText;
+      this.showTimePicker = this.options &amp;&amp; this.options.showTimePicker;
+      if (this.options.timeless) {
+        // Undo timeless
+        var startDate = moment(this.options &amp;&amp; this.options.date);
+        startDate.subtract({
+          minutes: startDate.utcOffset()
+        });
+        this.date.selectedDateMoment = startDate;
+      } else {
+        this.date.selectedDateMoment = moment(this.options &amp;&amp; this.options.date || moment().clone());
+      }
+      this.date.todayMoment = moment();
+      if (this.isModal || this.options.isModal || this.noClearButton || this.options.noClearButton) {
+        this.clearButton.style.display = 'none';
+      }
+      this.createMonthDropdown().createYearDropdown();
+
+      this.refreshCalendar(this.date);
+    },
+    toggleSelectWeek: function toggleSelectWeek() {
+      this._selectWeek = !this._selectWeek;
+      this.changeDay({ $source: this._selectedDay });
+    }
+  });
+
+  _lang['default'].setObject('Sage.Platform.Mobile.Calendar', __class);
+  module.exports = __class;
 });
+//# sourceMappingURL=data:application/json;base64,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Q0FBQyxTQUFTLENBQUMsRUFBRSxPQUFPLEVBQUUsSUFBSSxDQUFDLFlBQVksRUFBRSxDQUFDLENBQUM7S0FDaEQ7R0FDRixDQUFDLENBQUM7O0FBRUgsbUJBQUssU0FBUyxDQUFDLCtCQUErQixFQUFFLE9BQU8sQ0FBQyxDQUFDO21CQUMxQyxPQUFPIiwiZmlsZSI6InNyYy9DYWxlbmRhci5qcyIsInNvdXJjZVJvb3QiOiJzcmMiLCJzb3VyY2VzQ29udGVudCI6WyIvKiBDb3B5cmlnaHQgKGMpIDIwMTAsIFNhZ2UgU29mdHdhcmUsIEluYy4gQWxsIHJpZ2h0cyByZXNlcnZlZC5cclxuICpcclxuICogTGljZW5zZWQgdW5kZXIgdGhlIEFwYWNoZSBMaWNlbnNlLCBWZXJzaW9uIDIuMCAodGhlIFwiTGljZW5zZVwiKTtcclxuICogeW91IG1heSBub3QgdXNlIHRoaXMgZmlsZSBleGNlcHQgaW4gY29tcGxpYW5jZSB3aXRoIHRoZSBMaWNlbnNlLlxyXG4gKiBZb3UgbWF5IG9idGFpbiBhIGNvcHkgb2YgdGhlIExpY2Vuc2UgYXRcclxuICpcclxuICogICAgIGh0dHA6Ly93d3cuYXBhY2hlLm9yZy9saWNlbnNlcy9MSUNFTlNFLTIuMFxyXG4gKlxyXG4gKiBVbmxlc3MgcmVxdWlyZWQgYnkgYXBwbGljYWJsZSBsYXcgb3IgYWdyZWVkIHRvIGluIHdyaXRpbmcsIHNvZnR3YXJlXHJcbiAqIGRpc3RyaWJ1dGVkIHVuZGVyIHRoZSBMaWNlbnNlIGlzIGRpc3RyaWJ1dGVkIG9uIGFuIFwiQVMgSVNcIiBCQVNJUyxcclxuICogV0lUSE9VVCBXQVJSQU5USUVTIE9SIENPTkRJVElPTlMgT0YgQU5ZIEtJTkQsIGVpdGhlciBleHByZXNzIG9yIGltcGxpZWQuXHJcbiAqIFNlZSB0aGUgTGljZW5zZSBmb3IgdGhlIHNwZWNpZmljIGxhbmd1YWdlIGdvdmVybmluZyBwZXJtaXNzaW9ucyBhbmRcclxuICogbGltaXRhdGlvbnMgdW5kZXIgdGhlIExpY2Vuc2UuXHJcbiAqL1xyXG5cclxuLyoqXHJcbiAqIEBjbGFzcyBhcmdvcy5DYWxlbmRhclxyXG4gKiBAYWx0ZXJuYXRlQ2xhc3NOYW1lIENhbGVuZGFyXHJcbiAqL1xyXG5pbXBvcnQgZGVjbGFyZSBmcm9tICdkb2pvL19iYXNlL2RlY2xhcmUnO1xyXG5pbXBvcnQgYXJyYXkgZnJvbSAnZG9qby9fYmFzZS9hcnJheSc7XHJcbmltcG9ydCBsYW5nIGZyb20gJ2Rvam8vX2Jhc2UvbGFuZyc7XHJcbmltcG9ydCBxdWVyeSBmcm9tICdkb2pvL3F1ZXJ5JztcclxuaW1wb3J0IGRvbUNsYXNzIGZyb20gJ2Rvam8vZG9tLWNsYXNzJztcclxuaW1wb3J0IGRvbUNvbnN0cnVjdCBmcm9tICdkb2pvL2RvbS1jb25zdHJ1Y3QnO1xyXG5pbXBvcnQgX0FjdGlvbk1peGluIGZyb20gJy4vX0FjdGlvbk1peGluJztcclxuaW1wb3J0IF9XaWRnZXQgZnJvbSAnZGlqaXQvX1dpZGdldCc7XHJcbmltcG9ydCBfVGVtcGxhdGVkIGZyb20gJy4vX1RlbXBsYXRlZCc7XHJcbmltcG9ydCBEcm9wZG93biBmcm9tICdhcmdvcy9Ecm9wZG93bic7XHJcbmltcG9ydCBnZXRSZXNvdXJjZSBmcm9tICcuL0kxOG4nO1xyXG5cclxuY29uc3QgcmVzb3VyY2UgPSBnZXRSZXNvdXJjZSgnY2FsZW5kYXInKTtcclxuXHJcbmNvbnN0IF9fY2xhc3MgPSBkZWNsYXJlKCdhcmdvcy5DYWxlbmRhcicsIFsgX1dpZGdldCwgX0FjdGlvbk1peGluLCBfVGVtcGxhdGVkXSwge1xyXG4gIHdpZGdldFRlbXBsYXRlOiBuZXcgU2ltcGxhdGUoW1xyXG4gICAgJzxkaXYgaWQ9XCJ7JT0gJC5pZCAlfVwiIGNsYXNzPVwiY2FsZW5kYXIgcGFuZWxcIj4nLFxyXG4gICAgICAneyUhICQuY2FsZW5kYXJIZWFkZXJUZW1wbGF0ZSAlfScsXHJcbiAgICAgICd7JSEgJC5jYWxlbmRhclRhYmxlVGVtcGxhdGUgJX0nLFxyXG4gICAgICAneyUhICQuY2FsZW5kYXJGb290ZXJUZW1wbGF0ZSAlfScsXHJcbiAgICAnPC9kaXY+JyxcclxuICBdKSxcclxuICBjYWxlbmRhckhlYWRlclRlbXBsYXRlOiBuZXcgU2ltcGxhdGUoW1xyXG4gICAgJzxkaXYgY2xhc3M9XCJjYWxlbmRhci1oZWFkZXJcIj4nLFxyXG4gICAgICAnPHNwYW4gY2xhc3M9XCJjYWxlbmRhcl9faGVhZGVyX19pY29uIGNhbGVuZGFyX19oZWFkZXJfX2ljb24tLWxlZnQgZmEgZmEtYW5nbGUtbGVmdFwiIGRhdGEtYWN0aW9uPVwiZGVjcmVtZW50TW9udGhcIj48L3NwYW4+JyxcclxuICAgICAgJzxkaXYgY2xhc3M9XCJtb250aFwiIGRhdGEtZG9qby1hdHRhY2gtcG9pbnQ9XCJtb250aE5vZGVcIiBkYXRhLWFjdGlvbj1cInRvZ2dsZU1vbnRoTW9kYWxcIj48L2Rpdj4nLFxyXG4gICAgICAnPGRpdiBjbGFzcz1cInllYXJcIiBkYXRhLWRvam8tYXR0YWNoLXBvaW50PVwieWVhck5vZGVcIiBkYXRhLWFjdGlvbj1cInRvZ2dsZVllYXJNb2RhbFwiPjwvZGl2PicsXHJcbiAgICAgICc8c3BhbiBjbGFzcz1cImZhIGZhLWFuZ2xlLXJpZ2h0IGNhbGVuZGFyX19oZWFkZXJfX2ljb24gY2FsZW5kYXJfX2hlYWRlcl9faWNvbi0tcmlnaHQgXCIgZGF0YS1hY3Rpb249XCJpbmNyZW1lbnRNb250aFwiPjwvc3Bhbj4nLFxyXG4gICAgJzwvZGl2PicsXHJcbiAgXSksXHJcbiAgY2FsZW5kYXJUYWJsZVRlbXBsYXRlOiBuZXcgU2ltcGxhdGUoW1xyXG4gICAgICc8dGFibGUgY2xhc3M9XCJjYWxlbmRhci10YWJsZVwiPicsXHJcbiAgICAgICc8dGhlYWQ+JyxcclxuICAgICAgICAneyUhICQuY2FsZW5kYXJXZWVrRGF5c1RlbXBsYXRlICV9JyxcclxuICAgICAgJzwvdGhlYWQ+JyxcclxuICAgICAgJzx0Ym9keSBkYXRhLWRvam8tYXR0YWNoLXBvaW50PVwid2Vla3NOb2RlXCI+PC90Ym9keT4nLFxyXG4gICAgICc8L3RhYmxlPicsXHJcbiAgXSksXHJcbiAgY2FsZW5kYXJGb290ZXJUZW1wbGF0ZTogbmV3IFNpbXBsYXRlKFtcclxuICAgICc8ZGl2IGNsYXNzPVwiY2FsZW5kYXItZm9vdGVyXCIgZGF0YS1kb2pvLWF0dGFjaC1wb2ludD1cImZvb3Rlck5vZGVcIj4nLFxyXG4gICAgICAnPGRpdiBjbGFzcz1cImJ1dHRvbiBidXR0b24tLXNlY29uZGFyeSBjbGVhclwiIGRhdGEtYWN0aW9uPVwiY2xlYXJDYWxlbmRhclwiIGRhdGEtZG9qby1hdHRhY2gtcG9pbnQ9XCJjbGVhckJ1dHRvblwiPnslPSAkLmNsZWFyVGV4dCAlfTwvZGl2PicsXHJcbiAgICAgICc8ZGl2IGNsYXNzPVwiYnV0dG9uIGJ1dHRvbi0tc2Vjb25kYXJ5IHRvVG9kYXlcIiBkYXRhLWFjdGlvbj1cImdvVG9Ub2RheVwiIGRhdGEtZG9qby1hdHRhY2gtcG9pbnQ9XCJ0b2RheUJ1dHRvblwiPnslPSAkLnRvZGF5VGV4dCAlfTwvZGl2PicsXHJcbiAgICAnPC9kaXY+JyxcclxuICBdKSxcclxuICBjYWxlbmRhclRhYmxlRGF5VGVtcGxhdGU6IG5ldyBTaW1wbGF0ZShbXHJcbiAgICAnPHRkIGNsYXNzPVwiZGF5IHslPSAkLm1vbnRoICV9IHslPSAkLndlZWtlbmQgJX0geyU9ICQuc2VsZWN0ZWQgJX0geyU9ICQuaXNUb2RheSAlfVwiIGRhdGEtYWN0aW9uPVwiY2hhbmdlRGF5XCIgZGF0YS1kYXRlPVwieyU9ICQuZGF0ZSAlfVwiPicsXHJcbiAgICAgICd7JT0gJC5kYXkgJX0nLFxyXG4gICAgJzwvdGQ+JyxcclxuICBdKSxcclxuICBjYWxlbmRhclRhYmxlRGF5QWN0aXZlVGVtcGxhdGU6IG5ldyBTaW1wbGF0ZShbXHJcbiAgICAnPGRpdiBjbGFzcz1cImRheV9fYWN0aXZlXCI+JyxcclxuICAgICc8L2Rpdj4nLFxyXG4gIF0pLFxyXG4gIGNhbGVuZGFyVGFibGVXZWVrU3RhcnRUZW1wbGF0ZTogbmV3IFNpbXBsYXRlKFtcclxuICAgICc8dHIgY2xhc3M9XCJjYWxlbmRhci13ZWVrXCI+JyxcclxuICBdKSxcclxuICBjYWxlbmRhclRhYmxlV2Vla0VuZFRlbXBsYXRlOiBuZXcgU2ltcGxhdGUoW1xyXG4gICAgJzwvdHI+JyxcclxuICBdKSxcclxuICBjYWxlbmRhcldlZWtEYXlzVGVtcGxhdGU6IG5ldyBTaW1wbGF0ZShbXHJcbiAgICAnPHRyIGNsYXNzPVwiY2FsZW5kYXItd2Vla2RheXNcIj4nLFxyXG4gICAgICAnPHRoPnslPSAkLndlZWtEYXlzU2hvcnRUZXh0WzBdICV9PC90aD4nLFxyXG4gICAgICAnPHRoPnslPSAkLndlZWtEYXlzU2hvcnRUZXh0WzFdICV9PC90aD4nLFxyXG4gICAgICAnPHRoPnslPSAkLndlZWtEYXlzU2hvcnRUZXh0WzJdICV9PC90aD4nLFxyXG4gICAgICAnPHRoPnslPSAkLndlZWtEYXlzU2hvcnRUZXh0WzNdICV9PC90aD4nLFxyXG4gICAgICAnPHRoPnslPSAkLndlZWtEYXlzU2hvcnRUZXh0WzRdICV9PC90aD4nLFxyXG4gICAgICAnPHRoPnslPSAkLndlZWtEYXlzU2hvcnRUZXh0WzVdICV9PC90aD4nLFxyXG4gICAgICAnPHRoPnslPSAkLndlZWtEYXlzU2hvcnRUZXh0WzZdICV9PC90aD4nLFxyXG4gICAgJzwvdHI+JyxcclxuICBdKSxcclxuXHJcbiAgLy8gTG9jYWxpemF0aW9uXHJcbiAgdGl0bGVUZXh0OiByZXNvdXJjZS50aXRsZVRleHQsXHJcbiAgYW1UZXh0OiByZXNvdXJjZS5hbVRleHQsXHJcbiAgcG1UZXh0OiByZXNvdXJjZS5wbVRleHQsXHJcbiAgY2xlYXJUZXh0OiByZXNvdXJjZS5jbGVhclRleHQsXHJcbiAgdG9kYXlUZXh0OiByZXNvdXJjZS50b2RheVRleHQsXHJcbiAgbW9udGhzVGV4dDogW1xyXG4gICAge1xyXG4gICAgICB2YWx1ZTogcmVzb3VyY2UuamFudWFyeSxcclxuICAgICAga2V5OiAnamFudWFyeScsXHJcbiAgICB9LFxyXG4gICAge1xyXG4gICAgICB2YWx1ZTogcmVzb3VyY2UuZmVicnVhcnksXHJcbiAgICAgIGtleTogJ2ZlYnJ1YXJ5JyxcclxuICAgIH0sXHJcbiAgICB7XHJcbiAgICAgIHZhbHVlOiByZXNvdXJjZS5tYXJjaCxcclxuICAgICAga2V5OiAnbWFyY2gnLFxyXG4gICAgfSxcclxuICAgIHtcclxuICAgICAgdmFsdWU6IHJlc291cmNlLmFwcmlsLFxyXG4gICAgICBrZXk6ICdhcHJpbCcsXHJcbiAgICB9LFxyXG4gICAge1xyXG4gICAgICB2YWx1ZTogcmVzb3VyY2UubWF5LFxyXG4gICAgICBrZXk6ICdtYXknLFxyXG4gICAgfSxcclxuICAgIHtcclxuICAgICAgdmFsdWU6IHJlc291cmNlLmp1bmUsXHJcbiAgICAgIGtleTogJ2p1bmUnLFxyXG4gICAgfSxcclxuICAgIHtcclxuICAgICAgdmFsdWU6IHJlc291cmNlLmp1bHksXHJcbiAgICAgIGtleTogJ2p1bHknLFxyXG4gICAgfSxcclxuICAgIHtcclxuICAgICAgdmFsdWU6IHJlc291cmNlLmF1Z3VzdCxcclxuICAgICAga2V5OiAnYXVndXN0JyxcclxuICAgIH0sXHJcbiAgICB7XHJcbiAgICAgIHZhbHVlOiByZXNvdXJjZS5zZXB0ZW1iZXIsXHJcbiAgICAgIGtleTogJ3NlcHRlbWJlcicsXHJcbiAgICB9LFxyXG4gICAge1xyXG4gICAgICB2YWx1ZTogcmVzb3VyY2Uub2N0b2JlcixcclxuICAgICAga2V5OiAnb2N0b2JlcicsXHJcbiAgICB9LFxyXG4gICAge1xyXG4gICAgICB2YWx1ZTogcmVzb3VyY2Uubm92ZW1iZXIsXHJcbiAgICAgIGtleTogJ25vdmVtYmVyJyxcclxuICAgIH0sXHJcbiAgICB7XHJcbiAgICAgIHZhbHVlOiByZXNvdXJjZS5kZWNlbWJlcixcclxuICAgICAga2V5OiAnZGVjZW1iZXInLFxyXG4gICAgfSxcclxuICBdLFxyXG4gIHdlZWtEYXlzU2hvcnRUZXh0OiBbXHJcbiAgICByZXNvdXJjZS5zdW5kYXlBYmJyZXZpYXRlZCxcclxuICAgIHJlc291cmNlLm1vbmRheUFiYnJldmlhdGVkLFxyXG4gICAgcmVzb3VyY2UudHVlc2RheUFiYnJldmlhdGVkLFxyXG4gICAgcmVzb3VyY2Uud2VkbmVzZGF5QWJicmV2aWF0ZWQsXHJcbiAgICByZXNvdXJjZS50aHVyc2RheUFiYnJldmlhdGVkLFxyXG4gICAgcmVzb3VyY2UuZnJpZGF5QWJicmV2aWF0ZWQsXHJcbiAgICByZXNvdXJjZS5zYXR1cmRheUFiYnJldmlhdGVkLFxyXG4gIF0sXHJcblxyXG4gIC8vIERhdGUgaXMgYW4gb2JqZWN0IGNvbnRhaW5pbmcgc2VsZWN0ZWQgZGF5LCBtb250aCwgeWVhciwgdGltZSwgdG9kYXlNb21lbnQgKHRvZGF5KSwgc2VsZWN0ZWREYXRlTW9tZW50LCBldGMuXHJcbiAgZGF0ZTogbnVsbCxcclxuICBpZDogJ2dlbmVyaWNfY2FsZW5kYXInLFxyXG4gIC8vIFRoaXMgYm9vbGVhbiB2YWx1ZSBpcyB1c2VkIHRvIHRyaWdnZXIgdGhlIG1vZGFsIGhpZGUgYW5kIHNob3cgYW5kIG11c3QgYmUgdXNlZCBieSBlYWNoIGVudGl0eVxyXG4gIGlzTW9kYWw6IGZhbHNlLFxyXG4gIG5vQ2xlYXJCdXR0b246IGZhbHNlLFxyXG4gIHNob3dUaW1lUGlja2VyOiB0cnVlLFxyXG4gIHNob3dTdWJWYWx1ZXM6IHRydWUsXHJcbiAgX2N1cnJlbnRNb250aDogbnVsbCxcclxuICBfY3VycmVudFllYXI6IG51bGwsXHJcbiAgX21vbnRoRHJvcGRvd246IG51bGwsXHJcbiAgX3NlbGVjdFdlZWs6IGZhbHNlLFxyXG4gIF9zZWxlY3RlZERheTogbnVsbCxcclxuICBfdG9kYXlNb250aDogbnVsbCxcclxuICBfdG9kYXlZZWFyOiBudWxsLFxyXG4gIF93aWRnZXROYW1lOiAnY2FsZW5kYXInLFxyXG4gIF95ZWFyRHJvcGRvd246IG51bGwsXHJcblxyXG4gIGNoYW5nZURheTogZnVuY3Rpb24gY2hhbmdlRGF5KHBhcmFtcykge1xyXG4gICAgaWYgKCF0aGlzLl9zZWxlY3RXZWVrKSB7XHJcbiAgICAgIHRoaXMuY2hhbmdlU2luZ2xlRGF5KHBhcmFtcyk7XHJcbiAgICB9IGVsc2Uge1xyXG4gICAgICB0aGlzLmNoYW5nZVdlZWsocGFyYW1zKTtcclxuICAgIH1cclxuXHJcbiAgICByZXR1cm4gdGhpcztcclxuICB9LFxyXG4gIGNoYW5nZU1vbnRoU2hvd246IGZ1bmN0aW9uIGNoYW5nZU1vbnRoU2hvd24oeyBtb250aCB9KSB7XHJcbiAgICB0aGlzLl9tb250aERyb3Bkb3duLnNldFZhbHVlKG1vbnRoLnRvTG93ZXJDYXNlKCkpO1xyXG4gICAgcmV0dXJuIHRoaXM7XHJcbiAgfSxcclxuICBjaGFuZ2VTaW5nbGVEYXk6IGZ1bmN0aW9uIGNoYW5nZVNpbmdsZURheShwYXJhbXMpIHtcclxuICAgIGlmIChwYXJhbXMpIHtcclxuICAgICAgY29uc3Qgc2VsZWN0ZWQgPSBxdWVyeSgnLnNlbGVjdGVkJywgdGhpcy53ZWVrc05vZGUpO1xyXG5cclxuICAgICAgaWYgKHNlbGVjdGVkKSB7XHJcbiAgICAgICAgYXJyYXkuZm9yRWFjaChzZWxlY3RlZCwgKGRheSkgPT4ge1xyXG4gICAgICAgICAgZG9tQ2xhc3MucmVtb3ZlKGRheSwgJ3NlbGVjdGVkJyk7XHJcbiAgICAgICAgfSk7XHJcbiAgICAgIH1cclxuXHJcbiAgICAgIGlmIChzZWxlY3RlZCkge1xyXG4gICAgICAgIGRvbUNsYXNzLnJlbW92ZShzZWxlY3RlZCwgJ3NlbGVjdGVkJyk7XHJcbiAgICAgIH1cclxuXHJcbiAgICAgIGlmIChwYXJhbXMuJHNvdXJjZSkge1xyXG4gICAgICAgIHRoaXMuX3NlbGVjdGVkRGF5ID0gcGFyYW1zLiRzb3VyY2U7XHJcbiAgICAgICAgZG9tQ2xhc3MuYWRkKHBhcmFtcy4kc291cmNlLCAnc2VsZWN0ZWQnKTtcclxuICAgICAgfVxyXG5cclxuICAgICAgaWYgKHBhcmFtcy5kYXRlKSB7XHJcbiAgICAgICAgdGhpcy5kYXRlLnNlbGVjdGVkRGF0ZU1vbWVudCA9IG1vbWVudChwYXJhbXMuZGF0ZSwgJ1lZWVktTU0tREQnKTtcclxuICAgICAgfVxyXG5cclxuICAgICAgaWYgKHRoaXMuZGF0ZS5tb250aE51bWJlciAhPT0gdGhpcy5kYXRlLnNlbGVjdGVkRGF0ZU1vbWVudC5tb250aCgpKSB7XHJcbiAgICAgICAgdGhpcy5yZWZyZXNoQ2FsZW5kYXIodGhpcy5kYXRlKTtcclxuICAgICAgfVxyXG4gICAgfVxyXG4gICAgcmV0dXJuIHRoaXM7XHJcbiAgfSxcclxuICBjaGFuZ2VXZWVrOiBmdW5jdGlvbiBjaGFuZ2VXZWVrKHBhcmFtcykge1xyXG4gICAgaWYgKHBhcmFtcykge1xyXG4gICAgICBjb25zdCBzZWxlY3RlZCA9IHF1ZXJ5KCcuc2VsZWN0ZWQnLCB0aGlzLndlZWtzTm9kZSk7XHJcblxyXG4gICAgICBpZiAoc2VsZWN0ZWQpIHtcclxuICAgICAgICBhcnJheS5mb3JFYWNoKHNlbGVjdGVkLCAoZGF5KSA9PiB7XHJcbiAgICAgICAgICBkb21DbGFzcy5yZW1vdmUoZGF5LCAnc2VsZWN0ZWQnKTtcclxuICAgICAgICB9KTtcclxuICAgICAgfVxyXG5cclxuICAgICAgaWYgKHBhcmFtcy4kc291cmNlLnBhcmVudE5vZGUpIHtcclxuICAgICAgICB0aGlzLl9zZWxlY3RlZERheSA9IHBhcmFtcy4kc291cmNlO1xyXG4gICAgICAgIGFycmF5LmZvckVhY2gocGFyYW1zLiRzb3VyY2UucGFyZW50Tm9kZS5jaGlsZHJlbiwgKGRheSkgPT4ge1xyXG4gICAgICAgICAgZG9tQ2xhc3MuYWRkKGRheSwgJ3NlbGVjdGVkJyk7XHJcbiAgICAgICAgfSk7XHJcbiAgICAgIH1cclxuXHJcbiAgICAgIGlmIChwYXJhbXMuZGF0ZSkge1xyXG4gICAgICAgIHRoaXMuZGF0ZS5zZWxlY3RlZERhdGVNb21lbnQgPSBtb21lbnQocGFyYW1zLmRhdGUsICdZWVlZLU1NLUREJyk7XHJcbiAgICAgIH1cclxuXHJcbiAgICAgIGlmICh0aGlzLmRhdGUubW9udGhOdW1iZXIgIT09IHRoaXMuZGF0ZS5zZWxlY3RlZERhdGVNb21lbnQubW9udGgoKSkge1xyXG4gICAgICAgIHRoaXMucmVmcmVzaENhbGVuZGFyKHRoaXMuZGF0ZSk7XHJcbiAgICAgIH1cclxuICAgIH1cclxuICAgIHJldHVybiB0aGlzO1xyXG4gIH0sXHJcbiAgY2hhbmdlWWVhclNob3duOiBmdW5jdGlvbiBjaGFuZ2VZZWFyU2hvd24oeyB5ZWFyIH0pIHtcclxuICAgIHRoaXMuX3llYXJEcm9wZG93bi5zZXRWYWx1ZSh5ZWFyKTtcclxuICAgIHJldHVybiB0aGlzO1xyXG4gIH0sXHJcbiAgY2hlY2tBbmRSZW5kZXJEYXk6IGZ1bmN0aW9uIGNoZWNrQW5kUmVuZGVyRGF5KGRhdGEgPSB7fSkge1xyXG4gICAgY29uc3QgZGF5SW5kZXhlciA9IGRhdGEuZGF5ICsgZGF0YS5zdGFydGluZ0RheSAtIDE7XHJcbiAgICBpZiAoZGF0YS5kYXkgPT09IGRhdGEudG9kYXlNb21lbnQuZGF0ZSgpICYmIGRhdGEudG9kYXlNb21lbnQubW9udGgoKSA9PT0gZGF0YS5kYXRlTW9tZW50Lm1vbnRoKCkgJiYgZGF0YS50b2RheU1vbWVudC55ZWFyKCkgPT09IGRhdGEuZGF0ZU1vbWVudC55ZWFyKCkpIHtcclxuICAgICAgZGF0YS5pc1RvZGF5ID0gJ2lzVG9kYXknO1xyXG4gICAgfSBlbHNlIHtcclxuICAgICAgZGF0YS5pc1RvZGF5ID0gJyc7XHJcbiAgICB9XHJcbiAgICBpZiAoZGF5SW5kZXhlciAlIDcgPT09IGRhdGEud2Vla0VuZHMuU3VuZGF5IHx8IGRheUluZGV4ZXIgJSA3ID09PSBkYXRhLndlZWtFbmRzLlNhdHVyZGF5KSB7XHJcbiAgICAgIGRhdGEud2Vla2VuZCA9ICd3ZWVrZW5kJztcclxuICAgIH0gZWxzZSB7XHJcbiAgICAgIGRhdGEud2Vla2VuZCA9ICcnO1xyXG4gICAgfVxyXG4gICAgZGF0YS5kYXRlID0gZGF0YS5kYXRlTW9tZW50LmNsb25lKCkuZGF0ZShkYXRhLmRheSkuZm9ybWF0KCdZWVlZLU1NLUREJyk7XHJcbiAgICBjb25zdCBkYXkgPSBkb21Db25zdHJ1Y3QudG9Eb20odGhpcy5jYWxlbmRhclRhYmxlRGF5VGVtcGxhdGUuYXBwbHkoZGF0YSwgdGhpcykpO1xyXG4gICAgaWYgKGRhdGEuZGF5ID09PSB0aGlzLmRhdGUuZGF5Tm9kZSAmJiBkYXRhLm1vbnRoID09PSAnY3VycmVudC1tb250aCcpIHtcclxuICAgICAgdGhpcy5fc2VsZWN0ZWREYXkgPSBkYXk7XHJcbiAgICB9XHJcbiAgICBpZiAodGhpcy5zaG93U3ViVmFsdWVzKSB7XHJcbiAgICAgIHRoaXMuc2V0U3ViVmFsdWUoZGF5LCBkYXRhKVxyXG4gICAgICAgICAgLnNldEFjdGl2ZURheShkYXkpO1xyXG4gICAgfVxyXG4gICAgZG9tQ29uc3RydWN0LnBsYWNlKGRheSwgZGF0YS53ZWVrKTtcclxuICB9LFxyXG4gIGNsZWFyQ2FsZW5kYXI6IGZ1bmN0aW9uIGNsZWFyQ2FsZW5kYXIoKSB7XHJcbiAgICBjb25zdCBzZWxlY3RlZCA9IHF1ZXJ5KCcuc2VsZWN0ZWQnLCB0aGlzLndlZWtzTm9kZSlbMF07XHJcblxyXG4gICAgaWYgKHNlbGVjdGVkKSB7XHJcbiAgICAgIGRvbUNsYXNzLnJlbW92ZShzZWxlY3RlZCwgJ3NlbGVjdGVkJyk7XHJcbiAgICB9XHJcbiAgICB0aGlzLmRhdGUuc2VsZWN0ZWREYXRlTW9tZW50ID0gbnVsbDtcclxuICB9LFxyXG4gIGNyZWF0ZU1vbnRoRHJvcGRvd246IGZ1bmN0aW9uIGNyZWF0ZU1vbnRoRHJvcGRvd24oKSB7XHJcbiAgICBpZiAoIXRoaXMuX21vbnRoRHJvcGRvd24pIHtcclxuICAgICAgdGhpcy5fbW9udGhEcm9wZG93biA9IG5ldyBEcm9wZG93bih7IGlkOiAnbW9udGgtZHJvcGRvd24gJyArIHRoaXMuaWQsIGRyb3Bkb3duQ2xhc3M6ICdkcm9wZG93bi0tbWVkaXVtJywgb25TZWxlY3Q6IHRoaXMuc2V0TW9udGgsIG9uU2VsZWN0U2NvcGU6IHRoaXMgfSk7XHJcbiAgICAgIHRoaXMuX21vbnRoRHJvcGRvd24uY3JlYXRlTGlzdCh7IGl0ZW1zOiB0aGlzLm1vbnRoc1RleHQsIGRlZmF1bHRWYWx1ZTogdGhpcy5kYXRlLnNlbGVjdGVkRGF0ZU1vbWVudC5mb3JtYXQoJ01NTU0nKS50b0xvd2VyQ2FzZSgpfSk7XHJcbiAgICAgIHRoaXMuX3RvZGF5TW9udGggPSB0aGlzLl9tb250aERyb3Bkb3duLmdldFNlbGVjdGVkKCk7XHJcbiAgICAgIGRvbUNvbnN0cnVjdC5wbGFjZSh0aGlzLl9tb250aERyb3Bkb3duLmRvbU5vZGUsIHRoaXMubW9udGhOb2RlKTtcclxuICAgIH1cclxuICAgIHJldHVybiB0aGlzO1xyXG4gIH0sXHJcbiAgY3JlYXRlWWVhckRyb3Bkb3duOiBmdW5jdGlvbiBjcmVhdGVZZWFyRHJvcGRvd24oKSB7XHJcbiAgICBpZiAoIXRoaXMuX3llYXJEcm9wZG93bikge1xyXG4gICAgICB0aGlzLl95ZWFyRHJvcGRvd24gPSBuZXcgRHJvcGRvd24oeyBpZDogJ3llYXItZHJvcGRvd24gJyArIHRoaXMuaWQsIG9uU2VsZWN0OiB0aGlzLnNldFllYXIsIG9uU2VsZWN0U2NvcGU6IHRoaXMgfSk7XHJcbiAgICAgIHRoaXMuX3llYXJEcm9wZG93bi5jcmVhdGVMaXN0KHsgaXRlbXM6IHRoaXMuZ2V0WWVhclJhbmdlKCksIGRlZmF1bHRWYWx1ZTogdGhpcy5kYXRlLnNlbGVjdGVkRGF0ZU1vbWVudC5mb3JtYXQoJ1lZWVknKX0pO1xyXG4gICAgICB0aGlzLl90b2RheVllYXIgPSB0aGlzLl95ZWFyRHJvcGRvd24uZ2V0U2VsZWN0ZWQoKTtcclxuICAgICAgZG9tQ29uc3RydWN0LnBsYWNlKHRoaXMuX3llYXJEcm9wZG93bi5kb21Ob2RlLCB0aGlzLnllYXJOb2RlKTtcclxuICAgIH1cclxuICAgIHJldHVybiB0aGlzO1xyXG4gIH0sXHJcbiAgZGVjcmVtZW50TW9udGg6IGZ1bmN0aW9uIGRlY3JlbWVudE1vbnRoKCkge1xyXG4gICAgdGhpcy5kYXRlLnNlbGVjdGVkRGF0ZU1vbWVudC5zdWJ0cmFjdCh7IG1vbnRoczogMSB9KTtcclxuICAgIHRoaXMucmVmcmVzaENhbGVuZGFyKHRoaXMuZGF0ZSk7XHJcbiAgfSxcclxuICBkZXN0cm95OiBmdW5jdGlvbiBkZXN0cm95KCkge1xyXG4gICAgdGhpcy5feWVhckRyb3Bkb3duLmRlc3Ryb3koKTtcclxuICAgIHRoaXMuX21vbnRoRHJvcGRvd24uZGVzdHJveSgpO1xyXG4gICAgdGhpcy5pbmhlcml0ZWQoYXJndW1lbnRzKTtcclxuICB9LFxyXG4gIGdldENvbnRlbnQ6IGZ1bmN0aW9uIGdldENvbnRlbnQoKSB7XHJcbiAgICBpZiAodGhpcy5vcHRpb25zLnRpbWVsZXNzKSB7XHJcbiAgICAgIC8vIFJldmVydCBiYWNrIHRvIHRpbWVsZXNzXHJcbiAgICAgIHRoaXMuZGF0ZS5zZWxlY3RlZERhdGVNb21lbnQuYWRkKHtcclxuICAgICAgICBtaW51dGVzOiB0aGlzLmRhdGUuc2VsZWN0ZWREYXRlTW9tZW50LnV0Y09mZnNldCgpLFxyXG4gICAgICB9KTtcclxuICAgIH1cclxuICAgIHJldHVybiB0aGlzLmRhdGU7XHJcbiAgfSxcclxuICBnb1RvVG9kYXk6IGZ1bmN0aW9uIGdvVG9Ub2RheSgpIHtcclxuICAgIGlmICh0aGlzLmRhdGUuc2VsZWN0ZWREYXRlTW9tZW50Lm1vbnRoKCkgIT09IHRoaXMuZGF0ZS50b2RheU1vbWVudC5tb250aCgpIHx8IHRoaXMuZGF0ZS5zZWxlY3RlZERhdGVNb21lbnQueWVhcigpICE9PSB0aGlzLmRhdGUudG9kYXlNb21lbnQueWVhcigpKSB7XHJcbiAgICAgIHRoaXMuZGF0ZS5zZWxlY3RlZERhdGVNb21lbnQgPSB0aGlzLmRhdGUudG9kYXlNb21lbnQ7XHJcbiAgICAgIHRoaXMucmVmcmVzaENhbGVuZGFyKHRoaXMuZGF0ZSk7XHJcbiAgICB9XHJcbiAgICBjb25zdCBkYXkgPSBxdWVyeSgnLmlzVG9kYXknLCB0aGlzLndlZWtzTm9kZSlbMF07XHJcbiAgICBsZXQgcGFyYW1zID0ge307XHJcbiAgICBpZiAoZGF5KSB7XHJcbiAgICAgIHBhcmFtcyA9IHsgJHNvdXJjZTogZGF5LCBkYXRlOiBkYXkuZGF0YXNldC5kYXRlIH07XHJcbiAgICB9XHJcbiAgICB0aGlzLmNoYW5nZURheShwYXJhbXMpO1xyXG4gICAgdGhpcy5zZXREcm9wZG93bnNUb2RheSgpO1xyXG4gIH0sXHJcbiAgZ2V0RGF0ZVRpbWU6IGZ1bmN0aW9uIGdldERhdGVUaW1lKCkge1xyXG4gICAgY29uc3QgcmVzdWx0ID0gdGhpcy5kYXRlLnNlbGVjdGVkRGF0ZU1vbWVudDtcclxuICAgIHJldHVybiByZXN1bHQudG9EYXRlKCk7XHJcbiAgfSxcclxuICBnZXRTZWxlY3RlZERhdGVNb21lbnQ6IGZ1bmN0aW9uIGdldFNlbGVjdGVkRGF0ZU1vbWVudCgpIHtcclxuICAgIHJldHVybiB0aGlzLmRhdGUuc2VsZWN0ZWREYXRlTW9tZW50O1xyXG4gIH0sXHJcbiAgZ2V0WWVhclJhbmdlOiBmdW5jdGlvbiBnZXRZZWFyUmFuZ2UoKSB7XHJcbiAgICBjb25zdCBpdGVtcyA9IFtdO1xyXG4gICAgY29uc3QgdGhpc1llYXIgPSB0aGlzLmRhdGUudG9kYXlNb21lbnQueWVhcigpO1xyXG4gICAgZm9yIChsZXQgaSA9IHRoaXNZZWFyIC0gMTA7IGkgPD0gdGhpc1llYXIgKyAxMDsgaSsrKSB7XHJcbiAgICAgIGl0ZW1zLnB1c2goXHJcbiAgICAgICAge1xyXG4gICAgICAgICAgdmFsdWU6IGksXHJcbiAgICAgICAgICBrZXk6IGksXHJcbiAgICAgICAgfVxyXG4gICAgICApO1xyXG4gICAgfVxyXG4gICAgcmV0dXJuIGl0ZW1zO1xyXG4gIH0sXHJcbiAgaW5jcmVtZW50TW9udGg6IGZ1bmN0aW9uIGluY3JlbWVudE1vbnRoKCkge1xyXG4gICAgdGhpcy5kYXRlLnNlbGVjdGVkRGF0ZU1vbWVudC5hZGQoeyBtb250aHM6IDEgfSk7XHJcbiAgICB0aGlzLnJlZnJlc2hDYWxlbmRhcih0aGlzLmRhdGUpO1xyXG4gIH0sXHJcbiAgaW5pdDogZnVuY3Rpb24gaW5pdCgpIHtcclxuICAgIHRoaXMuaW5oZXJpdGVkKGFyZ3VtZW50cyk7XHJcbiAgfSxcclxuICBpc0FjdGl2ZTogZnVuY3Rpb24gaXNBY3RpdmUoZGF5KSB7XHJcbiAgICBpZiAoZGF5KSB7XHJcbiAgICAgIHJldHVybiBxdWVyeSgnLmRheV9fYWN0aXZlJywgZGF5KVswXTtcclxuICAgIH1cclxuICB9LFxyXG4gIHBvc3RSZW5kZXJDYWxlbmRhcjogZnVuY3Rpb24gcG9zdFJlbmRlckNhbGVuZGFyKCkge1xyXG4gICAgaWYgKHRoaXMuX3NlbGVjdFdlZWspIHtcclxuICAgICAgdGhpcy5jaGFuZ2VXZWVrKHsgJHNvdXJjZTogdGhpcy5fc2VsZWN0ZWREYXkgfSk7XHJcbiAgICB9XHJcbiAgfSxcclxuICByZWZyZXNoQ2FsZW5kYXI6IGZ1bmN0aW9uIHJlZnJlc2hDYWxlbmRhcihkYXRlID0ge30pIHtcclxuICAgIGRvbUNvbnN0cnVjdC5lbXB0eSh0aGlzLndlZWtzTm9kZSk7XHJcbiAgICB0aGlzLnJlbmRlckNhbGVuZGFyKGRhdGUpXHJcbiAgICAgICAgLmNoYW5nZU1vbnRoU2hvd24oZGF0ZSlcclxuICAgICAgICAuY2hhbmdlWWVhclNob3duKGRhdGUpO1xyXG4gICAgcmV0dXJuIHRoaXM7XHJcbiAgfSxcclxuICByZW1vdmVBY3RpdmU6IGZ1bmN0aW9uIHJlbW92ZUFjdGl2ZShkYXkpIHtcclxuICAgIGlmIChkYXkpIHtcclxuICAgICAgY29uc3QgYWN0aXZlID0gdGhpcy5pc0FjdGl2ZShkYXkpO1xyXG4gICAgICBpZiAoYWN0aXZlKSB7XHJcbiAgICAgICAgZG9tQ29uc3RydWN0LmRlc3Ryb3koYWN0aXZlKTtcclxuICAgICAgfVxyXG4gICAgfVxyXG4gICAgcmV0dXJuIHRoaXM7XHJcbiAgfSxcclxuICByZW5kZXJDYWxlbmRhcjogZnVuY3Rpb24gcmVuZGVyQ2FsZW5kYXIoeyB0b2RheU1vbWVudCwgc2VsZWN0ZWREYXRlTW9tZW50IH0pIHtcclxuICAgIGNvbnN0IGRheXNJbk1vbnRoID0gc2VsZWN0ZWREYXRlTW9tZW50LmRheXNJbk1vbnRoKCk7XHJcbiAgICBjb25zdCBzdGFydGluZ0RheSA9IHNlbGVjdGVkRGF0ZU1vbWVudC5jbG9uZSgpLnN0YXJ0T2YoJ21vbnRoJykuZGF5KCk7XHJcbiAgICBjb25zdCBlbmRQcmV2TW9udGggPSBzZWxlY3RlZERhdGVNb21lbnQuY2xvbmUoKS5zdGFydE9mKCdtb250aCcpLnN1YnRyYWN0KHsgZGF5czogc3RhcnRpbmdEYXkgfSk7XHJcbiAgICBjb25zdCBzdGFydE5leHRNb250aCA9IHNlbGVjdGVkRGF0ZU1vbWVudC5jbG9uZSgpLmVuZE9mKCdtb250aCcpLmFkZCh7IGRheXM6IDEgfSk7XHJcbiAgICBjb25zdCBkYXRhID0ge1xyXG4gICAgICB0b2RheU1vbWVudCxcclxuICAgICAgc2VsZWN0ZWREYXRlTW9tZW50LFxyXG4gICAgICBkYXRlTW9tZW50OiBlbmRQcmV2TW9udGguY2xvbmUoKSxcclxuICAgICAgd2VlazogZG9tQ29uc3RydWN0LnRvRG9tKHRoaXMuY2FsZW5kYXJUYWJsZVdlZWtTdGFydFRlbXBsYXRlLmFwcGx5KCkpLFxyXG4gICAgICBzdGFydGluZ0RheTogZW5kUHJldk1vbnRoLmNsb25lKCkuc3RhcnRPZignbW9udGgnKS5kYXkoKSxcclxuICAgICAgd2Vla0VuZHM6IHtcclxuICAgICAgICBTdW5kYXk6IDAsXHJcbiAgICAgICAgU2F0dXJkYXk6IDYsXHJcbiAgICAgIH0sXHJcbiAgICB9O1xyXG5cclxuICAgIC8vIEl0ZXJhdGUgdGhyb3VnaCB0aGUgZGF5cyB0aGF0IGFyZSBpbiB0aGUgc3RhcnQgd2VlayBvZiB0aGUgY3VycmVudCBtb250aCBidXQgYXJlIGluIHRoZSBwcmV2aW91cyBtb250aFxyXG4gICAgZm9yIChsZXQgZGF5ID0gZW5kUHJldk1vbnRoLmRhdGUoKTsgZGF5IDwgZW5kUHJldk1vbnRoLmRhdGUoKSArIHN0YXJ0aW5nRGF5OyBkYXkrKykge1xyXG4gICAgICBkYXRhLmRheSA9IGRheTtcclxuICAgICAgdGhpcy5jaGVja0FuZFJlbmRlckRheShkYXRhKTtcclxuICAgIH1cclxuXHJcbiAgICBkYXRhLm1vbnRoID0gJ2N1cnJlbnQtbW9udGgnO1xyXG4gICAgZGF0YS5zdGFydGluZ0RheSA9IHN0YXJ0aW5nRGF5O1xyXG4gICAgZGF0YS5kYXRlTW9tZW50ID0gc2VsZWN0ZWREYXRlTW9tZW50LmNsb25lKCk7XHJcbiAgICBmb3IgKGxldCBkYXkgPSAxOyBkYXkgPD0gZGF5c0luTW9udGg7IGRheSsrKSB7XHJcbiAgICAgIGlmIChkYXkgPT09IHNlbGVjdGVkRGF0ZU1vbWVudC5kYXRlKCkpIHtcclxuICAgICAgICBkYXRhLnNlbGVjdGVkID0gJ3NlbGVjdGVkJztcclxuICAgICAgICB0aGlzLmRhdGUuZGF5Tm9kZSA9IGRheTtcclxuICAgICAgfSBlbHNlIHtcclxuICAgICAgICBkYXRhLnNlbGVjdGVkID0gJyc7XHJcbiAgICAgIH1cclxuICAgICAgZGF0YS5kYXkgPSBkYXk7XHJcbiAgICAgIHRoaXMuY2hlY2tBbmRSZW5kZXJEYXkoZGF0YSk7XHJcbiAgICAgIGlmICgoZGF5ICsgc3RhcnRpbmdEYXkpICUgNyA9PT0gMCkge1xyXG4gICAgICAgIGRvbUNvbnN0cnVjdC5wbGFjZSh0aGlzLmNhbGVuZGFyVGFibGVXZWVrRW5kVGVtcGxhdGUuYXBwbHkoKSwgZGF0YS53ZWVrKTtcclxuICAgICAgICBkb21Db25zdHJ1Y3QucGxhY2UoZGF0YS53ZWVrLCB0aGlzLndlZWtzTm9kZSk7XHJcbiAgICAgICAgZGF0YS53ZWVrID0gZG9tQ29uc3RydWN0LnRvRG9tKHRoaXMuY2FsZW5kYXJUYWJsZVdlZWtTdGFydFRlbXBsYXRlLmFwcGx5KCkpO1xyXG4gICAgICB9XHJcbiAgICB9XHJcblxyXG4gICAgZGF0YS5zZWxlY3RlZCA9ICcnO1xyXG4gICAgZGF0YS5tb250aCA9ICcnO1xyXG4gICAgZGF0YS5zdGFydGluZ0RheSA9IHN0YXJ0TmV4dE1vbnRoLmRheSgpO1xyXG4gICAgZGF0YS5kYXRlTW9tZW50ID0gc3RhcnROZXh0TW9udGguY2xvbmUoKTtcclxuICAgIC8vIEl0ZXJhdGUgdGhyb3VnaCByZW1haW5pbmcgZGF5cyBvZiB0aGUgd2VlayBiYXNlZCBvbiA3IGRheXMgaW4gdGhlIHdlZWsgYW5kIGVuc3VyZSB0aGVyZSBhcmUgNiB3ZWVrcyBzaG93biAoZm9yIGNvbnNpc3RlbmN5KVxyXG4gICAgZm9yIChsZXQgZGF5ID0gMTsgZGF5IDw9ICgxICsgZGF0YS53ZWVrRW5kcy5TYXR1cmRheSAtIHN0YXJ0TmV4dE1vbnRoLmRheSgpKTsgZGF5KyspIHtcclxuICAgICAgZGF0YS5kYXkgPSBkYXk7XHJcbiAgICAgIHRoaXMuY2hlY2tBbmRSZW5kZXJEYXkoZGF0YSk7XHJcbiAgICB9XHJcbiAgICBkb21Db25zdHJ1Y3QucGxhY2UodGhpcy5jYWxlbmRhclRhYmxlV2Vla0VuZFRlbXBsYXRlLmFwcGx5KCksIGRhdGEud2Vlayk7XHJcbiAgICBkb21Db25zdHJ1Y3QucGxhY2UoZGF0YS53ZWVrLCB0aGlzLndlZWtzTm9kZSk7XHJcblxyXG4gICAgaWYgKHRoaXMud2Vla3NOb2RlLmNoaWxkcmVuLmxlbmd0aCA9PT0gNSkge1xyXG4gICAgICBkYXRhLndlZWsgPSBkb21Db25zdHJ1Y3QudG9Eb20odGhpcy5jYWxlbmRhclRhYmxlV2Vla1N0YXJ0VGVtcGxhdGUuYXBwbHkoKSk7XHJcbiAgICAgIGZvciAobGV0IGRheSA9IDIgKyBkYXRhLndlZWtFbmRzLlNhdHVyZGF5IC0gc3RhcnROZXh0TW9udGguZGF5KCk7IGRheSA8PSAoOCArIGRhdGEud2Vla0VuZHMuU2F0dXJkYXkgLSBzdGFydE5leHRNb250aC5kYXkoKSk7IGRheSsrKSB7XHJcbiAgICAgICAgZGF0YS5kYXkgPSBkYXk7XHJcbiAgICAgICAgdGhpcy5jaGVja0FuZFJlbmRlckRheShkYXRhKTtcclxuICAgICAgfVxyXG4gICAgICBkb21Db25zdHJ1Y3QucGxhY2UodGhpcy5jYWxlbmRhclRhYmxlV2Vla0VuZFRlbXBsYXRlLmFwcGx5KCksIGRhdGEud2Vlayk7XHJcbiAgICAgIGRvbUNvbnN0cnVjdC5wbGFjZShkYXRhLndlZWssIHRoaXMud2Vla3NOb2RlKTtcclxuICAgIH1cclxuXHJcbiAgICB0aGlzLnNldERhdGVPYmplY3Qoc2VsZWN0ZWREYXRlTW9tZW50KTtcclxuXHJcbiAgICB0aGlzLnBvc3RSZW5kZXJDYWxlbmRhcigpO1xyXG5cclxuICAgIHJldHVybiB0aGlzO1xyXG4gIH0sXHJcbiAgc2V0QWN0aXZlRGF5OiBmdW5jdGlvbiBzZXRBY3RpdmVEYXkoZGF5ID0ge30pIHtcclxuICAgIGlmIChkYXkuc3ViVmFsdWUpIHtcclxuICAgICAgY29uc3QgYWN0aXZlID0gZG9tQ29uc3RydWN0LnRvRG9tKHRoaXMuY2FsZW5kYXJUYWJsZURheUFjdGl2ZVRlbXBsYXRlLmFwcGx5KHsgY291bnQ6IGRheS5zdWJWYWx1ZSB9LCB0aGlzKSk7XHJcbiAgICAgIGRvbUNvbnN0cnVjdC5wbGFjZShhY3RpdmUsIGRheSwgJ2xhc3QnKTtcclxuICAgIH1cclxuICAgIHJldHVybiB0aGlzO1xyXG4gIH0sXHJcbiAgc2V0RGF0ZU9iamVjdDogZnVuY3Rpb24gc2V0RGF0ZU9iamVjdChkYXRlTW9tZW50ID0ge30pIHtcclxuICAgIHRoaXMuZGF0ZS5kYXkgPSBkYXRlTW9tZW50LmRhdGUoKTtcclxuICAgIHRoaXMuZGF0ZS5tb250aCA9IGRhdGVNb21lbnQuZm9ybWF0KCdNTU1NJyk7XHJcbiAgICB0aGlzLmRhdGUubW9udGhOdW1iZXIgPSBkYXRlTW9tZW50Lm1vbnRoKCk7XHJcbiAgICB0aGlzLmRhdGUueWVhciA9IGRhdGVNb21lbnQueWVhcigpO1xyXG4gICAgdGhpcy5kYXRlLmRhdGUgPSBtb21lbnQoZGF0ZU1vbWVudCkudG9EYXRlKCk7XHJcblxyXG4gICAgcmV0dXJuIHRoaXM7XHJcbiAgfSxcclxuICBzZXREcm9wZG93bnNUb2RheTogZnVuY3Rpb24gc2V0RHJvcGRvd25zVG9kYXkoKSB7XHJcbiAgICBpZiAodGhpcy5fbW9udGhEcm9wZG93bi5nZXRTZWxlY3RlZCgpICE9PSB0aGlzLl90b2RheU1vbnRoKSB7XHJcbiAgICAgIHRoaXMuX21vbnRoRHJvcGRvd24uc2V0U2VsZWN0ZWQodGhpcy5fdG9kYXlNb250aCk7XHJcbiAgICB9XHJcbiAgICBpZiAodGhpcy5feWVhckRyb3Bkb3duLmdldFNlbGVjdGVkKCkgIT09IHRoaXMuX3RvZGF5WWVhcikge1xyXG4gICAgICB0aGlzLl95ZWFyRHJvcGRvd24uc2V0U2VsZWN0ZWQodGhpcy5fdG9kYXlZZWFyKTtcclxuICAgIH1cclxuICAgIHJldHVybiB0aGlzO1xyXG4gIH0sXHJcbiAgc2V0TW9udGg6IGZ1bmN0aW9uIHNldE1vbnRoKCkge1xyXG4gICAgdGhpcy5kYXRlLnNlbGVjdGVkRGF0ZU1vbWVudC5tb250aCh0aGlzLl9tb250aERyb3Bkb3duLmdldFZhbHVlKCkpO1xyXG4gICAgdGhpcy5yZWZyZXNoQ2FsZW5kYXIodGhpcy5kYXRlKTtcclxuICB9LFxyXG4gIHNldFN1YlZhbHVlOiBmdW5jdGlvbiBzZXRTdWJWYWx1ZSgpIHtcclxuICAgIHJldHVybiB0aGlzO1xyXG4gIH0sXHJcbiAgc2V0WWVhcjogZnVuY3Rpb24gc2V0WWVhcigpIHtcclxuICAgIHRoaXMuZGF0ZS5zZWxlY3RlZERhdGVNb21lbnQueWVhcih0aGlzLl95ZWFyRHJvcGRvd24uZ2V0VmFsdWUoKSk7XHJcbiAgICB0aGlzLnJlZnJlc2hDYWxlbmRhcih0aGlzLmRhdGUpO1xyXG4gIH0sXHJcbiAgc2hvdzogZnVuY3Rpb24gc2hvdyhvcHRpb25zID0ge30pIHtcclxuICAgIHRoaXMuZGF0ZSA9IHt9O1xyXG4gICAgdGhpcy5vcHRpb25zID0gb3B0aW9ucyB8fCB0aGlzLm9wdGlvbnM7XHJcblxyXG4gICAgdGhpcy50aXRsZVRleHQgPSB0aGlzLm9wdGlvbnMubGFiZWwgPyB0aGlzLm9wdGlvbnMubGFiZWwgOiB0aGlzLnRpdGxlVGV4dDtcclxuICAgIHRoaXMuc2hvd1RpbWVQaWNrZXIgPSB0aGlzLm9wdGlvbnMgJiYgdGhpcy5vcHRpb25zLnNob3dUaW1lUGlja2VyO1xyXG4gICAgaWYgKHRoaXMub3B0aW9ucy50aW1lbGVzcykge1xyXG4gICAgICAvLyBVbmRvIHRpbWVsZXNzXHJcbiAgICAgIGNvbnN0IHN0YXJ0RGF0ZSA9IG1vbWVudCh0aGlzLm9wdGlvbnMgJiYgdGhpcy5vcHRpb25zLmRhdGUpO1xyXG4gICAgICBzdGFydERhdGUuc3VidHJhY3Qoe1xyXG4gICAgICAgIG1pbnV0ZXM6IHN0YXJ0RGF0ZS51dGNPZmZzZXQoKSxcclxuICAgICAgfSk7XHJcbiAgICAgIHRoaXMuZGF0ZS5zZWxlY3RlZERhdGVNb21lbnQgPSBzdGFydERhdGU7XHJcbiAgICB9IGVsc2Uge1xyXG4gICAgICB0aGlzLmRhdGUuc2VsZWN0ZWREYXRlTW9tZW50ID0gbW9tZW50KCh0aGlzLm9wdGlvbnMgJiYgdGhpcy5vcHRpb25zLmRhdGUpIHx8IG1vbWVudCgpLmNsb25lKCkpO1xyXG4gICAgfVxyXG4gICAgdGhpcy5kYXRlLnRvZGF5TW9tZW50ID0gbW9tZW50KCk7XHJcbiAgICBpZiAodGhpcy5pc01vZGFsIHx8IHRoaXMub3B0aW9ucy5pc01vZGFsIHx8IHRoaXMubm9DbGVhckJ1dHRvbiB8fCB0aGlzLm9wdGlvbnMubm9DbGVhckJ1dHRvbikge1xyXG4gICAgICB0aGlzLmNsZWFyQnV0dG9uLnN0eWxlLmRpc3BsYXkgPSAnbm9uZSc7XHJcbiAgICB9XHJcbiAgICB0aGlzLmNyZWF0ZU1vbnRoRHJvcGRvd24oKVxyXG4gICAgICAgIC5jcmVhdGVZZWFyRHJvcGRvd24oKTtcclxuXHJcbiAgICB0aGlzLnJlZnJlc2hDYWxlbmRhcih0aGlzLmRhdGUpO1xyXG4gIH0sXHJcbiAgdG9nZ2xlU2VsZWN0V2VlazogZnVuY3Rpb24gdG9nZ2xlU2VsZWN0V2VlaygpIHtcclxuICAgIHRoaXMuX3NlbGVjdFdlZWsgPSAhdGhpcy5fc2VsZWN0V2VlaztcclxuICAgIHRoaXMuY2hhbmdlRGF5KHsgJHNvdXJjZTogdGhpcy5fc2VsZWN0ZWREYXkgfSk7XHJcbiAgfSxcclxufSk7XHJcblxyXG5sYW5nLnNldE9iamVjdCgnU2FnZS5QbGF0Zm9ybS5Nb2JpbGUuQ2FsZW5kYXInLCBfX2NsYXNzKTtcclxuZXhwb3J0IGRlZmF1bHQgX19jbGFzcztcclxuIl19
 </pre>
 </body>
 </html>
