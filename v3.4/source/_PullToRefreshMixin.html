@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">define('argos/_PullToRefreshMixin', ['exports', 'module', 'dojo/_base/declare', 'dojo/dom-class', 'dojo/dom-construct', 'dojo/dom-geometry', 'dojo/dom-style', './I18n'], function (exports, module, _dojo_baseDeclare, _dojoDomClass, _dojoDomConstruct, _dojoDomGeometry, _dojoDomStyle, _I18n) {
+  function _interopRequireDefault(obj) { return obj &amp;&amp; obj.__esModule ? obj : { 'default': obj }; }
+
+<span id='argos-_PullToRefreshMixin'>  /**
+</span>   * @class argos._PullToRefreshMixin
+   * Mixin for pull to refresh actions
+   * @alternateClassName _PullToRefreshMixin
+   */
+
+  var _declare = _interopRequireDefault(_dojo_baseDeclare);
+
+  var _domClass = _interopRequireDefault(_dojoDomClass);
+
+  var _domConstruct = _interopRequireDefault(_dojoDomConstruct);
+
+  var _domGeom = _interopRequireDefault(_dojoDomGeometry);
+
+  var _domStyle = _interopRequireDefault(_dojoDomStyle);
+
+  var _getResource = _interopRequireDefault(_I18n);
+
+  var __class = undefined;
+  var resource = (0, _getResource['default'])('pullToRefreshMixin');
+
+<span id='argos-_PullToRefreshMixin'>  /**
+</span>   * @class argos._PullToRefreshMixin
+   * Mixin for pull to refresh actions
+   * @alternateClassName _PullToRefreshMixin
+   */
+  __class = (0, _declare['default'])('argos._PullToRefreshMixin', null, {
+<span id='argos-_PullToRefreshMixin-property-pullRefreshBannerTemplate'>    /**
+</span>     * @property {Simplate}
+     */
+    pullRefreshBannerTemplate: new Simplate(['&lt;div class=&quot;pull-to-refresh&quot;&gt;{%! $.pullRefreshTemplate %}&lt;/div&gt;']),
+
+<span id='argos-_PullToRefreshMixin-property-pullRefreshTemplate'>    /**
+</span>     * @property {Simplate}
+     */
+    pullRefreshTemplate: new Simplate(['&lt;span class=&quot;fa fa-long-arrow-down&quot;&gt;&lt;/span&gt;{%= $$._getText(&quot;pullRefreshText&quot;) %}']),
+
+<span id='argos-_PullToRefreshMixin-property-pullReleaseTemplate'>    /**
+</span>     * @property {Simplate}
+     */
+    pullReleaseTemplate: new Simplate(['&lt;span class=&quot;fa fa-long-arrow-up&quot;&gt;&lt;/span&gt;{%= $$._getText(&quot;pullReleaseText&quot;) %}']),
+
+<span id='argos-_PullToRefreshMixin-property-pullRefreshText'>    /**
+</span>     * @property {String}
+     * Text to indicate a pull to refresh
+     */
+    pullRefreshText: resource.pullRefreshText,
+<span id='argos-_PullToRefreshMixin-property-pullReleaseText'>    /**
+</span>     * @property {String}
+     * Text to indicate the user should release to cause the refresh
+     */
+    pullReleaseText: resource.pullReleaseText,
+
+<span id='argos-_PullToRefreshMixin-property-enablePullToRefresh'>    /**
+</span>     * @property {Boolean} enablePullToRefresh If true, will enable the user to drag down and refresh the list. Default is true.
+     */
+    enablePullToRefresh: true,
+
+<span id='argos-_PullToRefreshMixin-property-pullRefreshBanner'>    /**
+</span>     * @property {DOMNode}
+     */
+    pullRefreshBanner: null,
+
+<span id='argos-_PullToRefreshMixin-property-scrollerNode'>    /**
+</span>     * @property {DOMNode}
+     */
+    scrollerNode: null,
+
+    animateCls: 'animate',
+
+    _getText: function _getText(prop) {
+      return __class.prototype[prop];
+    },
+<span id='argos-_PullToRefreshMixin-method-initPullToRefresh'>    /**
+</span>     * @param {DOMNode} scrollerNode The node that scrollers and should be pulled on to refresh.
+     */
+    initPullToRefresh: function initPullToRefresh(scrollerNode) {
+      var _this = this;
+
+      if (!this.enablePullToRefresh || !window.App.supportsTouch() || !scrollerNode) {
+        return;
+      }
+
+      this.pullRefreshBanner = _domConstruct['default'].toDom(this.pullRefreshBannerTemplate.apply(this));
+      _domConstruct['default'].place(this.pullRefreshBanner, scrollerNode, 'before');
+
+      // Pull down to refresh touch handles
+      this.scrollerNode = scrollerNode;
+
+      var touchstart = Rx.Observable.fromEvent(scrollerNode, 'touchstart').filter(function (evt) {
+        // The implmentor of this mixin should determine what shouldStartPullToRefresh is.
+        return _this.shouldStartPullToRefresh(_this.scrollerNode) &amp;&amp; evt.touches[0];
+      }).map(function (e) {
+        var evt = e.touches[0];
+        _domStyle['default'].set(_this.pullRefreshBanner, 'visibility', 'visible');
+        _domClass['default'].remove(_this.scrollerNode, _this.animateCls);
+        var bannerPos = _domGeom['default'].position(_this.pullRefreshBanner);
+        var style = _domStyle['default'].getComputedStyle(scrollerNode); // expensive
+
+        // We filtered out if the drag should start, so we are mapping the initial state here.
+        return {
+          bannerHeight: bannerPos.h,
+          topCss: style.top,
+          overflowCssY: style.overflowY,
+          overflowCssX: style.overflowX,
+          top: parseInt(style.top, 10),
+          y: evt.clientY
+        };
+      });
+      var touchmove = Rx.Observable.fromEvent(scrollerNode, 'touchmove');
+      var touchcancel = Rx.Observable.fromEvent(scrollerNode, 'touchcancel');
+      var touchend = Rx.Observable.fromEvent(scrollerNode, 'touchend');
+      var done = touchcancel.merge(touchend);
+
+      // Merge the touchstart and dragging observables
+      var dragging = touchstart.flatMap(function (data) {
+        var distance = undefined; // current dragged distance
+        var maxDistance = undefined; // required distance to trigger a refresh
+        return touchmove.map(function (evt) {
+          var touches = evt.touches[0];
+          var weight = 2; // slow the drag
+          distance = (touches.clientY - data.y) / weight;
+          maxDistance = data.bannerHeight + 20;
+          return {
+            evt: evt,
+            distance: distance,
+            maxDistance: maxDistance,
+            top: data.top + distance
+          };
+        }).filter(function (d) {
+          // Prevent the user from dragging the pane above our starting point
+          return d.distance &gt;= 0;
+        }).takeUntil(done.doAction(function () {
+          // The &quot;done&quot; observable is a combination of touch end and touch cancel.
+          // We should restore the UI state and invoke callbacks here.
+          _domStyle['default'].set(_this.scrollerNode, {
+            'top': data.topCss,
+            'overflow-y': data.overflowCssY,
+            'overflow-x': data.overflowCssX
+          });
+
+          _domStyle['default'].set(_this.pullRefreshBanner, 'visibility', 'hidden');
+          _domClass['default'].add(_this.scrollerNode, _this.animateCls);
+
+          // Check if we dragged over the threshold (maxDistance),
+          // if so, fire the callbacks the views will implement.
+          if (distance &gt; maxDistance) {
+            _this.onPullToRefreshComplete();
+          } else {
+            _this.onPullToRefreshCancel();
+          }
+        }));
+      });
+
+      // Listen to the &quot;dragging&quot; observable which is a combination of our touch
+      // start and touch drag. Update the UI while dragging here.
+      dragging.subscribe((function onNext(data) {
+        data.evt.preventDefault();
+        _domStyle['default'].set(this.scrollerNode, {
+          'top': data.top + 'px',
+          'overflow': 'hidden'
+        });
+
+        if (data.distance &gt; data.maxDistance) {
+          this.pullRefreshBanner.innerHTML = this.pullReleaseTemplate.apply(this);
+        } else {
+          this.pullRefreshBanner.innerHTML = this.pullRefreshTemplate.apply(this);
+        }
+      }).bind(this));
+    },
+<span id='argos-_PullToRefreshMixin-method-shouldStartPullToRefresh'>    /**
+</span>     * Derived class must implement this to determine when pull to refresh should start. This is called when onTouchStart is fired.
+     * @param {DOMNode} scrollerNode
+     * Reference to the scoller node
+     * @returns {Boolean}
+     */
+    shouldStartPullToRefresh: function shouldStartPullToRefresh(scrollerNode) {
+      var scrollTop = scrollerNode.scrollTop; // How far we are scrolled down, this should be 0 before we start dragging the pull refresh
+      return scrollTop === 0;
+    },
+<span id='argos-_PullToRefreshMixin-method-onPullToRefreshComplete'>    /**
+</span>     * Fires when the pull to refresh is successful.
+     */
+    onPullToRefreshComplete: function onPullToRefreshComplete() {},
+<span id='argos-_PullToRefreshMixin-method-onPullToRefreshCancel'>    /**
+</span>     * Fires when the pull to refresh is canceled.
+     */
+    onPullToRefreshCancel: function onPullToRefreshCancel() {}
+  });
+
+  module.exports = __class;
+});
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInNyYy9fUHVsbFRvUmVmcmVzaE1peGluLmpzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiI7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7OztBQVlBLE1BQUksT0FBTyxZQUFBLENBQUM7QUFDWixNQUFNLFFBQVEsR0FBRyw2QkFBWSxvQkFBb0IsQ0FBQyxDQUFDOzs7Ozs7O0FBT25ELFNBQU8sR0FBRyx5QkFBUSwyQkFBMkIsRUFBRSxJQUFJLEVBQUU7Ozs7QUFJbkQsNkJBQXlCLEVBQUUsSUFBSSxRQUFRLENBQUMsQ0FDdEMsaUVBQWlFLENBQ2xFLENBQUM7Ozs7O0FBS0YsdUJBQW1CLEVBQUUsSUFBSSxRQUFRLENBQUMsQ0FDaEMsa0ZBQWtGLENBQ25GLENBQUM7Ozs7O0FBS0YsdUJBQW1CLEVBQUUsSUFBSSxRQUFRLENBQUMsQ0FDaEMsZ0ZBQWdGLENBQ2pGLENBQUM7Ozs7OztBQU1GLG1CQUFlLEVBQUUsUUFBUSxDQUFDLGVBQWU7Ozs7O0FBS3pDLG1CQUFlLEVBQUUsUUFBUSxDQUFDLGVBQWU7Ozs7O0FBS3pDLHVCQUFtQixFQUFFLElBQUk7Ozs7O0FBS3pCLHFCQUFpQixFQUFFLElBQUk7Ozs7O0FBS3ZCLGdCQUFZLEVBQUUsSUFBSTs7QUFFbEIsY0FBVSxFQUFFLFNBQVM7O0FBRXJCLFlBQVEsRUFBRSxTQUFTLFFBQVEsQ0FBQyxJQUFJLEVBQUU7QUFDaEMsYUFBTyxPQUFPLENBQUMsU0FBUyxDQUFDLElBQUksQ0FBQyxDQUFDO0tBQ2hDOzs7O0FBSUQscUJBQWlCLEVBQUUsU0FBUyxpQkFBaUIsQ0FBQyxZQUFZLEVBQUU7OztBQUMxRCxVQUFJLENBQUMsSUFBSSxDQUFDLG1CQUFtQixJQUFJLENBQUMsTUFBTSxDQUFDLEdBQUcsQ0FBQyxhQUFhLEVBQUUsSUFBSSxDQUFDLFlBQVksRUFBRTtBQUM3RSxlQUFPO09BQ1I7O0FBRUQsVUFBSSxDQUFDLGlCQUFpQixHQUFHLHlCQUFhLEtBQUssQ0FBQyxJQUFJLENBQUMseUJBQXlCLENBQUMsS0FBSyxDQUFDLElB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QUksQ0FBQyxDQUFDLENBQUM7S0FDZjs7Ozs7OztBQU9ELDRCQUF3QixFQUFFLFNBQVMsd0JBQXdCLENBQUMsWUFBWSxFQUFFO0FBQ3hFLFVBQU0sU0FBUyxHQUFHLFlBQVksQ0FBQyxTQUFTLENBQUM7QUFDekMsYUFBTyxTQUFTLEtBQUssQ0FBQyxDQUFDO0tBQ3hCOzs7O0FBSUQsMkJBQXVCLEVBQUUsU0FBUyx1QkFBdUIsR0FBRyxFQUFFOzs7O0FBSTlELHlCQUFxQixFQUFFLFNBQVMscUJBQXFCLEdBQUcsRUFBRTtHQUMzRCxDQUFDLENBQUM7O21CQUVZLE9BQU8iLCJmaWxlIjoic3JjL19QdWxsVG9SZWZyZXNoTWl4aW4uanMiLCJzb3VyY2VSb290Ijoic3JjIiwic291cmNlc0NvbnRlbnQiOlsiLyoqXHJcbiAqIEBjbGFzcyBhcmdvcy5fUHVsbFRvUmVmcmVzaE1peGluXHJcbiAqIE1peGluIGZvciBwdWxsIHRvIHJlZnJlc2ggYWN0aW9uc1xyXG4gKiBAYWx0ZXJuYXRlQ2xhc3NOYW1lIF9QdWxsVG9SZWZyZXNoTWl4aW5cclxuICovXHJcbmltcG9ydCBkZWNsYXJlIGZyb20gJ2Rvam8vX2Jhc2UvZGVjbGFyZSc7XHJcbmltcG9ydCBkb21DbGFzcyBmcm9tICdkb2pvL2RvbS1jbGFzcyc7XHJcbmltcG9ydCBkb21Db25zdHJ1Y3QgZnJvbSAnZG9qby9kb20tY29uc3RydWN0JztcclxuaW1wb3J0IGRvbUdlb20gZnJvbSAnZG9qby9kb20tZ2VvbWV0cnknO1xyXG5pbXBvcnQgZG9tU3R5bGUgZnJvbSAnZG9qby9kb20tc3R5bGUnO1xyXG5pbXBvcnQgZ2V0UmVzb3VyY2UgZnJvbSAnLi9JMThuJztcclxuXHJcbmxldCBfX2NsYXNzO1xyXG5jb25zdCByZXNvdXJjZSA9IGdldFJlc291cmNlKCdwdWxsVG9SZWZyZXNoTWl4aW4nKTtcclxuXHJcbi8qKlxyXG4gKiBAY2xhc3MgYXJnb3MuX1B1bGxUb1JlZnJlc2hNaXhpblxyXG4gKiBNaXhpbiBmb3IgcHVsbCB0byByZWZyZXNoIGFjdGlvbnNcclxuICogQGFsdGVybmF0ZUNsYXNzTmFtZSBfUHVsbFRvUmVmcmVzaE1peGluXHJcbiAqL1xyXG5fX2NsYXNzID0gZGVjbGFyZSgnYXJnb3MuX1B1bGxUb1JlZnJlc2hNaXhpbicsIG51bGwsIHtcclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge1NpbXBsYXRlfVxyXG4gICAqL1xyXG4gIHB1bGxSZWZyZXNoQmFubmVyVGVtcGxhdGU6IG5ldyBTaW1wbGF0ZShbXHJcbiAgICAnPGRpdiBjbGFzcz1cInB1bGwtdG8tcmVmcmVzaFwiPnslISAkLnB1bGxSZWZyZXNoVGVtcGxhdGUgJX08L2Rpdj4nLFxyXG4gIF0pLFxyXG5cclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge1NpbXBsYXRlfVxyXG4gICAqL1xyXG4gIHB1bGxSZWZyZXNoVGVtcGxhdGU6IG5ldyBTaW1wbGF0ZShbXHJcbiAgICAnPHNwYW4gY2xhc3M9XCJmYSBmYS1sb25nLWFycm93LWRvd25cIj48L3NwYW4+eyU9ICQkLl9nZXRUZXh0KFwicHVsbFJlZnJlc2hUZXh0XCIpICV9JyxcclxuICBdKSxcclxuXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtTaW1wbGF0ZX1cclxuICAgKi9cclxuICBwdWxsUmVsZWFzZVRlbXBsYXRlOiBuZXcgU2ltcGxhdGUoW1xyXG4gICAgJzxzcGFuIGNsYXNzPVwiZmEgZmEtbG9uZy1hcnJvdy11cFwiPjwvc3Bhbj57JT0gJCQuX2dldFRleHQoXCJwdWxsUmVsZWFzZVRleHRcIikgJX0nLFxyXG4gIF0pLFxyXG5cclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge1N0cmluZ31cclxuICAgKiBUZXh0IHRvIGluZGljYXRlIGEgcHVsbCB0byByZWZyZXNoXHJcbiAgICovXHJcbiAgcHVsbFJlZnJlc2hUZXh0OiByZXNvdXJjZS5wdWxsUmVmcmVzaFRleHQsXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtTdHJpbmd9XHJcbiAgICogVGV4dCB0byBpbmRpY2F0ZSB0aGUgdXNlciBzaG91bGQgcmVsZWFzZSB0byBjYXVzZSB0aGUgcmVmcmVzaFxyXG4gICAqL1xyXG4gIHB1bGxSZWxlYXNlVGV4dDogcmVzb3VyY2UucHVsbFJlbGVhc2VUZXh0LFxyXG5cclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge0Jvb2xlYW59IGVuYWJsZVB1bGxUb1JlZnJlc2ggSWYgdHJ1ZSwgd2lsbCBlbmFibGUgdGhlIHVzZXIgdG8gZHJhZyBkb3duIGFuZCByZWZyZXNoIHRoZSBsaXN0LiBEZWZhdWx0IGlzIHRydWUuXHJcbiAgICovXHJcbiAgZW5hYmxlUHVsbFRvUmVmcmVzaDogdHJ1ZSxcclxuXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtET01Ob2RlfVxyXG4gICAqL1xyXG4gIHB1bGxSZWZyZXNoQmFubmVyOiBudWxsLFxyXG5cclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge0RPTU5vZGV9XHJcbiAgICovXHJcbiAgc2Nyb2xsZXJOb2RlOiBudWxsLFxyXG5cclxuICBhbmltYXRlQ2xzOiAnYW5pbWF0ZScsXHJcblxyXG4gIF9nZXRUZXh0OiBmdW5jdGlvbiBfZ2V0VGV4dChwcm9wKSB7XHJcbiAgICByZXR1cm4gX19jbGFzcy5wcm90b3R5cGVbcHJvcF07XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBAcGFyYW0ge0RPTU5vZGV9IHNjcm9sbGVyTm9kZSBUaGUgbm9kZSB0aGF0IHNjcm9sbGVycyBhbmQgc2hvdWxkIGJlIHB1bGxlZCBvbiB0byByZWZyZXNoLlxyXG4gICAqL1xyXG4gIGluaXRQdWxsVG9SZWZyZXNoOiBmdW5jdGlvbiBpbml0UHVsbFRvUmVmcmVzaChzY3JvbGxlck5vZGUpIHtcclxuICAgIGlmICghdGhpcy5lbmFibGVQdWxsVG9SZWZyZXNoIHx8ICF3aW5kb3cuQXBwLnN1cHBvcnRzVG91Y2goKSB8fCAhc2Nyb2xsZXJOb2RlKSB7XHJcbiAgICAgIHJldHVybjtcclxuICAgIH1cclxuXHJcbiAgICB0aGlzLnB1bGxSZWZyZXNoQmFubmVyID0gZG9tQ29uc3RydWN0LnRvRG9tKHRoaXMucHVsbFJlZnJlc2hCYW5uZXJUZW1wbGF0ZS5hcHBseSh0aGlzKSk7XHJcbiAgICBkb21Db25zdHJ1Y3QucGxhY2UodGhpcy5wdWxsUmVmcmVzaEJhbm5lciwgc2Nyb2xsZXJOb2RlLCAnYmVmb3JlJyk7XHJcblxyXG4gICAgLy8gUHVsbCBkb3duIHRvIHJlZnJlc2ggdG91Y2ggaGFuZGxlc1xyXG4gICAgdGhpcy5zY3JvbGxlck5vZGUgPSBzY3JvbGxlck5vZGU7XHJcblxyXG4gICAgY29uc3QgdG91Y2hzdGFydCA9IFJ4Lk9ic2VydmFibGUuZnJvbUV2ZW50KHNjcm9sbGVyTm9kZSwgJ3RvdWNoc3RhcnQnKVxyXG4gICAgICAuZmlsdGVyKChldnQpID0+IHtcclxuICAgICAgICAvLyBUaGUgaW1wbG1lbnRvciBvZiB0aGlzIG1peGluIHNob3VsZCBkZXRlcm1pbmUgd2hhdCBzaG91bGRTdGFydFB1bGxUb1JlZnJlc2ggaXMuXHJcbiAgICAgICAgcmV0dXJuIHRoaXMuc2hvdWxkU3RhcnRQdWxsVG9SZWZyZXNoKHRoaXMuc2Nyb2xsZXJOb2RlKSAmJiBldnQudG91Y2hlc1swXTtcclxuICAgICAgfSlcclxuICAgICAgLm1hcCgoZSkgPT4ge1xyXG4gICAgICAgIGNvbnN0IGV2dCA9IGUudG91Y2hlc1swXTtcclxuICAgICAgICBkb21TdHlsZS5zZXQodGhpcy5wdWxsUmVmcmVzaEJhbm5lciwgJ3Zpc2liaWxpdHknLCAndmlzaWJsZScpO1xyXG4gICAgICAgIGRvbUNsYXNzLnJlbW92ZSh0aGlzLnNjcm9sbGVyTm9kZSwgdGhpcy5hbmltYXRlQ2xzKTtcclxuICAgICAgICBjb25zdCBiYW5uZXJQb3MgPSBkb21HZW9tLnBvc2l0aW9uKHRoaXMucHVsbFJlZnJlc2hCYW5uZXIpO1xyXG4gICAgICAgIGNvbnN0IHN0eWxlID0gZG9tU3R5bGUuZ2V0Q29tcHV0ZWRTdHlsZShzY3JvbGxlck5vZGUpOyAvLyBleHBlbnNpdmVcclxuXHJcbiAgICAgICAgLy8gV2UgZmlsdGVyZWQgb3V0IGlmIHRoZSBkcmFnIHNob3VsZCBzdGFydCwgc28gd2UgYXJlIG1hcHBpbmcgdGhlIGluaXRpYWwgc3RhdGUgaGVyZS5cclxuICAgICAgICByZXR1cm4ge1xyXG4gICAgICAgICAgYmFubmVySGVpZ2h0OiBiYW5uZXJQb3MuaCxcclxuICAgICAgICAgIHRvcENzczogc3R5bGUudG9wLFxyXG4gICAgICAgICAgb3ZlcmZsb3dDc3NZOiBzdHlsZS5vdmVyZmxvd1ksXHJcbiAgICAgICAgICBvdmVyZmxvd0Nzc1g6IHN0eWxlLm92ZXJmbG93WCxcclxuICAgICAgICAgIHRvcDogcGFyc2VJbnQoc3R5bGUudG9wLCAxMCksXHJcbiAgICAgICAgICB5OiBldnQuY2xpZW50WSxcclxuICAgICAgICB9O1xyXG4gICAgICB9KTtcclxuICAgIGNvbnN0IHRvdWNobW92ZSA9IFJ4Lk9ic2VydmFibGUuZnJvbUV2ZW50KHNjcm9sbGVyTm9kZSwgJ3RvdWNobW92ZScpO1xyXG4gICAgY29uc3QgdG91Y2hjYW5jZWwgPSBSeC5PYnNlcnZhYmxlLmZyb21FdmVudChzY3JvbGxlck5vZGUsICd0b3VjaGNhbmNlbCcpO1xyXG4gICAgY29uc3QgdG91Y2hlbmQgPSBSeC5PYnNlcnZhYmxlLmZyb21FdmVudChzY3JvbGxlck5vZGUsICd0b3VjaGVuZCcpO1xyXG4gICAgY29uc3QgZG9uZSA9IHRvdWNoY2FuY2VsLm1lcmdlKHRvdWNoZW5kKTtcclxuXHJcbiAgICAvLyBNZXJnZSB0aGUgdG91Y2hzdGFydCBhbmQgZHJhZ2dpbmcgb2JzZXJ2YWJsZXNcclxuICAgIGNvbnN0IGRyYWdnaW5nID0gdG91Y2hzdGFydC5mbGF0TWFwKChkYXRhKSA9PiB7XHJcbiAgICAgIGxldCBkaXN0YW5jZTsgLy8gY3VycmVudCBkcmFnZ2VkIGRpc3RhbmNlXHJcbiAgICAgIGxldCBtYXhEaXN0YW5jZTsgLy8gcmVxdWlyZWQgZGlzdGFuY2UgdG8gdHJpZ2dlciBhIHJlZnJlc2hcclxuICAgICAgcmV0dXJuIHRvdWNobW92ZVxyXG4gICAgICAgIC5tYXAoKGV2dCkgPT4ge1xyXG4gICAgICAgICAgY29uc3QgdG91Y2hlcyA9IGV2dC50b3VjaGVzWzBdO1xyXG4gICAgICAgICAgY29uc3Qgd2VpZ2h0ID0gMjsgLy8gc2xvdyB0aGUgZHJhZ1xyXG4gICAgICAgICAgZGlzdGFuY2UgPSAodG91Y2hlcy5jbGllbnRZIC0gZGF0YS55KSAvIHdlaWdodDtcclxuICAgICAgICAgIG1heERpc3RhbmNlID0gZGF0YS5iYW5uZXJIZWlnaHQgKyAyMDtcclxuICAgICAgICAgIHJldHVybiB7XHJcbiAgICAgICAgICAgIGV2dDogZXZ0LFxyXG4gICAgICAgICAgICBkaXN0YW5jZTogZGlzdGFuY2UsXHJcbiAgICAgICAgICAgIG1heERpc3RhbmNlOiBtYXhEaXN0YW5jZSxcclxuICAgICAgICAgICAgdG9wOiBkYXRhLnRvcCArIGRpc3RhbmNlLFxyXG4gICAgICAgICAgfTtcclxuICAgICAgICB9KVxyXG4gICAgICAgIC5maWx0ZXIoKGQpID0+IHtcclxuICAgICAgICAgIC8vIFByZXZlbnQgdGhlIHVzZXIgZnJvbSBkcmFnZ2luZyB0aGUgcGFuZSBhYm92ZSBvdXIgc3RhcnRpbmcgcG9pbnRcclxuICAgICAgICAgIHJldHVybiBkLmRpc3RhbmNlID49IDA7XHJcbiAgICAgICAgfSlcclxuICAgICAgICAudGFrZVVudGlsKGRvbmUuZG9BY3Rpb24oKCkgPT4ge1xyXG4gICAgICAgICAgLy8gVGhlIFwiZG9uZVwiIG9ic2VydmFibGUgaXMgYSBjb21iaW5hdGlvbiBvZiB0b3VjaCBlbmQgYW5kIHRvdWNoIGNhbmNlbC5cclxuICAgICAgICAgIC8vIFdlIHNob3VsZCByZXN0b3JlIHRoZSBVSSBzdGF0ZSBhbmQgaW52b2tlIGNhbGxiYWNrcyBoZXJlLlxyXG4gICAgICAgICAgZG9tU3R5bGUuc2V0KHRoaXMuc2Nyb2xsZXJOb2RlLCB7XHJcbiAgICAgICAgICAgICd0b3AnOiBkYXRhLnRvcENzcyxcclxuICAgICAgICAgICAgJ292ZXJmbG93LXknOiBkYXRhLm92ZXJmbG93Q3NzWSxcclxuICAgICAgICAgICAgJ292ZXJmbG93LXgnOiBkYXRhLm92ZXJmbG93Q3NzWCxcclxuICAgICAgICAgIH0pO1xyXG5cclxuICAgICAgICAgIGRvbVN0eWxlLnNldCh0aGlzLnB1bGxSZWZyZXNoQmFubmVyLCAndmlzaWJpbGl0eScsICdoaWRkZW4nKTtcclxuICAgICAgICAgIGRvbUNsYXNzLmFkZCh0aGlzLnNjcm9sbGVyTm9kZSwgdGhpcy5hbmltYXRlQ2xzKTtcclxuXHJcbiAgICAgICAgICAvLyBDaGVjayBpZiB3ZSBkcmFnZ2VkIG92ZXIgdGhlIHRocmVzaG9sZCAobWF4RGlzdGFuY2UpLFxyXG4gICAgICAgICAgLy8gaWYgc28sIGZpcmUgdGhlIGNhbGxiYWNrcyB0aGUgdmlld3Mgd2lsbCBpbXBsZW1lbnQuXHJcbiAgICAgICAgICBpZiAoZGlzdGFuY2UgPiBtYXhEaXN0YW5jZSkge1xyXG4gICAgICAgICAgICB0aGlzLm9uUHVsbFRvUmVmcmVzaENvbXBsZXRlKCk7XHJcbiAgICAgICAgICB9IGVsc2Uge1xyXG4gICAgICAgICAgICB0aGlzLm9uUHVsbFRvUmVmcmVzaENhbmNlbCgpO1xyXG4gICAgICAgICAgfVxyXG4gICAgICAgIH0pKTtcclxuICAgIH0pO1xyXG5cclxuICAgIC8vIExpc3RlbiB0byB0aGUgXCJkcmFnZ2luZ1wiIG9ic2VydmFibGUgd2hpY2ggaXMgYSBjb21iaW5hdGlvbiBvZiBvdXIgdG91Y2hcclxuICAgIC8vIHN0YXJ0IGFuZCB0b3VjaCBkcmFnLiBVcGRhdGUgdGhlIFVJIHdoaWxlIGRyYWdnaW5nIGhlcmUuXHJcbiAgICBkcmFnZ2luZy5zdWJzY3JpYmUoZnVuY3Rpb24gb25OZXh0KGRhdGEpIHtcclxuICAgICAgZGF0YS5ldnQucHJldmVudERlZmF1bHQoKTtcclxuICAgICAgZG9tU3R5bGUuc2V0KHRoaXMuc2Nyb2xsZXJOb2RlLCB7XHJcbiAgICAgICAgJ3RvcCc6IGRhdGEudG9wICsgJ3B4JyxcclxuICAgICAgICAnb3ZlcmZsb3cnOiAnaGlkZGVuJyxcclxuICAgICAgfSk7XHJcblxyXG4gICAgICBpZiAoZGF0YS5kaXN0YW5jZSA+IGRhdGEubWF4RGlzdGFuY2UpIHtcclxuICAgICAgICB0aGlzLnB1bGxSZWZyZXNoQmFubmVyLmlubmVySFRNTCA9IHRoaXMucHVsbFJlbGVhc2VUZW1wbGF0ZS5hcHBseSh0aGlzKTtcclxuICAgICAgfSBlbHNlIHtcclxuICAgICAgICB0aGlzLnB1bGxSZWZyZXNoQmFubmVyLmlubmVySFRNTCA9IHRoaXMucHVsbFJlZnJlc2hUZW1wbGF0ZS5hcHBseSh0aGlzKTtcclxuICAgICAgfVxyXG4gICAgfS5iaW5kKHRoaXMpKTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIERlcml2ZWQgY2xhc3MgbXVzdCBpbXBsZW1lbnQgdGhpcyB0byBkZXRlcm1pbmUgd2hlbiBwdWxsIHRvIHJlZnJlc2ggc2hvdWxkIHN0YXJ0LiBUaGlzIGlzIGNhbGxlZCB3aGVuIG9uVG91Y2hTdGFydCBpcyBmaXJlZC5cclxuICAgKiBAcGFyYW0ge0RPTU5vZGV9IHNjcm9sbGVyTm9kZVxyXG4gICAqIFJlZmVyZW5jZSB0byB0aGUgc2NvbGxlciBub2RlXHJcbiAgICogQHJldHVybnMge0Jvb2xlYW59XHJcbiAgICovXHJcbiAgc2hvdWxkU3RhcnRQdWxsVG9SZWZyZXNoOiBmdW5jdGlvbiBzaG91bGRTdGFydFB1bGxUb1JlZnJlc2goc2Nyb2xsZXJOb2RlKSB7XHJcbiAgICBjb25zdCBzY3JvbGxUb3AgPSBzY3JvbGxlck5vZGUuc2Nyb2xsVG9wOyAvLyBIb3cgZmFyIHdlIGFyZSBzY3JvbGxlZCBkb3duLCB0aGlzIHNob3VsZCBiZSAwIGJlZm9yZSB3ZSBzdGFydCBkcmFnZ2luZyB0aGUgcHVsbCByZWZyZXNoXHJcbiAgICByZXR1cm4gc2Nyb2xsVG9wID09PSAwO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogRmlyZXMgd2hlbiB0aGUgcHVsbCB0byByZWZyZXNoIGlzIHN1Y2Nlc3NmdWwuXHJcbiAgICovXHJcbiAgb25QdWxsVG9SZWZyZXNoQ29tcGxldGU6IGZ1bmN0aW9uIG9uUHVsbFRvUmVmcmVzaENvbXBsZXRlKCkge30sXHJcbiAgLyoqXHJcbiAgICogRmlyZXMgd2hlbiB0aGUgcHVsbCB0byByZWZyZXNoIGlzIGNhbmNlbGVkLlxyXG4gICAqL1xyXG4gIG9uUHVsbFRvUmVmcmVzaENhbmNlbDogZnVuY3Rpb24gb25QdWxsVG9SZWZyZXNoQ2FuY2VsKCkge30sXHJcbn0pO1xyXG5cclxuZXhwb3J0IGRlZmF1bHQgX19jbGFzcztcclxuIl19
+</pre>
+</body>
+</html>

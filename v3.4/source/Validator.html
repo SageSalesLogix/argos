@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">define('crm/Validator', ['exports', 'module', 'dojo/_base/lang', 'dojo/string'], function (exports, module, _dojo_baseLang, _dojoString) {
+  function _interopRequireDefault(obj) { return obj &amp;&amp; obj.__esModule ? obj : { 'default': obj }; }
+
+  var _lang = _interopRequireDefault(_dojo_baseLang);
+
+  var _string = _interopRequireDefault(_dojoString);
+
+<span id='crm-Validator'>  /**
+</span>   * @class crm.Validator
+   * Validators for use in {@link argos.Edit} forms. To use validators, you add them to your view's layout:
+   *
+   *      @example
+   *       createLayout: function() {
+   *           return this.layout || (this.layout = [{
+   *                   label: this.accountText,
+   *                   name: 'AccountName',
+   *                   property: 'AccountName',
+   *                   type: 'text',
+   *                   validator: validator.notEmpty
+   *               }, {
+   *                   label: this.webText,
+   *                   name: 'WebAddress',
+   *                   property: 'WebAddress',
+   *                   renderer: format.link,
+   *                   type: 'text',
+   *                   inputType: 'url',
+   *                   maxTextLength: 128,
+   *                   validator: validator.exceedsMaxTextLength
+   *               }]);
+   *       }
+   */
+  var __class = _lang['default'].setObject('crm.Validator', {
+<span id='crm-Validator-property-exists'>    /**
+</span>     * @property {Object} exists
+     * Validator that ensures the field contains a value.
+     */
+    exists: {
+      fn: function exists(value) {
+        return !value;
+      },
+      message: &quot;The field '${2}' must have a value.&quot;
+    },
+
+<span id='crm-Validator-property-name'>    /**
+</span>     * @property {Object} name
+     * Validator that ensures a FirstName and LastName property have been specified.
+     */
+    name: {
+      fn: function name(value) {
+        if (value) {
+          return !/.+/.test(value.FirstName || '') || !/.+/.test(value.LastName || '');
+        }
+        return true;
+      },
+      message: &quot;The field '${2}' must have a first and last name specified.&quot;
+    },
+<span id='crm-Validator-property-notEmpty'>    /**
+</span>     * @property {Object}
+     * Validator that ensures a field is not empty.
+     */
+    notEmpty: {
+      test: /.+/,
+      message: &quot;The field '${2}' cannot be empty.&quot;
+    },
+<span id='crm-Validator-property-hasText'>    /**
+</span>     * @deprecated
+     * @property {Object}
+     * Validator that ensures a field has text. **Warning** This does not work with unicode.
+     */
+    hasText: {
+      test: /\w+/,
+      message: &quot;The field '${2}' must contain some text.&quot;
+    },
+<span id='crm-Validator-property-isInteger'>    /**
+</span>     * @property {Object}
+     * Validator that ensures a field is a valid number.
+     */
+    isInteger: {
+      test: /^\d+$/,
+      message: &quot;The value '${0}' is not a valid number.&quot;
+    },
+
+<span id='crm-Validator-property-isDecimal'>    /**
+</span>     * @property {Object}
+     * Validator that ensures a field is a valid decimal.
+     */
+    isDecimal: {
+      test: /^[\d.]+$/,
+      message: &quot;The value '${0}' is not a valid number.&quot;
+    },
+
+<span id='crm-Validator-property-isCurrency'>    /**
+</span>     * @property {Object}
+     * Validator that ensures a field is valid currency.
+     */
+    isCurrency: {
+      fn: function isCurrency(value) {
+        return !new RegExp(_string['default'].substitute('^[\\d]+(\\.\\d{1,${0}})?$', [Mobile.CultureInfo.numberFormat.currencyDecimalDigits || '2'])).test(value);
+      },
+      message: &quot;The value '${0}' is not a valid currency number.&quot;
+    },
+
+<span id='crm-Validator-property-isInt32'>    /**
+</span>     * @property {Object}
+     * Validator that ensures a field is a valid Int32.
+     */
+    isInt32: {
+      fn: function isInt32(value) {
+        if (value &amp;&amp; (!/^\d{1,10}$/.test(value) || parseInt(value, 10) &gt; 2147483647)) {
+          return true;
+        }
+        return false;
+      },
+      message: &quot;The field '${2}' value exceeds the allowed numeric range.&quot;
+    },
+
+<span id='crm-Validator-property-exceedsMaxTextLength'>    /**
+</span>     * @property {Object}
+     * @param {Number} maxTextLength
+     * Validator that ensures a field does not exeed max length. Checks the length against field's maxTextLength property.
+     */
+    exceedsMaxTextLength: {
+      fn: function maxTextLength(value, field) {
+        if (value &amp;&amp; field &amp;&amp; field.maxTextLength &amp;&amp; value.length &gt; field.maxTextLength) {
+          return true;
+        }
+        return false;
+      },
+      message: &quot;The field '${2}' value exceeds the allowed limit in length.&quot;
+    },
+
+<span id='crm-Validator-property-isDateInRange'>    /**
+</span>     * @property {Object}
+     * @param {Date} minValue
+     * @param {Date} maxValue
+     * Validator that ensures the date is within a certain range. Checks the date range against the field's minValue and maxValue properties.
+     * If both are specified a range between the two is used, otherwise a less than or greater than is used.
+     */
+    isDateInRange: {
+      fn: function isDateInRange(value, field) {
+        var minValue = field.minValue;
+        var maxValue = field.maxValue;
+
+        // if value is empty or not a date, ignore comparison
+        if (!value || !(value instanceof Date)) {
+          return false;
+        }
+
+        if (minValue &amp;&amp; maxValue) {
+          if (value.valueOf() &gt; minValue.valueOf() &amp;&amp; value.valueOf() &lt; maxValue.valueOf()) {
+            return false;
+          }
+        } else if (minValue &amp;&amp; value.valueOf() &gt; minValue.valueOf()) {
+          return false;
+        } else if (maxValue &amp;&amp; value.valueOf() &lt; maxValue.valueOf()) {
+          return false;
+        }
+
+        return true;
+      },
+      message: &quot;The field '${2}' value is out of allowed date range.&quot;
+    },
+
+<span id='crm-Validator-property-isPhoneNumber'>    /**
+</span>     * @property {Object}
+     * @deprecated
+     * @removed
+     * Validator that ensures the field is a phone number.
+     */
+    isPhoneNumber: {}
+  });
+
+  _lang['default'].setObject('Mobile.SalesLogix.Validator', __class);
+  module.exports = __class;
+});
+//# sourceMappingURL=data:application/json;base64,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Q0FBQztTQUNkOztBQUVELFlBQUksUUFBUSxJQUFJLFFBQVEsRUFBRTtBQUN4QixjQUFJLEtBQUssQ0FBQyxPQUFPLEVBQUUsR0FBRyxRQUFRLENBQUMsT0FBTyxFQUFFLElBQUksS0FBSyxDQUFDLE9BQU8sRUFBRSxHQUFHLFFBQVEsQ0FBQyxPQUFPLEVBQUUsRUFBRTtBQUNoRixtQkFBTyxLQUFLLENBQUM7V0FDZDtTQUNGLE1BQU0sSUFBSSxRQUFRLElBQUksS0FBSyxDQUFDLE9BQU8sRUFBRSxHQUFHLFFBQVEsQ0FBQyxPQUFPLEVBQUUsRUFBRTtBQUMzRCxpQkFBTyxLQUFLLENBQUM7U0FDZCxNQUFNLElBQUksUUFBUSxJQUFJLEtBQUssQ0FBQyxPQUFPLEVBQUUsR0FBRyxRQUFRLENBQUMsT0FBTyxFQUFFLEVBQUU7QUFDM0QsaUJBQU8sS0FBSyxDQUFDO1NBQ2Q7O0FBRUQsZUFBTyxJQUFJLENBQUM7T0FDYjtBQUNELGFBQU8sRUFBRSxzREFBc0Q7S0FDaEU7Ozs7Ozs7O0FBUUQsaUJBQWEsRUFBRSxFQUFFO0dBQ2xCLENBQUMsQ0FBQzs7QUFFSCxtQkFBSyxTQUFTLENBQUMsNkJBQTZCLEVBQUUsT0FBTyxDQUFDLENBQUM7bUJBQ3hDLE9BQU8iLCJmaWxlIjoic3JjL1ZhbGlkYXRvci5qcyIsInNvdXJjZVJvb3QiOiJzcmMiLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgbGFuZyBmcm9tICdkb2pvL19iYXNlL2xhbmcnO1xyXG5pbXBvcnQgc3RyaW5nIGZyb20gJ2Rvam8vc3RyaW5nJztcclxuXHJcbi8qKlxyXG4gKiBAY2xhc3MgY3JtLlZhbGlkYXRvclxyXG4gKiBWYWxpZGF0b3JzIGZvciB1c2UgaW4ge0BsaW5rIGFyZ29zLkVkaXR9IGZvcm1zLiBUbyB1c2UgdmFsaWRhdG9ycywgeW91IGFkZCB0aGVtIHRvIHlvdXIgdmlldydzIGxheW91dDpcclxuICpcclxuICogICAgICBAZXhhbXBsZVxyXG4gKiAgICAgICBjcmVhdGVMYXlvdXQ6IGZ1bmN0aW9uKCkge1xyXG4gKiAgICAgICAgICAgcmV0dXJuIHRoaXMubGF5b3V0IHx8ICh0aGlzLmxheW91dCA9IFt7XHJcbiAqICAgICAgICAgICAgICAgICAgIGxhYmVsOiB0aGlzLmFjY291bnRUZXh0LFxyXG4gKiAgICAgICAgICAgICAgICAgICBuYW1lOiAnQWNjb3VudE5hbWUnLFxyXG4gKiAgICAgICAgICAgICAgICAgICBwcm9wZXJ0eTogJ0FjY291bnROYW1lJyxcclxuICogICAgICAgICAgICAgICAgICAgdHlwZTogJ3RleHQnLFxyXG4gKiAgICAgICAgICAgICAgICAgICB2YWxpZGF0b3I6IHZhbGlkYXRvci5ub3RFbXB0eVxyXG4gKiAgICAgICAgICAgICAgIH0sIHtcclxuICogICAgICAgICAgICAgICAgICAgbGFiZWw6IHRoaXMud2ViVGV4dCxcclxuICogICAgICAgICAgICAgICAgICAgbmFtZTogJ1dlYkFkZHJlc3MnLFxyXG4gKiAgICAgICAgICAgICAgICAgICBwcm9wZXJ0eTogJ1dlYkFkZHJlc3MnLFxyXG4gKiAgICAgICAgICAgICAgICAgICByZW5kZXJlcjogZm9ybWF0LmxpbmssXHJcbiAqICAgICAgICAgICAgICAgICAgIHR5cGU6ICd0ZXh0JyxcclxuICogICAgICAgICAgICAgICAgICAgaW5wdXRUeXBlOiAndXJsJyxcclxuICogICAgICAgICAgICAgICAgICAgbWF4VGV4dExlbmd0aDogMTI4LFxyXG4gKiAgICAgICAgICAgICAgICAgICB2YWxpZGF0b3I6IHZhbGlkYXRvci5leGNlZWRzTWF4VGV4dExlbmd0aFxyXG4gKiAgICAgICAgICAgICAgIH1dKTtcclxuICogICAgICAgfVxyXG4gKi9cclxuY29uc3QgX19jbGFzcyA9IGxhbmcuc2V0T2JqZWN0KCdjcm0uVmFsaWRhdG9yJywge1xyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7T2JqZWN0fSBleGlzdHNcclxuICAgKiBWYWxpZGF0b3IgdGhhdCBlbnN1cmVzIHRoZSBmaWVsZCBjb250YWlucyBhIHZhbHVlLlxyXG4gICAqL1xyXG4gIGV4aXN0czoge1xyXG4gICAgZm46IGZ1bmN0aW9uIGV4aXN0cyh2YWx1ZSkge1xyXG4gICAgICByZXR1cm4gIXZhbHVlO1xyXG4gICAgfSxcclxuICAgIG1lc3NhZ2U6IFwiVGhlIGZpZWxkICckezJ9JyBtdXN0IGhhdmUgYSB2YWx1ZS5cIixcclxuICB9LFxyXG5cclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge09iamVjdH0gbmFtZVxyXG4gICAqIFZhbGlkYXRvciB0aGF0IGVuc3VyZXMgYSBGaXJzdE5hbWUgYW5kIExhc3ROYW1lIHByb3BlcnR5IGhhdmUgYmVlbiBzcGVjaWZpZWQuXHJcbiAgICovXHJcbiAgbmFtZToge1xyXG4gICAgZm46IGZ1bmN0aW9uIG5hbWUodmFsdWUpIHtcclxuICAgICAgaWYgKHZhbHVlKSB7XHJcbiAgICAgICAgcmV0dXJuICEvLisvLnRlc3QodmFsdWUuRmlyc3ROYW1lIHx8ICcnKSB8fCAhLy4rLy50ZXN0KHZhbHVlLkxhc3ROYW1lIHx8ICcnKTtcclxuICAgICAgfVxyXG4gICAgICByZXR1cm4gdHJ1ZTtcclxuICAgIH0sXHJcbiAgICBtZXNzYWdlOiBcIlRoZSBmaWVsZCAnJHsyfScgbXVzdCBoYXZlIGEgZmlyc3QgYW5kIGxhc3QgbmFtZSBzcGVjaWZpZWQuXCIsXHJcbiAgfSxcclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge09iamVjdH1cclxuICAgKiBWYWxpZGF0b3IgdGhhdCBlbnN1cmVzIGEgZmllbGQgaXMgbm90IGVtcHR5LlxyXG4gICAqL1xyXG4gIG5vdEVtcHR5OiB7XHJcbiAgICB0ZXN0OiAvLisvLFxyXG4gICAgbWVzc2FnZTogXCJUaGUgZmllbGQgJyR7Mn0nIGNhbm5vdCBiZSBlbXB0eS5cIixcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIEBkZXByZWNhdGVkXHJcbiAgICogQHByb3BlcnR5IHtPYmplY3R9XHJcbiAgICogVmFsaWRhdG9yIHRoYXQgZW5zdXJlcyBhIGZpZWxkIGhhcyB0ZXh0LiAqKldhcm5pbmcqKiBUaGlzIGRvZXMgbm90IHdvcmsgd2l0aCB1bmljb2RlLlxyXG4gICAqL1xyXG4gIGhhc1RleHQ6IHtcclxuICAgIHRlc3Q6IC9cXHcrLyxcclxuICAgIG1lc3NhZ2U6IFwiVGhlIGZpZWxkICckezJ9JyBtdXN0IGNvbnRhaW4gc29tZSB0ZXh0LlwiLFxyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtPYmplY3R9XHJcbiAgICogVmFsaWRhdG9yIHRoYXQgZW5zdXJlcyBhIGZpZWxkIGlzIGEgdmFsaWQgbnVtYmVyLlxyXG4gICAqL1xyXG4gIGlzSW50ZWdlcjoge1xyXG4gICAgdGVzdDogL15cXGQrJC8sXHJcbiAgICBtZXNzYWdlOiBcIlRoZSB2YWx1ZSAnJHswfScgaXMgbm90IGEgdmFsaWQgbnVtYmVyLlwiLFxyXG4gIH0sXHJcblxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7T2JqZWN0fVxyXG4gICAqIFZhbGlkYXRvciB0aGF0IGVuc3VyZXMgYSBmaWVsZCBpcyBhIHZhbGlkIGRlY2ltYWwuXHJcbiAgICovXHJcbiAgaXNEZWNpbWFsOiB7XHJcbiAgICB0ZXN0OiAvXltcXGQuXSskLyxcclxuICAgIG1lc3NhZ2U6IFwiVGhlIHZhbHVlICckezB9JyBpcyBub3QgYSB2YWxpZCBudW1iZXIuXCIsXHJcbiAgfSxcclxuXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtPYmplY3R9XHJcbiAgICogVmFsaWRhdG9yIHRoYXQgZW5zdXJlcyBhIGZpZWxkIGlzIHZhbGlkIGN1cnJlbmN5LlxyXG4gICAqL1xyXG4gIGlzQ3VycmVuY3k6IHtcclxuICAgIGZuOiBmdW5jdGlvbiBpc0N1cnJlbmN5KHZhbHVlKSB7XHJcbiAgICAgIHJldHVybiAhKG5ldyBSZWdFeHAoc3RyaW5nLnN1YnN0aXR1dGUoJ15bXFxcXGRdKyhcXFxcLlxcXFxkezEsJHswfX0pPyQnLCBbXHJcbiAgICAgICAgTW9iaWxlLkN1bHR1cmVJbmZvLm51bWJlckZvcm1hdC5jdXJyZW5jeURlY2ltYWxEaWdpdHMgfHwgJzInLFxyXG4gICAgICBdKSkudGVzdCh2YWx1ZSkpO1xyXG4gICAgfSxcclxuICAgIG1lc3NhZ2U6IFwiVGhlIHZhbHVlICckezB9JyBpcyBub3QgYSB2YWxpZCBjdXJyZW5jeSBudW1iZXIuXCIsXHJcbiAgfSxcclxuXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtPYmplY3R9XHJcbiAgICogVmFsaWRhdG9yIHRoYXQgZW5zdXJlcyBhIGZpZWxkIGlzIGEgdmFsaWQgSW50MzIuXHJcbiAgICovXHJcbiAgaXNJbnQzMjoge1xyXG4gICAgZm46IGZ1bmN0aW9uIGlzSW50MzIodmFsdWUpIHtcclxuICAgICAgaWYgKHZhbHVlICYmICghL15cXGR7MSwxMH0kLy50ZXN0KHZhbHVlKSB8fCBwYXJzZUludCh2YWx1ZSwgMTApID4gMjE0NzQ4MzY0NykpIHtcclxuICAgICAgICByZXR1cm4gdHJ1ZTtcclxuICAgICAgfVxyXG4gICAgICByZXR1cm4gZmFsc2U7XHJcbiAgICB9LFxyXG4gICAgbWVzc2FnZTogXCJUaGUgZmllbGQgJyR7Mn0nIHZhbHVlIGV4Y2VlZHMgdGhlIGFsbG93ZWQgbnVtZXJpYyByYW5nZS5cIixcclxuICB9LFxyXG5cclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge09iamVjdH1cclxuICAgKiBAcGFyYW0ge051bWJlcn0gbWF4VGV4dExlbmd0aFxyXG4gICAqIFZhbGlkYXRvciB0aGF0IGVuc3VyZXMgYSBmaWVsZCBkb2VzIG5vdCBleGVlZCBtYXggbGVuZ3RoLiBDaGVja3MgdGhlIGxlbmd0aCBhZ2FpbnN0IGZpZWxkJ3MgbWF4VGV4dExlbmd0aCBwcm9wZXJ0eS5cclxuICAgKi9cclxuICBleGNlZWRzTWF4VGV4dExlbmd0aDoge1xyXG4gICAgZm46IGZ1bmN0aW9uIG1heFRleHRMZW5ndGgodmFsdWUsIGZpZWxkKSB7XHJcbiAgICAgIGlmICh2YWx1ZSAmJiBmaWVsZCAmJiBmaWVsZC5tYXhUZXh0TGVuZ3RoICYmIHZhbHVlLmxlbmd0aCA+IGZpZWxkLm1heFRleHRMZW5ndGgpIHtcclxuICAgICAgICByZXR1cm4gdHJ1ZTtcclxuICAgICAgfVxyXG4gICAgICByZXR1cm4gZmFsc2U7XHJcbiAgICB9LFxyXG4gICAgbWVzc2FnZTogXCJUaGUgZmllbGQgJyR7Mn0nIHZhbHVlIGV4Y2VlZHMgdGhlIGFsbG93ZWQgbGltaXQgaW4gbGVuZ3RoLlwiLFxyXG4gIH0sXHJcblxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7T2JqZWN0fVxyXG4gICAqIEBwYXJhbSB7RGF0ZX0gbWluVmFsdWVcclxuICAgKiBAcGFyYW0ge0RhdGV9IG1heFZhbHVlXHJcbiAgICogVmFsaWRhdG9yIHRoYXQgZW5zdXJlcyB0aGUgZGF0ZSBpcyB3aXRoaW4gYSBjZXJ0YWluIHJhbmdlLiBDaGVja3MgdGhlIGRhdGUgcmFuZ2UgYWdhaW5zdCB0aGUgZmllbGQncyBtaW5WYWx1ZSBhbmQgbWF4VmFsdWUgcHJvcGVydGllcy5cclxuICAgKiBJZiBib3RoIGFyZSBzcGVjaWZpZWQgYSByYW5nZSBiZXR3ZWVuIHRoZSB0d28gaXMgdXNlZCwgb3RoZXJ3aXNlIGEgbGVzcyB0aGFuIG9yIGdyZWF0ZXIgdGhhbiBpcyB1c2VkLlxyXG4gICAqL1xyXG4gIGlzRGF0ZUluUmFuZ2U6IHtcclxuICAgIGZuOiBmdW5jdGlvbiBpc0RhdGVJblJhbmdlKHZhbHVlLCBmaWVsZCkge1xyXG4gICAgICBjb25zdCBtaW5WYWx1ZSA9IGZpZWxkLm1pblZhbHVlO1xyXG4gICAgICBjb25zdCBtYXhWYWx1ZSA9IGZpZWxkLm1heFZhbHVlO1xyXG5cclxuICAgICAgLy8gaWYgdmFsdWUgaXMgZW1wdHkgb3Igbm90IGEgZGF0ZSwgaWdub3JlIGNvbXBhcmlzb25cclxuICAgICAgaWYgKCF2YWx1ZSB8fCAhKHZhbHVlIGluc3RhbmNlb2YgRGF0ZSkpIHtcclxuICAgICAgICByZXR1cm4gZmFsc2U7XHJcbiAgICAgIH1cclxuXHJcbiAgICAgIGlmIChtaW5WYWx1ZSAmJiBtYXhWYWx1ZSkge1xyXG4gICAgICAgIGlmICh2YWx1ZS52YWx1ZU9mKCkgPiBtaW5WYWx1ZS52YWx1ZU9mKCkgJiYgdmFsdWUudmFsdWVPZigpIDwgbWF4VmFsdWUudmFsdWVPZigpKSB7XHJcbiAgICAgICAgICByZXR1cm4gZmFsc2U7XHJcbiAgICAgICAgfVxyXG4gICAgICB9IGVsc2UgaWYgKG1pblZhbHVlICYmIHZhbHVlLnZhbHVlT2YoKSA+IG1pblZhbHVlLnZhbHVlT2YoKSkge1xyXG4gICAgICAgIHJldHVybiBmYWxzZTtcclxuICAgICAgfSBlbHNlIGlmIChtYXhWYWx1ZSAmJiB2YWx1ZS52YWx1ZU9mKCkgPCBtYXhWYWx1ZS52YWx1ZU9mKCkpIHtcclxuICAgICAgICByZXR1cm4gZmFsc2U7XHJcbiAgICAgIH1cclxuXHJcbiAgICAgIHJldHVybiB0cnVlO1xyXG4gICAgfSxcclxuICAgIG1lc3NhZ2U6IFwiVGhlIGZpZWxkICckezJ9JyB2YWx1ZSBpcyBvdXQgb2YgYWxsb3dlZCBkYXRlIHJhbmdlLlwiLFxyXG4gIH0sXHJcblxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7T2JqZWN0fVxyXG4gICAqIEBkZXByZWNhdGVkXHJcbiAgICogQHJlbW92ZWRcclxuICAgKiBWYWxpZGF0b3IgdGhhdCBlbnN1cmVzIHRoZSBmaWVsZCBpcyBhIHBob25lIG51bWJlci5cclxuICAgKi9cclxuICBpc1Bob25lTnVtYmVyOiB7fSxcclxufSk7XHJcblxyXG5sYW5nLnNldE9iamVjdCgnTW9iaWxlLlNhbGVzTG9naXguVmFsaWRhdG9yJywgX19jbGFzcyk7XHJcbmV4cG9ydCBkZWZhdWx0IF9fY2xhc3M7XHJcbiJdfQ==
+</pre>
+</body>
+</html>

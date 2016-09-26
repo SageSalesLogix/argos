@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">define('argos/Fields/TextField', ['exports', 'module', 'dojo/_base/declare', 'dojo/_base/lang', 'dojo/_base/event', 'dojo/dom-attr', 'dojo/dom-class', './_Field', '../FieldManager'], function (exports, module, _dojo_baseDeclare, _dojo_baseLang, _dojo_baseEvent, _dojoDomAttr, _dojoDomClass, _Field2, _FieldManager) {
+  function _interopRequireDefault(obj) { return obj &amp;&amp; obj.__esModule ? obj : { 'default': obj }; }
+
+  /* Copyright (c) 2010, Sage Software, Inc. All rights reserved.
+   *
+   * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   * you may not use this file except in compliance with the License.
+   * You may obtain a copy of the License at
+   *
+   *     http://www.apache.org/licenses/LICENSE-2.0
+   *
+   * Unless required by applicable law or agreed to in writing, software
+   * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   * See the License for the specific language governing permissions and
+   * limitations under the License.
+   */
+
+  var _declare = _interopRequireDefault(_dojo_baseDeclare);
+
+  var _lang = _interopRequireDefault(_dojo_baseLang);
+
+  var _event = _interopRequireDefault(_dojo_baseEvent);
+
+  var _domAttr = _interopRequireDefault(_dojoDomAttr);
+
+  var _domClass = _interopRequireDefault(_dojoDomClass);
+
+  var _Field3 = _interopRequireDefault(_Field2);
+
+  var _FieldManager2 = _interopRequireDefault(_FieldManager);
+
+<span id='argos-Fields-TextField'>  /**
+</span>   * @class argos.Fields.TextField
+   * The TextField is the base method of inputting just a string that is bound to a `&lt;input type=&quot;text&quot;&gt;`.
+   *
+   * It does introduce:
+   *
+   * * Clear button - adds a small x buton to clear the input
+   * * Option to only allow valid input at each keypress
+   *
+   * ###Example:
+   *     {
+   *         name: 'LastName',
+   *         property: 'LastName',
+   *         label: this.lastNameText,
+   *         type: 'text',
+   *     }
+   *
+   * @alternateClassName TextField
+   * @extends argos.Fields._Field
+   * @requires argos.FieldManager
+   */
+  var control = (0, _declare['default'])('argos.Fields.TextField', [_Field3['default']], {
+<span id='argos-Fields-TextField-property-attributeMap'>    /**
+</span>     * @property {Object}
+     * Creates a setter map to html nodes, namely:
+     *
+     * * inputValue =&gt; inputNode's value attribute
+     */
+    attributeMap: {
+      inputValue: {
+        node: 'inputNode',
+        type: 'attribute',
+        attribute: 'value'
+      }
+    },
+<span id='argos-Fields-TextField-property-widgetTemplate'>    /**
+</span>     * @property {Simplate}
+     * Simplate that defines the fields HTML Markup
+     *
+     * * `$` =&gt; Field instance
+     * * `$$` =&gt; Owner View instance
+     *
+     */
+    widgetTemplate: new Simplate(['&lt;label for=&quot;{%= $.name %}&quot;&gt;{%: $.label %}&lt;/label&gt;', '{% if ($.enableClearButton &amp;&amp; !$.readonly) { %}', '&lt;button class=&quot;clear-button&quot; tabindex=&quot;-1&quot; data-dojo-attach-point=&quot;clearNode&quot; data-dojo-attach-event=&quot;onclick:_onClearClick&quot;&gt;&lt;/button&gt;', '{% } %}', '&lt;input data-dojo-attach-point=&quot;inputNode&quot; tabindex=&quot;0&quot; placeholder=&quot;{%: $.placeHolderText %}&quot; data-dojo-attach-event=&quot;onkeyup: _onKeyUp, onblur: _onBlur, onfocus: _onFocus&quot; class=&quot;text-input&quot; type=&quot;{%: $.inputType %}&quot; name=&quot;{%= $.name %}&quot; {% if ($.readonly) { %} readonly {% } %}&gt;']),
+<span id='argos-Fields-TextField-property-inputNode'>    /**
+</span>     * @property {HTMLElement}
+     * The dojo-attach-point reference to the input element
+     */
+    inputNode: null,
+<span id='argos-Fields-TextField-property-clearNode'>    /**
+</span>     * @property {HTMLElement}
+     * The dojo-attach-point reference to the clear button
+     */
+    clearNode: null,
+
+<span id='argos-Fields-TextField-cfg-notificationTrigger'>    /**
+</span>     * @cfg {String}
+     * Event name for enabling {@link #onNotificationTrigger onNotificationTrigger} function to
+     * be called, can be either `keyup` or `blur`. The trigger in turn calls the {@link #onChange onChange} function
+     * if the field has been changed.
+     */
+    notificationTrigger: false,
+<span id='argos-Fields-TextField-cfg-validationTrigger'>    /**
+</span>     * @cfg {String}
+     * Event name for enabling {@link #onValidationTrigger onValidationTrigger} function to
+     * be called, can be either `keyup` or `blur`. The trigger in turn validates the field.
+     */
+    validationTrigger: false,
+<span id='argos-Fields-TextField-cfg-inputType'>    /**
+</span>     * @cfg {String}
+     * The `&lt;input type=` for the field, may be overridden to use the HTML5 enhanced types.
+     */
+    inputType: 'text',
+<span id='argos-Fields-TextField-cfg-enableClearButton'>    /**
+</span>     * @cfg {Boolean}
+     * Flag for controlling the addition of the clear button.
+     */
+    enableClearButton: false,
+<span id='argos-Fields-TextField-cfg-validInputOnly'>    /**
+</span>     * @cfg {Boolean}
+     * Flag that if true connects the `onkeypress` event to {@link #_onKeyPress _onKeyPress}
+     * where it adds the typed key to the current value and validates the field - if validation
+     * fails the key press is cancelled.
+     */
+    validInputOnly: false,
+<span id='argos-Fields-TextField-property-previousValue'>    /**
+</span>     * @property {String}
+     * Value storage for detecting changes either via direct input or programmatic setting.
+     */
+    previousValue: null,
+<span id='argos-Fields-TextField-property-originalValue'>    /**
+</span>     * @property {String}
+     * Value storage for keeping track of modified/unmodified values. Used in {@link #isDirty isDirty}.
+     */
+    originalValue: null,
+
+<span id='argos-Fields-TextField-method-init'>    /**
+</span>     * Extends the parent implementation to optionally bind the `onkeypress` event if `validInputOnly`
+     * is true.
+     */
+    init: function init() {
+      this.inherited(arguments);
+      if (this.validInputOnly) {
+        this.connect(this.inputNode, 'onkeypress', this._onKeyPress);
+      }
+    },
+<span id='argos-Fields-TextField-method-enable'>    /**
+</span>     * Extends the parent implementation to set the disabled attribute of the input to false
+     */
+    enable: function enable() {
+      this.inherited(arguments);
+      _domAttr['default'].set(this.inputNode, 'disabled', false);
+    },
+<span id='argos-Fields-TextField-method-disable'>    /**
+</span>     * Extends the parent implementation to set the disabled attribute of the input to true
+     */
+    disable: function disable() {
+      this.inherited(arguments);
+
+      _domAttr['default'].set(this.inputNode, 'disabled', true);
+    },
+    focus: function focus() {
+      this.inputNode.focus();
+    },
+<span id='argos-Fields-TextField-method-_onKeyPress'>    /**
+</span>     * Handler for the `onkeypress` event which is not connected unless `validInputOnly` is true.
+     *
+     * Since this is a direct tie-in for `validInputOnly`, this intercepts the key press, adds it
+     * to the current value temporarily and validates the result -- if it validates the key press is
+     * accepted, if validation fails the key press is rejected and the key is not entered.
+     * @param {Event} evt
+     */
+    _onKeyPress: function _onKeyPress(evt) {
+      var v = this.getValue() + evt.keyChar;
+      if (this.validate(v)) {
+        _event['default'].stop(evt);
+        return false;
+      }
+    },
+<span id='argos-Fields-TextField-method-_onKeyUp'>    /**
+</span>     * Handler for the `onkeyup` event.
+     *
+     * If either the `validationTrigger` or `notificationTrigger` is set to `keyup` then it will fire
+     * the respective function.
+     *
+     * @param {Event} evt
+     */
+    _onKeyUp: function _onKeyUp(evt) {
+      if (this.validationTrigger === 'keyup') {
+        this.onValidationTrigger(evt);
+      }
+
+      if (this.notificationTrigger === 'keyup') {
+        this.onNotificationTrigger(evt);
+      }
+    },
+<span id='argos-Fields-TextField-method-_onFocus'>    /**
+</span>     * Handler for the `onfocus` event.
+     *
+     * Adds the active styling which is used for detecting state in the clear button click handler.
+     *
+     * @param evt
+     */
+    _onFocus: function _onFocus() /*evt*/{
+      _domClass['default'].add(this.domNode, 'text-field-active');
+    },
+<span id='argos-Fields-TextField-method-_onBlur'>    /**
+</span>     * Handler for the `onblur` event
+     *
+     * If either the `validationTrigger` or `notificationTrigger` is set to `blur` then it will fire
+     * the respective function.
+     *
+     * @param {Event} evt
+     */
+    _onBlur: function _onBlur(evt) {
+      if (this.validationTrigger === 'blur') {
+        this.onValidationTrigger(evt);
+      }
+
+      if (this.notificationTrigger === 'blur') {
+        this.onNotificationTrigger(evt);
+      }
+
+      _domClass['default'].remove(this.domNode, 'text-field-active');
+    },
+<span id='argos-Fields-TextField-method-_onClearClick'>    /**
+</span>     * Handler for the `onclick` event for the clear button.
+     *
+     * Clears the value and attempts to re-open the mobile keyboard display
+     *
+     * @param {Event} evt
+     */
+    _onClearClick: function _onClearClick(evt) {
+      if (!_domClass['default'].contains(this.domNode, 'text-field-active')) {
+        this.clearValue(true);
+        _event['default'].stop(evt);
+      }
+
+      // Mobile browsers listen to either or both events to show keyboard
+      this.inputNode.focus();
+      this.inputNode.click();
+    },
+<span id='argos-Fields-TextField-method-onNotificationTrigger'>    /**
+</span>     * Fires {@link _Field#onChange onChange} if the value has changed since the previous notification event or
+     * a direct setting of the value.
+     * @param {Event} evt
+     */
+    onNotificationTrigger: function onNotificationTrigger() /*evt*/{
+      var currentValue = this.getValue();
+
+      if (this.previousValue !== currentValue) {
+        this.onChange(currentValue, this);
+      }
+
+      this.previousValue = currentValue;
+    },
+<span id='argos-Fields-TextField-method-onValidationTrigger'>    /**
+</span>     * Immediately calls {@link _Field#validate validate} and adds the respective row styling.
+     * @param {Event} evt
+     */
+    onValidationTrigger: function onValidationTrigger() /*evt*/{
+      if (this.validate()) {
+        _domClass['default'].add(this.containerNode, 'row-error');
+      } else {
+        _domClass['default'].remove(this.containerNode, 'row-error');
+      }
+    },
+<span id='argos-Fields-TextField-method-getValue'>    /**
+</span>     * Returns the input nodes value
+     * @return {String}
+     */
+    getValue: function getValue() {
+      return this.inputNode.value;
+    },
+<span id='argos-Fields-TextField-method-setValue'>    /**
+</span>     * Sets the value of the input node, clears the previous value for notification trigger and
+     * if setting an initial value - set the originalValue to the passed value for dirty detection.
+     * @param {String} val Value to be set
+     * @param {Boolean} initial True if the value is the default/clean value, false if it is a meant as a dirty value
+     */
+    setValue: function setValue(val, initial) {
+      if (val === undefined) val = '';
+
+      if (initial) {
+        this.originalValue = val;
+      }
+
+      this.previousValue = false;
+      this.set('inputValue', val);
+    },
+<span id='argos-Fields-TextField-method-setValueNoTrigger'>    /**
+</span>     * Sets the value of the input node, and set the value as the previous value  so notification trigger will not trigger and
+     * if setting an initial value - set the originalValue to the passed value for dirty detection.
+     * @param {String} val Value to be set
+     * @param {Boolean} initial True if the value is the default/clean value, false if it is a meant as a dirty value
+     */
+    setValueNoTrigger: function setValueNoTrigger(val, initial) {
+      this.setValue(val, initial);
+      this.previousValue = this.getValue();
+    },
+<span id='argos-Fields-TextField-method-clearValue'>    /**
+</span>     * Clears the input nodes value, optionally clearing as a modified value.
+     * @param {Boolean} asDirty If true it signifies the clearing is meant as destroying an
+     * existing value and should then be detected as modified/dirty.
+     */
+    clearValue: function clearValue(asDirty) {
+      var initial = asDirty !== true;
+      this.setValue('', initial);
+    },
+<span id='argos-Fields-TextField-method-isDirty'>    /**
+</span>     * Determines if the value has been modified from the default/original state
+     * @return {Boolean}
+     */
+    isDirty: function isDirty() {
+      return this.originalValue !== this.getValue();
+    }
+  });
+
+  _lang['default'].setObject('Sage.Platform.Mobile.Fields.TextField', control);
+  module.exports = _FieldManager2['default'].register('text', control);
+});
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInNyYy9GaWVsZHMvVGV4dEZpZWxkLmpzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiI7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7O0FBNENBLE1BQU0sT0FBTyxHQUFHLHlCQUFRLHdCQUF3QixFQUFFLG9CQUFRLEVBQUU7Ozs7Ozs7QUFPMUQsZ0JBQVksRUFBRTtBQUNaLGdCQUFVLEVBQUU7QUFDVixZQUFJLEVBQUUsV0FBVztBQUNqQixZQUFJLEVBQUUsV0FBVztBQUNqQixpQkFBUyxFQUFFLE9BQU87T0FDbkI7S0FDRjs7Ozs7Ozs7O0FBU0Qsa0JBQWMsRUFBRSxJQUFJLFFBQVEsQ0FBQyxDQUMzQixtREFBbUQsRUFDbkQsaURBQWlELEVBQ2pELHdJQUF3SSxFQUN4SSxTQUFTLEVBQ1QsMFJBQTBSLENBQzNSLENBQUM7Ozs7O0FBS0YsYUFBUyxFQUFFLElBQUk7Ozs7O0FBS2YsYUFBUyxFQUFFLElBQUk7Ozs7Ozs7O0FBUWYsdUJBQW1CLEVBQUUsS0FBSzs7Ozs7O0FBTTFCLHFCQUFpQixFQUFFLEtBQUs7Ozs7O0FBS3hCLGFBQVMsRUFBRSxNQUFNOzs7OztBQUtqQixxQkFBaUIsRUFBRSxLQUFLOzs7Ozs7O0FBT3hCLGtCQUFjLEVBQUUsS0FBSzs7Ozs7QUFLckIsaUJBQWEsRUFBRSxJQUFJOzs7OztBQUtuQixpQkFBYSxFQUFFLElBQUk7Ozs7OztBQU1uQixRQUFJLEVBQUUsU0FBUyxJQUFJLEdBQUc7QUFDcEIsVUFBSSxDQUFDLFNBQVMsQ0FBQyxTQUFTLENBQUMsQ0FBQztBQUMxQixVQUFJLElBQUksQ0FBQyxjQUFjLEVBQUU7QUFDdkIsWUFBSSxDQUFDLE9BQU8sQ0FBQyxJQUFJLENBQUMsU0FBUyxFQUFFLFlBQVksRUFBRSxJQUFJLENBQUMsV0FBVyxDQUFDLENBQUM7T0FDOUQ7S0FDRjs7OztBQUlELFVBQU0sRUFBRSxTQUFTLE1BQU0sR0FBRztBQUN4QixVQUFJLENBQUMsU0FBUyxDQUFDLFNBQVMsQ0FBQyxDQUFDO0FBQzFCLDBCQUFRLEdBQUcsQ0FBQyxJQUFJLENBQUMsU0FBUyxFQUFFLFVBQVUsRUFBRSxLQUFLLENBQUMsQ0FBQztLQUNoRDs7OztBQUlELFdBQU8sRUFBRSxTQUFTLE9BQU8sR0FBRztBQUMxQixVQUFJLENBQUMsU0FBUyxDQUFDLFNBQVMsQ0FBQyxDQUFDOztBQUUxQiwwQkFBUSxHQUFHLENBQUMsSUFBSSxDQUFDLFNBQVMsRUFBRSxVQUFVLEVBQUUsSUFBSSxDQUFDLENBQUM7S0FDL0M7QUFDRCxTQUFLLEVBQUUsU0FBUyxLQUFLLEdBQUc7QUFDdEIsVUFBSSxDQUFDLFNBQVMsQ0FBQyxLQUFLLEVBQUUsQ0FBQztLQUN4Qjs7Ozs7Ozs7O0FBU0QsZUFBVyxFQUFFLFNBQVMsV0FBVyxDQUFDLEdBQUcsRUFBRTtBQUNyQyxVQUFNLENBQUMsR0FBRyxJQUFJLENBQUMsUUFBUSxFQUFFLEdBQUcsR0FBRyxDQUFDLE9BQU8sQ0FBQztBQUN4QyxVQUFJLElBQUksQ0FBQyxRQUFRLENBQUMsQ0FBQyxDQUFDLEVBQUU7QUFDcEIsMEJBQU0sSUFBSSxDQUFDLEdBQUcsQ0FBQyxDQUFDO0FBQ2hCLGVBQU8sS0FBSyxDQUFDO09BQ2Q7S0FDRjs7Ozs7Ozs7O0FBU0QsWUFBUSxFQUFFLFNBQVMsUUFBUSxDQUFDLEdBQUcsRUFBRTtBQUMvQixVQUFJLElBQUksQ0FBQyxpQkFBaUIsS0FBSyxPQUFPLEVBQUU7QUFDdEMsWUFBSSxDQUFDLG1CQUFtQixDQUFDLEdBQUcsQ0FBQyxDQUFDO09BQy9COztBQUVELFVBQUksSUFBSSxDQUFDLG1CQUFtQixLQUFLLE9BQU8sRUFBRTtBQUN4QyxZQUFJLENBQUMscUJBQXFCLENBQUMsR0FBRyxDQUFDLENBQUM7T0FDakM7S0FDRjs7Ozs7Ozs7QUFRRCxZQUFRLEVBQUUsU0FBUyxRQUFRLFVBQVU7QUFDbkMsMkJBQVMsR0FBRyxDQUFDLElBQUksQ0FBQyxPQUFPLEVBQUUsbUJBQW1CLENBQUMsQ0FBQztLQUNqRDs7Ozs7Ozs7O0FBU0QsV0FBTyxFQUFFLFNBQVMsT0FBTyxDQUFDLEdBQUcsRUFBRTtBQUM3QixVQUFJLElBQUksQ0FBQyxpQkFBaUIsS0FBSyxNQUFNLEVBQUU7QUFDckMsWUFBSSxDQUFDLG1CQUFtQixDQUFDLEdBQUcsQ0FBQyxDQUFDO09BQy9COztBQUVELFVBQUksSUFBSSxDQUFDLG1CQUFtQixLQUFLLE1BQU0sRUFBRTtBQUN2QyxZQUFJLENBQUMscUJBQXFCLENBQUMsR0FBRyxDQUFDLENBQUM7T0FDakM7O0FBRUQsMkJBQVMsTUFBTSxDQUFDLElBQUksQ0FBQyxPQUFPLEVBQUUsbUJBQW1CLENBQUMsQ0FBQztLQUNwRDs7Ozs7Ozs7QUFRRCxpQkFBYSxFQUFFLFNBQVMsYUFBYSxDQUFDLEdBQUcsRUFBRTtBQUN6QyxVQUFJLENBQUMscUJBQVMsUUFBUSxDQUFDLElBQUksQ0FBQyxPQUFPLEVBQUUsbUJBQW1CLENBQUMsRUFBRTtBQUN6RCxZQUFJLENBQUMsVUFBVSxDQUFDLElBQUksQ0FBQyxDQUFDO0FBQ3RCLDBCQUFNLElBQUksQ0FBQyxHQUFHLENBQUMsQ0FBQztPQUNqQjs7O0FBR0QsVUFBSSxDQUFDLFNBQVMsQ0FBQyxLQUFLLEVBQUUsQ0FBQztBQUN2QixVQUFJLENBQUMsU0FBUyxDQUFDLEtBQUssRUFBRSxDQUFDO0tBQ3hCOzs7Ozs7QUFNRCx5QkFBcUIsRUFBRSxTQUFTLHFCQUFxQixVQUFVO0FBQzdELFVBQU0sWUFBWSxHQUFHLElBQUksQ0FBQyxRQUFRLEVBQUUsQ0FBQzs7QUFFckMsVUFBSSxJQUFJLENBQUMsYUFBYSxLQUFLLFlBQVksRUFBRTtBQUN2QyxZQUFJLENBQUMsUUFBUSxDQUFDLFlBQVksRUFBRSxJQUFJLENBQUMsQ0FBQztPQUNuQzs7QUFFRCxVQUFJLENBQUMsYUFBYSxHQUFHLFlBQVksQ0FBQztLQUNuQzs7Ozs7QUFLRCx1QkFBbUIsRUFBRSxTQUFTLG1CQUFtQixVQUFVO0FBQ3pELFVBQUksSUFBSSxDQUFDLFFBQVEsRUFBRSxFQUFFO0FBQ25CLDZCQUFTLEdBQUcsQ0FBQyxJQUFJLENBQUMsYUFBYSxFQUFFLFdBQVcsQ0FBQyxDQUFDO09BQy9DLE1BQU07QUFDTCw2QkFBUyxNQUFNLENBQUMsSUFBSSxDQUFDLGFBQWEsRUFBRSxXQUFXLENBQUMsQ0FBQztPQUNsRDtLQUNGOzs7OztBQUtELFlBQVEsRUFBRSxTQUFTLFFBQVEsR0FBRztBQUM1QixhQUFPLElBQUksQ0FBQyxTQUFTLENBQUMsS0FBSyxDQUFDO0tBQzdCOzs7Ozs7O0FBT0QsWUFBUSxFQUFFLFNBQVMsUUFBUSxDQUFDLEdBQUcsRUFBTyxPQUFPLEVBQUU7VUFBbkIsR0FBRyxnQkFBSCxHQUFHLEdBQUcsRUFBRTs7QUFDbEMsVUFBSSxPQUFPLEVBQUU7QUFDWCxZQUFJLENBQUMsYUFBYSxHQUFHLEdBQUcsQ0FBQztPQUMxQjs7QUFFRCxVQUFJLENBQUMsYUFBYSxHQUFHLEtBQUssQ0FBQztBQUMzQixVQUFJLENBQUMsR0FBRyxDQUFDLFlBQVksRUFBRSxHQUFHLENBQUMsQ0FBQztLQUM3Qjs7Ozs7OztBQU9ELHFCQUFpQixFQUFFLFNBQVMsaUJBQWlCLENBQUMsR0FBRyxFQUFFLE9BQU8sRUFBRTtBQUMxRCxVQUFJLENBQUMsUUFBUSxDQUFDLEdBQUcsRUFBRSxPQUFPLENBQUMsQ0FBQztBQUM1QixVQUFJLENBQUMsYUFBYSxHQUFHLElBQUksQ0FBQyxRQUFRLEVBQUUsQ0FBQztLQUN0Qzs7Ozs7O0FBTUQsY0FBVSxFQUFFLFNBQVMsVUFBVSxDQUFDLE9BQU8sRUFBRTtBQUN2QyxVQUFNLE9BQU8sR0FBRyxPQUFPLEtBQUssSUFBSSxDQUFDO0FBQ2pDLFVBQUksQ0FBQyxRQUFRLENBQUMsRUFBRSxFQUFFLE9BQU8sQ0FBQyxDQUFDO0tBQzVCOzs7OztBQUtELFdBQU8sRUFBRSxTQUFTLE9BQU8sR0FBRztBQUMxQixhQUFRLElBQUksQ0FBQyxhQUFhLEtBQUssSUFBSSxDQUFDLFFBQVEsRUFBRSxDQUFFO0tBQ2pEO0dBQ0YsQ0FBQyxDQUFDOztBQUVILG1CQUFLLFNBQVMsQ0FBQyx1Q0FBdUMsRUFBRSxPQUFPLENBQUMsQ0FBQzttQkFDbEQsMEJBQWEsUUFBUSxDQUFDLE1BQU0sRUFBRSxPQUFPLENBQUMiLCJmaWxlIjoic3JjL0ZpZWxkcy9UZXh0RmllbGQuanMiLCJzb3VyY2VSb290Ijoic3JjIiwic291cmNlc0NvbnRlbnQiOlsiLyogQ29weXJpZ2h0IChjKSAyMDEwLCBTYWdlIFNvZnR3YXJlLCBJbmMuIEFsbCByaWdodHMgcmVzZXJ2ZWQuXHJcbiAqXHJcbiAqIExpY2Vuc2VkIHVuZGVyIHRoZSBBcGFjaGUgTGljZW5zZSwgVmVyc2lvbiAyLjAgKHRoZSBcIkxpY2Vuc2VcIik7XHJcbiAqIHlvdSBtYXkgbm90IHVzZSB0aGlzIGZpbGUgZXhjZXB0IGluIGNvbXBsaWFuY2Ugd2l0aCB0aGUgTGljZW5zZS5cclxuICogWW91IG1heSBvYnRhaW4gYSBjb3B5IG9mIHRoZSBMaWNlbnNlIGF0XHJcbiAqXHJcbiAqICAgICBodHRwOi8vd3d3LmFwYWNoZS5vcmcvbGljZW5zZXMvTElDRU5TRS0yLjBcclxuICpcclxuICogVW5sZXNzIHJlcXVpcmVkIGJ5IGFwcGxpY2FibGUgbGF3IG9yIGFncmVlZCB0byBpbiB3cml0aW5nLCBzb2Z0d2FyZVxyXG4gKiBkaXN0cmlidXRlZCB1bmRlciB0aGUgTGljZW5zZSBpcyBkaXN0cmlidXRlZCBvbiBhbiBcIkFTIElTXCIgQkFTSVMsXHJcbiAqIFdJVEhPVVQgV0FSUkFOVElFUyBPUiBDT05ESVRJT05TIE9GIEFOWSBLSU5ELCBlaXRoZXIgZXhwcmVzcyBvciBpbXBsaWVkLlxyXG4gKiBTZWUgdGhlIExpY2Vuc2UgZm9yIHRoZSBzcGVjaWZpYyBsYW5ndWFnZSBnb3Zlcm5pbmcgcGVybWlzc2lvbnMgYW5kXHJcbiAqIGxpbWl0YXRpb25zIHVuZGVyIHRoZSBMaWNlbnNlLlxyXG4gKi9cclxuXHJcbmltcG9ydCBkZWNsYXJlIGZyb20gJ2Rvam8vX2Jhc2UvZGVjbGFyZSc7XHJcbmltcG9ydCBsYW5nIGZyb20gJ2Rvam8vX2Jhc2UvbGFuZyc7XHJcbmltcG9ydCBldmVudCBmcm9tICdkb2pvL19iYXNlL2V2ZW50JztcclxuaW1wb3J0IGRvbUF0dHIgZnJvbSAnZG9qby9kb20tYXR0cic7XHJcbmltcG9ydCBkb21DbGFzcyBmcm9tICdkb2pvL2RvbS1jbGFzcyc7XHJcbmltcG9ydCBfRmllbGQgZnJvbSAnLi9fRmllbGQnO1xyXG5pbXBvcnQgRmllbGRNYW5hZ2VyIGZyb20gJy4uL0ZpZWxkTWFuYWdlcic7XHJcblxyXG4vKipcclxuICogQGNsYXNzIGFyZ29zLkZpZWxkcy5UZXh0RmllbGRcclxuICogVGhlIFRleHRGaWVsZCBpcyB0aGUgYmFzZSBtZXRob2Qgb2YgaW5wdXR0aW5nIGp1c3QgYSBzdHJpbmcgdGhhdCBpcyBib3VuZCB0byBhIGA8aW5wdXQgdHlwZT1cInRleHRcIj5gLlxyXG4gKlxyXG4gKiBJdCBkb2VzIGludHJvZHVjZTpcclxuICpcclxuICogKiBDbGVhciBidXR0b24gLSBhZGRzIGEgc21hbGwgeCBidXRvbiB0byBjbGVhciB0aGUgaW5wdXRcclxuICogKiBPcHRpb24gdG8gb25seSBhbGxvdyB2YWxpZCBpbnB1dCBhdCBlYWNoIGtleXByZXNzXHJcbiAqXHJcbiAqICMjI0V4YW1wbGU6XHJcbiAqICAgICB7XHJcbiAqICAgICAgICAgbmFtZTogJ0xhc3ROYW1lJyxcclxuICogICAgICAgICBwcm9wZXJ0eTogJ0xhc3ROYW1lJyxcclxuICogICAgICAgICBsYWJlbDogdGhpcy5sYXN0TmFtZVRleHQsXHJcbiAqICAgICAgICAgdHlwZTogJ3RleHQnLFxyXG4gKiAgICAgfVxyXG4gKlxyXG4gKiBAYWx0ZXJuYXRlQ2xhc3NOYW1lIFRleHRGaWVsZFxyXG4gKiBAZXh0ZW5kcyBhcmdvcy5GaWVsZHMuX0ZpZWxkXHJcbiAqIEByZXF1aXJlcyBhcmdvcy5GaWVsZE1hbmFnZXJcclxuICovXHJcbmNvbnN0IGNvbnRyb2wgPSBkZWNsYXJlKCdhcmdvcy5GaWVsZHMuVGV4dEZpZWxkJywgW19GaWVsZF0sIHtcclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge09iamVjdH1cclxuICAgKiBDcmVhdGVzIGEgc2V0dGVyIG1hcCB0byBodG1sIG5vZGVzLCBuYW1lbHk6XHJcbiAgICpcclxuICAgKiAqIGlucHV0VmFsdWUgPT4gaW5wdXROb2RlJ3MgdmFsdWUgYXR0cmlidXRlXHJcbiAgICovXHJcbiAgYXR0cmlidXRlTWFwOiB7XHJcbiAgICBpbnB1dFZhbHVlOiB7XHJcbiAgICAgIG5vZGU6ICdpbnB1dE5vZGUnLFxyXG4gICAgICB0eXBlOiAnYXR0cmlidXRlJyxcclxuICAgICAgYXR0cmlidXRlOiAndmFsdWUnLFxyXG4gICAgfSxcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7U2ltcGxhdGV9XHJcbiAgICogU2ltcGxhdGUgdGhhdCBkZWZpbmVzIHRoZSBmaWVsZHMgSFRNTCBNYXJrdXBcclxuICAgKlxyXG4gICAqICogYCRgID0+IEZpZWxkIGluc3RhbmNlXHJcbiAgICogKiBgJCRgID0+IE93bmVyIFZpZXcgaW5zdGFuY2VcclxuICAgKlxyXG4gICAqL1xyXG4gIHdpZGdldFRlbXBsYXRlOiBuZXcgU2ltcGxhdGUoW1xyXG4gICAgJzxsYWJlbCBmb3I9XCJ7JT0gJC5uYW1lICV9XCI+eyU6ICQubGFiZWwgJX08L2xhYmVsPicsXHJcbiAgICAneyUgaWYgKCQuZW5hYmxlQ2xlYXJCdXR0b24gJiYgISQucmVhZG9ubHkpIHsgJX0nLFxyXG4gICAgJzxidXR0b24gY2xhc3M9XCJjbGVhci1idXR0b25cIiB0YWJpbmRleD1cIi0xXCIgZGF0YS1kb2pvLWF0dGFjaC1wb2ludD1cImNsZWFyTm9kZVwiIGRhdGEtZG9qby1hdHRhY2gtZXZlbnQ9XCJvbmNsaWNrOl9vbkNsZWFyQ2xpY2tcIj48L2J1dHRvbj4nLFxyXG4gICAgJ3slIH0gJX0nLFxyXG4gICAgJzxpbnB1dCBkYXRhLWRvam8tYXR0YWNoLXBvaW50PVwiaW5wdXROb2RlXCIgdGFiaW5kZXg9XCIwXCIgcGxhY2Vob2xkZXI9XCJ7JTogJC5wbGFjZUhvbGRlclRleHQgJX1cIiBkYXRhLWRvam8tYXR0YWNoLWV2ZW50PVwib25rZXl1cDogX29uS2V5VXAsIG9uYmx1cjogX29uQmx1ciwgb25mb2N1czogX29uRm9jdXNcIiBjbGFzcz1cInRleHQtaW5wdXRcIiB0eXBlPVwieyU6ICQuaW5wdXRUeXBlICV9XCIgbmFtZT1cInslPSAkLm5hbWUgJX1cIiB7JSBpZiAoJC5yZWFkb25seSkgeyAlfSByZWFkb25seSB7JSB9ICV9PicsXHJcbiAgXSksXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtIVE1MRWxlbWVudH1cclxuICAgKiBUaGUgZG9qby1hdHRhY2gtcG9pbnQgcmVmZXJlbmNlIHRvIHRoZSBpbnB1dCBlbGVtZW50XHJcbiAgICovXHJcbiAgaW5wdXROb2RlOiBudWxsLFxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7SFRNTEVsZW1lbnR9XHJcbiAgICogVGhlIGRvam8tYXR0YWNoLXBvaW50IHJlZmVyZW5jZSB0byB0aGUgY2xlYXIgYnV0dG9uXHJcbiAgICovXHJcbiAgY2xlYXJOb2RlOiBudWxsLFxyXG5cclxuICAvKipcclxuICAgKiBAY2ZnIHtTdHJpbmd9XHJcbiAgICogRXZlbnQgbmFtZSBmb3IgZW5hYmxpbmcge0BsaW5rICNvbk5vdGlmaWNhdGlvblRyaWdnZXIgb25Ob3RpZmljYXRpb25UcmlnZ2VyfSBmdW5jdGlvbiB0b1xyXG4gICAqIGJlIGNhbGxlZCwgY2FuIGJlIGVpdGhlciBga2V5dXBgIG9yIGBibHVyYC4gVGhlIHRyaWdnZXIgaW4gdHVybiBjYWxscyB0aGUge0BsaW5rICNvbkNoYW5nZSBvbkNoYW5nZX0gZnVuY3Rpb25cclxuICAgKiBpZiB0aGUgZmllbGQgaGFzIGJlZW4gY2hhbmdlZC5cclxuICAgKi9cclxuICBub3RpZmljYXRpb25UcmlnZ2VyOiBmYWxzZSxcclxuICAvKipcclxuICAgKiBAY2ZnIHtTdHJpbmd9XHJcbiAgICogRXZlbnQgbmFtZSBmb3IgZW5hYmxpbmcge0BsaW5rICNvblZhbGlkYXRpb25UcmlnZ2VyIG9uVmFsaWRhdGlvblRyaWdnZXJ9IGZ1bmN0aW9uIHRvXHJcbiAgICogYmUgY2FsbGVkLCBjYW4gYmUgZWl0aGVyIGBrZXl1cGAgb3IgYGJsdXJgLiBUaGUgdHJpZ2dlciBpbiB0dXJuIHZhbGlkYXRlcyB0aGUgZmllbGQuXHJcbiAgICovXHJcbiAgdmFsaWRhdGlvblRyaWdnZXI6IGZhbHNlLFxyXG4gIC8qKlxyXG4gICAqIEBjZmcge1N0cmluZ31cclxuICAgKiBUaGUgYDxpbnB1dCB0eXBlPWAgZm9yIHRoZSBmaWVsZCwgbWF5IGJlIG92ZXJyaWRkZW4gdG8gdXNlIHRoZSBIVE1MNSBlbmhhbmNlZCB0eXBlcy5cclxuICAgKi9cclxuICBpbnB1dFR5cGU6ICd0ZXh0JyxcclxuICAvKipcclxuICAgKiBAY2ZnIHtCb29sZWFufVxyXG4gICAqIEZsYWcgZm9yIGNvbnRyb2xsaW5nIHRoZSBhZGRpdGlvbiBvZiB0aGUgY2xlYXIgYnV0dG9uLlxyXG4gICAqL1xyXG4gIGVuYWJsZUNsZWFyQnV0dG9uOiBmYWxzZSxcclxuICAvKipcclxuICAgKiBAY2ZnIHtCb29sZWFufVxyXG4gICAqIEZsYWcgdGhhdCBpZiB0cnVlIGNvbm5lY3RzIHRoZSBgb25rZXlwcmVzc2AgZXZlbnQgdG8ge0BsaW5rICNfb25LZXlQcmVzcyBfb25LZXlQcmVzc31cclxuICAgKiB3aGVyZSBpdCBhZGRzIHRoZSB0eXBlZCBrZXkgdG8gdGhlIGN1cnJlbnQgdmFsdWUgYW5kIHZhbGlkYXRlcyB0aGUgZmllbGQgLSBpZiB2YWxpZGF0aW9uXHJcbiAgICogZmFpbHMgdGhlIGtleSBwcmVzcyBpcyBjYW5jZWxsZWQuXHJcbiAgICovXHJcbiAgdmFsaWRJbnB1dE9ubHk6IGZhbHNlLFxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7U3RyaW5nfVxyXG4gICAqIFZhbHVlIHN0b3JhZ2UgZm9yIGRldGVjdGluZyBjaGFuZ2VzIGVpdGhlciB2aWEgZGlyZWN0IGlucHV0IG9yIHByb2dyYW1tYXRpYyBzZXR0aW5nLlxyXG4gICAqL1xyXG4gIHByZXZpb3VzVmFsdWU6IG51bGwsXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtTdHJpbmd9XHJcbiAgICogVmFsdWUgc3RvcmFnZSBmb3Iga2VlcGluZyB0cmFjayBvZiBtb2RpZmllZC91bm1vZGlmaWVkIHZhbHVlcy4gVXNlZCBpbiB7QGxpbmsgI2lzRGlydHkgaXNEaXJ0eX0uXHJcbiAgICovXHJcbiAgb3JpZ2luYWxWYWx1ZTogbnVsbCxcclxuXHJcbiAgLyoqXHJcbiAgICogRXh0ZW5kcyB0aGUgcGFyZW50IGltcGxlbWVudGF0aW9uIHRvIG9wdGlvbmFsbHkgYmluZCB0aGUgYG9ua2V5cHJlc3NgIGV2ZW50IGlmIGB2YWxpZElucHV0T25seWBcclxuICAgKiBpcyB0cnVlLlxyXG4gICAqL1xyXG4gIGluaXQ6IGZ1bmN0aW9uIGluaXQoKSB7XHJcbiAgICB0aGlzLmluaGVyaXRlZChhcmd1bWVudHMpO1xyXG4gICAgaWYgKHRoaXMudmFsaWRJbnB1dE9ubHkpIHtcclxuICAgICAgdGhpcy5jb25uZWN0KHRoaXMuaW5wdXROb2RlLCAnb25rZXlwcmVzcycsIHRoaXMuX29uS2V5UHJlc3MpO1xyXG4gICAgfVxyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogRXh0ZW5kcyB0aGUgcGFyZW50IGltcGxlbWVudGF0aW9uIHRvIHNldCB0aGUgZGlzYWJsZWQgYXR0cmlidXRlIG9mIHRoZSBpbnB1dCB0byBmYWxzZVxyXG4gICAqL1xyXG4gIGVuYWJsZTogZnVuY3Rpb24gZW5hYmxlKCkge1xyXG4gICAgdGhpcy5pbmhlcml0ZWQoYXJndW1lbnRzKTtcclxuICAgIGRvbUF0dHIuc2V0KHRoaXMuaW5wdXROb2RlLCAnZGlzYWJsZWQnLCBmYWxzZSk7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBFeHRlbmRzIHRoZSBwYXJlbnQgaW1wbGVtZW50YXRpb24gdG8gc2V0IHRoZSBkaXNhYmxlZCBhdHRyaWJ1dGUgb2YgdGhlIGlucHV0IHRvIHRydWVcclxuICAgKi9cclxuICBkaXNhYmxlOiBmdW5jdGlvbiBkaXNhYmxlKCkge1xyXG4gICAgdGhpcy5pbmhlcml0ZWQoYXJndW1lbnRzKTtcclxuXHJcbiAgICBkb21BdHRyLnNldCh0aGlzLmlucHV0Tm9kZSwgJ2Rpc2FibGVkJywgdHJ1ZSk7XHJcbiAgfSxcclxuICBmb2N1czogZnVuY3Rpb24gZm9jdXMoKSB7XHJcbiAgICB0aGlzLmlucHV0Tm9kZS5mb2N1cygpO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogSGFuZGxlciBmb3IgdGhlIGBvbmtleXByZXNzYCBldmVudCB3aGljaCBpcyBub3QgY29ubmVjdGVkIHVubGVzcyBgdmFsaWRJbnB1dE9ubHlgIGlzIHRydWUuXHJcbiAgICpcclxuICAgKiBTaW5jZSB0aGlzIGlzIGEgZGlyZWN0IHRpZS1pbiBmb3IgYHZhbGlkSW5wdXRPbmx5YCwgdGhpcyBpbnRlcmNlcHRzIHRoZSBrZXkgcHJlc3MsIGFkZHMgaXRcclxuICAgKiB0byB0aGUgY3VycmVudCB2YWx1ZSB0ZW1wb3JhcmlseSBhbmQgdmFsaWRhdGVzIHRoZSByZXN1bHQgLS0gaWYgaXQgdmFsaWRhdGVzIHRoZSBrZXkgcHJlc3MgaXNcclxuICAgKiBhY2NlcHRlZCwgaWYgdmFsaWRhdGlvbiBmYWlscyB0aGUga2V5IHByZXNzIGlzIHJlamVjdGVkIGFuZCB0aGUga2V5IGlzIG5vdCBlbnRlcmVkLlxyXG4gICAqIEBwYXJhbSB7RXZlbnR9IGV2dFxyXG4gICAqL1xyXG4gIF9vbktleVByZXNzOiBmdW5jdGlvbiBfb25LZXlQcmVzcyhldnQpIHtcclxuICAgIGNvbnN0IHYgPSB0aGlzLmdldFZhbHVlKCkgKyBldnQua2V5Q2hhcjtcclxuICAgIGlmICh0aGlzLnZhbGlkYXRlKHYpKSB7XHJcbiAgICAgIGV2ZW50LnN0b3AoZXZ0KTtcclxuICAgICAgcmV0dXJuIGZhbHNlO1xyXG4gICAgfVxyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogSGFuZGxlciBmb3IgdGhlIGBvbmtleXVwYCBldmVudC5cclxuICAgKlxyXG4gICAqIElmIGVpdGhlciB0aGUgYHZhbGlkYXRpb25UcmlnZ2VyYCBvciBgbm90aWZpY2F0aW9uVHJpZ2dlcmAgaXMgc2V0IHRvIGBrZXl1cGAgdGhlbiBpdCB3aWxsIGZpcmVcclxuICAgKiB0aGUgcmVzcGVjdGl2ZSBmdW5jdGlvbi5cclxuICAgKlxyXG4gICAqIEBwYXJhbSB7RXZlbnR9IGV2dFxyXG4gICAqL1xyXG4gIF9vbktleVVwOiBmdW5jdGlvbiBfb25LZXlVcChldnQpIHtcclxuICAgIGlmICh0aGlzLnZhbGlkYXRpb25UcmlnZ2VyID09PSAna2V5dXAnKSB7XHJcbiAgICAgIHRoaXMub25WYWxpZGF0aW9uVHJpZ2dlcihldnQpO1xyXG4gICAgfVxyXG5cclxuICAgIGlmICh0aGlzLm5vdGlmaWNhdGlvblRyaWdnZXIgPT09ICdrZXl1cCcpIHtcclxuICAgICAgdGhpcy5vbk5vdGlmaWNhdGlvblRyaWdnZXIoZXZ0KTtcclxuICAgIH1cclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIEhhbmRsZXIgZm9yIHRoZSBgb25mb2N1c2AgZXZlbnQuXHJcbiAgICpcclxuICAgKiBBZGRzIHRoZSBhY3RpdmUgc3R5bGluZyB3aGljaCBpcyB1c2VkIGZvciBkZXRlY3Rpbmcgc3RhdGUgaW4gdGhlIGNsZWFyIGJ1dHRvbiBjbGljayBoYW5kbGVyLlxyXG4gICAqXHJcbiAgICogQHBhcmFtIGV2dFxyXG4gICAqL1xyXG4gIF9vbkZvY3VzOiBmdW5jdGlvbiBfb25Gb2N1cygvKmV2dCovKSB7XHJcbiAgICBkb21DbGFzcy5hZGQodGhpcy5kb21Ob2RlLCAndGV4dC1maWVsZC1hY3RpdmUnKTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIEhhbmRsZXIgZm9yIHRoZSBgb25ibHVyYCBldmVudFxyXG4gICAqXHJcbiAgICogSWYgZWl0aGVyIHRoZSBgdmFsaWRhdGlvblRyaWdnZXJgIG9yIGBub3RpZmljYXRpb25UcmlnZ2VyYCBpcyBzZXQgdG8gYGJsdXJgIHRoZW4gaXQgd2lsbCBmaXJlXHJcbiAgICogdGhlIHJlc3BlY3RpdmUgZnVuY3Rpb24uXHJcbiAgICpcclxuICAgKiBAcGFyYW0ge0V2ZW50fSBldnRcclxuICAgKi9cclxuICBfb25CbHVyOiBmdW5jdGlvbiBfb25CbHVyKGV2dCkge1xyXG4gICAgaWYgKHRoaXMudmFsaWRhdGlvblRyaWdnZXIgPT09ICdibHVyJykge1xyXG4gICAgICB0aGlzLm9uVmFsaWRhdGlvblRyaWdnZXIoZXZ0KTtcclxuICAgIH1cclxuXHJcbiAgICBpZiAodGhpcy5ub3RpZmljYXRpb25UcmlnZ2VyID09PSAnYmx1cicpIHtcclxuICAgICAgdGhpcy5vbk5vdGlmaWNhdGlvblRyaWdnZXIoZXZ0KTtcclxuICAgIH1cclxuXHJcbiAgICBkb21DbGFzcy5yZW1vdmUodGhpcy5kb21Ob2RlLCAndGV4dC1maWVsZC1hY3RpdmUnKTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIEhhbmRsZXIgZm9yIHRoZSBgb25jbGlja2AgZXZlbnQgZm9yIHRoZSBjbGVhciBidXR0b24uXHJcbiAgICpcclxuICAgKiBDbGVhcnMgdGhlIHZhbHVlIGFuZCBhdHRlbXB0cyB0byByZS1vcGVuIHRoZSBtb2JpbGUga2V5Ym9hcmQgZGlzcGxheVxyXG4gICAqXHJcbiAgICogQHBhcmFtIHtFdmVudH0gZXZ0XHJcbiAgICovXHJcbiAgX29uQ2xlYXJDbGljazogZnVuY3Rpb24gX29uQ2xlYXJDbGljayhldnQpIHtcclxuICAgIGlmICghZG9tQ2xhc3MuY29udGFpbnModGhpcy5kb21Ob2RlLCAndGV4dC1maWVsZC1hY3RpdmUnKSkge1xyXG4gICAgICB0aGlzLmNsZWFyVmFsdWUodHJ1ZSk7XHJcbiAgICAgIGV2ZW50LnN0b3AoZXZ0KTtcclxuICAgIH1cclxuXHJcbiAgICAvLyBNb2JpbGUgYnJvd3NlcnMgbGlzdGVuIHRvIGVpdGhlciBvciBib3RoIGV2ZW50cyB0byBzaG93IGtleWJvYXJkXHJcbiAgICB0aGlzLmlucHV0Tm9kZS5mb2N1cygpO1xyXG4gICAgdGhpcy5pbnB1dE5vZGUuY2xpY2soKTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIEZpcmVzIHtAbGluayBfRmllbGQjb25DaGFuZ2Ugb25DaGFuZ2V9IGlmIHRoZSB2YWx1ZSBoYXMgY2hhbmdlZCBzaW5jZSB0aGUgcHJldmlvdXMgbm90aWZpY2F0aW9uIGV2ZW50IG9yXHJcbiAgICogYSBkaXJlY3Qgc2V0dGluZyBvZiB0aGUgdmFsdWUuXHJcbiAgICogQHBhcmFtIHtFdmVudH0gZXZ0XHJcbiAgICovXHJcbiAgb25Ob3RpZmljYXRpb25UcmlnZ2VyOiBmdW5jdGlvbiBvbk5vdGlmaWNhdGlvblRyaWdnZXIoLypldnQqLykge1xyXG4gICAgY29uc3QgY3VycmVudFZhbHVlID0gdGhpcy5nZXRWYWx1ZSgpO1xyXG5cclxuICAgIGlmICh0aGlzLnByZXZpb3VzVmFsdWUgIT09IGN1cnJlbnRWYWx1ZSkge1xyXG4gICAgICB0aGlzLm9uQ2hhbmdlKGN1cnJlbnRWYWx1ZSwgdGhpcyk7XHJcbiAgICB9XHJcblxyXG4gICAgdGhpcy5wcmV2aW91c1ZhbHVlID0gY3VycmVudFZhbHVlO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogSW1tZWRpYXRlbHkgY2FsbHMge0BsaW5rIF9GaWVsZCN2YWxpZGF0ZSB2YWxpZGF0ZX0gYW5kIGFkZHMgdGhlIHJlc3BlY3RpdmUgcm93IHN0eWxpbmcuXHJcbiAgICogQHBhcmFtIHtFdmVudH0gZXZ0XHJcbiAgICovXHJcbiAgb25WYWxpZGF0aW9uVHJpZ2dlcjogZnVuY3Rpb24gb25WYWxpZGF0aW9uVHJpZ2dlcigvKmV2dCovKSB7XHJcbiAgICBpZiAodGhpcy52YWxpZGF0ZSgpKSB7XHJcbiAgICAgIGRvbUNsYXNzLmFkZCh0aGlzLmNvbnRhaW5lck5vZGUsICdyb3ctZXJyb3InKTtcclxuICAgIH0gZWxzZSB7XHJcbiAgICAgIGRvbUNsYXNzLnJlbW92ZSh0aGlzLmNvbnRhaW5lck5vZGUsICdyb3ctZXJyb3InKTtcclxuICAgIH1cclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIFJldHVybnMgdGhlIGlucHV0IG5vZGVzIHZhbHVlXHJcbiAgICogQHJldHVybiB7U3RyaW5nfVxyXG4gICAqL1xyXG4gIGdldFZhbHVlOiBmdW5jdGlvbiBnZXRWYWx1ZSgpIHtcclxuICAgIHJldHVybiB0aGlzLmlucHV0Tm9kZS52YWx1ZTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIFNldHMgdGhlIHZhbHVlIG9mIHRoZSBpbnB1dCBub2RlLCBjbGVhcnMgdGhlIHByZXZpb3VzIHZhbHVlIGZvciBub3RpZmljYXRpb24gdHJpZ2dlciBhbmRcclxuICAgKiBpZiBzZXR0aW5nIGFuIGluaXRpYWwgdmFsdWUgLSBzZXQgdGhlIG9yaWdpbmFsVmFsdWUgdG8gdGhlIHBhc3NlZCB2YWx1ZSBmb3IgZGlydHkgZGV0ZWN0aW9uLlxyXG4gICAqIEBwYXJhbSB7U3RyaW5nfSB2YWwgVmFsdWUgdG8gYmUgc2V0XHJcbiAgICogQHBhcmFtIHtCb29sZWFufSBpbml0aWFsIFRydWUgaWYgdGhlIHZhbHVlIGlzIHRoZSBkZWZhdWx0L2NsZWFuIHZhbHVlLCBmYWxzZSBpZiBpdCBpcyBhIG1lYW50IGFzIGEgZGlydHkgdmFsdWVcclxuICAgKi9cclxuICBzZXRWYWx1ZTogZnVuY3Rpb24gc2V0VmFsdWUodmFsID0gJycsIGluaXRpYWwpIHtcclxuICAgIGlmIChpbml0aWFsKSB7XHJcbiAgICAgIHRoaXMub3JpZ2luYWxWYWx1ZSA9IHZhbDtcclxuICAgIH1cclxuXHJcbiAgICB0aGlzLnByZXZpb3VzVmFsdWUgPSBmYWxzZTtcclxuICAgIHRoaXMuc2V0KCdpbnB1dFZhbHVlJywgdmFsKTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIFNldHMgdGhlIHZhbHVlIG9mIHRoZSBpbnB1dCBub2RlLCBhbmQgc2V0IHRoZSB2YWx1ZSBhcyB0aGUgcHJldmlvdXMgdmFsdWUgIHNvIG5vdGlmaWNhdGlvbiB0cmlnZ2VyIHdpbGwgbm90IHRyaWdnZXIgYW5kXHJcbiAgICogaWYgc2V0dGluZyBhbiBpbml0aWFsIHZhbHVlIC0gc2V0IHRoZSBvcmlnaW5hbFZhbHVlIHRvIHRoZSBwYXNzZWQgdmFsdWUgZm9yIGRpcnR5IGRldGVjdGlvbi5cclxuICAgKiBAcGFyYW0ge1N0cmluZ30gdmFsIFZhbHVlIHRvIGJlIHNldFxyXG4gICAqIEBwYXJhbSB7Qm9vbGVhbn0gaW5pdGlhbCBUcnVlIGlmIHRoZSB2YWx1ZSBpcyB0aGUgZGVmYXVsdC9jbGVhbiB2YWx1ZSwgZmFsc2UgaWYgaXQgaXMgYSBtZWFudCBhcyBhIGRpcnR5IHZhbHVlXHJcbiAgICovXHJcbiAgc2V0VmFsdWVOb1RyaWdnZXI6IGZ1bmN0aW9uIHNldFZhbHVlTm9UcmlnZ2VyKHZhbCwgaW5pdGlhbCkge1xyXG4gICAgdGhpcy5zZXRWYWx1ZSh2YWwsIGluaXRpYWwpO1xyXG4gICAgdGhpcy5wcmV2aW91c1ZhbHVlID0gdGhpcy5nZXRWYWx1ZSgpO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogQ2xlYXJzIHRoZSBpbnB1dCBub2RlcyB2YWx1ZSwgb3B0aW9uYWxseSBjbGVhcmluZyBhcyBhIG1vZGlmaWVkIHZhbHVlLlxyXG4gICAqIEBwYXJhbSB7Qm9vbGVhbn0gYXNEaXJ0eSBJZiB0cnVlIGl0IHNpZ25pZmllcyB0aGUgY2xlYXJpbmcgaXMgbWVhbnQgYXMgZGVzdHJveWluZyBhblxyXG4gICAqIGV4aXN0aW5nIHZhbHVlIGFuZCBzaG91bGQgdGhlbiBiZSBkZXRlY3RlZCBhcyBtb2RpZmllZC9kaXJ0eS5cclxuICAgKi9cclxuICBjbGVhclZhbHVlOiBmdW5jdGlvbiBjbGVhclZhbHVlKGFzRGlydHkpIHtcclxuICAgIGNvbnN0IGluaXRpYWwgPSBhc0RpcnR5ICE9PSB0cnVlO1xyXG4gICAgdGhpcy5zZXRWYWx1ZSgnJywgaW5pdGlhbCk7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBEZXRlcm1pbmVzIGlmIHRoZSB2YWx1ZSBoYXMgYmVlbiBtb2RpZmllZCBmcm9tIHRoZSBkZWZhdWx0L29yaWdpbmFsIHN0YXRlXHJcbiAgICogQHJldHVybiB7Qm9vbGVhbn1cclxuICAgKi9cclxuICBpc0RpcnR5OiBmdW5jdGlvbiBpc0RpcnR5KCkge1xyXG4gICAgcmV0dXJuICh0aGlzLm9yaWdpbmFsVmFsdWUgIT09IHRoaXMuZ2V0VmFsdWUoKSk7XHJcbiAgfSxcclxufSk7XHJcblxyXG5sYW5nLnNldE9iamVjdCgnU2FnZS5QbGF0Zm9ybS5Nb2JpbGUuRmllbGRzLlRleHRGaWVsZCcsIGNvbnRyb2wpO1xyXG5leHBvcnQgZGVmYXVsdCBGaWVsZE1hbmFnZXIucmVnaXN0ZXIoJ3RleHQnLCBjb250cm9sKTtcclxuIl19
+</pre>
+</body>
+</html>

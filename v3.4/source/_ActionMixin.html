@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">define('argos/_ActionMixin', ['exports', 'module', 'dojo/_base/array', 'dojo/_base/declare', 'dojo/_base/event', 'dojo/_base/lang', 'dojo/dom-attr', 'dojo/query', 'dojo/NodeList-traverse'], function (exports, module, _dojo_baseArray, _dojo_baseDeclare, _dojo_baseEvent, _dojo_baseLang, _dojoDomAttr, _dojoQuery, _dojoNodeListTraverse) {
+  function _interopRequireDefault(obj) { return obj &amp;&amp; obj.__esModule ? obj : { 'default': obj }; }
+
+  /*
+   * See copyright file.
+   */
+
+  var _array = _interopRequireDefault(_dojo_baseArray);
+
+  var _declare = _interopRequireDefault(_dojo_baseDeclare);
+
+  var _event = _interopRequireDefault(_dojo_baseEvent);
+
+  var _lang = _interopRequireDefault(_dojo_baseLang);
+
+  var _domAttr = _interopRequireDefault(_dojoDomAttr);
+
+  var _query = _interopRequireDefault(_dojoQuery);
+
+<span id='argos-_ActionMixin'>  /**
+</span>   * @class argos._ActionMixin
+   * _ActionMixin provides a click listener to the `domNode` of view it is mixed into.
+   *
+   * When a click event is caught by the handler it finds the closest element with `data-action`
+   * and fires that function in the context of the view. When calling the function it passes a `params`
+   * object with the following:
+   *
+   *     {
+   *         $event: 'Original click event',
+   *         $src: 'The HTML node that initiated the event'
+   *     }
+   *
+   * and then it mixes it all the `data-` attributes from the node into the params object.
+   *
+   * @alternateClassName _ActionMixin
+   */
+  var __class = (0, _declare['default'])('argos._ActionMixin', null, {
+<span id='argos-_ActionMixin-property-actionsFrom'>    /**
+</span>     * @property {String}
+     * Comma separated (no spaces) list of events to listen to
+     */
+    actionsFrom: 'click',
+<span id='argos-_ActionMixin-method-postCreate'>    /**
+</span>     * Extends the dijit Widget `postCreate` to connect to all events defined in `actionsFrom`.
+     */
+    postCreate: function postCreate() {
+      // todo: add delegation
+      _array['default'].forEach(this.actionsFrom.split(','), function forEach(evt) {
+        this.connect(this.domNode, evt, this._initiateActionFromEvent);
+      }, this);
+    },
+<span id='argos-_ActionMixin-method-_isValidElementForAction'>    /**
+</span>     * Verifies that the given HTML element is within our view.
+     * @param {HTMLElement} el
+     * @return {Boolean}
+     */
+    _isValidElementForAction: function _isValidElementForAction(el) {
+      var contained = this.domNode.contains ? this.domNode !== el &amp;&amp; this.domNode.contains(el) : !!(this.domNode.compareDocumentPosition(el) &amp; 16);
+
+      return this.domNode === el || contained;
+    },
+<span id='argos-_ActionMixin-method-_initiateActionFromEvent'>    /**
+</span>     * Takes an event and fires the closest valid `data-action` with the attached `data-` attributes
+     * @param {Event} evt
+     */
+    _initiateActionFromEvent: function _initiateActionFromEvent(evt) {
+      var el = (0, _query['default'])(evt.target).closest('[data-action]')[0];
+      var action = el &amp;&amp; _domAttr['default'].get(el, 'data-action');
+
+      if (action &amp;&amp; this._isValidElementForAction(el) &amp;&amp; this.hasAction(action, evt, el)) {
+        var parameters = this._getParametersForAction(action, evt, el);
+        this.invokeAction(action, parameters, evt, el);
+        _event['default'].stop(evt);
+      }
+    },
+<span id='argos-_ActionMixin-method-_getParametersForAction'>    /**
+</span>     * Extracts the `data-` attributes of an element and adds `$event` and `$source` being the two originals values.
+     * @param {String} name Name of the action/function being fired.
+     * @param {Event} evt The original event
+     * @param {HTMLElement} el The node that has the `data-action` attribute
+     * @return {Object} Object with the original event and source along with all the `data-` attributes in pascal case.
+     */
+    _getParametersForAction: function _getParametersForAction(name, evt, el) {
+      var parameters = {
+        $event: evt,
+        $source: el
+      };
+
+      function replace($0, $1, $2) {
+        return $1.toUpperCase() + $2;
+      }
+
+      for (var i = 0, attrLen = el.attributes.length; i &lt; attrLen; i++) {
+        var attributeName = el.attributes[i].name;
+        if (/^((?=data-action)|(?!data))/.test(attributeName)) {
+          continue;
+        }
+
+        /* transform hyphenated names to pascal case, minus the data segment, to be in line with HTML5 dataset naming conventions */
+        /* see: http://dev.w3.org/html5/spec/elements.html#embedding-custom-non-visible-data */
+        /* todo: remove transformation and use dataset when browser support is there */
+        var parameterName = attributeName.substr('data-'.length).replace(/-(\w)(\w+)/g, replace);
+        parameters[parameterName] = _domAttr['default'].get(el, attributeName);
+      }
+
+      return parameters;
+    },
+<span id='argos-_ActionMixin-method-hasAction'>    /**
+</span>     * Determines if the view contains a function with the given name
+     * @param {String} name Name of function being tested.
+     * @param evt
+     * @param el
+     * @return {Boolean}
+     */
+    hasAction: function hasAction(name /*, evt, el*/) {
+      return typeof this[name] === 'function';
+    },
+<span id='argos-_ActionMixin-method-invokeAction'>    /**
+</span>     * Calls the given function name in the context of the view passing
+     * the {@link #_getParametersForAction parameters gathered} and the event and element.
+     * @param {String} name Name of function being invoked.
+     * @param {Object} parameters Collection of `data-` attributes from the element.
+     * @param {Event} evt The event that fired
+     * @param {HTMLElement} el The HTML element that has the `data-action`
+     */
+    invokeAction: function invokeAction(name, parameters, evt, el) {
+      return this[name].apply(this, [parameters, evt, el]);
+    }
+  });
+
+  _lang['default'].setObject('Sage.Platform.Mobile._ActionMixin', __class);
+  module.exports = __class;
+});
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInNyYy9fQWN0aW9uTWl4aW4uanMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7O0FBNEJBLE1BQU0sT0FBTyxHQUFHLHlCQUFRLG9CQUFvQixFQUFFLElBQUksRUFBRTs7Ozs7QUFLbEQsZUFBVyxFQUFFLE9BQU87Ozs7QUFJcEIsY0FBVSxFQUFFLFNBQVMsVUFBVSxHQUFHOztBQUVoQyx3QkFBTSxPQUFPLENBQUMsSUFBSSxDQUFDLFdBQVcsQ0FBQyxLQUFLLENBQUMsR0FBRyxDQUFDLEVBQUUsU0FBUyxPQUFPLENBQUMsR0FBRyxFQUFFO0FBQy9ELFlBQUksQ0FBQyxPQUFPLENBQUMsSUFBSSxDQUFDLE9BQU8sRUFBRSxHQUFHLEVBQUUsSUFBSSxDQUFDLHdCQUF3QixDQUFDLENBQUM7T0FDaEUsRUFBRSxJQUFJLENBQUMsQ0FBQztLQUNWOzs7Ozs7QUFNRCw0QkFBd0IsRUFBRSxTQUFTLHdCQUF3QixDQUFDLEVBQUUsRUFBRTtBQUM5RCxVQUFNLFNBQVMsR0FBRyxJQUFJLENBQUMsT0FBTyxDQUFDLFFBQVEsR0FBRyxJQUFJLENBQUMsT0FBTyxLQUFLLEVBQUUsSUFBSSxJQUFJLENBQUMsT0FBTyxDQUFDLFFBQVEsQ0FBQyxFQUFFLENBQUMsR0FBRyxDQUFDLEVBQUUsSUFBSSxDQUFDLE9BQU8sQ0FBQyx1QkFBdUIsQ0FBQyxFQUFFLENBQUMsR0FBRyxFQUFFLENBQUEsQUFBQyxDQUFDOztBQUUvSSxhQUFPLEFBQUMsSUFBSSxDQUFDLE9BQU8sS0FBSyxFQUFFLElBQUssU0FBUyxDQUFDO0tBQzNDOzs7OztBQUtELDRCQUF3QixFQUFFLFNBQVMsd0JBQXdCLENBQUMsR0FBRyxFQUFFO0FBQy9ELFVBQU0sRUFBRSxHQUFHLHVCQUFNLEdBQUcsQ0FBQyxNQUFNLENBQUMsQ0FBQyxPQUFPLENBQUMsZUFBZSxDQUFDLENBQUMsQ0FBQyxDQUFDLENBQUM7QUFDekQsVUFBTSxNQUFNLEdBQUcsRUFBRSxJQUFJLG9CQUFRLEdBQUcsQ0FBQyxFQUFFLEVBQUUsYUFBYSxDQUFDLENBQUM7O0FBRXBELFVBQUksTUFBTSxJQUFJLElBQUksQ0FBQyx3QkFBd0IsQ0FBQyxFQUFFLENBQUMsSUFBSSxJQUFJLENBQUMsU0FBUyxDQUFDLE1BQU0sRUFBRSxHQUFHLEVBQUUsRUFBRSxDQUFDLEVBQUU7QUFDbEYsWUFBTSxVQUFVLEdBQUcsSUFBSSxDQUFDLHVCQUF1QixDQUFDLE1BQU0sRUFBRSxHQUFHLEVBQUUsRUFBRSxDQUFDLENBQUM7QUFDakUsWUFBSSxDQUFDLFlBQVksQ0FBQyxNQUFNLEVBQUUsVUFBVSxFQUFFLEdBQUcsRUFBRSxFQUFFLENBQUMsQ0FBQztBQUMvQywwQkFBTSxJQUFJLENBQUMsR0FBRyxDQUFDLENBQUM7T0FDakI7S0FDRjs7Ozs7Ozs7QUFRRCwyQkFBdUIsRUFBRSxTQUFTLHVCQUF1QixDQUFDLElBQUksRUFBRSxHQUFHLEVBQUUsRUFBRSxFQUFFO0FBQ3ZFLFVBQU0sVUFBVSxHQUFHO0FBQ2pCLGNBQU0sRUFBRSxHQUFHO0FBQ1gsZUFBTyxFQUFFLEVBQUU7T0FDWixDQUFDOztBQUVGLGVBQVMsT0FBTyxDQUFDLEVBQUUsRUFBRSxFQUFFLEVBQUUsRUFBRSxFQUFFO0FBQzNCLGVBQU8sRUFBRSxDQUFDLFdBQVcsRUFBRSxHQUFHLEVBQUUsQ0FBQztPQUM5Qjs7QUFFRCxXQUFLLElBQUksQ0FBQyxHQUFHLENBQUMsRUFBRSxPQUFPLEdBQUcsRUFBRSxDQUFDLFVBQVUsQ0FBQyxNQUFNLEVBQUUsQ0FBQyxHQUFHLE9BQU8sRUFBRSxDQUFDLEVBQUUsRUFBRTtBQUNoRSxZQUFNLGFBQWEsR0FBRyxFQUFFLENBQUMsVUFBVSxDQUFDLENBQUMsQ0FBQyxDQUFDLElBQUksQ0FBQztBQUM1QyxZQUFJLDZCQUE2QixDQUFDLElBQUksQ0FBQyxhQUFhLENBQUMsRUFBRTtBQUNyRCxtQkFBUztTQUNWOzs7OztBQUtELFlBQU0sYUFBYSxHQUFHLGFBQWEsQ0FBQyxNQUFNLENBQUMsT0FBTyxDQUFDLE1BQU0sQ0FBQyxDQUFDLE9BQU8sQ0FBQyxhQUFhLEVBQUUsT0FBTyxDQUFDLENBQUM7QUFDM0Ysa0JBQVUsQ0FBQyxhQUFhLENBQUMsR0FBRyxvQkFBUSxHQUFHLENBQUMsRUFBRSxFQUFFLGFBQWEsQ0FBQyxDQUFDO09BQzVEOztBQUVELGFBQU8sVUFBVSxDQUFDO0tBQ25COzs7Ozs7OztBQVFELGFBQVMsRUFBRSxTQUFTLFNBQVMsQ0FBQyxJQUFJLGdCQUFlO0FBQy9DLGFBQVEsT0FBTyxJQUFJLENBQUMsSUFBSSxDQUFDLEtBQUssVUFBVSxDQUFFO0tBQzNDOzs7Ozs7Ozs7QUFTRCxnQkFBWSxFQUFFLFNBQVMsWUFBWSxDQUFDLElBQUksRUFBRSxVQUFVLEVBQUUsR0FBRyxFQUFFLEVBQUUsRUFBRTtBQUM3RCxhQUFPLElBQUksQ0FBQyxJQUFJLENBQUMsQ0FBQyxLQUFLLENBQUMsSUFBSSxFQUFFLENBQUMsVUFBVSxFQUFFLEdBQUcsRUFBRSxFQUFFLENBQUMsQ0FBQyxDQUFDO0tBQ3REO0dBQ0YsQ0FBQyxDQUFDOztBQUVILG1CQUFLLFNBQVMsQ0FBQyxtQ0FBbUMsRUFBRSxPQUFPLENBQUMsQ0FBQzttQkFDOUMsT0FBTyIsImZpbGUiOiJzcmMvX0FjdGlvbk1peGluLmpzIiwic291cmNlUm9vdCI6InNyYyIsInNvdXJjZXNDb250ZW50IjpbIi8qXHJcbiAqIFNlZSBjb3B5cmlnaHQgZmlsZS5cclxuICovXHJcbmltcG9ydCBhcnJheSBmcm9tICdkb2pvL19iYXNlL2FycmF5JztcclxuaW1wb3J0IGRlY2xhcmUgZnJvbSAnZG9qby9fYmFzZS9kZWNsYXJlJztcclxuaW1wb3J0IGV2ZW50IGZyb20gJ2Rvam8vX2Jhc2UvZXZlbnQnO1xyXG5pbXBvcnQgbGFuZyBmcm9tICdkb2pvL19iYXNlL2xhbmcnO1xyXG5pbXBvcnQgZG9tQXR0ciBmcm9tICdkb2pvL2RvbS1hdHRyJztcclxuaW1wb3J0IHF1ZXJ5IGZyb20gJ2Rvam8vcXVlcnknO1xyXG5pbXBvcnQgJ2Rvam8vTm9kZUxpc3QtdHJhdmVyc2UnO1xyXG5cclxuLyoqXHJcbiAqIEBjbGFzcyBhcmdvcy5fQWN0aW9uTWl4aW5cclxuICogX0FjdGlvbk1peGluIHByb3ZpZGVzIGEgY2xpY2sgbGlzdGVuZXIgdG8gdGhlIGBkb21Ob2RlYCBvZiB2aWV3IGl0IGlzIG1peGVkIGludG8uXHJcbiAqXHJcbiAqIFdoZW4gYSBjbGljayBldmVudCBpcyBjYXVnaHQgYnkgdGhlIGhhbmRsZXIgaXQgZmluZHMgdGhlIGNsb3Nlc3QgZWxlbWVudCB3aXRoIGBkYXRhLWFjdGlvbmBcclxuICogYW5kIGZpcmVzIHRoYXQgZnVuY3Rpb24gaW4gdGhlIGNvbnRleHQgb2YgdGhlIHZpZXcuIFdoZW4gY2FsbGluZyB0aGUgZnVuY3Rpb24gaXQgcGFzc2VzIGEgYHBhcmFtc2BcclxuICogb2JqZWN0IHdpdGggdGhlIGZvbGxvd2luZzpcclxuICpcclxuICogICAgIHtcclxuICogICAgICAgICAkZXZlbnQ6ICdPcmlnaW5hbCBjbGljayBldmVudCcsXHJcbiAqICAgICAgICAgJHNyYzogJ1RoZSBIVE1MIG5vZGUgdGhhdCBpbml0aWF0ZWQgdGhlIGV2ZW50J1xyXG4gKiAgICAgfVxyXG4gKlxyXG4gKiBhbmQgdGhlbiBpdCBtaXhlcyBpdCBhbGwgdGhlIGBkYXRhLWAgYXR0cmlidXRlcyBmcm9tIHRoZSBub2RlIGludG8gdGhlIHBhcmFtcyBvYmplY3QuXHJcbiAqXHJcbiAqIEBhbHRlcm5hdGVDbGFzc05hbWUgX0FjdGlvbk1peGluXHJcbiAqL1xyXG5jb25zdCBfX2NsYXNzID0gZGVjbGFyZSgnYXJnb3MuX0FjdGlvbk1peGluJywgbnVsbCwge1xyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7U3RyaW5nfVxyXG4gICAqIENvbW1hIHNlcGFyYXRlZCAobm8gc3BhY2VzKSBsaXN0IG9mIGV2ZW50cyB0byBsaXN0ZW4gdG9cclxuICAgKi9cclxuICBhY3Rpb25zRnJvbTogJ2NsaWNrJyxcclxuICAvKipcclxuICAgKiBFeHRlbmRzIHRoZSBkaWppdCBXaWRnZXQgYHBvc3RDcmVhdGVgIHRvIGNvbm5lY3QgdG8gYWxsIGV2ZW50cyBkZWZpbmVkIGluIGBhY3Rpb25zRnJvbWAuXHJcbiAgICovXHJcbiAgcG9zdENyZWF0ZTogZnVuY3Rpb24gcG9zdENyZWF0ZSgpIHtcclxuICAgIC8vIHRvZG86IGFkZCBkZWxlZ2F0aW9uXHJcbiAgICBhcnJheS5mb3JFYWNoKHRoaXMuYWN0aW9uc0Zyb20uc3BsaXQoJywnKSwgZnVuY3Rpb24gZm9yRWFjaChldnQpIHtcclxuICAgICAgdGhpcy5jb25uZWN0KHRoaXMuZG9tTm9kZSwgZXZ0LCB0aGlzLl9pbml0aWF0ZUFjdGlvbkZyb21FdmVudCk7XHJcbiAgICB9LCB0aGlzKTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIFZlcmlmaWVzIHRoYXQgdGhlIGdpdmVuIEhUTUwgZWxlbWVudCBpcyB3aXRoaW4gb3VyIHZpZXcuXHJcbiAgICogQHBhcmFtIHtIVE1MRWxlbWVudH0gZWxcclxuICAgKiBAcmV0dXJuIHtCb29sZWFufVxyXG4gICAqL1xyXG4gIF9pc1ZhbGlkRWxlbWVudEZvckFjdGlvbjogZnVuY3Rpb24gX2lzVmFsaWRFbGVtZW50Rm9yQWN0aW9uKGVsKSB7XHJcbiAgICBjb25zdCBjb250YWluZWQgPSB0aGlzLmRvbU5vZGUuY29udGFpbnMgPyB0aGlzLmRvbU5vZGUgIT09IGVsICYmIHRoaXMuZG9tTm9kZS5jb250YWlucyhlbCkgOiAhISh0aGlzLmRvbU5vZGUuY29tcGFyZURvY3VtZW50UG9zaXRpb24oZWwpICYgMTYpO1xyXG5cclxuICAgIHJldHVybiAodGhpcy5kb21Ob2RlID09PSBlbCkgfHwgY29udGFpbmVkO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogVGFrZXMgYW4gZXZlbnQgYW5kIGZpcmVzIHRoZSBjbG9zZXN0IHZhbGlkIGBkYXRhLWFjdGlvbmAgd2l0aCB0aGUgYXR0YWNoZWQgYGRhdGEtYCBhdHRyaWJ1dGVzXHJcbiAgICogQHBhcmFtIHtFdmVudH0gZXZ0XHJcbiAgICovXHJcbiAgX2luaXRpYXRlQWN0aW9uRnJvbUV2ZW50OiBmdW5jdGlvbiBfaW5pdGlhdGVBY3Rpb25Gcm9tRXZlbnQoZXZ0KSB7XHJcbiAgICBjb25zdCBlbCA9IHF1ZXJ5KGV2dC50YXJnZXQpLmNsb3Nlc3QoJ1tkYXRhLWFjdGlvbl0nKVswXTtcclxuICAgIGNvbnN0IGFjdGlvbiA9IGVsICYmIGRvbUF0dHIuZ2V0KGVsLCAnZGF0YS1hY3Rpb24nKTtcclxuXHJcbiAgICBpZiAoYWN0aW9uICYmIHRoaXMuX2lzVmFsaWRFbGVtZW50Rm9yQWN0aW9uKGVsKSAmJiB0aGlzLmhhc0FjdGlvbihhY3Rpb24sIGV2dCwgZWwpKSB7XHJcbiAgICAgIGNvbnN0IHBhcmFtZXRlcnMgPSB0aGlzLl9nZXRQYXJhbWV0ZXJzRm9yQWN0aW9uKGFjdGlvbiwgZXZ0LCBlbCk7XHJcbiAgICAgIHRoaXMuaW52b2tlQWN0aW9uKGFjdGlvbiwgcGFyYW1ldGVycywgZXZ0LCBlbCk7XHJcbiAgICAgIGV2ZW50LnN0b3AoZXZ0KTtcclxuICAgIH1cclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIEV4dHJhY3RzIHRoZSBgZGF0YS1gIGF0dHJpYnV0ZXMgb2YgYW4gZWxlbWVudCBhbmQgYWRkcyBgJGV2ZW50YCBhbmQgYCRzb3VyY2VgIGJlaW5nIHRoZSB0d28gb3JpZ2luYWxzIHZhbHVlcy5cclxuICAgKiBAcGFyYW0ge1N0cmluZ30gbmFtZSBOYW1lIG9mIHRoZSBhY3Rpb24vZnVuY3Rpb24gYmVpbmcgZmlyZWQuXHJcbiAgICogQHBhcmFtIHtFdmVudH0gZXZ0IFRoZSBvcmlnaW5hbCBldmVudFxyXG4gICAqIEBwYXJhbSB7SFRNTEVsZW1lbnR9IGVsIFRoZSBub2RlIHRoYXQgaGFzIHRoZSBgZGF0YS1hY3Rpb25gIGF0dHJpYnV0ZVxyXG4gICAqIEByZXR1cm4ge09iamVjdH0gT2JqZWN0IHdpdGggdGhlIG9yaWdpbmFsIGV2ZW50IGFuZCBzb3VyY2UgYWxvbmcgd2l0aCBhbGwgdGhlIGBkYXRhLWAgYXR0cmlidXRlcyBpbiBwYXNjYWwgY2FzZS5cclxuICAgKi9cclxuICBfZ2V0UGFyYW1ldGVyc0ZvckFjdGlvbjogZnVuY3Rpb24gX2dldFBhcmFtZXRlcnNGb3JBY3Rpb24obmFtZSwgZXZ0LCBlbCkge1xyXG4gICAgY29uc3QgcGFyYW1ldGVycyA9IHtcclxuICAgICAgJGV2ZW50OiBldnQsXHJcbiAgICAgICRzb3VyY2U6IGVsLFxyXG4gICAgfTtcclxuXHJcbiAgICBmdW5jdGlvbiByZXBsYWNlKCQwLCAkMSwgJDIpIHtcclxuICAgICAgcmV0dXJuICQxLnRvVXBwZXJDYXNlKCkgKyAkMjtcclxuICAgIH1cclxuXHJcbiAgICBmb3IgKGxldCBpID0gMCwgYXR0ckxlbiA9IGVsLmF0dHJpYnV0ZXMubGVuZ3RoOyBpIDwgYXR0ckxlbjsgaSsrKSB7XHJcbiAgICAgIGNvbnN0IGF0dHJpYnV0ZU5hbWUgPSBlbC5hdHRyaWJ1dGVzW2ldLm5hbWU7XHJcbiAgICAgIGlmICgvXigoPz1kYXRhLWFjdGlvbil8KD8hZGF0YSkpLy50ZXN0KGF0dHJpYnV0ZU5hbWUpKSB7XHJcbiAgICAgICAgY29udGludWU7XHJcbiAgICAgIH1cclxuXHJcbiAgICAgIC8qIHRyYW5zZm9ybSBoeXBoZW5hdGVkIG5hbWVzIHRvIHBhc2NhbCBjYXNlLCBtaW51cyB0aGUgZGF0YSBzZWdtZW50LCB0byBiZSBpbiBsaW5lIHdpdGggSFRNTDUgZGF0YXNldCBuYW1pbmcgY29udmVudGlvbnMgKi9cclxuICAgICAgLyogc2VlOiBodHRwOi8vZGV2LnczLm9yZy9odG1sNS9zcGVjL2VsZW1lbnRzLmh0bWwjZW1iZWRkaW5nLWN1c3RvbS1ub24tdmlzaWJsZS1kYXRhICovXHJcbiAgICAgIC8qIHRvZG86IHJlbW92ZSB0cmFuc2Zvcm1hdGlvbiBhbmQgdXNlIGRhdGFzZXQgd2hlbiBicm93c2VyIHN1cHBvcnQgaXMgdGhlcmUgKi9cclxuICAgICAgY29uc3QgcGFyYW1ldGVyTmFtZSA9IGF0dHJpYnV0ZU5hbWUuc3Vic3RyKCdkYXRhLScubGVuZ3RoKS5yZXBsYWNlKC8tKFxcdykoXFx3KykvZywgcmVwbGFjZSk7XHJcbiAgICAgIHBhcmFtZXRlcnNbcGFyYW1ldGVyTmFtZV0gPSBkb21BdHRyLmdldChlbCwgYXR0cmlidXRlTmFtZSk7XHJcbiAgICB9XHJcblxyXG4gICAgcmV0dXJuIHBhcmFtZXRlcnM7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBEZXRlcm1pbmVzIGlmIHRoZSB2aWV3IGNvbnRhaW5zIGEgZnVuY3Rpb24gd2l0aCB0aGUgZ2l2ZW4gbmFtZVxyXG4gICAqIEBwYXJhbSB7U3RyaW5nfSBuYW1lIE5hbWUgb2YgZnVuY3Rpb24gYmVpbmcgdGVzdGVkLlxyXG4gICAqIEBwYXJhbSBldnRcclxuICAgKiBAcGFyYW0gZWxcclxuICAgKiBAcmV0dXJuIHtCb29sZWFufVxyXG4gICAqL1xyXG4gIGhhc0FjdGlvbjogZnVuY3Rpb24gaGFzQWN0aW9uKG5hbWUvKiwgZXZ0LCBlbCovKSB7XHJcbiAgICByZXR1cm4gKHR5cGVvZiB0aGlzW25hbWVdID09PSAnZnVuY3Rpb24nKTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIENhbGxzIHRoZSBnaXZlbiBmdW5jdGlvbiBuYW1lIGluIHRoZSBjb250ZXh0IG9mIHRoZSB2aWV3IHBhc3NpbmdcclxuICAgKiB0aGUge0BsaW5rICNfZ2V0UGFyYW1ldGVyc0ZvckFjdGlvbiBwYXJhbWV0ZXJzIGdhdGhlcmVkfSBhbmQgdGhlIGV2ZW50IGFuZCBlbGVtZW50LlxyXG4gICAqIEBwYXJhbSB7U3RyaW5nfSBuYW1lIE5hbWUgb2YgZnVuY3Rpb24gYmVpbmcgaW52b2tlZC5cclxuICAgKiBAcGFyYW0ge09iamVjdH0gcGFyYW1ldGVycyBDb2xsZWN0aW9uIG9mIGBkYXRhLWAgYXR0cmlidXRlcyBmcm9tIHRoZSBlbGVtZW50LlxyXG4gICAqIEBwYXJhbSB7RXZlbnR9IGV2dCBUaGUgZXZlbnQgdGhhdCBmaXJlZFxyXG4gICAqIEBwYXJhbSB7SFRNTEVsZW1lbnR9IGVsIFRoZSBIVE1MIGVsZW1lbnQgdGhhdCBoYXMgdGhlIGBkYXRhLWFjdGlvbmBcclxuICAgKi9cclxuICBpbnZva2VBY3Rpb246IGZ1bmN0aW9uIGludm9rZUFjdGlvbihuYW1lLCBwYXJhbWV0ZXJzLCBldnQsIGVsKSB7XHJcbiAgICByZXR1cm4gdGhpc1tuYW1lXS5hcHBseSh0aGlzLCBbcGFyYW1ldGVycywgZXZ0LCBlbF0pO1xyXG4gIH0sXHJcbn0pO1xyXG5cclxubGFuZy5zZXRPYmplY3QoJ1NhZ2UuUGxhdGZvcm0uTW9iaWxlLl9BY3Rpb25NaXhpbicsIF9fY2xhc3MpO1xyXG5leHBvcnQgZGVmYXVsdCBfX2NsYXNzO1xyXG4iXX0=
+</pre>
+</body>
+</html>

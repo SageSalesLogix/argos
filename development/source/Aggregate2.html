@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">define('crm/Integrations/BOE/Aggregate', ['exports', 'module', 'dojo/_base/lang', '../../Aggregate'], function (exports, module, _dojo_baseLang, _Aggregate) {
+  function _interopRequireDefault(obj) { return obj &amp;&amp; obj.__esModule ? obj : { 'default': obj }; }
+
+  /*
+   * Copyright (c) 1997-2013, SalesLogix, NA., LLC. All rights reserved.
+   */
+
+<span id='icboe-Aggregate'>  /**
+</span>   * @class icboe.Aggregate
+   *
+   * Aggregate functions. Currently used in metric widgets.
+   *
+   */
+
+  var _lang = _interopRequireDefault(_dojo_baseLang);
+
+  var _crmAggergate = _interopRequireDefault(_Aggregate);
+
+  var __class = _lang['default'].setObject('crm.Integrations.BOE.Aggregate', {
+<span id='icboe-Aggregate-method-calcProfit'>    /**
+</span>     * Calculate Profit
+     * @param {Array} data arrays of revenue and cost
+     * @return {Number}
+     */
+    calcProfit: function calcProfit() {
+      var revenue = arguments.length &lt;= 0 || arguments[0] === undefined ? 0 : arguments[0];
+      var cost = arguments.length &lt;= 1 || arguments[1] === undefined ? 0 : arguments[1];
+
+      var totalRevenue = _crmAggergate['default'].sum(revenue);
+      var totalCost = _crmAggergate['default'].sum(cost);
+      var profit = totalRevenue - totalCost;
+
+      return profit;
+    },
+<span id='icboe-Aggregate-method-calcMargin'>    /**
+</span>     * Calculate Margin
+     * @param {Array} data arrays of revenue and cost
+     * @return {Number}
+     */
+    calcMargin: function calcMargin() {
+      var revenue = arguments.length &lt;= 0 || arguments[0] === undefined ? 0 : arguments[0];
+      var cost = arguments.length &lt;= 1 || arguments[1] === undefined ? 0 : arguments[1];
+
+      var profitTotal = icboe.Aggregate.calcProfit(revenue, cost);
+      var revenueTotal = _crmAggergate['default'].sum(revenue);
+      var margin = undefined;
+      if (revenueTotal !== 0) {
+        margin = profitTotal / revenueTotal;
+      } else {
+        margin = 0;
+      }
+
+      return margin;
+    },
+<span id='icboe-Aggregate-method-calcYoYRevenue'>    /**
+</span>     * Calculate YoY Revenue
+     * @param {Array} data array of revenue in the past year and revenue between a set of years
+     * @return {Number}
+     */
+    calcYoYRevenue: function calcYoYRevenue(pastYear, between) {
+      var revenuePastYear = _crmAggergate['default'].sum(pastYear);
+      var revenueBetween = _crmAggergate['default'].sum(between);
+      var revenueYoY = undefined;
+
+      if (revenueBetween !== 0) {
+        revenueYoY = (revenuePastYear - revenueBetween) / revenueBetween;
+      } else {
+        revenueYoY = 0;
+      }
+
+      return revenueYoY;
+    },
+<span id='icboe-Aggregate-method-calcYoYProfit'>    /**
+</span>     * Calculate YoY Profit
+     * @param {Array} data arrays of revenue in the past year, cost in the past year, revenue between two years, and cost between two years
+     * @return {Number}
+     */
+    calcYoYProfit: function calcYoYProfit(revenuePastYear, costPastYear, revenueBetween, costBetween) {
+      var profitPastYear = icboe.Aggregate.calcProfit(revenuePastYear, costPastYear);
+      var profitBetween = icboe.Aggregate.calcProfit(revenueBetween, costBetween);
+      var profitYoY = undefined;
+
+      if (profitBetween !== 0) {
+        profitYoY = (profitPastYear - profitBetween) / profitBetween;
+      } else {
+        profitYoY = 0;
+      }
+
+      return profitYoY;
+    },
+<span id='icboe-Aggregate-method-calcYoYMargin'>    /**
+</span>     * Calculate YoY Margin
+     * @param {Array} data arrays of revenue in the past year, cost in the past year, revenue between two years, and cost between two years
+     * @return {Number}
+     */
+    calcYoYMargin: function calcYoYMargin(revenuePastYear, costPastYear, revenueBetween, costBetween) {
+      var marginPastYear = icboe.Aggregate.calcMargin(revenuePastYear, costPastYear);
+      var marginBetween = icboe.Aggregate.calcMargin(revenueBetween, costBetween);
+      var marginYoY = undefined;
+
+      if (marginBetween !== 0) {
+        marginYoY = (marginPastYear - marginBetween) / marginBetween;
+      } else {
+        marginYoY = 0;
+      }
+      return marginYoY;
+    },
+<span id='icboe-Aggregate-method-changeColor'>    /**
+</span>    * Change Color
+    * @deprecated
+    */
+    changeColor: function changeColor(widget, value) {
+      var temp = value;
+      temp = temp * 100;
+
+      if (temp &gt; 0.01) {
+        if (temp &gt; 5) {
+          if (temp &gt; 10) {
+            widget.domNode.parentElement.style['background-color'] = '#76b051';
+          } else {
+            widget.domNode.parentElement.style['background-color'] = '#56932e';
+          }
+        } else {
+          widget.domNode.parentElement.style['background-color'] = '#397514';
+        }
+      } else if (temp &lt; -0.01) {
+        if (temp &lt; -5) {
+          if (temp &lt; -10) {
+            widget.domNode.parentElement.style['background-color'] = '#b94e4e';
+          } else {
+            widget.domNode.parentElement.style['background-color'] = '#a13030';
+          }
+        } else {
+          widget.domNode.parentElement.style['background-color'] = '#880e0e';
+        }
+      }
+    }
+  });
+  _lang['default'].setObject('icboe.Aggregate', __class);
+  module.exports = __class;
+});
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInNyYy9JbnRlZ3JhdGlvbnMvQk9FL0FnZ3JlZ2F0ZS5qcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7Ozs7Ozs7Ozs7QUFhQSxNQUFNLE9BQU8sR0FBRyxpQkFBSyxTQUFTLENBQUMsZ0NBQWdDLEVBQUU7Ozs7OztBQU0vRCxjQUFVLEVBQUUsU0FBUyxVQUFVLEdBQXdCO1VBQXZCLE9BQU8seURBQUcsQ0FBQztVQUFFLElBQUkseURBQUcsQ0FBQzs7QUFDbkQsVUFBTSxZQUFZLEdBQUcseUJBQWEsR0FBRyxDQUFDLE9BQU8sQ0FBQyxDQUFDO0FBQy9DLFVBQU0sU0FBUyxHQUFHLHlCQUFhLEdBQUcsQ0FBQyxJQUFJLENBQUMsQ0FBQztBQUN6QyxVQUFNLE1BQU0sR0FBRyxZQUFZLEdBQUcsU0FBUyxDQUFDOztBQUV4QyxhQUFPLE1BQU0sQ0FBQztLQUNmOzs7Ozs7QUFNRCxjQUFVLEVBQUUsU0FBUyxVQUFVLEdBQXdCO1VBQXZCLE9BQU8seURBQUcsQ0FBQztVQUFFLElBQUkseURBQUcsQ0FBQzs7QUFDbkQsVUFBTSxXQUFXLEdBQUcsS0FBSyxDQUFDLFNBQVMsQ0FBQyxVQUFVLENBQUMsT0FBTyxFQUFFLElBQUksQ0FBQyxDQUFDO0FBQzlELFVBQU0sWUFBWSxHQUFHLHlCQUFhLEdBQUcsQ0FBQyxPQUFPLENBQUMsQ0FBQztBQUMvQyxVQUFJLE1BQU0sWUFBQSxDQUFDO0FBQ1gsVUFBSSxZQUFZLEtBQUssQ0FBQyxFQUFFO0FBQ3RCLGNBQU0sR0FBRyxXQUFXLEdBQUcsWUFBWSxDQUFDO09BQ3JDLE1BQU07QUFDTCxjQUFNLEdBQUcsQ0FBQyxDQUFDO09BQ1o7O0FBRUQsYUFBTyxNQUFNLENBQUM7S0FDZjs7Ozs7O0FBTUQsa0JBQWMsRUFBRSxTQUFTLGNBQWMsQ0FBQyxRQUFRLEVBQUUsT0FBTyxFQUFFO0FBQ3pELFVBQU0sZUFBZSxHQUFHLHlCQUFhLEdBQUcsQ0FBQyxRQUFRLENBQUMsQ0FBQztBQUNuRCxVQUFNLGNBQWMsR0FBRyx5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T0FBTyxDQUFDLGFBQWEsQ0FBQyxLQUFLLENBQUMsa0JBQWtCLENBQUMsR0FBRyxTQUFTLENBQUM7U0FDcEU7T0FDRjtLQUNGO0dBQ0YsQ0FBQyxDQUFDO0FBQ0gsbUJBQUssU0FBUyxDQUFDLGlCQUFpQixFQUFFLE9BQU8sQ0FBQyxDQUFDO21CQUM1QixPQUFPIiwiZmlsZSI6InNyYy9JbnRlZ3JhdGlvbnMvQk9FL0FnZ3JlZ2F0ZS5qcyIsInNvdXJjZVJvb3QiOiJzcmMiLCJzb3VyY2VzQ29udGVudCI6WyIvKlxyXG4gKiBDb3B5cmlnaHQgKGMpIDE5OTctMjAxMywgU2FsZXNMb2dpeCwgTkEuLCBMTEMuIEFsbCByaWdodHMgcmVzZXJ2ZWQuXHJcbiAqL1xyXG5cclxuLyoqXHJcbiAqIEBjbGFzcyBpY2JvZS5BZ2dyZWdhdGVcclxuICpcclxuICogQWdncmVnYXRlIGZ1bmN0aW9ucy4gQ3VycmVudGx5IHVzZWQgaW4gbWV0cmljIHdpZGdldHMuXHJcbiAqXHJcbiAqL1xyXG5pbXBvcnQgbGFuZyBmcm9tICdkb2pvL19iYXNlL2xhbmcnO1xyXG5pbXBvcnQgY3JtQWdnZXJnYXRlIGZyb20gJy4uLy4uL0FnZ3JlZ2F0ZSc7XHJcblxyXG5jb25zdCBfX2NsYXNzID0gbGFuZy5zZXRPYmplY3QoJ2NybS5JbnRlZ3JhdGlvbnMuQk9FLkFnZ3JlZ2F0ZScsIHtcclxuICAvKipcclxuICAgKiBDYWxjdWxhdGUgUHJvZml0XHJcbiAgICogQHBhcmFtIHtBcnJheX0gZGF0YSBhcnJheXMgb2YgcmV2ZW51ZSBhbmQgY29zdFxyXG4gICAqIEByZXR1cm4ge051bWJlcn1cclxuICAgKi9cclxuICBjYWxjUHJvZml0OiBmdW5jdGlvbiBjYWxjUHJvZml0KHJldmVudWUgPSAwLCBjb3N0ID0gMCkge1xyXG4gICAgY29uc3QgdG90YWxSZXZlbnVlID0gY3JtQWdnZXJnYXRlLnN1bShyZXZlbnVlKTtcclxuICAgIGNvbnN0IHRvdGFsQ29zdCA9IGNybUFnZ2VyZ2F0ZS5zdW0oY29zdCk7XHJcbiAgICBjb25zdCBwcm9maXQgPSB0b3RhbFJldmVudWUgLSB0b3RhbENvc3Q7XHJcblxyXG4gICAgcmV0dXJuIHByb2ZpdDtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIENhbGN1bGF0ZSBNYXJnaW5cclxuICAgKiBAcGFyYW0ge0FycmF5fSBkYXRhIGFycmF5cyBvZiByZXZlbnVlIGFuZCBjb3N0XHJcbiAgICogQHJldHVybiB7TnVtYmVyfVxyXG4gICAqL1xyXG4gIGNhbGNNYXJnaW46IGZ1bmN0aW9uIGNhbGNNYXJnaW4ocmV2ZW51ZSA9IDAsIGNvc3QgPSAwKSB7XHJcbiAgICBjb25zdCBwcm9maXRUb3RhbCA9IGljYm9lLkFnZ3JlZ2F0ZS5jYWxjUHJvZml0KHJldmVudWUsIGNvc3QpO1xyXG4gICAgY29uc3QgcmV2ZW51ZVRvdGFsID0gY3JtQWdnZXJnYXRlLnN1bShyZXZlbnVlKTtcclxuICAgIGxldCBtYXJnaW47XHJcbiAgICBpZiAocmV2ZW51ZVRvdGFsICE9PSAwKSB7XHJcbiAgICAgIG1hcmdpbiA9IHByb2ZpdFRvdGFsIC8gcmV2ZW51ZVRvdGFsO1xyXG4gICAgfSBlbHNlIHtcclxuICAgICAgbWFyZ2luID0gMDtcclxuICAgIH1cclxuXHJcbiAgICByZXR1cm4gbWFyZ2luO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogQ2FsY3VsYXRlIFlvWSBSZXZlbnVlXHJcbiAgICogQHBhcmFtIHtBcnJheX0gZGF0YSBhcnJheSBvZiByZXZlbnVlIGluIHRoZSBwYXN0IHllYXIgYW5kIHJldmVudWUgYmV0d2VlbiBhIHNldCBvZiB5ZWFyc1xyXG4gICAqIEByZXR1cm4ge051bWJlcn1cclxuICAgKi9cclxuICBjYWxjWW9ZUmV2ZW51ZTogZnVuY3Rpb24gY2FsY1lvWVJldmVudWUocGFzdFllYXIsIGJldHdlZW4pIHtcclxuICAgIGNvbnN0IHJldmVudWVQYXN0WWVhciA9IGNybUFnZ2VyZ2F0ZS5zdW0ocGFzdFllYXIpO1xyXG4gICAgY29uc3QgcmV2ZW51ZUJldHdlZW4gPSBjcm1BZ2dlcmdhdGUuc3VtKGJldHdlZW4pO1xyXG4gICAgbGV0IHJldmVudWVZb1k7XHJcblxyXG4gICAgaWYgKHJldmVudWVCZXR3ZWVuICE9PSAwKSB7XHJcbiAgICAgIHJldmVudWVZb1kgPSAocmV2ZW51ZVBhc3RZZWFyIC0gcmV2ZW51ZUJldHdlZW4pIC8gcmV2ZW51ZUJldHdlZW47XHJcbiAgICB9IGVsc2Uge1xyXG4gICAgICByZXZlbnVlWW9ZID0gMDtcclxuICAgIH1cclxuXHJcbiAgICByZXR1cm4gcmV2ZW51ZVlvWTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIENhbGN1bGF0ZSBZb1kgUHJvZml0XHJcbiAgICogQHBhcmFtIHtBcnJheX0gZGF0YSBhcnJheXMgb2YgcmV2ZW51ZSBpbiB0aGUgcGFzdCB5ZWFyLCBjb3N0IGluIHRoZSBwYXN0IHllYXIsIHJldmVudWUgYmV0d2VlbiB0d28geWVhcnMsIGFuZCBjb3N0IGJldHdlZW4gdHdvIHllYXJzXHJcbiAgICogQHJldHVybiB7TnVtYmVyfVxyXG4gICAqL1xyXG4gIGNhbGNZb1lQcm9maXQ6IGZ1bmN0aW9uIGNhbGNZb1lQcm9maXQocmV2ZW51ZVBhc3RZZWFyLCBjb3N0UGFzdFllYXIsIHJldmVudWVCZXR3ZWVuLCBjb3N0QmV0d2Vlbikge1xyXG4gICAgY29uc3QgcHJvZml0UGFzdFllYXIgPSBpY2JvZS5BZ2dyZWdhdGUuY2FsY1Byb2ZpdChyZXZlbnVlUGFzdFllYXIsIGNvc3RQYXN0WWVhcik7XHJcbiAgICBjb25zdCBwcm9maXRCZXR3ZWVuID0gaWNib2UuQWdncmVnYXRlLmNhbGNQcm9maXQocmV2ZW51ZUJldHdlZW4sIGNvc3RCZXR3ZWVuKTtcclxuICAgIGxldCBwcm9maXRZb1k7XHJcblxyXG4gICAgaWYgKHByb2ZpdEJldHdlZW4gIT09IDApIHtcclxuICAgICAgcHJvZml0WW9ZID0gKHByb2ZpdFBhc3RZZWFyIC0gcHJvZml0QmV0d2VlbikgLyBwcm9maXRCZXR3ZWVuO1xyXG4gICAgfSBlbHNlIHtcclxuICAgICAgcHJvZml0WW9ZID0gMDtcclxuICAgIH1cclxuXHJcbiAgICByZXR1cm4gcHJvZml0WW9ZO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogQ2FsY3VsYXRlIFlvWSBNYXJnaW5cclxuICAgKiBAcGFyYW0ge0FycmF5fSBkYXRhIGFycmF5cyBvZiByZXZlbnVlIGluIHRoZSBwYXN0IHllYXIsIGNvc3QgaW4gdGhlIHBhc3QgeWVhciwgcmV2ZW51ZSBiZXR3ZWVuIHR3byB5ZWFycywgYW5kIGNvc3QgYmV0d2VlbiB0d28geWVhcnNcclxuICAgKiBAcmV0dXJuIHtOdW1iZXJ9XHJcbiAgICovXHJcbiAgY2FsY1lvWU1hcmdpbjogZnVuY3Rpb24gY2FsY1lvWU1hcmdpbihyZXZlbnVlUGFzdFllYXIsIGNvc3RQYXN0WWVhciwgcmV2ZW51ZUJldHdlZW4sIGNvc3RCZXR3ZWVuKSB7XHJcbiAgICBjb25zdCBtYXJnaW5QYXN0WWVhciA9IGljYm9lLkFnZ3JlZ2F0ZS5jYWxjTWFyZ2luKHJldmVudWVQYXN0WWVhciwgY29zdFBhc3RZZWFyKTtcclxuICAgIGNvbnN0IG1hcmdpbkJldHdlZW4gPSBpY2JvZS5BZ2dyZWdhdGUuY2FsY01hcmdpbihyZXZlbnVlQmV0d2VlbiwgY29zdEJldHdlZW4pO1xyXG4gICAgbGV0IG1hcmdpbllvWTtcclxuXHJcbiAgICBpZiAobWFyZ2luQmV0d2VlbiAhPT0gMCkge1xyXG4gICAgICBtYXJnaW5Zb1kgPSAobWFyZ2luUGFzdFllYXIgLSBtYXJnaW5CZXR3ZWVuKSAvIG1hcmdpbkJldHdlZW47XHJcbiAgICB9IGVsc2Uge1xyXG4gICAgICBtYXJnaW5Zb1kgPSAwO1xyXG4gICAgfVxyXG4gICAgcmV0dXJuIG1hcmdpbllvWTtcclxuICB9LFxyXG4gICAgLyoqXHJcbiAgICAqIENoYW5nZSBDb2xvclxyXG4gICAgKiBAZGVwcmVjYXRlZFxyXG4gICAgKi9cclxuICBjaGFuZ2VDb2xvcjogZnVuY3Rpb24gY2hhbmdlQ29sb3Iod2lkZ2V0LCB2YWx1ZSkge1xyXG4gICAgbGV0IHRlbXAgPSB2YWx1ZTtcclxuICAgIHRlbXAgPSB0ZW1wICogMTAwO1xyXG5cclxuICAgIGlmICh0ZW1wID4gMC4wMSkge1xyXG4gICAgICBpZiAodGVtcCA+IDUpIHtcclxuICAgICAgICBpZiAodGVtcCA+IDEwKSB7XHJcbiAgICAgICAgICB3aWRnZXQuZG9tTm9kZS5wYXJlbnRFbGVtZW50LnN0eWxlWydiYWNrZ3JvdW5kLWNvbG9yJ10gPSAnIzc2YjA1MSc7XHJcbiAgICAgICAgfSBlbHNlIHtcclxuICAgICAgICAgIHdpZGdldC5kb21Ob2RlLnBhcmVudEVsZW1lbnQuc3R5bGVbJ2JhY2tncm91bmQtY29sb3InXSA9ICcjNTY5MzJlJztcclxuICAgICAgICB9XHJcbiAgICAgIH0gZWxzZSB7XHJcbiAgICAgICAgd2lkZ2V0LmRvbU5vZGUucGFyZW50RWxlbWVudC5zdHlsZVsnYmFja2dyb3VuZC1jb2xvciddID0gJyMzOTc1MTQnO1xyXG4gICAgICB9XHJcbiAgICB9IGVsc2UgaWYgKHRlbXAgPCAtMC4wMSkge1xyXG4gICAgICBpZiAodGVtcCA8IC01KSB7XHJcbiAgICAgICAgaWYgKHRlbXAgPCAtMTApIHtcclxuICAgICAgICAgIHdpZGdldC5kb21Ob2RlLnBhcmVudEVsZW1lbnQuc3R5bGVbJ2JhY2tncm91bmQtY29sb3InXSA9ICcjYjk0ZTRlJztcclxuICAgICAgICB9IGVsc2Uge1xyXG4gICAgICAgICAgd2lkZ2V0LmRvbU5vZGUucGFyZW50RWxlbWVudC5zdHlsZVsnYmFja2dyb3VuZC1jb2xvciddID0gJyNhMTMwMzAnO1xyXG4gICAgICAgIH1cclxuICAgICAgfSBlbHNlIHtcclxuICAgICAgICB3aWRnZXQuZG9tTm9kZS5wYXJlbnRFbGVtZW50LnN0eWxlWydiYWNrZ3JvdW5kLWNvbG9yJ10gPSAnIzg4MGUwZSc7XHJcbiAgICAgIH1cclxuICAgIH1cclxuICB9LFxyXG59KTtcclxubGFuZy5zZXRPYmplY3QoJ2ljYm9lLkFnZ3JlZ2F0ZScsIF9fY2xhc3MpO1xyXG5leHBvcnQgZGVmYXVsdCBfX2NsYXNzO1xyXG4iXX0=
+</pre>
+</body>
+</html>

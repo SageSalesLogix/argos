@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">define('argos/Fields/EditorField', ['exports', 'module', 'dojo/_base/declare', 'dojo/_base/lang', 'dojo/_base/event', 'argos/Fields/_Field'], function (exports, module, _dojo_baseDeclare, _dojo_baseLang, _dojo_baseEvent, _argosFields_Field) {
+  function _interopRequireDefault(obj) { return obj &amp;&amp; obj.__esModule ? obj : { 'default': obj }; }
+
+  /* Copyright (c) 2010, Sage Software, Inc. All rights reserved.
+   *
+   * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   * you may not use this file except in compliance with the License.
+   * You may obtain a copy of the License at
+   *
+   *     http://www.apache.org/licenses/LICENSE-2.0
+   *
+   * Unless required by applicable law or agreed to in writing, software
+   * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   * See the License for the specific language governing permissions and
+   * limitations under the License.
+   */
+
+  var _declare = _interopRequireDefault(_dojo_baseDeclare);
+
+  var _lang = _interopRequireDefault(_dojo_baseLang);
+
+  var _event = _interopRequireDefault(_dojo_baseEvent);
+
+  var _Field2 = _interopRequireDefault(_argosFields_Field);
+
+<span id='argos-Fields-EditorField'>  /**
+</span>   * @class argos.Fields.EditorField
+   * The EditorField is not a field per say but a base class for another field type to inherit from. The
+   * intent of an EditorField is you have a field where the input should come from another form. EditorField
+   * will handle the navigation, gathering values from the other view, going back and applying to the form
+   * the field is on.
+   *
+   * A prime example of an editor field extension would be an AddressField - say you are entering a contacts
+   * details and need the address. You could make an AddressField that extends EditorField for handling all
+   * the address parts and takes the user to an address_edit with all the street/city/postal etc.
+   *
+   * @alternateClassName EditorField
+   * @extends argos._Field
+   */
+  var __class = (0, _declare['default'])('argos.Fields.EditorField', [_Field2['default']], {
+<span id='argos-Fields-EditorField-property-attributeMap'>    /**
+</span>     * @property {Object}
+     * Creates a setter map to html nodes, namely:
+     *
+     * * inputValue =&gt; inputNode's value attribute
+     */
+    attributeMap: {
+      inputValue: {
+        node: 'inputNode',
+        type: 'attribute',
+        attribute: 'value'
+      }
+    },
+
+<span id='argos-Fields-EditorField-property-widgetTemplate'>    /**
+</span>     * @property {Simplate}
+     * Simplate that defines the fields HTML Markup
+     *
+     * * `$` =&gt; Field instance
+     * * `$$` =&gt; Owner View instance
+     *
+     */
+    widgetTemplate: new Simplate(['&lt;label for=&quot;{%= $.name %}&quot;&gt;{%: $.label %}&lt;/label&gt;', '&lt;button class=&quot;button simpleSubHeaderButton {% if ($$.iconClass) { %} {%: $$.iconClass %} {% } %}&quot; aria-label=&quot;{%: $.lookupLabelText %}&quot;&gt;&lt;span&gt;{%: $.lookupText %}&lt;/span&gt;&lt;/button&gt;', '&lt;input data-dojo-attach-point=&quot;inputNode&quot; type=&quot;text&quot; /&gt;']),
+
+    iconClass: 'fa fa-pencil fa-lg',
+
+    // Localization
+    localeId: 'editorField',
+
+<span id='argos-Fields-EditorField-cfg-view'>    /**
+</span>     * @cfg {String}
+     * The view id that the user will be taken to when the edit button is clicked.
+     */
+    view: null,
+<span id='argos-Fields-EditorField-property-originalValue'>    /**
+</span>     * @property {String}
+     * Value storage for keeping track of modified/unmodified values. Used in {@link #isDirty isDirty}.
+     */
+    originalValue: null,
+<span id='argos-Fields-EditorField-property-currentValue'>    /**
+</span>     * @property {Object/String/Date/Number}
+     * Value storage for current value, as it must be formatted for display this is the full value.
+     */
+    currentValue: null,
+<span id='argos-Fields-EditorField-property-validationValue'>    /**
+</span>     * @property {Object/String/Date/Number}
+     * Value storage for the value to use in validation, when gathering values from the editor view
+     * the validationValue is set using `getValues(true)` which returns all values even non-modified ones.
+     */
+    validationValue: null,
+
+<span id='argos-Fields-EditorField-method-formatValue'>    /**
+</span>     * Returns the formatted value. This should be overwritten to provide proper formatting
+     * @param val
+     * @template
+     */
+    formatValue: function formatValue() /*val*/{
+      return '';
+    },
+<span id='argos-Fields-EditorField-method-init'>    /**
+</span>     * Extends the parent implementation to connect the `onclick` event of the fields container
+     * to {@link #_onClick _onClick}.
+     */
+    init: function init() {
+      this.inherited(arguments);
+
+      this.connect(this.containerNode, 'onclick', this._onClick);
+    },
+<span id='argos-Fields-EditorField-method-enable'>    /**
+</span>     * Extends the parent implementation to also call {@link #_enableTextElement _enableTextElement}.
+     */
+    enable: function enable() {
+      this.inherited(arguments);
+
+      this._enableTextElement();
+    },
+<span id='argos-Fields-EditorField-method-_enableTextElement'>    /**
+</span>     * Sets the input nodes' disabled attribute to false
+     */
+    _enableTextElement: function _enableTextElement() {
+      this.inputNode.disabled = false;
+    },
+<span id='argos-Fields-EditorField-method-disable'>    /**
+</span>     * Extends the parent implementation to also call {@link #_disableTextElement _disableTextElement}.
+     */
+    disable: function disable() {
+      this.inherited(arguments);
+      this._disableTextElement();
+    },
+<span id='argos-Fields-EditorField-method-_disableTextElement'>    /**
+</span>     * Sets the input nodes' disabled attribute to true
+     */
+    _disableTextElement: function _disableTextElement() {
+      this.inputNode.disabled = true;
+    },
+<span id='argos-Fields-EditorField-method-createNavigationOptions'>    /**
+</span>     * Creates the navigation options to be passed to the editor view. The important part
+     * of this code is that it passes `tools` that overrides the editors view toolbar with an item
+     * that operates within this fields scope.
+     * @return Navigation options
+     */
+    createNavigationOptions: function createNavigationOptions() {
+      return {
+        tools: {
+          tbar: [{
+            id: 'complete',
+            cls: 'fa fa-check fa-fw fa-lg',
+            fn: this.complete,
+            scope: this
+          }, {
+            id: 'cancel',
+            cls: 'fa fa-ban fa-fw fa-lg',
+            side: 'left',
+            fn: ReUI.back,
+            scope: ReUI
+          }]
+        },
+        entry: this.originalValue || this.validationValue,
+        changes: this.currentValue,
+        entityName: this.entityName || this.owner &amp;&amp; this.owner.entityName,
+        negateHistory: true
+      };
+    },
+<span id='argos-Fields-EditorField-method-navigateToEditView'>    /**
+</span>     * Navigates to the given `this.view` using the options from {@link #createNavigationOptions createNavigationOptions}.
+     */
+    navigateToEditView: function navigateToEditView() {
+      if (this.isDisabled()) {
+        return;
+      }
+
+      var view = App.getView(this.view);
+      var options = this.createNavigationOptions();
+
+      if (view &amp;&amp; options) {
+        if (options.title) {
+          view.set('title', options.title);
+        }
+
+        view.show(options);
+      }
+    },
+<span id='argos-Fields-EditorField-method-_onClick'>    /**
+</span>     * Handler for the `onclick` event of the fields container.
+     *
+     * Invokes {@link #navigateToEditView navigateToEditView}.
+     *
+     * @param {Event} evt
+     */
+    _onClick: function _onClick(evt) {
+      _event['default'].stop(evt);
+      this.navigateToEditView();
+    },
+<span id='argos-Fields-EditorField-method-getValuesFromView'>    /**
+</span>     * Gets the values from the editor view and applies it to the this fields `this.currentValue` and
+     * `this.validationValue`.
+     */
+    getValuesFromView: function getValuesFromView() {
+      var view = App.getPrimaryActiveView();
+      var values = view &amp;&amp; view.getValues();
+
+      if (view &amp;&amp; values) {
+        if (this.applyTo) {
+          this.currentValue = values;
+        } else if (this.owner.inserting) {
+          // If we are inserting a new value, we want all the fields, not just fields that changed (if the user edited multiple times)
+          this.currentValue = view.getValues(true);
+        } else {
+          // Gets an entry with fields that are dirty
+          this.currentValue = view.createItem();
+        }
+
+        // store all editor values for validation, not only dirty values
+        this.validationValue = view.getValues(true);
+      }
+    },
+<span id='argos-Fields-EditorField-method-complete'>    /**
+</span>     * Handler for the toolbar item that is passed to the editor view. When this function fires
+     * the view shown is the editor view but the function is fired in scope of the field.
+     *
+     * It gets a handler of the current active view and validates the form, if it passes it gathers
+     * the value, sets the fields text, calls `ReUI.back` and fires {@link #_onComplete _onComplete}.
+     *
+     */
+    complete: function complete() {
+      var view = App.getPrimaryActiveView();
+
+      if (view instanceof argos.Edit) {
+        view.hideValidationSummary();
+
+        if (view.validate() !== false) {
+          view.showValidationSummary();
+          return;
+        }
+      }
+
+      this.getValuesFromView();
+
+      this.setText(this.formatValue(this.validationValue));
+
+      // todo: remove
+      if (view.isValid &amp;&amp; !view.isValid()) {
+        return;
+      }
+
+      ReUI.back();
+      // if the event is fired before the transition, any XMLHttpRequest created in an event handler and
+      // executing during the transition can potentially fail (status 0).  this might only be an issue with CORS
+      // requests created in this state (the pre-flight request is made, and the request ends with status 0).
+      // wrapping thing in a timeout and placing after the transition starts, mitigates this issue.
+      setTimeout(this._onComplete.bind(this), 0);
+    },
+<span id='argos-Fields-EditorField-method-_onComplete'>    /**
+</span>     * Handler for `_onComplete` which is fired after the user has completed the form in the editor view
+     *
+     * Fires {@link #onChange onChange}.
+     *
+     */
+    _onComplete: function _onComplete() {
+      this.onChange(this.currentValue, this);
+    },
+<span id='argos-Fields-EditorField-method-setText'>    /**
+</span>     * Sets the displayed text to the input.
+     * @param {String} text
+     */
+    setText: function setText(text) {
+      this.set('inputValue', text);
+    },
+<span id='argos-Fields-EditorField-method-isDirty'>    /**
+</span>     * Determines if the value has been modified from the default/original state
+     * @return {Boolean}
+     */
+    isDirty: function isDirty() {
+      return this.originalValue !== this.currentValue;
+    },
+<span id='argos-Fields-EditorField-method-getValue'>    /**
+</span>     * Returns the current value
+     * @return {Object/String/Date/Number}
+     */
+    getValue: function getValue() {
+      return this.currentValue;
+    },
+<span id='argos-Fields-EditorField-method-validate'>    /**
+</span>     * Extends the parent implementation to use the `this.validationValue` instead of `this.getValue()`.
+     * @param value
+     */
+    validate: function validate(value) {
+      return typeof value === 'undefined' ? this.inherited(arguments, [this.validationValue]) : this.inherited(arguments);
+    },
+<span id='argos-Fields-EditorField-method-setValue'>    /**
+</span>     * Sets the current value to the item passed, as the default if initial is true. Then it sets
+     * the displayed text using {@link #setText setText} with the {@link #formatValue formatted} value.
+     *
+     * If null/false is passed all is cleared and `this.emptyText` is set as the displayed text.
+     *
+     * @param {Object/String/Date/Number} val Value to be set
+     * @param {Boolean} initial True if the value is the default/clean value, false if it is a meant as a dirty value
+     */
+    setValue: function setValue(val, initial) {
+      if (val) {
+        this.validationValue = this.currentValue = val;
+
+        if (initial) {
+          this.originalValue = this.currentValue;
+        }
+
+        this.setText(this.formatValue(val));
+      } else {
+        this.validationValue = this.currentValue = null;
+
+        if (initial) {
+          this.originalValue = this.currentValue;
+        }
+
+        this.setText(this.emptyText);
+      }
+    },
+<span id='argos-Fields-EditorField-method-clearValue'>    /**
+</span>     * Clears the value by passing `null` to {@link #setValue setValue}
+     */
+    clearValue: function clearValue() {
+      this.setValue(null, true);
+    }
+  });
+
+  _lang['default'].setObject('Sage.Platform.Mobile.Fields.EditorField', __class);
+  module.exports = __class;
+});
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInNyYy9GaWVsZHMvRWRpdG9yRmllbGQuanMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7OztBQWlDQSxNQUFNLE9BQU8sR0FBRyx5QkFBUSwwQkFBMEIsRUFBRSxvQkFBUSxFQUFFOzs7Ozs7O0FBTzVELGdCQUFZLEVBQUU7QUFDWixnQkFBVSxFQUFFO0FBQ1YsWUFBSSxFQUFFLFdBQVc7QUFDakIsWUFBSSxFQUFFLFdBQVc7QUFDakIsaUJBQVMsRUFBRSxPQUFPO09BQ25CO0tBQ0Y7Ozs7Ozs7Ozs7QUFVRCxrQkFBYyxFQUFFLElBQUksUUFBUSxDQUFDLENBQzNCLG1EQUFtRCxFQUNuRCxvTEFBb0wsRUFDcEwsMERBQTBELENBQzNELENBQUM7O0FBRUYsYUFBUyxFQUFFLG9CQUFvQjs7O0FBRy9CLFlBQVEsRUFBRSxhQUFhOzs7Ozs7QUFNdkIsUUFBSSxFQUFFLElBQUk7Ozs7O0FBS1YsaUJBQWEsRUFBRSxJQUFJOzs7OztBQUtuQixnQkFBWSxFQUFFLElBQUk7Ozs7OztBQU1sQixtQkFBZSxFQUFFLElBQUk7Ozs7Ozs7QUFPckIsZUFBVyxFQUFFLFNBQVMsV0FBVyxVQUFVO0FBQ3pDLGFBQU8sRUFBRSxDQUFDO0tBQ1g7Ozs7O0FBS0QsUUFBSSxFQUFFLFNBQVMsSUFBSSxHQUFHO0FBQ3BCLFVBQUksQ0FBQyxTQUFTLENBQUMsU0FBUyxDQUFDLENBQUM7O0FBRTFCLFVBQUksQ0FBQyxPQUFPLENBQUMsSUFBSSxDQUFDLGFBQWEsRUFBRSxTQUFTLEVBQUUsSUFBSSxDQUFDLFFBQVEsQ0FBQyxDQUFDO0tBQzVEOzs7O0FBSUQsVUFBTSxFQUFFLFNBQVMsTUFBTSxHQUFHO0FBQ3hCLFVBQUksQ0FBQyxTQUFTLENBQUMsU0FBUyxDQUFDLENBQUM7O0FBRTFCLFVBQUksQ0FBQyxrQkFBa0IsRUFBRSxDQUFDO0tBQzNCOzs7O0FBSUQsc0JBQWtCLEVBQUUsU0FBUyxrQkFBa0IsR0FBRztBQUNo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Q29udGVudCI6WyIvKiBDb3B5cmlnaHQgKGMpIDIwMTAsIFNhZ2UgU29mdHdhcmUsIEluYy4gQWxsIHJpZ2h0cyByZXNlcnZlZC5cclxuICpcclxuICogTGljZW5zZWQgdW5kZXIgdGhlIEFwYWNoZSBMaWNlbnNlLCBWZXJzaW9uIDIuMCAodGhlIFwiTGljZW5zZVwiKTtcclxuICogeW91IG1heSBub3QgdXNlIHRoaXMgZmlsZSBleGNlcHQgaW4gY29tcGxpYW5jZSB3aXRoIHRoZSBMaWNlbnNlLlxyXG4gKiBZb3UgbWF5IG9idGFpbiBhIGNvcHkgb2YgdGhlIExpY2Vuc2UgYXRcclxuICpcclxuICogICAgIGh0dHA6Ly93d3cuYXBhY2hlLm9yZy9saWNlbnNlcy9MSUNFTlNFLTIuMFxyXG4gKlxyXG4gKiBVbmxlc3MgcmVxdWlyZWQgYnkgYXBwbGljYWJsZSBsYXcgb3IgYWdyZWVkIHRvIGluIHdyaXRpbmcsIHNvZnR3YXJlXHJcbiAqIGRpc3RyaWJ1dGVkIHVuZGVyIHRoZSBMaWNlbnNlIGlzIGRpc3RyaWJ1dGVkIG9uIGFuIFwiQVMgSVNcIiBCQVNJUyxcclxuICogV0lUSE9VVCBXQVJSQU5USUVTIE9SIENPTkRJVElPTlMgT0YgQU5ZIEtJTkQsIGVpdGhlciBleHByZXNzIG9yIGltcGxpZWQuXHJcbiAqIFNlZSB0aGUgTGljZW5zZSBmb3IgdGhlIHNwZWNpZmljIGxhbmd1YWdlIGdvdmVybmluZyBwZXJtaXNzaW9ucyBhbmRcclxuICogbGltaXRhdGlvbnMgdW5kZXIgdGhlIExpY2Vuc2UuXHJcbiAqL1xyXG5pbXBvcnQgZGVjbGFyZSBmcm9tICdkb2pvL19iYXNlL2RlY2xhcmUnO1xyXG5pbXBvcnQgbGFuZyBmcm9tICdkb2pvL19iYXNlL2xhbmcnO1xyXG5pbXBvcnQgZXZlbnQgZnJvbSAnZG9qby9fYmFzZS9ldmVudCc7XHJcbmltcG9ydCBfRmllbGQgZnJvbSAnYXJnb3MvRmllbGRzL19GaWVsZCc7XHJcblxyXG4vKipcclxuICogQGNsYXNzIGFyZ29zLkZpZWxkcy5FZGl0b3JGaWVsZFxyXG4gKiBUaGUgRWRpdG9yRmllbGQgaXMgbm90IGEgZmllbGQgcGVyIHNheSBidXQgYSBiYXNlIGNsYXNzIGZvciBhbm90aGVyIGZpZWxkIHR5cGUgdG8gaW5oZXJpdCBmcm9tLiBUaGVcclxuICogaW50ZW50IG9mIGFuIEVkaXRvckZpZWxkIGlzIHlvdSBoYXZlIGEgZmllbGQgd2hlcmUgdGhlIGlucHV0IHNob3VsZCBjb21lIGZyb20gYW5vdGhlciBmb3JtLiBFZGl0b3JGaWVsZFxyXG4gKiB3aWxsIGhhbmRsZSB0aGUgbmF2aWdhdGlvbiwgZ2F0aGVyaW5nIHZhbHVlcyBmcm9tIHRoZSBvdGhlciB2aWV3LCBnb2luZyBiYWNrIGFuZCBhcHBseWluZyB0byB0aGUgZm9ybVxyXG4gKiB0aGUgZmllbGQgaXMgb24uXHJcbiAqXHJcbiAqIEEgcHJpbWUgZXhhbXBsZSBvZiBhbiBlZGl0b3IgZmllbGQgZXh0ZW5zaW9uIHdvdWxkIGJlIGFuIEFkZHJlc3NGaWVsZCAtIHNheSB5b3UgYXJlIGVudGVyaW5nIGEgY29udGFjdHNcclxuICogZGV0YWlscyBhbmQgbmVlZCB0aGUgYWRkcmVzcy4gWW91IGNvdWxkIG1ha2UgYW4gQWRkcmVzc0ZpZWxkIHRoYXQgZXh0ZW5kcyBFZGl0b3JGaWVsZCBmb3IgaGFuZGxpbmcgYWxsXHJcbiAqIHRoZSBhZGRyZXNzIHBhcnRzIGFuZCB0YWtlcyB0aGUgdXNlciB0byBhbiBhZGRyZXNzX2VkaXQgd2l0aCBhbGwgdGhlIHN0cmVldC9jaXR5L3Bvc3RhbCBldGMuXHJcbiAqXHJcbiAqIEBhbHRlcm5hdGVDbGFzc05hbWUgRWRpdG9yRmllbGRcclxuICogQGV4dGVuZHMgYXJnb3MuX0ZpZWxkXHJcbiAqL1xyXG5jb25zdCBfX2NsYXNzID0gZGVjbGFyZSgnYXJnb3MuRmllbGRzLkVkaXRvckZpZWxkJywgW19GaWVsZF0sIHtcclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge09iamVjdH1cclxuICAgKiBDcmVhdGVzIGEgc2V0dGVyIG1hcCB0byBodG1sIG5vZGVzLCBuYW1lbHk6XHJcbiAgICpcclxuICAgKiAqIGlucHV0VmFsdWUgPT4gaW5wdXROb2RlJ3MgdmFsdWUgYXR0cmlidXRlXHJcbiAgICovXHJcbiAgYXR0cmlidXRlTWFwOiB7XHJcbiAgICBpbnB1dFZhbHVlOiB7XHJcbiAgICAgIG5vZGU6ICdpbnB1dE5vZGUnLFxyXG4gICAgICB0eXBlOiAnYXR0cmlidXRlJyxcclxuICAgICAgYXR0cmlidXRlOiAndmFsdWUnLFxyXG4gICAgfSxcclxuICB9LFxyXG5cclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge1NpbXBsYXRlfVxyXG4gICAqIFNpbXBsYXRlIHRoYXQgZGVmaW5lcyB0aGUgZmllbGRzIEhUTUwgTWFya3VwXHJcbiAgICpcclxuICAgKiAqIGAkYCA9PiBGaWVsZCBpbnN0YW5jZVxyXG4gICAqICogYCQkYCA9PiBPd25lciBWaWV3IGluc3RhbmNlXHJcbiAgICpcclxuICAgKi9cclxuICB3aWRnZXRUZW1wbGF0ZTogbmV3IFNpbXBsYXRlKFtcclxuICAgICc8bGFiZWwgZm9yPVwieyU9ICQubmFtZSAlfVwiPnslOiAkLmxhYmVsICV9PC9sYWJlbD4nLFxyXG4gICAgJzxidXR0b24gY2xhc3M9XCJidXR0b24gc2ltcGxlU3ViSGVhZGVyQnV0dG9uIHslIGlmICgkJC5pY29uQ2xhc3MpIHsgJX0geyU6ICQkLmljb25DbGFzcyAlfSB7JSB9ICV9XCIgYXJpYS1sYWJlbD1cInslOiAkLmxvb2t1cExhYmVsVGV4dCAlfVwiPjxzcGFuPnslOiAkLmxvb2t1cFRleHQgJX08L3NwYW4+PC9idXR0b24+JyxcclxuICAgICc8aW5wdXQgZGF0YS1kb2pvLWF0dGFjaC1wb2ludD1cImlucHV0Tm9kZVwiIHR5cGU9XCJ0ZXh0XCIgLz4nLFxyXG4gIF0pLFxyXG5cclxuICBpY29uQ2xhc3M6ICdmYSBmYS1wZW5jaWwgZmEtbGcnLFxyXG5cclxuICAvLyBMb2NhbGl6YXRpb25cclxuICBsb2NhbGVJZDogJ2VkaXRvckZpZWxkJyxcclxuXHJcbiAgLyoqXHJcbiAgICogQGNmZyB7U3RyaW5nfVxyXG4gICAqIFRoZSB2aWV3IGlkIHRoYXQgdGhlIHVzZXIgd2lsbCBiZSB0YWtlbiB0byB3aGVuIHRoZSBlZGl0IGJ1dHRvbiBpcyBjbGlja2VkLlxyXG4gICAqL1xyXG4gIHZpZXc6IG51bGwsXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtTdHJpbmd9XHJcbiAgICogVmFsdWUgc3RvcmFnZSBmb3Iga2VlcGluZyB0cmFjayBvZiBtb2RpZmllZC91bm1vZGlmaWVkIHZhbHVlcy4gVXNlZCBpbiB7QGxpbmsgI2lzRGlydHkgaXNEaXJ0eX0uXHJcbiAgICovXHJcbiAgb3JpZ2luYWxWYWx1ZTogbnVsbCxcclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge09iamVjdC9TdHJpbmcvRGF0ZS9OdW1iZXJ9XHJcbiAgICogVmFsdWUgc3RvcmFnZSBmb3IgY3VycmVudCB2YWx1ZSwgYXMgaXQgbXVzdCBiZSBmb3JtYXR0ZWQgZm9yIGRpc3BsYXkgdGhpcyBpcyB0aGUgZnVsbCB2YWx1ZS5cclxuICAgKi9cclxuICBjdXJyZW50VmFsdWU6IG51bGwsXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtPYmplY3QvU3RyaW5nL0RhdGUvTnVtYmVyfVxyXG4gICAqIFZhbHVlIHN0b3JhZ2UgZm9yIHRoZSB2YWx1ZSB0byB1c2UgaW4gdmFsaWRhdGlvbiwgd2hlbiBnYXRoZXJpbmcgdmFsdWVzIGZyb20gdGhlIGVkaXRvciB2aWV3XHJcbiAgICogdGhlIHZhbGlkYXRpb25WYWx1ZSBpcyBzZXQgdXNpbmcgYGdldFZhbHVlcyh0cnVlKWAgd2hpY2ggcmV0dXJucyBhbGwgdmFsdWVzIGV2ZW4gbm9uLW1vZGlmaWVkIG9uZXMuXHJcbiAgICovXHJcbiAgdmFsaWRhdGlvblZhbHVlOiBudWxsLFxyXG5cclxuICAvKipcclxuICAgKiBSZXR1cm5zIHRoZSBmb3JtYXR0ZWQgdmFsdWUuIFRoaXMgc2hvdWxkIGJlIG92ZXJ3cml0dGVuIHRvIHByb3ZpZGUgcHJvcGVyIGZvcm1hdHRpbmdcclxuICAgKiBAcGFyYW0gdmFsXHJcbiAgICogQHRlbXBsYXRlXHJcbiAgICovXHJcbiAgZm9ybWF0VmFsdWU6IGZ1bmN0aW9uIGZvcm1hdFZhbHVlKC8qdmFsKi8pIHtcclxuICAgIHJldHVybiAnJztcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIEV4dGVuZHMgdGhlIHBhcmVudCBpbXBsZW1lbnRhdGlvbiB0byBjb25uZWN0IHRoZSBgb25jbGlja2AgZXZlbnQgb2YgdGhlIGZpZWxkcyBjb250YWluZXJcclxuICAgKiB0byB7QGxpbmsgI19vbkNsaWNrIF9vbkNsaWNrfS5cclxuICAgKi9cclxuICBpbml0OiBmdW5jdGlvbiBpbml0KCkge1xyXG4gICAgdGhpcy5pbmhlcml0ZWQoYXJndW1lbnRzKTtcclxuXHJcbiAgICB0aGlzLmNvbm5lY3QodGhpcy5jb250YWluZXJOb2RlLCAnb25jbGljaycsIHRoaXMuX29uQ2xpY2spO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogRXh0ZW5kcyB0aGUgcGFyZW50IGltcGxlbWVudGF0aW9uIHRvIGFsc28gY2FsbCB7QGxpbmsgI19lbmFibGVUZXh0RWxlbWVudCBfZW5hYmxlVGV4dEVsZW1lbnR9LlxyXG4gICAqL1xyXG4gIGVuYWJsZTogZnVuY3Rpb24gZW5hYmxlKCkge1xyXG4gICAgdGhpcy5pbmhlcml0ZWQoYXJndW1lbnRzKTtcclxuXHJcbiAgICB0aGlzLl9lbmFibGVUZXh0RWxlbWVudCgpO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogU2V0cyB0aGUgaW5wdXQgbm9kZXMnIGRpc2FibGVkIGF0dHJpYnV0ZSB0byBmYWxzZVxyXG4gICAqL1xyXG4gIF9lbmFibGVUZXh0RWxlbWVudDogZnVuY3Rpb24gX2VuYWJsZVRleHRFbGVtZW50KCkge1xyXG4gICAgdGhpcy5pbnB1dE5vZGUuZGlzYWJsZWQgPSBmYWxzZTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIEV4dGVuZHMgdGhlIHBhcmVudCBpbXBsZW1lbnRhdGlvbiB0byBhbHNvIGNhbGwge0BsaW5rICNfZGlzYWJsZVRleHRFbGVtZW50IF9kaXNhYmxlVGV4dEVsZW1lbnR9LlxyXG4gICAqL1xyXG4gIGRpc2FibGU6IGZ1bmN0aW9uIGRpc2FibGUoKSB7XHJcbiAgICB0aGlzLmluaGVyaXRlZChhcmd1bWVudHMpO1xyXG4gICAgdGhpcy5fZGlzYWJsZVRleHRFbGVtZW50KCk7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBTZXRzIHRoZSBpbnB1dCBub2RlcycgZGlzYWJsZWQgYXR0cmlidXRlIHRvIHRydWVcclxuICAgKi9cclxuICBfZGlzYWJsZVRleHRFbGVtZW50OiBmdW5jdGlvbiBfZGlzYWJsZVRleHRFbGVtZW50KCkge1xyXG4gICAgdGhpcy5pbnB1dE5vZGUuZGlzYWJsZWQgPSB0cnVlO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogQ3JlYXRlcyB0aGUgbmF2aWdhdGlvbiBvcHRpb25zIHRvIGJlIHBhc3NlZCB0byB0aGUgZWRpdG9yIHZpZXcuIFRoZSBpbXBvcnRhbnQgcGFydFxyXG4gICAqIG9mIHRoaXMgY29kZSBpcyB0aGF0IGl0IHBhc3NlcyBgdG9vbHNgIHRoYXQgb3ZlcnJpZGVzIHRoZSBlZGl0b3JzIHZpZXcgdG9vbGJhciB3aXRoIGFuIGl0ZW1cclxuICAgKiB0aGF0IG9wZXJhdGVzIHdpdGhpbiB0aGlzIGZpZWxkcyBzY29wZS5cclxuICAgKiBAcmV0dXJuIE5hdmlnYXRpb24gb3B0aW9uc1xyXG4gICAqL1xyXG4gIGNyZWF0ZU5hdmlnYXRpb25PcHRpb25zOiBmdW5jdGlvbiBjcmVhdGVOYXZpZ2F0aW9uT3B0aW9ucygpIHtcclxuICAgIHJldHVybiB7XHJcbiAgICAgIHRvb2xzOiB7XHJcbiAgICAgICAgdGJhcjogW3tcclxuICAgICAgICAgIGlkOiAnY29tcGxldGUnLFxyXG4gICAgICAgICAgY2xzOiAnZmEgZmEtY2hlY2sgZmEtZncgZmEtbGcnLFxyXG4gICAgICAgICAgZm46IHRoaXMuY29tcGxldGUsXHJcbiAgICAgICAgICBzY29wZTogdGhpcyxcclxuICAgICAgICB9LCB7XHJcbiAgICAgICAgICBpZDogJ2NhbmNlbCcsXHJcbiAgICAgICAgICBjbHM6ICdmYSBmYS1iYW4gZmEtZncgZmEtbGcnLFxyXG4gICAgICAgICAgc2lkZTogJ2xlZnQnLFxyXG4gICAgICAgICAgZm46IFJlVUkuYmFjayxcclxuICAgICAgICAgIHNjb3BlOiBSZVVJLFxyXG4gICAgICAgIH1dLFxyXG4gICAgICB9LFxyXG4gICAgICBlbnRyeTogdGhpcy5vcmlnaW5hbFZhbHVlIHx8IHRoaXMudmFsaWRhdGlvblZhbHVlLFxyXG4gICAgICBjaGFuZ2VzOiB0aGlzLmN1cnJlbnRWYWx1ZSxcclxuICAgICAgZW50aXR5TmFtZTogdGhpcy5lbnRpdHlOYW1lIHx8ICh0aGlzLm93bmVyICYmIHRoaXMub3duZXIuZW50aXR5TmFtZSksXHJcbiAgICAgIG5lZ2F0ZUhpc3Rvcnk6IHRydWUsXHJcbiAgICB9O1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogTmF2aWdhdGVzIHRvIHRoZSBnaXZlbiBgdGhpcy52aWV3YCB1c2luZyB0aGUgb3B0aW9ucyBmcm9tIHtAbGluayAjY3JlYXRlTmF2aWdhdGlvbk9wdGlvbnMgY3JlYXRlTmF2aWdhdGlvbk9wdGlvbnN9LlxyXG4gICAqL1xyXG4gIG5hdmlnYXRlVG9FZGl0VmlldzogZnVuY3Rpb24gbmF2aWdhdGVUb0VkaXRWaWV3KCkge1xyXG4gICAgaWYgKHRoaXMuaXNEaXNhYmxlZCgpKSB7XHJcbiAgICAgIHJldHVybjtcclxuICAgIH1cclxuXHJcbiAgICBjb25zdCB2aWV3ID0gQXBwLmdldFZpZXcodGhpcy52aWV3KTtcclxuICAgIGNvbnN0IG9wdGlvbnMgPSB0aGlzLmNyZWF0ZU5hdmlnYXRpb25PcHRpb25zKCk7XHJcblxyXG4gICAgaWYgKHZpZXcgJiYgb3B0aW9ucykge1xyXG4gICAgICBpZiAob3B0aW9ucy50aXRsZSkge1xyXG4gICAgICAgIHZpZXcuc2V0KCd0aXRsZScsIG9wdGlvbnMudGl0bGUpO1xyXG4gICAgICB9XHJcblxyXG4gICAgICB2aWV3LnNob3cob3B0aW9ucyk7XHJcbiAgICB9XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBIYW5kbGVyIGZvciB0aGUgYG9uY2xpY2tgIGV2ZW50IG9mIHRoZSBmaWVsZHMgY29udGFpbmVyLlxyXG4gICAqXHJcbiAgICogSW52b2tlcyB7QGxpbmsgI25hdmlnYXRlVG9FZGl0VmlldyBuYXZpZ2F0ZVRvRWRpdFZpZXd9LlxyXG4gICAqXHJcbiAgICogQHBhcmFtIHtFdmVudH0gZXZ0XHJcbiAgICovXHJcbiAgX29uQ2xpY2s6IGZ1bmN0aW9uIF9vbkNsaWNrKGV2dCkge1xyXG4gICAgZXZlbnQuc3RvcChldnQpO1xyXG4gICAgdGhpcy5uYXZpZ2F0ZVRvRWRpdFZpZXcoKTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIEdldHMgdGhlIHZhbHVlcyBmcm9tIHRoZSBlZGl0b3IgdmlldyBhbmQgYXBwbGllcyBpdCB0byB0aGUgdGhpcyBmaWVsZHMgYHRoaXMuY3VycmVudFZhbHVlYCBhbmRcclxuICAgKiBgdGhpcy52YWxpZGF0aW9uVmFsdWVgLlxyXG4gICAqL1xyXG4gIGdldFZhbHVlc0Zyb21WaWV3OiBmdW5jdGlvbiBnZXRWYWx1ZXNGcm9tVmlldygpIHtcclxuICAgIGNvbnN0IHZpZXcgPSBBcHAuZ2V0UHJpbWFyeUFjdGl2ZVZpZXcoKTtcclxuICAgIGNvbnN0IHZhbHVlcyA9IHZpZXcgJiYgdmlldy5nZXRWYWx1ZXMoKTtcclxuXHJcbiAgICBpZiAodmlldyAmJiB2YWx1ZXMpIHtcclxuICAgICAgaWYgKHRoaXMuYXBwbHlUbykge1xyXG4gICAgICAgIHRoaXMuY3VycmVudFZhbHVlID0gdmFsdWVzO1xyXG4gICAgICB9IGVsc2UgaWYgKHRoaXMub3duZXIuaW5zZXJ0aW5nKSB7XHJcbiAgICAgICAgLy8gSWYgd2UgYXJlIGluc2VydGluZyBhIG5ldyB2YWx1ZSwgd2Ugd2FudCBhbGwgdGhlIGZpZWxkcywgbm90IGp1c3QgZmllbGRzIHRoYXQgY2hhbmdlZCAoaWYgdGhlIHVzZXIgZWRpdGVkIG11bHRpcGxlIHRpbWVzKVxyXG4gICAgICAgIHRoaXMuY3VycmVudFZhbHVlID0gdmlldy5nZXRWYWx1ZXModHJ1ZSk7XHJcbiAgICAgIH0gZWxzZSB7XHJcbiAgICAgICAgLy8gR2V0cyBhbiBlbnRyeSB3aXRoIGZpZWxkcyB0aGF0IGFyZSBkaXJ0eVxyXG4gICAgICAgIHRoaXMuY3VycmVudFZhbHVlID0gdmlldy5jcmVhdGVJdGVtKCk7XHJcbiAgICAgIH1cclxuXHJcbiAgICAgIC8vIHN0b3JlIGFsbCBlZGl0b3IgdmFsdWVzIGZvciB2YWxpZGF0aW9uLCBub3Qgb25seSBkaXJ0eSB2YWx1ZXNcclxuICAgICAgdGhpcy52YWxpZGF0aW9uVmFsdWUgPSB2aWV3LmdldFZhbHVlcyh0cnVlKTtcclxuICAgIH1cclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIEhhbmRsZXIgZm9yIHRoZSB0b29sYmFyIGl0ZW0gdGhhdCBpcyBwYXNzZWQgdG8gdGhlIGVkaXRvciB2aWV3LiBXaGVuIHRoaXMgZnVuY3Rpb24gZmlyZXNcclxuICAgKiB0aGUgdmlldyBzaG93biBpcyB0aGUgZWRpdG9yIHZpZXcgYnV0IHRoZSBmdW5jdGlvbiBpcyBmaXJlZCBpbiBzY29wZSBvZiB0aGUgZmllbGQuXHJcbiAgICpcclxuICAgKiBJdCBnZXRzIGEgaGFuZGxlciBvZiB0aGUgY3VycmVudCBhY3RpdmUgdmlldyBhbmQgdmFsaWRhdGVzIHRoZSBmb3JtLCBpZiBpdCBwYXNzZXMgaXQgZ2F0aGVyc1xyXG4gICAqIHRoZSB2YWx1ZSwgc2V0cyB0aGUgZmllbGRzIHRleHQsIGNhbGxzIGBSZVVJLmJhY2tgIGFuZCBmaXJlcyB7QGxpbmsgI19vbkNvbXBsZXRlIF9vbkNvbXBsZXRlfS5cclxuICAgKlxyXG4gICAqL1xyXG4gIGNvbXBsZXRlOiBmdW5jdGlvbiBjb21wbGV0ZSgpIHtcclxuICAgIGNvbnN0IHZpZXcgPSBBcHAuZ2V0UHJpbWFyeUFjdGl2ZVZpZXcoKTtcclxuXHJcbiAgICBpZiAodmlldyBpbnN0YW5jZW9mIGFyZ29zLkVkaXQpIHtcclxuICAgICAgdmlldy5oaWRlVmFsaWRhdGlvblN1bW1hcnkoKTtcclxuXHJcbiAgICAgIGlmICh2aWV3LnZhbGlkYXRlKCkgIT09IGZhbHNlKSB7XHJcbiAgICAgICAgdmlldy5zaG93VmFsaWRhdGlvblN1bW1hcnkoKTtcclxuICAgICAgICByZXR1cm47XHJcbiAgICAgIH1cclxuICAgIH1cclxuXHJcbiAgICB0aGlzLmdldFZhbHVlc0Zyb21WaWV3KCk7XHJcblxyXG4gICAgdGhpcy5zZXRUZXh0KHRoaXMuZm9ybWF0VmFsdWUodGhpcy52YWxpZGF0aW9uVmFsdWUpKTtcclxuXHJcbiAgICAvLyB0b2RvOiByZW1vdmVcclxuICAgIGlmICh2aWV3LmlzVmFsaWQgJiYgIXZpZXcuaXNWYWxpZCgpKSB7XHJcbiAgICAgIHJldHVybjtcclxuICAgIH1cclxuXHJcbiAgICBSZVVJLmJhY2soKTtcclxuICAgIC8vIGlmIHRoZSBldmVudCBpcyBmaXJlZCBiZWZvcmUgdGhlIHRyYW5zaXRpb24sIGFueSBYTUxIdHRwUmVxdWVzdCBjcmVhdGVkIGluIGFuIGV2ZW50IGhhbmRsZXIgYW5kXHJcbiAgICAvLyBleGVjdXRpbmcgZHVyaW5nIHRoZSB0cmFuc2l0aW9uIGNhbiBwb3RlbnRpYWxseSBmYWlsIChzdGF0dXMgMCkuICB0aGlzIG1pZ2h0IG9ubHkgYmUgYW4gaXNzdWUgd2l0aCBDT1JTXHJcbiAgICAvLyByZXF1ZXN0cyBjcmVhdGVkIGluIHRoaXMgc3RhdGUgKHRoZSBwcmUtZmxpZ2h0IHJlcXVlc3QgaXMgbWFkZSwgYW5kIHRoZSByZXF1ZXN0IGVuZHMgd2l0aCBzdGF0dXMgMCkuXHJcbiAgICAvLyB3cmFwcGluZyB0aGluZyBpbiBhIHRpbWVvdXQgYW5kIHBsYWNpbmcgYWZ0ZXIgdGhlIHRyYW5zaXRpb24gc3RhcnRzLCBtaXRpZ2F0ZXMgdGhpcyBpc3N1ZS5cclxuICAgIHNldFRpbWVvdXQodGhpcy5fb25Db21wbGV0ZS5iaW5kKHRoaXMpLCAwKTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIEhhbmRsZXIgZm9yIGBfb25Db21wbGV0ZWAgd2hpY2ggaXMgZmlyZWQgYWZ0ZXIgdGhlIHVzZXIgaGFzIGNvbXBsZXRlZCB0aGUgZm9ybSBpbiB0aGUgZWRpdG9yIHZpZXdcclxuICAgKlxyXG4gICAqIEZpcmVzIHtAbGluayAjb25DaGFuZ2Ugb25DaGFuZ2V9LlxyXG4gICAqXHJcbiAgICovXHJcbiAgX29uQ29tcGxldGU6IGZ1bmN0aW9uIF9vbkNvbXBsZXRlKCkge1xyXG4gICAgdGhpcy5vbkNoYW5nZSh0aGlzLmN1cnJlbnRWYWx1ZSwgdGhpcyk7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBTZXRzIHRoZSBkaXNwbGF5ZWQgdGV4dCB0byB0aGUgaW5wdXQuXHJcbiAgICogQHBhcmFtIHtTdHJpbmd9IHRleHRcclxuICAgKi9cclxuICBzZXRUZXh0OiBmdW5jdGlvbiBzZXRUZXh0KHRleHQpIHtcclxuICAgIHRoaXMuc2V0KCdpbnB1dFZhbHVlJywgdGV4dCk7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBEZXRlcm1pbmVzIGlmIHRoZSB2YWx1ZSBoYXMgYmVlbiBtb2RpZmllZCBmcm9tIHRoZSBkZWZhdWx0L29yaWdpbmFsIHN0YXRlXHJcbiAgICogQHJldHVybiB7Qm9vbGVhbn1cclxuICAgKi9cclxuICBpc0RpcnR5OiBmdW5jdGlvbiBpc0RpcnR5KCkge1xyXG4gICAgcmV0dXJuIHRoaXMub3JpZ2luYWxWYWx1ZSAhPT0gdGhpcy5jdXJyZW50VmFsdWU7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBSZXR1cm5zIHRoZSBjdXJyZW50IHZhbHVlXHJcbiAgICogQHJldHVybiB7T2JqZWN0L1N0cmluZy9EYXRlL051bWJlcn1cclxuICAgKi9cclxuICBnZXRWYWx1ZTogZnVuY3Rpb24gZ2V0VmFsdWUoKSB7XHJcbiAgICByZXR1cm4gdGhpcy5jdXJyZW50VmFsdWU7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBFeHRlbmRzIHRoZSBwYXJlbnQgaW1wbGVtZW50YXRpb24gdG8gdXNlIHRoZSBgdGhpcy52YWxpZGF0aW9uVmFsdWVgIGluc3RlYWQgb2YgYHRoaXMuZ2V0VmFsdWUoKWAuXHJcbiAgICogQHBhcmFtIHZhbHVlXHJcbiAgICovXHJcbiAgdmFsaWRhdGU6IGZ1bmN0aW9uIHZhbGlkYXRlKHZhbHVlKSB7XHJcbiAgICByZXR1cm4gdHlwZW9mIHZhbHVlID09PSAndW5kZWZpbmVkJyA/IHRoaXMuaW5oZXJpdGVkKGFyZ3VtZW50cywgW3RoaXMudmFsaWRhdGlvblZhbHVlXSkgOiB0aGlzLmluaGVyaXRlZChhcmd1bWVudHMpO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogU2V0cyB0aGUgY3VycmVudCB2YWx1ZSB0byB0aGUgaXRlbSBwYXNzZWQsIGFzIHRoZSBkZWZhdWx0IGlmIGluaXRpYWwgaXMgdHJ1ZS4gVGhlbiBpdCBzZXRzXHJcbiAgICogdGhlIGRpc3BsYXllZCB0ZXh0IHVzaW5nIHtAbGluayAjc2V0VGV4dCBzZXRUZXh0fSB3aXRoIHRoZSB7QGxpbmsgI2Zvcm1hdFZhbHVlIGZvcm1hdHRlZH0gdmFsdWUuXHJcbiAgICpcclxuICAgKiBJZiBudWxsL2ZhbHNlIGlzIHBhc3NlZCBhbGwgaXMgY2xlYXJlZCBhbmQgYHRoaXMuZW1wdHlUZXh0YCBpcyBzZXQgYXMgdGhlIGRpc3BsYXllZCB0ZXh0LlxyXG4gICAqXHJcbiAgICogQHBhcmFtIHtPYmplY3QvU3RyaW5nL0RhdGUvTnVtYmVyfSB2YWwgVmFsdWUgdG8gYmUgc2V0XHJcbiAgICogQHBhcmFtIHtCb29sZWFufSBpbml0aWFsIFRydWUgaWYgdGhlIHZhbHVlIGlzIHRoZSBkZWZhdWx0L2NsZWFuIHZhbHVlLCBmYWxzZSBpZiBpdCBpcyBhIG1lYW50IGFzIGEgZGlydHkgdmFsdWVcclxuICAgKi9cclxuICBzZXRWYWx1ZTogZnVuY3Rpb24gc2V0VmFsdWUodmFsLCBpbml0aWFsKSB7XHJcbiAgICBpZiAodmFsKSB7XHJcbiAgICAgIHRoaXMudmFsaWRhdGlvblZhbHVlID0gdGhpcy5jdXJyZW50VmFsdWUgPSB2YWw7XHJcblxyXG4gICAgICBpZiAoaW5pdGlhbCkge1xyXG4gICAgICAgIHRoaXMub3JpZ2luYWxWYWx1ZSA9IHRoaXMuY3VycmVudFZhbHVlO1xyXG4gICAgICB9XHJcblxyXG4gICAgICB0aGlzLnNldFRleHQodGhpcy5mb3JtYXRWYWx1ZSh2YWwpKTtcclxuICAgIH0gZWxzZSB7XHJcbiAgICAgIHRoaXMudmFsaWRhdGlvblZhbHVlID0gdGhpcy5jdXJyZW50VmFsdWUgPSBudWxsO1xyXG5cclxuICAgICAgaWYgKGluaXRpYWwpIHtcclxuICAgICAgICB0aGlzLm9yaWdpbmFsVmFsdWUgPSB0aGlzLmN1cnJlbnRWYWx1ZTtcclxuICAgICAgfVxyXG5cclxuICAgICAgdGhpcy5zZXRUZXh0KHRoaXMuZW1wdHlUZXh0KTtcclxuICAgIH1cclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIENsZWFycyB0aGUgdmFsdWUgYnkgcGFzc2luZyBgbnVsbGAgdG8ge0BsaW5rICNzZXRWYWx1ZSBzZXRWYWx1ZX1cclxuICAgKi9cclxuICBjbGVhclZhbHVlOiBmdW5jdGlvbiBjbGVhclZhbHVlKCkge1xyXG4gICAgdGhpcy5zZXRWYWx1ZShudWxsLCB0cnVlKTtcclxuICB9LFxyXG59KTtcclxuXHJcbmxhbmcuc2V0T2JqZWN0KCdTYWdlLlBsYXRmb3JtLk1vYmlsZS5GaWVsZHMuRWRpdG9yRmllbGQnLCBfX2NsYXNzKTtcclxuZXhwb3J0IGRlZmF1bHQgX19jbGFzcztcclxuIl19
+</pre>
+</body>
+</html>

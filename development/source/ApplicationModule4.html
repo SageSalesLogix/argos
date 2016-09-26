@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">define('argos/ApplicationModule', ['exports', 'module', 'dojo/_base/array', 'dojo/_base/connect', 'dojo/_base/declare', 'dojo/_base/lang', './Views/ConfigureQuickActions', './Application', './CultureInfo', './Models/RecentlyViewed/Offline', './Models/Briefcase/Offline'], function (exports, module, _dojo_baseArray, _dojo_baseConnect, _dojo_baseDeclare, _dojo_baseLang, _ViewsConfigureQuickActions, _Application, _CultureInfo, _ModelsRecentlyViewedOffline, _ModelsBriefcaseOffline) {
+  function _interopRequireDefault(obj) { return obj &amp;&amp; obj.__esModule ? obj : { 'default': obj }; }
+
+  /* Copyright (c) 2010, Sage Software, Inc. All rights reserved.
+   *
+   * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   * you may not use this file except in compliance with the License.
+   * You may obtain a copy of the License at
+   *
+   *     http://www.apache.org/licenses/LICENSE-2.0
+   *
+   * Unless required by applicable law or agreed to in writing, software
+   * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   * See the License for the specific language governing permissions and
+   * limitations under the License.
+   */
+
+  var _array = _interopRequireDefault(_dojo_baseArray);
+
+  var _connect = _interopRequireDefault(_dojo_baseConnect);
+
+  var _declare = _interopRequireDefault(_dojo_baseDeclare);
+
+  var _lang = _interopRequireDefault(_dojo_baseLang);
+
+  var _ConfigureQuickActions = _interopRequireDefault(_ViewsConfigureQuickActions);
+
+<span id='argos-ApplicationModule'>  /**
+</span>   * @class argos.ApplicationModule
+   * ApplicationModule is intended to be extended in the resulting application so that it
+   * references all the views, toolbars and customizations and registers them to App.
+   *
+   * You may think of ApplicationModule as &quot;loader&quot; or initializer.
+   * @alternateClassName ApplicationModule
+   * @requires argos.Application
+   */
+  var __class = (0, _declare['default'])('argos.ApplicationModule', null, {
+<span id='argos-ApplicationModule-property-_connects'>    /**
+</span>     * @property {Array}
+     * Array of dojo.connect bound to ApplicationModule
+     */
+    _connects: null,
+<span id='argos-ApplicationModule-property-_subscribes'>    /**
+</span>     * @property {Array}
+     * Array of dojo.subscribe bound to ApplicationModule
+     */
+    _subscribes: null,
+<span id='argos-ApplicationModule-property-application'>    /**
+</span>     * @property {Object}
+     * The {@link App App} instance for the application
+     */
+    application: null,
+<span id='argos-ApplicationModule-method-constructor'>    /**
+</span>     * Mixes in the passed options object into itself
+     * @param {Object} options Properties to be mixed in
+     */
+    constructor: function constructor(options) {
+      this._connects = [];
+      this._subscribes = [];
+
+      _lang['default'].mixin(this, options);
+    },
+<span id='argos-ApplicationModule-method-destroy'>    /**
+</span>     * Destroy loops and disconnects all `_connect`s and unsubscribes all `_subscribe`s.
+     * Also calls {@link #uninitialize uninitialize}
+     */
+    destroy: function destroy() {
+      _array['default'].forEach(this._connects, function (handle) {
+        _connect['default'].disconnect(handle);
+      });
+
+      _array['default'].forEach(this._subscribes, function (handle) {
+        _connect['default'].unsubscribe(handle);
+      });
+
+      this.uninitialize();
+    },
+<span id='argos-ApplicationModule-method-uninitialize'>    /**
+</span>     * Performs any additional destruction requirements
+     */
+    uninitialize: function uninitialize() {},
+<span id='argos-ApplicationModule-method-init'>    /**
+</span>     * Saves the passed application instance and calls:
+     *
+     * 1. {@link #loadCustomizations loadCustomizations}
+     * 1. {@link #loadToolbars loadToolbars}
+     * 1. {@link #loadViews loadViews}
+     *
+     * @param {Object} application
+     */
+    init: function init(application) {
+      this.application = application;
+
+      this.loadAppStatePromises();
+      this.loadCustomizations();
+      this.loadToolbars();
+      this.loadViews();
+    },
+
+<span id='argos-ApplicationModule-method-initDynamic'>    /**
+</span>     * initDynamic is invoked after appStatePromises run.
+     */
+    initDynamic: function initDynamic() {
+      this.loadCustomizationsDynamic();
+      this.loadToolbarsDynamic();
+      this.loadViewsDynamic();
+    },
+
+<span id='argos-ApplicationModule-method-loadAppStatPromises'>    /**
+</span>     * @deprecated - typo, use loadAppStatePromises instead.
+     */
+    loadAppStatPromises: function loadAppStatPromises() {
+      this.loadAppStatePromises();
+    },
+
+<span id='argos-ApplicationModule-method-loadAppStatePromises'>    /**
+</span>     * @template
+     * This function should be overriden in the app and be used to register all app state promises.
+     */
+    loadAppStatePromises: function loadAppStatePromises() {},
+
+    statics: {
+      _customizationsLoaded: false,
+      _viewsLoaded: false,
+      _toolbarsLoaded: false
+    },
+
+<span id='argos-ApplicationModule-method-loadCustomizations'>    /**
+</span>     * @template
+     * This function should be overriden in the app and be used to register all customizations.
+     */
+    loadCustomizations: function loadCustomizations() {
+      if (this.statics._customizationsLoaded) {
+        console.warn('Multiple calls to loadCustomizations detected. Ensure your customization is not calling this.inherited from loadCustomizations in the ApplicationModule.'); // eslint-disable-line
+        return;
+      }
+
+      // Load base customizations
+
+      this.statics._customizationsLoaded = true;
+    },
+
+<span id='argos-ApplicationModule-method-loadCustomizationsDynamic'>    /**
+</span>     * loadCustomizationsDynamic is invoked after appStatePromises run.
+     */
+    loadCustomizationsDynamic: function loadCustomizationsDynamic() {},
+
+<span id='argos-ApplicationModule-method-loadToolbarsDynamic'>    /**
+</span>     * loadToolbarsDynamic is invoked after appStatePromises run.
+     */
+    loadToolbarsDynamic: function loadToolbarsDynamic() {},
+
+<span id='argos-ApplicationModule-method-loadViewsDynamic'>    /**
+</span>     * loadViewsDynamic is invoked after appStatePromises run.
+     */
+    loadViewsDynamic: function loadViewsDynamic() {},
+<span id='argos-ApplicationModule-method-loadViews'>    /**
+</span>     * @template
+     * This function should be overriden in the app and be used to register all views.
+     */
+    loadViews: function loadViews() {
+      if (this.statics._viewsLoaded) {
+        console.warn('Multiple calls to loadViews detected. Ensure your customization is not calling this.inherited from loadViews in the ApplicationModule.'); // eslint-disable-line
+        return;
+      }
+
+      // Load base views
+      this.registerView(new _ConfigureQuickActions['default']());
+
+      this.statics._viewsLoaded = true;
+    },
+<span id='argos-ApplicationModule-method-loadToolbars'>    /**
+</span>     * @template
+     * This function should be overriden in the app and be used to register all toolbars.
+     */
+    loadToolbars: function loadToolbars() {
+      if (this.statics._toolbarsLoaded) {
+        console.warn('Multiple calls to loadToolbars detected. Ensure your customization is not calling this.inherited from loadToolbars in the ApplicationModule.'); // eslint-disable-line
+        return;
+      }
+
+      // Load base toolbars
+
+      this.statics._toolbarsLoaded = true;
+    },
+<span id='argos-ApplicationModule-method-registerView'>    /**
+</span>     * Passes the view instance to {@link App#registerView App.registerView}.
+     * @param {Object} view View instance to register
+     * @param {DOMNode} domNode Optional. DOM node to place the view in.
+     */
+    registerView: function registerView(view, domNode) {
+      if (this.application) {
+        this.application.registerView(view, domNode);
+      }
+    },
+<span id='argos-ApplicationModule-method-registerToolbar'>    /**
+</span>     * Passes the toolbar instance to {@link App#registerToolbar App.registerToolbar}.
+     * @param {String} name Unique name of the toolbar to register.
+     * @param {Object} toolbar Toolbar instance to register.
+     * @param {DOMNode} domNode Optional. DOM node to place the view in.
+     */
+    registerToolbar: function registerToolbar(name, toolbar, domNode) {
+      if (this.application) {
+        this.application.registerToolbar(name, toolbar, domNode);
+      }
+    },
+<span id='argos-ApplicationModule-method-registerCustomization'>    /**
+</span>     * Passes the customization instance to {@link App#registerCustomization App.registerCustomization}.
+     * @param {String} set The customization set name, or type. Examples: `list`, `detail/tools`, `list/hashTagQueries`
+     * @param {String} id The View id the customization will be applied to
+     * @param {Object} spec The customization object containing at least `at` and `type`.
+     */
+    registerCustomization: function registerCustomization(set, id, spec) {
+      if (this.application) {
+        this.application.registerCustomization(set, id, spec);
+      }
+    },
+<span id='argos-ApplicationModule-method-registerAppStatePromise'>    /**
+</span>     * Registers a promise that will resolve when initAppState is invoked.
+     * @param {Promise|Function} promise A promise or a function that returns a promise
+     */
+    registerAppStatePromise: function registerAppStatePromise(promise) {
+      if (this.application) {
+        this.application.registerAppStatePromise(promise);
+      }
+    }
+  });
+
+  _lang['default'].setObject('Sage.Platform.Mobile.ApplicationModule', __class);
+  module.exports = __class;
+});
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInNyYy9BcHBsaWNhdGlvbk1vZHVsZS5qcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7O0FBaUNBLE1BQU0sT0FBTyxHQUFHLHlCQUFRLHlCQUF5QixFQUFFLElBQUksRUFBRTs7Ozs7QUFLdkQsYUFBUyxFQUFFLElBQUk7Ozs7O0FBS2YsZUFBVyxFQUFFLElBQUk7Ozs7O0FBS2pCLGVBQVcsRUFBRSxJQUFJOzs7OztBQUtqQixlQUFXLEVBQUUsU0FBUyxXQUFXLENBQUMsT0FBTyxFQUFFO0FBQ3pDLFVBQUksQ0FBQyxTQUFTLEdBQUcsRUFBRSxDQUFDO0FBQ3BCLFVBQUksQ0FBQyxXQUFXLEdBQUcsRUFBRSxDQUFDOztBQUV0Qix1QkFBSyxLQUFLLENBQUMsSUFBSSxFQUFFLE9BQU8sQ0FBQyxDQUFDO0tBQzNCOzs7OztBQUtELFdBQU8sRUFBRSxTQUFTLE9BQU8sR0FBRztBQUMxQix3QkFBTSxPQUFPLENBQUMsSUFBSSxDQUFDLFNBQVMsRUFBRSxVQUFDLE1BQU0sRUFBSztBQUN4Qyw0QkFBUSxVQUFVLENBQUMsTUFBTSxDQUFDLENBQUM7T0FDNUIsQ0FBQyxDQUFDOztBQUVILHdCQUFNLE9BQU8sQ0FBQyxJQUFJLENBQUMsV0FBVyxFQUFFLFVBQUMsTUFBTSxFQUFLO0FBQzFDLDRCQUFRLFdBQVcsQ0FBQyxNQUFNLENBQUMsQ0FBQztPQUM3QixDQUFDLENBQUM7O0FBRUgsVUFBSSxDQUFDLFlBQVksRUFBRSxDQUFDO0tBQ3JCOzs7O0FBSUQsZ0JBQVksRUFBRSxTQUFTLFlBQVksR0FBRyxFQUFFOzs7Ozs7Ozs7O0FBVXhDLFFBQUksRUFBRSxTQUFTLElBQUksQ0FBQyxXQUFXLEVBQUU7QUFDL0IsVUFBSSxDQUFDLFdBQVcsR0FBRyxXQUFXLENBQUM7O0FBRS9CLFVBQUksQ0FBQyxvQkFBb0IsRUFBRSxDQUFDO0FBQzVCLFVBQUksQ0FBQyxrQkFBa0IsRUFBRSxDQUFDO0FBQzFCLFVBQUks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LENBQUMsQ0FBQztPQUNuRDtLQUNGO0dBQ0YsQ0FBQyxDQUFDOztBQUVILG1CQUFLLFNBQVMsQ0FBQyx3Q0FBd0MsRUFBRSxPQUFPLENBQUMsQ0FBQzttQkFDbkQsT0FBTyIsImZpbGUiOiJzcmMvQXBwbGljYXRpb25Nb2R1bGUuanMiLCJzb3VyY2VSb290Ijoic3JjIiwic291cmNlc0NvbnRlbnQiOlsiLyogQ29weXJpZ2h0IChjKSAyMDEwLCBTYWdlIFNvZnR3YXJlLCBJbmMuIEFsbCByaWdodHMgcmVzZXJ2ZWQuXHJcbiAqXHJcbiAqIExpY2Vuc2VkIHVuZGVyIHRoZSBBcGFjaGUgTGljZW5zZSwgVmVyc2lvbiAyLjAgKHRoZSBcIkxpY2Vuc2VcIik7XHJcbiAqIHlvdSBtYXkgbm90IHVzZSB0aGlzIGZpbGUgZXhjZXB0IGluIGNvbXBsaWFuY2Ugd2l0aCB0aGUgTGljZW5zZS5cclxuICogWW91IG1heSBvYnRhaW4gYSBjb3B5IG9mIHRoZSBMaWNlbnNlIGF0XHJcbiAqXHJcbiAqICAgICBodHRwOi8vd3d3LmFwYWNoZS5vcmcvbGljZW5zZXMvTElDRU5TRS0yLjBcclxuICpcclxuICogVW5sZXNzIHJlcXVpcmVkIGJ5IGFwcGxpY2FibGUgbGF3IG9yIGFncmVlZCB0byBpbiB3cml0aW5nLCBzb2Z0d2FyZVxyXG4gKiBkaXN0cmlidXRlZCB1bmRlciB0aGUgTGljZW5zZSBpcyBkaXN0cmlidXRlZCBvbiBhbiBcIkFTIElTXCIgQkFTSVMsXHJcbiAqIFdJVEhPVVQgV0FSUkFOVElFUyBPUiBDT05ESVRJT05TIE9GIEFOWSBLSU5ELCBlaXRoZXIgZXhwcmVzcyBvciBpbXBsaWVkLlxyXG4gKiBTZWUgdGhlIExpY2Vuc2UgZm9yIHRoZSBzcGVjaWZpYyBsYW5ndWFnZSBnb3Zlcm5pbmcgcGVybWlzc2lvbnMgYW5kXHJcbiAqIGxpbWl0YXRpb25zIHVuZGVyIHRoZSBMaWNlbnNlLlxyXG4gKi9cclxuaW1wb3J0IGFycmF5IGZyb20gJ2Rvam8vX2Jhc2UvYXJyYXknO1xyXG5pbXBvcnQgY29ubmVjdCBmcm9tICdkb2pvL19iYXNlL2Nvbm5lY3QnO1xyXG5pbXBvcnQgZGVjbGFyZSBmcm9tICdkb2pvL19iYXNlL2RlY2xhcmUnO1xyXG5pbXBvcnQgbGFuZyBmcm9tICdkb2pvL19iYXNlL2xhbmcnO1xyXG5pbXBvcnQgQ29uZmlndXJlUXVpY2tBY3Rpb25zIGZyb20gJy4vVmlld3MvQ29uZmlndXJlUXVpY2tBY3Rpb25zJztcclxuaW1wb3J0ICcuL0FwcGxpY2F0aW9uJztcclxuaW1wb3J0ICcuL0N1bHR1cmVJbmZvJztcclxuaW1wb3J0ICcuL01vZGVscy9SZWNlbnRseVZpZXdlZC9PZmZsaW5lJztcclxuaW1wb3J0ICcuL01vZGVscy9CcmllZmNhc2UvT2ZmbGluZSc7XHJcblxyXG4vKipcclxuICogQGNsYXNzIGFyZ29zLkFwcGxpY2F0aW9uTW9kdWxlXHJcbiAqIEFwcGxpY2F0aW9uTW9kdWxlIGlzIGludGVuZGVkIHRvIGJlIGV4dGVuZGVkIGluIHRoZSByZXN1bHRpbmcgYXBwbGljYXRpb24gc28gdGhhdCBpdFxyXG4gKiByZWZlcmVuY2VzIGFsbCB0aGUgdmlld3MsIHRvb2xiYXJzIGFuZCBjdXN0b21pemF0aW9ucyBhbmQgcmVnaXN0ZXJzIHRoZW0gdG8gQXBwLlxyXG4gKlxyXG4gKiBZb3UgbWF5IHRoaW5rIG9mIEFwcGxpY2F0aW9uTW9kdWxlIGFzIFwibG9hZGVyXCIgb3IgaW5pdGlhbGl6ZXIuXHJcbiAqIEBhbHRlcm5hdGVDbGFzc05hbWUgQXBwbGljYXRpb25Nb2R1bGVcclxuICogQHJlcXVpcmVzIGFyZ29zLkFwcGxpY2F0aW9uXHJcbiAqL1xyXG5jb25zdCBfX2NsYXNzID0gZGVjbGFyZSgnYXJnb3MuQXBwbGljYXRpb25Nb2R1bGUnLCBudWxsLCB7XHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtBcnJheX1cclxuICAgKiBBcnJheSBvZiBkb2pvLmNvbm5lY3QgYm91bmQgdG8gQXBwbGljYXRpb25Nb2R1bGVcclxuICAgKi9cclxuICBfY29ubmVjdHM6IG51bGwsXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtBcnJheX1cclxuICAgKiBBcnJheSBvZiBkb2pvLnN1YnNjcmliZSBib3VuZCB0byBBcHBsaWNhdGlvbk1vZHVsZVxyXG4gICAqL1xyXG4gIF9zdWJzY3JpYmVzOiBudWxsLFxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7T2JqZWN0fVxyXG4gICAqIFRoZSB7QGxpbmsgQXBwIEFwcH0gaW5zdGFuY2UgZm9yIHRoZSBhcHBsaWNhdGlvblxyXG4gICAqL1xyXG4gIGFwcGxpY2F0aW9uOiBudWxsLFxyXG4gIC8qKlxyXG4gICAqIE1peGVzIGluIHRoZSBwYXNzZWQgb3B0aW9ucyBvYmplY3QgaW50byBpdHNlbGZcclxuICAgKiBAcGFyYW0ge09iamVjdH0gb3B0aW9ucyBQcm9wZXJ0aWVzIHRvIGJlIG1peGVkIGluXHJcbiAgICovXHJcbiAgY29uc3RydWN0b3I6IGZ1bmN0aW9uIGNvbnN0cnVjdG9yKG9wdGlvbnMpIHtcclxuICAgIHRoaXMuX2Nvbm5lY3RzID0gW107XHJcbiAgICB0aGlzLl9zdWJzY3JpYmVzID0gW107XHJcblxyXG4gICAgbGFuZy5taXhpbih0aGlzLCBvcHRpb25zKTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIERlc3Ryb3kgbG9vcHMgYW5kIGRpc2Nvbm5lY3RzIGFsbCBgX2Nvbm5lY3RgcyBhbmQgdW5zdWJzY3JpYmVzIGFsbCBgX3N1YnNjcmliZWBzLlxyXG4gICAqIEFsc28gY2FsbHMge0BsaW5rICN1bmluaXRpYWxpemUgdW5pbml0aWFsaXplfVxyXG4gICAqL1xyXG4gIGRlc3Ryb3k6IGZ1bmN0aW9uIGRlc3Ryb3koKSB7XHJcbiAgICBhcnJheS5mb3JFYWNoKHRoaXMuX2Nvbm5lY3RzLCAoaGFuZGxlKSA9PiB7XHJcbiAgICAgIGNvbm5lY3QuZGlzY29ubmVjdChoYW5kbGUpO1xyXG4gICAgfSk7XHJcblxyXG4gICAgYXJyYXkuZm9yRWFjaCh0aGlzLl9zdWJzY3JpYmVzLCAoaGFuZGxlKSA9PiB7XHJcbiAgICAgIGNvbm5lY3QudW5zdWJzY3JpYmUoaGFuZGxlKTtcclxuICAgIH0pO1xyXG5cclxuICAgIHRoaXMudW5pbml0aWFsaXplKCk7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBQZXJmb3JtcyBhbnkgYWRkaXRpb25hbCBkZXN0cnVjdGlvbiByZXF1aXJlbWVudHNcclxuICAgKi9cclxuICB1bmluaXRpYWxpemU6IGZ1bmN0aW9uIHVuaW5pdGlhbGl6ZSgpIHt9LFxyXG4gIC8qKlxyXG4gICAqIFNhdmVzIHRoZSBwYXNzZWQgYXBwbGljYXRpb24gaW5zdGFuY2UgYW5kIGNhbGxzOlxyXG4gICAqXHJcbiAgICogMS4ge0BsaW5rICNsb2FkQ3VzdG9taXphdGlvbnMgbG9hZEN1c3RvbWl6YXRpb25zfVxyXG4gICAqIDEuIHtAbGluayAjbG9hZFRvb2xiYXJzIGxvYWRUb29sYmFyc31cclxuICAgKiAxLiB7QGxpbmsgI2xvYWRWaWV3cyBsb2FkVmlld3N9XHJcbiAgICpcclxuICAgKiBAcGFyYW0ge09iamVjdH0gYXBwbGljYXRpb25cclxuICAgKi9cclxuICBpbml0OiBmdW5jdGlvbiBpbml0KGFwcGxpY2F0aW9uKSB7XHJcbiAgICB0aGlzLmFwcGxpY2F0aW9uID0gYXBwbGljYXRpb247XHJcblxyXG4gICAgdGhpcy5sb2FkQXBwU3RhdGVQcm9taXNlcygpO1xyXG4gICAgdGhpcy5sb2FkQ3VzdG9taXphdGlvbnMoKTtcclxuICAgIHRoaXMubG9hZFRvb2xiYXJzKCk7XHJcbiAgICB0aGlzLmxvYWRWaWV3cygpO1xyXG4gIH0sXHJcblxyXG4gIC8qKlxyXG4gICAqIGluaXREeW5hbWljIGlzIGludm9rZWQgYWZ0ZXIgYXBwU3RhdGVQcm9taXNlcyBydW4uXHJcbiAgICovXHJcbiAgaW5pdER5bmFtaWM6IGZ1bmN0aW9uIGluaXREeW5hbWljKCkge1xyXG4gICAgdGhpcy5sb2FkQ3VzdG9taXphdGlvbnNEeW5hbWljKCk7XHJcbiAgICB0aGlzLmxvYWRUb29sYmFyc0R5bmFtaWMoKTtcclxuICAgIHRoaXMubG9hZFZpZXdzRHluYW1pYygpO1xyXG4gIH0sXHJcblxyXG4gIC8qKlxyXG4gICAqIEBkZXByZWNhdGVkIC0gdHlwbywgdXNlIGxvYWRBcHBTdGF0ZVByb21pc2VzIGluc3RlYWQuXHJcbiAgICovXHJcbiAgbG9hZEFwcFN0YXRQcm9taXNlczogZnVuY3Rpb24gbG9hZEFwcFN0YXRQcm9taXNlcygpIHtcclxuICAgIHRoaXMubG9hZEFwcFN0YXRlUHJvbWlzZXMoKTtcclxuICB9LFxyXG5cclxuICAvKipcclxuICAgKiBAdGVtcGxhdGVcclxuICAgKiBUaGlzIGZ1bmN0aW9uIHNob3VsZCBiZSBvdmVycmlkZW4gaW4gdGhlIGFwcCBhbmQgYmUgdXNlZCB0byByZWdpc3RlciBhbGwgYXBwIHN0YXRlIHByb21pc2VzLlxyXG4gICAqL1xyXG4gIGxvYWRBcHBTdGF0ZVByb21pc2VzOiBmdW5jdGlvbiBsb2FkQXBwU3RhdGVQcm9taXNlcygpIHt9LFxyXG5cclxuICBzdGF0aWNzOiB7XHJcbiAgICBfY3VzdG9taXphdGlvbnNMb2FkZWQ6IGZhbHNlLFxyXG4gICAgX3ZpZXdzTG9hZGVkOiBmYWxzZSxcclxuICAgIF90b29sYmFyc0xvYWRlZDogZmFsc2UsXHJcbiAgfSxcclxuXHJcbiAgLyoqXHJcbiAgICogQHRlbXBsYXRlXHJcbiAgICogVGhpcyBmdW5jdGlvbiBzaG91bGQgYmUgb3ZlcnJpZGVuIGluIHRoZSBhcHAgYW5kIGJlIHVzZWQgdG8gcmVnaXN0ZXIgYWxsIGN1c3RvbWl6YXRpb25zLlxyXG4gICAqL1xyXG4gIGxvYWRDdXN0b21pemF0aW9uczogZnVuY3Rpb24gbG9hZEN1c3RvbWl6YXRpb25zKCkge1xyXG4gICAgaWYgKHRoaXMuc3RhdGljcy5fY3VzdG9taXphdGlvbnNMb2FkZWQpIHtcclxuICAgICAgY29uc29sZS53YXJuKCdNdWx0aXBsZSBjYWxscyB0byBsb2FkQ3VzdG9taXphdGlvbnMgZGV0ZWN0ZWQuIEVuc3VyZSB5b3VyIGN1c3RvbWl6YXRpb24gaXMgbm90IGNhbGxpbmcgdGhpcy5pbmhlcml0ZWQgZnJvbSBsb2FkQ3VzdG9taXphdGlvbnMgaW4gdGhlIEFwcGxpY2F0aW9uTW9kdWxlLicpOyAvLyBlc2xpbnQtZGlzYWJsZS1saW5lXHJcbiAgICAgIHJldHVybjtcclxuICAgIH1cclxuXHJcbiAgICAvLyBMb2FkIGJhc2UgY3VzdG9taXphdGlvbnNcclxuXHJcbiAgICB0aGlzLnN0YXRpY3MuX2N1c3RvbWl6YXRpb25zTG9hZGVkID0gdHJ1ZTtcclxuICB9LFxyXG5cclxuICAvKipcclxuICAgKiBsb2FkQ3VzdG9taXphdGlvbnNEeW5hbWljIGlzIGludm9rZWQgYWZ0ZXIgYXBwU3RhdGVQcm9taXNlcyBydW4uXHJcbiAgICovXHJcbiAgbG9hZEN1c3RvbWl6YXRpb25zRHluYW1pYzogZnVuY3Rpb24gbG9hZEN1c3RvbWl6YXRpb25zRHluYW1pYygpIHtcclxuICB9LFxyXG5cclxuICAvKipcclxuICAgKiBsb2FkVG9vbGJhcnNEeW5hbWljIGlzIGludm9rZWQgYWZ0ZXIgYXBwU3RhdGVQcm9taXNlcyBydW4uXHJcbiAgICovXHJcbiAgbG9hZFRvb2xiYXJzRHluYW1pYzogZnVuY3Rpb24gbG9hZFRvb2xiYXJzRHluYW1pYygpIHtcclxuICB9LFxyXG5cclxuICAvKipcclxuICAgKiBsb2FkVmlld3NEeW5hbWljIGlzIGludm9rZWQgYWZ0ZXIgYXBwU3RhdGVQcm9taXNlcyBydW4uXHJcbiAgICovXHJcbiAgbG9hZFZpZXdzRHluYW1pYzogZnVuY3Rpb24gbG9hZFZpZXdzRHluYW1pYygpIHtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIEB0ZW1wbGF0ZVxyXG4gICAqIFRoaXMgZnVuY3Rpb24gc2hvdWxkIGJlIG92ZXJyaWRlbiBpbiB0aGUgYXBwIGFuZCBiZSB1c2VkIHRvIHJlZ2lzdGVyIGFsbCB2aWV3cy5cclxuICAgKi9cclxuICBsb2FkVmlld3M6IGZ1bmN0aW9uIGxvYWRWaWV3cygpIHtcclxuICAgIGlmICh0aGlzLnN0YXRpY3MuX3ZpZXdzTG9hZGVkKSB7XHJcbiAgICAgIGNvbnNvbGUud2FybignTXVsdGlwbGUgY2FsbHMgdG8gbG9hZFZpZXdzIGRldGVjdGVkLiBFbnN1cmUgeW91ciBjdXN0b21pemF0aW9uIGlzIG5vdCBjYWxsaW5nIHRoaXMuaW5oZXJpdGVkIGZyb20gbG9hZFZpZXdzIGluIHRoZSBBcHBsaWNhdGlvbk1vZHVsZS4nKTsgLy8gZXNsaW50LWRpc2FibGUtbGluZVxyXG4gICAgICByZXR1cm47XHJcbiAgICB9XHJcblxyXG4gICAgLy8gTG9hZCBiYXNlIHZpZXdzXHJcbiAgICB0aGlzLnJlZ2lzdGVyVmlldyhuZXcgQ29uZmlndXJlUXVpY2tBY3Rpb25zKCkpO1xyXG5cclxuICAgIHRoaXMuc3RhdGljcy5fdmlld3NMb2FkZWQgPSB0cnVlO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogQHRlbXBsYXRlXHJcbiAgICogVGhpcyBmdW5jdGlvbiBzaG91bGQgYmUgb3ZlcnJpZGVuIGluIHRoZSBhcHAgYW5kIGJlIHVzZWQgdG8gcmVnaXN0ZXIgYWxsIHRvb2xiYXJzLlxyXG4gICAqL1xyXG4gIGxvYWRUb29sYmFyczogZnVuY3Rpb24gbG9hZFRvb2xiYXJzKCkge1xyXG4gICAgaWYgKHRoaXMuc3RhdGljcy5fdG9vbGJhcnNMb2FkZWQpIHtcclxuICAgICAgY29uc29sZS53YXJuKCdNdWx0aXBsZSBjYWxscyB0byBsb2FkVG9vbGJhcnMgZGV0ZWN0ZWQuIEVuc3VyZSB5b3VyIGN1c3RvbWl6YXRpb24gaXMgbm90IGNhbGxpbmcgdGhpcy5pbmhlcml0ZWQgZnJvbSBsb2FkVG9vbGJhcnMgaW4gdGhlIEFwcGxpY2F0aW9uTW9kdWxlLicpOyAvLyBlc2xpbnQtZGlzYWJsZS1saW5lXHJcbiAgICAgIHJldHVybjtcclxuICAgIH1cclxuXHJcbiAgICAvLyBMb2FkIGJhc2UgdG9vbGJhcnNcclxuXHJcbiAgICB0aGlzLnN0YXRpY3MuX3Rvb2xiYXJzTG9hZGVkID0gdHJ1ZTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIFBhc3NlcyB0aGUgdmlldyBpbnN0YW5jZSB0byB7QGxpbmsgQXBwI3JlZ2lzdGVyVmlldyBBcHAucmVnaXN0ZXJWaWV3fS5cclxuICAgKiBAcGFyYW0ge09iamVjdH0gdmlldyBWaWV3IGluc3RhbmNlIHRvIHJlZ2lzdGVyXHJcbiAgICogQHBhcmFtIHtET01Ob2RlfSBkb21Ob2RlIE9wdGlvbmFsLiBET00gbm9kZSB0byBwbGFjZSB0aGUgdmlldyBpbi5cclxuICAgKi9cclxuICByZWdpc3RlclZpZXc6IGZ1bmN0aW9uIHJlZ2lzdGVyVmlldyh2aWV3LCBkb21Ob2RlKSB7XHJcbiAgICBpZiAodGhpcy5hcHBsaWNhdGlvbikge1xyXG4gICAgICB0aGlzLmFwcGxpY2F0aW9uLnJlZ2lzdGVyVmlldyh2aWV3LCBkb21Ob2RlKTtcclxuICAgIH1cclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIFBhc3NlcyB0aGUgdG9vbGJhciBpbnN0YW5jZSB0byB7QGxpbmsgQXBwI3JlZ2lzdGVyVG9vbGJhciBBcHAucmVnaXN0ZXJUb29sYmFyfS5cclxuICAgKiBAcGFyYW0ge1N0cmluZ30gbmFtZSBVbmlxdWUgbmFtZSBvZiB0aGUgdG9vbGJhciB0byByZWdpc3Rlci5cclxuICAgKiBAcGFyYW0ge09iamVjdH0gdG9vbGJhciBUb29sYmFyIGluc3RhbmNlIHRvIHJlZ2lzdGVyLlxyXG4gICAqIEBwYXJhbSB7RE9NTm9kZX0gZG9tTm9kZSBPcHRpb25hbC4gRE9NIG5vZGUgdG8gcGxhY2UgdGhlIHZpZXcgaW4uXHJcbiAgICovXHJcbiAgcmVnaXN0ZXJUb29sYmFyOiBmdW5jdGlvbiByZWdpc3RlclRvb2xiYXIobmFtZSwgdG9vbGJhciwgZG9tTm9kZSkge1xyXG4gICAgaWYgKHRoaXMuYXBwbGljYXRpb24pIHtcclxuICAgICAgdGhpcy5hcHBsaWNhdGlvbi5yZWdpc3RlclRvb2xiYXIobmFtZSwgdG9vbGJhciwgZG9tTm9kZSk7XHJcbiAgICB9XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBQYXNzZXMgdGhlIGN1c3RvbWl6YXRpb24gaW5zdGFuY2UgdG8ge0BsaW5rIEFwcCNyZWdpc3RlckN1c3RvbWl6YXRpb24gQXBwLnJlZ2lzdGVyQ3VzdG9taXphdGlvbn0uXHJcbiAgICogQHBhcmFtIHtTdHJpbmd9IHNldCBUaGUgY3VzdG9taXphdGlvbiBzZXQgbmFtZSwgb3IgdHlwZS4gRXhhbXBsZXM6IGBsaXN0YCwgYGRldGFpbC90b29sc2AsIGBsaXN0L2hhc2hUYWdRdWVyaWVzYFxyXG4gICAqIEBwYXJhbSB7U3RyaW5nfSBpZCBUaGUgVmlldyBpZCB0aGUgY3VzdG9taXphdGlvbiB3aWxsIGJlIGFwcGxpZWQgdG9cclxuICAgKiBAcGFyYW0ge09iamVjdH0gc3BlYyBUaGUgY3VzdG9taXphdGlvbiBvYmplY3QgY29udGFpbmluZyBhdCBsZWFzdCBgYXRgIGFuZCBgdHlwZWAuXHJcbiAgICovXHJcbiAgcmVnaXN0ZXJDdXN0b21pemF0aW9uOiBmdW5jdGlvbiByZWdpc3RlckN1c3RvbWl6YXRpb24oc2V0LCBpZCwgc3BlYykge1xyXG4gICAgaWYgKHRoaXMuYXBwbGljYXRpb24pIHtcclxuICAgICAgdGhpcy5hcHBsaWNhdGlvbi5yZWdpc3RlckN1c3RvbWl6YXRpb24oc2V0LCBpZCwgc3BlYyk7XHJcbiAgICB9XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBSZWdpc3RlcnMgYSBwcm9taXNlIHRoYXQgd2lsbCByZXNvbHZlIHdoZW4gaW5pdEFwcFN0YXRlIGlzIGludm9rZWQuXHJcbiAgICogQHBhcmFtIHtQcm9taXNlfEZ1bmN0aW9ufSBwcm9taXNlIEEgcHJvbWlzZSBvciBhIGZ1bmN0aW9uIHRoYXQgcmV0dXJucyBhIHByb21pc2VcclxuICAgKi9cclxuICByZWdpc3RlckFwcFN0YXRlUHJvbWlzZTogZnVuY3Rpb24gcmVnaXN0ZXJBcHBTdGF0ZVByb21pc2UocHJvbWlzZSkge1xyXG4gICAgaWYgKHRoaXMuYXBwbGljYXRpb24pIHtcclxuICAgICAgdGhpcy5hcHBsaWNhdGlvbi5yZWdpc3RlckFwcFN0YXRlUHJvbWlzZShwcm9taXNlKTtcclxuICAgIH1cclxuICB9LFxyXG59KTtcclxuXHJcbmxhbmcuc2V0T2JqZWN0KCdTYWdlLlBsYXRmb3JtLk1vYmlsZS5BcHBsaWNhdGlvbk1vZHVsZScsIF9fY2xhc3MpO1xyXG5leHBvcnQgZGVmYXVsdCBfX2NsYXNzO1xyXG4iXX0=
+</pre>
+</body>
+</html>

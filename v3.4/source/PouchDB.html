@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">define('argos/Store/PouchDB', ['exports', 'module', 'dojo/_base/declare', 'dojo/_base/lang', 'dojo/_base/Deferred', 'dojo/store/util/QueryResults'], function (exports, module, _dojo_baseDeclare, _dojo_baseLang, _dojo_baseDeferred, _dojoStoreUtilQueryResults) {
+  function _interopRequireDefault(obj) { return obj &amp;&amp; obj.__esModule ? obj : { 'default': obj }; }
+
+  var _declare = _interopRequireDefault(_dojo_baseDeclare);
+
+  var _lang = _interopRequireDefault(_dojo_baseLang);
+
+  var _Deferred = _interopRequireDefault(_dojo_baseDeferred);
+
+  var _QueryResults = _interopRequireDefault(_dojoStoreUtilQueryResults);
+
+<span id='argos-Store-PouchDB'>  /**
+</span>   * @class argos.Store.PouchDB
+   *
+   * @requires argos.Convert
+   * @requires argos.Utility
+   */
+  module.exports = (0, _declare['default'])('argos.Store.PouchDB', null, {
+
+    // interface properties
+<span id='argos-Store-PouchDB-property-idProperty'>    /**
+</span>     * @property {String} idProperty Name of the property to use as the identifier
+     */
+    idProperty: '_id',
+
+<span id='argos-Store-PouchDB-property-data'>    /**
+</span>     * @property {Array} data Array of objects. If the store has a collection of cached objects,
+     * it can make this available in this property.
+     */
+    data: null,
+
+<span id='argos-Store-PouchDB-property-databaseName'>    /**
+</span>     * @property {String} databaseName Name of the local PouchDB database
+     */
+    databaseName: 'argos',
+
+    // Additional properties for metadata fetching
+    revisionProperty: '_rev',
+
+    // Private
+    _db: null,
+
+<span id='argos-Store-PouchDB-method-constructor'>    /**
+</span>     * @constructor
+     */
+    constructor: function constructor(props) {
+      _lang['default'].mixin(this, props);
+      this._db = new PouchDB(this.databaseName);
+      this.data = [];
+    },
+    get: function get(id, options) {
+      var deferred = new _Deferred['default']();
+      this._db.get(id, options || {}, function pouchGetSuccess(err, doc) {
+        if (!err) {
+          deferred.resolve(doc);
+        } else {
+          deferred.reject(err);
+        }
+      });
+
+      return deferred.promise;
+    },
+<span id='argos-Store-PouchDB-method-query'>    /**
+</span>     * Queries the store for objects. This does not alter the store, but returns a
+     * set of data from the store.
+     *
+     * @param {String|Object|Function} query The query to use for retrieving objects from the store.
+     *   A map function by itself (no reduce).
+     *   A full CouchDB-style map/reduce object: {map : ..., reduce: ...}.
+     *   The name of a view in an existing design document (e.g. 'myview' or 'mydesigndoc/myview').
+     * @param {Object} queryOptions
+     * @returns {dojo.store.api.Store.QueryResults}
+     *
+     */
+    query: function query(q) {
+      var queryOptions = arguments.length &lt;= 1 || arguments[1] === undefined ? {} : arguments[1];
+
+      var deferred = new _Deferred['default']();
+      deferred.total = -1;
+
+      // The dojo store interface says query should accept start, count, and sort properties on the queryOptions object
+      // We want to allow queryOptions to include PouchDB options, ensure they don't trample each other (PouchDB wins).
+      if (queryOptions.start &amp;&amp; !queryOptions.skip) {
+        queryOptions.skip = queryOptions.start;
+      }
+
+      if (queryOptions.count &amp;&amp; !queryOptions.limit) {
+        queryOptions.limit = queryOptions.count;
+      }
+
+      // Query is sorted by key on CouchDB, queryOptions.descending can be set to true.
+      // There is no queryOptions.sort array like a dojo store would expect.
+
+      this._db.query(q, queryOptions, function pouchDBQuerySuccess(err, response) {
+        if (!err) {
+          deferred.total = response.total_rows;
+          deferred.resolve(response.rows);
+        } else {
+          deferred.reject(err);
+        }
+      });
+
+      return (0, _QueryResults['default'])(deferred.promise); // eslint-disable-line
+    },
+<span id='argos-Store-PouchDB-method-put'>    /**
+</span>     * Stores an object.
+     * @param {Object} object The object to store.
+     * @param {Object} putOptions Additional directives for storing objects.
+     * @param {String|Number} putOptions.id
+     * @param {String|Object} putOptions.entity
+     * @param {String} putOptions.version
+     * @param {Boolean} putOptions.overwrite
+     * @returns {String|Number}
+     */
+    put: function put(object, putOptions) {
+      var deferred = new _Deferred['default']();
+      function callback(err, response) {
+        if (err) {
+          deferred.reject(err);
+        } else {
+          deferred.resolve(response);
+        }
+      }
+
+      if (putOptions &amp;&amp; putOptions.overwrite) {
+        this._db.put(object, putOptions.id || this.getIdentity(object), callback);
+      } else {
+        this._db.post(object, callback);
+      }
+
+      return deferred.promise;
+    },
+<span id='argos-Store-PouchDB-method-add'>    /**
+</span>     * Creates an object, throws an error if the object already exists.
+     * @param {Object} object The object to store
+     * @param {Object} addOptions Additional directives for creating objects
+     * @param {Boolean} addOptions.overwrite
+     */
+    add: function add(object) {
+      var addOptions = arguments.length &lt;= 1 || arguments[1] === undefined ? {} : arguments[1];
+
+      addOptions.overwrite = false;
+      return this.put(object, addOptions);
+    },
+<span id='argos-Store-PouchDB-method-remove'>    /**
+</span>     * Removes the document given the id
+     * @param id
+     * @returns {window.Promise}
+     */
+    remove: function remove(id) {
+      return this._db.get(id).then((function pouchDBRemoveSuccess(doc) {
+        return this._db.remove(doc);
+      }).bind(this));
+    },
+<span id='argos-Store-PouchDB-method-getIdentity'>    /**
+</span>     * Returns an object's identity using this.idProperty
+     * @param {Object} object The object to get the identity from
+     * @param {String} string The optional identity property
+     * @returns {String|Number}
+     */
+    getIdentity: function getIdentity(object, idProperty) {
+      if (idProperty) {
+        return _lang['default'].getObject(idProperty, false, object);
+      }
+      return _lang['default'].getObject(this.idProperty, false, object);
+    },
+    queryEngine: function queryEngine() /*query, options*/{},
+<span id='argos-Store-PouchDB-method-transaction'>    /**
+</span>     * Not implemented in this store.
+     */
+    transaction: function transaction() {},
+<span id='argos-Store-PouchDB-method-getChildren'>    /**
+</span>     * Not implemented in this store.
+     */
+    getChildren: function getChildren() {},
+<span id='argos-Store-PouchDB-method-getMetadata'>    /**
+</span>     * Returns any metadata about the object. This may include attribution,
+     * cache directives, history, or version information.
+     *
+     * @param {Object} object The object to return metadata for.
+     * @return {Object} Object containing the metadata.
+     * @return {String|Number} return.id
+     */
+    getMetadata: function getMetadata(object) {
+      if (object) {
+        return {
+          id: this.getIdentity(object),
+          revision: this.getRevision(object)
+        };
+      }
+
+      return null;
+    },
+<span id='argos-Store-PouchDB-method-getRevision'>    /**
+</span>     * Returns an object's revision using this.revisionProperty
+     * @param {Object} object The object to get the revision from
+     * @returns {String}
+     */
+    getRevision: function getRevision(object) {
+      return _lang['default'].getObject(this.revisionProperty, false, object);
+    }
+  });
+});
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInNyYy9TdG9yZS9Qb3VjaERCLmpzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiI7Ozs7Ozs7Ozs7Ozs7Ozs7O21CQVdlLHlCQUFRLHFCQUFxQixFQUFFLElBQUksRUFBRTs7Ozs7O0FBTWxELGNBQVUsRUFBRSxLQUFLOzs7Ozs7QUFNakIsUUFBSSxFQUFFLElBQUk7Ozs7O0FBS1YsZ0JBQVksRUFBRSxPQUFPOzs7QUFHckIsb0JBQWdCLEVBQUUsTUFBTTs7O0FBR3hCLE9BQUcsRUFBRSxJQUFJOzs7OztBQUtULGVBQVcsRUFBRSxTQUFTLFdBQVcsQ0FBQyxLQUFLLEVBQUU7QUFDdkMsdUJBQUssS0FBSyxDQUFDLElBQUksRUFBRSxLQUFLLENBQUMsQ0FBQztBQUN4QixVQUFJLENBQUMsR0FBRyxHQUFHLElBQUksT0FBTyxDQUFDLElBQUksQ0FBQyxZQUFZLENBQUMsQ0FBQztBQUMxQyxVQUFJLENBQUMsSUFBSSxHQUFHLEVBQUUsQ0FBQztLQUNoQjtBQUNELE9BQUcsRUFBRSxTQUFTLEdBQUcsQ0FBQyxFQUFFLEVBQUUsT0FBTyxFQUFFO0FBQzdCLFVBQU0sUUFBUSxHQUFHLDBCQUFjLENBQUM7QUFDaEMsVUFBSSxDQUFDLEdBQUcsQ0FBQyxHQUFHLENBQUMsRUFBRSxFQUFFLE9BQU8sSUFBSSxFQUFFLEVBQUUsU0FBUyxlQUFlLENBQUMsR0FBRyxFQUFFLEdBQUcsRUFBRTtBQUNqRSxZQUFJLENBQUMsR0FBRyxFQUFFO0FBQ1Isa0JBQVEsQ0FBQyxPQUFPLENBQUMsR0FBRyxDQUFDLENBQUM7U0FDdkIsTUFBTTtBQUNMLGtCQUFRLENBQUMsTUFBTSxDQUFDLEdBQUcsQ0FBQyxDQUFDO1NBQ3RCO09BQ0YsQ0FBQyxDQUFDOztBQUVILGFBQU8sUUFBUSxDQUFDLE9BQU8sQ0FBQztLQUN6Qjs7Ozs7Ozs7Ozs7OztBQWFELFNBQUssRUFBRSxTQUFTLEtBQUssQ0FBQyxDQUFDLEVBQXFCO1VBQW5CLFlBQVkseURBQUcsRUFBRTs7QUFDeEMsVUFBTSxRQUFRLEdB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LFNBQVMsV0FBVyxxQkFBcUIsRUFBRTs7OztBQUl4RCxlQUFXLEVBQUUsU0FBUyxXQUFXLEdBQUcsRUFBRTs7OztBQUl0QyxlQUFXLEVBQUUsU0FBUyxXQUFXLEdBQUcsRUFBRTs7Ozs7Ozs7O0FBU3RDLGVBQVcsRUFBRSxTQUFTLFdBQVcsQ0FBQyxNQUFNLEVBQUU7QUFDeEMsVUFBSSxNQUFNLEVBQUU7QUFDVixlQUFPO0FBQ0wsWUFBRSxFQUFFLElBQUksQ0FBQyxXQUFXLENBQUMsTUFBTSxDQUFDO0FBQzVCLGtCQUFRLEVBQUUsSUFBSSxDQUFDLFdBQVcsQ0FBQyxNQUFNLENBQUM7U0FDbkMsQ0FBQztPQUNIOztBQUVELGFBQU8sSUFBSSxDQUFDO0tBQ2I7Ozs7OztBQU1ELGVBQVcsRUFBRSxTQUFTLFdBQVcsQ0FBQyxNQUFNLEVBQUU7QUFDeEMsYUFBTyxpQkFBSyxTQUFTLENBQUMsSUFBSSxDQUFDLGdCQUFnQixFQUFFLEtBQUssRUFBRSxNQUFNLENBQUMsQ0FBQztLQUM3RDtHQUNGLENBQUMiLCJmaWxlIjoic3JjL1N0b3JlL1BvdWNoREIuanMiLCJzb3VyY2VSb290Ijoic3JjIiwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IGRlY2xhcmUgZnJvbSAnZG9qby9fYmFzZS9kZWNsYXJlJztcclxuaW1wb3J0IGxhbmcgZnJvbSAnZG9qby9fYmFzZS9sYW5nJztcclxuaW1wb3J0IERlZmVycmVkIGZyb20gJ2Rvam8vX2Jhc2UvRGVmZXJyZWQnO1xyXG5pbXBvcnQgUXVlcnlSZXN1bHRzIGZyb20gJ2Rvam8vc3RvcmUvdXRpbC9RdWVyeVJlc3VsdHMnO1xyXG5cclxuLyoqXHJcbiAqIEBjbGFzcyBhcmdvcy5TdG9yZS5Qb3VjaERCXHJcbiAqXHJcbiAqIEByZXF1aXJlcyBhcmdvcy5Db252ZXJ0XHJcbiAqIEByZXF1aXJlcyBhcmdvcy5VdGlsaXR5XHJcbiAqL1xyXG5leHBvcnQgZGVmYXVsdCBkZWNsYXJlKCdhcmdvcy5TdG9yZS5Qb3VjaERCJywgbnVsbCwge1xyXG5cclxuICAvLyBpbnRlcmZhY2UgcHJvcGVydGllc1xyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7U3RyaW5nfSBpZFByb3BlcnR5IE5hbWUgb2YgdGhlIHByb3BlcnR5IHRvIHVzZSBhcyB0aGUgaWRlbnRpZmllclxyXG4gICAqL1xyXG4gIGlkUHJvcGVydHk6ICdfaWQnLFxyXG5cclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge0FycmF5fSBkYXRhIEFycmF5IG9mIG9iamVjdHMuIElmIHRoZSBzdG9yZSBoYXMgYSBjb2xsZWN0aW9uIG9mIGNhY2hlZCBvYmplY3RzLFxyXG4gICAqIGl0IGNhbiBtYWtlIHRoaXMgYXZhaWxhYmxlIGluIHRoaXMgcHJvcGVydHkuXHJcbiAgICovXHJcbiAgZGF0YTogbnVsbCxcclxuXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtTdHJpbmd9IGRhdGFiYXNlTmFtZSBOYW1lIG9mIHRoZSBsb2NhbCBQb3VjaERCIGRhdGFiYXNlXHJcbiAgICovXHJcbiAgZGF0YWJhc2VOYW1lOiAnYXJnb3MnLFxyXG5cclxuICAvLyBBZGRpdGlvbmFsIHByb3BlcnRpZXMgZm9yIG1ldGFkYXRhIGZldGNoaW5nXHJcbiAgcmV2aXNpb25Qcm9wZXJ0eTogJ19yZXYnLFxyXG5cclxuICAvLyBQcml2YXRlXHJcbiAgX2RiOiBudWxsLFxyXG5cclxuICAvKipcclxuICAgKiBAY29uc3RydWN0b3JcclxuICAgKi9cclxuICBjb25zdHJ1Y3RvcjogZnVuY3Rpb24gY29uc3RydWN0b3IocHJvcHMpIHtcclxuICAgIGxhbmcubWl4aW4odGhpcywgcHJvcHMpO1xyXG4gICAgdGhpcy5fZGIgPSBuZXcgUG91Y2hEQih0aGlzLmRhdGFiYXNlTmFtZSk7XHJcbiAgICB0aGlzLmRhdGEgPSBbXTtcclxuICB9LFxyXG4gIGdldDogZnVuY3Rpb24gZ2V0KGlkLCBvcHRpb25zKSB7XHJcbiAgICBjb25zdCBkZWZlcnJlZCA9IG5ldyBEZWZlcnJlZCgpO1xyXG4gICAgdGhpcy5fZGIuZ2V0KGlkLCBvcHRpb25zIHx8IHt9LCBmdW5jdGlvbiBwb3VjaEdldFN1Y2Nlc3MoZXJyLCBkb2MpIHtcclxuICAgICAgaWYgKCFlcnIpIHtcclxuICAgICAgICBkZWZlcnJlZC5yZXNvbHZlKGRvYyk7XHJcbiAgICAgIH0gZWxzZSB7XHJcbiAgICAgICAgZGVmZXJyZWQucmVqZWN0KGVycik7XHJcbiAgICAgIH1cclxuICAgIH0pO1xyXG5cclxuICAgIHJldHVybiBkZWZlcnJlZC5wcm9taXNlO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogUXVlcmllcyB0aGUgc3RvcmUgZm9yIG9iamVjdHMuIFRoaXMgZG9lcyBub3QgYWx0ZXIgdGhlIHN0b3JlLCBidXQgcmV0dXJucyBhXHJcbiAgICogc2V0IG9mIGRhdGEgZnJvbSB0aGUgc3RvcmUuXHJcbiAgICpcclxuICAgKiBAcGFyYW0ge1N0cmluZ3xPYmplY3R8RnVuY3Rpb259IHF1ZXJ5IFRoZSBxdWVyeSB0byB1c2UgZm9yIHJldHJpZXZpbmcgb2JqZWN0cyBmcm9tIHRoZSBzdG9yZS5cclxuICAgKiAgIEEgbWFwIGZ1bmN0aW9uIGJ5IGl0c2VsZiAobm8gcmVkdWNlKS5cclxuICAgKiAgIEEgZnVsbCBDb3VjaERCLXN0eWxlIG1hcC9yZWR1Y2Ugb2JqZWN0OiB7bWFwIDogLi4uLCByZWR1Y2U6IC4uLn0uXHJcbiAgICogICBUaGUgbmFtZSBvZiBhIHZpZXcgaW4gYW4gZXhpc3RpbmcgZGVzaWduIGRvY3VtZW50IChlLmcuICdteXZpZXcnIG9yICdteWRlc2lnbmRvYy9teXZpZXcnKS5cclxuICAgKiBAcGFyYW0ge09iamVjdH0gcXVlcnlPcHRpb25zXHJcbiAgICogQHJldHVybnMge2Rvam8uc3RvcmUuYXBpLlN0b3JlLlF1ZXJ5UmVzdWx0c31cclxuICAgKlxyXG4gICAqL1xyXG4gIHF1ZXJ5OiBmdW5jdGlvbiBxdWVyeShxLCBxdWVyeU9wdGlvbnMgPSB7fSkge1xyXG4gICAgY29uc3QgZGVmZXJyZWQgPSBuZXcgRGVmZXJyZWQoKTtcclxuICAgIGRlZmVycmVkLnRvdGFsID0gLTE7XHJcblxyXG4gICAgLy8gVGhlIGRvam8gc3RvcmUgaW50ZXJmYWNlIHNheXMgcXVlcnkgc2hvdWxkIGFjY2VwdCBzdGFydCwgY291bnQsIGFuZCBzb3J0IHByb3BlcnRpZXMgb24gdGhlIHF1ZXJ5T3B0aW9ucyBvYmplY3RcclxuICAgIC8vIFdlIHdhbnQgdG8gYWxsb3cgcXVlcnlPcHRpb25zIHRvIGluY2x1ZGUgUG91Y2hEQiBvcHRpb25zLCBlbnN1cmUgdGhleSBkb24ndCB0cmFtcGxlIGVhY2ggb3RoZXIgKFBvdWNoREIgd2lucykuXHJcbiAgICBpZiAocXVlcnlPcHRpb25zLnN0YXJ0ICYmICFxdWVyeU9wdGlvbnMuc2tpcCkge1xyXG4gICAgICBxdWVyeU9wdGlvbnMuc2tpcCA9IHF1ZXJ5T3B0aW9ucy5zdGFydDtcclxuICAgIH1cclxuXHJcbiAgICBpZiAocXVlcnlPcHRpb25zLmNvdW50ICYmICFxdWVyeU9wdGlvbnMubGltaXQpIHtcclxuICAgICAgcXVlcnlPcHRpb25zLmxpbWl0ID0gcXVlcnlPcHRpb25zLmNvdW50O1xyXG4gICAgfVxyXG5cclxuICAgIC8vIFF1ZXJ5IGlzIHNvcnRlZCBieSBrZXkgb24gQ291Y2hEQiwgcXVlcnlPcHRpb25zLmRlc2NlbmRpbmcgY2FuIGJlIHNldCB0byB0cnVlLlxyXG4gICAgLy8gVGhlcmUgaXMgbm8gcXVlcnlPcHRpb25zLnNvcnQgYXJyYXkgbGlrZSBhIGRvam8gc3RvcmUgd291bGQgZXhwZWN0LlxyXG5cclxuICAgIHRoaXMuX2RiLnF1ZXJ5KHEsIHF1ZXJ5T3B0aW9ucywgZnVuY3Rpb24gcG91Y2hEQlF1ZXJ5U3VjY2VzcyhlcnIsIHJlc3BvbnNlKSB7XHJcbiAgICAgIGlmICghZXJyKSB7XHJcbiAgICAgICAgZGVmZXJyZWQudG90YWwgPSByZXNwb25zZS50b3RhbF9yb3dzO1xyXG4gICAgICAgIGRlZmVycmVkLnJlc29sdmUocmVzcG9uc2Uucm93cyk7XHJcbiAgICAgIH0gZWxzZSB7XHJcbiAgICAgICAgZGVmZXJyZWQucmVqZWN0KGVycik7XHJcbiAgICAgIH1cclxuICAgIH0pO1xyXG5cclxuICAgIHJldHVybiBRdWVyeVJlc3VsdHMoZGVmZXJyZWQucHJvbWlzZSk7Ly8gZXNsaW50LWRpc2FibGUtbGluZVxyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogU3RvcmVzIGFuIG9iamVjdC5cclxuICAgKiBAcGFyYW0ge09iamVjdH0gb2JqZWN0IFRoZSBvYmplY3QgdG8gc3RvcmUuXHJcbiAgICogQHBhcmFtIHtPYmplY3R9IHB1dE9wdGlvbnMgQWRkaXRpb25hbCBkaXJlY3RpdmVzIGZvciBzdG9yaW5nIG9iamVjdHMuXHJcbiAgICogQHBhcmFtIHtTdHJpbmd8TnVtYmVyfSBwdXRPcHRpb25zLmlkXHJcbiAgICogQHBhcmFtIHtTdHJpbmd8T2JqZWN0fSBwdXRPcHRpb25zLmVudGl0eVxyXG4gICAqIEBwYXJhbSB7U3RyaW5nfSBwdXRPcHRpb25zLnZlcnNpb25cclxuICAgKiBAcGFyYW0ge0Jvb2xlYW59IHB1dE9wdGlvbnMub3ZlcndyaXRlXHJcbiAgICogQHJldHVybnMge1N0cmluZ3xOdW1iZXJ9XHJcbiAgICovXHJcbiAgcHV0OiBmdW5jdGlvbiBwdXQob2JqZWN0LCBwdXRPcHRpb25zKSB7XHJcbiAgICBjb25zdCBkZWZlcnJlZCA9IG5ldyBEZWZlcnJlZCgpO1xyXG4gICAgZnVuY3Rpb24gY2FsbGJhY2soZXJyLCByZXNwb25zZSkge1xyXG4gICAgICBpZiAoZXJyKSB7XHJcbiAgICAgICAgZGVmZXJyZWQucmVqZWN0KGVycik7XHJcbiAgICAgIH0gZWxzZSB7XHJcbiAgICAgICAgZGVmZXJyZWQucmVzb2x2ZShyZXNwb25zZSk7XHJcbiAgICAgIH1cclxuICAgIH1cclxuXHJcbiAgICBpZiAocHV0T3B0aW9ucyAmJiBwdXRPcHRpb25zLm92ZXJ3cml0ZSkge1xyXG4gICAgICB0aGlzLl9kYi5wdXQob2JqZWN0LCBwdXRPcHRpb25zLmlkIHx8IHRoaXMuZ2V0SWRlbnRpdHkob2JqZWN0KSwgY2FsbGJhY2spO1xyXG4gICAgfSBlbHNlIHtcclxuICAgICAgdGhpcy5fZGIucG9zdChvYmplY3QsIGNhbGxiYWNrKTtcclxuICAgIH1cclxuXHJcbiAgICByZXR1cm4gZGVmZXJyZWQucHJvbWlzZTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIENyZWF0ZXMgYW4gb2JqZWN0LCB0aHJvd3MgYW4gZXJyb3IgaWYgdGhlIG9iamVjdCBhbHJlYWR5IGV4aXN0cy5cclxuICAgKiBAcGFyYW0ge09iamVjdH0gb2JqZWN0IFRoZSBvYmplY3QgdG8gc3RvcmVcclxuICAgKiBAcGFyYW0ge09iamVjdH0gYWRkT3B0aW9ucyBBZGRpdGlvbmFsIGRpcmVjdGl2ZXMgZm9yIGNyZWF0aW5nIG9iamVjdHNcclxuICAgKiBAcGFyYW0ge0Jvb2xlYW59IGFkZE9wdGlvbnMub3ZlcndyaXRlXHJcbiAgICovXHJcbiAgYWRkOiBmdW5jdGlvbiBhZGQob2JqZWN0LCBhZGRPcHRpb25zID0ge30pIHtcclxuICAgIGFkZE9wdGlvbnMub3ZlcndyaXRlID0gZmFsc2U7XHJcbiAgICByZXR1cm4gdGhpcy5wdXQob2JqZWN0LCBhZGRPcHRpb25zKTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIFJlbW92ZXMgdGhlIGRvY3VtZW50IGdpdmVuIHRoZSBpZFxyXG4gICAqIEBwYXJhbSBpZFxyXG4gICAqIEByZXR1cm5zIHt3aW5kb3cuUHJvbWlzZX1cclxuICAgKi9cclxuICByZW1vdmU6IGZ1bmN0aW9uIHJlbW92ZShpZCkge1xyXG4gICAgcmV0dXJuIHRoaXMuX2RiLmdldChpZCkudGhlbihmdW5jdGlvbiBwb3VjaERCUmVtb3ZlU3VjY2Vzcyhkb2MpIHtcclxuICAgICAgcmV0dXJuIHRoaXMuX2RiLnJlbW92ZShkb2MpO1xyXG4gICAgfS5iaW5kKHRoaXMpKTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIFJldHVybnMgYW4gb2JqZWN0J3MgaWRlbnRpdHkgdXNpbmcgdGhpcy5pZFByb3BlcnR5XHJcbiAgICogQHBhcmFtIHtPYmplY3R9IG9iamVjdCBUaGUgb2JqZWN0IHRvIGdldCB0aGUgaWRlbnRpdHkgZnJvbVxyXG4gICAqIEBwYXJhbSB7U3RyaW5nfSBzdHJpbmcgVGhlIG9wdGlvbmFsIGlkZW50aXR5IHByb3BlcnR5XHJcbiAgICogQHJldHVybnMge1N0cmluZ3xOdW1iZXJ9XHJcbiAgICovXHJcbiAgZ2V0SWRlbnRpdHk6IGZ1bmN0aW9uIGdldElkZW50aXR5KG9iamVjdCwgaWRQcm9wZXJ0eSkge1xyXG4gICAgaWYgKGlkUHJvcGVydHkpIHtcclxuICAgICAgcmV0dXJuIGxhbmcuZ2V0T2JqZWN0KGlkUHJvcGVydHksIGZhbHNlLCBvYmplY3QpO1xyXG4gICAgfVxyXG4gICAgcmV0dXJuIGxhbmcuZ2V0T2JqZWN0KHRoaXMuaWRQcm9wZXJ0eSwgZmFsc2UsIG9iamVjdCk7XHJcbiAgfSxcclxuICBxdWVyeUVuZ2luZTogZnVuY3Rpb24gcXVlcnlFbmdpbmUoLypxdWVyeSwgb3B0aW9ucyovKSB7fSxcclxuICAvKipcclxuICAgKiBOb3QgaW1wbGVtZW50ZWQgaW4gdGhpcyBzdG9yZS5cclxuICAgKi9cclxuICB0cmFuc2FjdGlvbjogZnVuY3Rpb24gdHJhbnNhY3Rpb24oKSB7fSxcclxuICAvKipcclxuICAgKiBOb3QgaW1wbGVtZW50ZWQgaW4gdGhpcyBzdG9yZS5cclxuICAgKi9cclxuICBnZXRDaGlsZHJlbjogZnVuY3Rpb24gZ2V0Q2hpbGRyZW4oKSB7fSxcclxuICAvKipcclxuICAgKiBSZXR1cm5zIGFueSBtZXRhZGF0YSBhYm91dCB0aGUgb2JqZWN0LiBUaGlzIG1heSBpbmNsdWRlIGF0dHJpYnV0aW9uLFxyXG4gICAqIGNhY2hlIGRpcmVjdGl2ZXMsIGhpc3RvcnksIG9yIHZlcnNpb24gaW5mb3JtYXRpb24uXHJcbiAgICpcclxuICAgKiBAcGFyYW0ge09iamVjdH0gb2JqZWN0IFRoZSBvYmplY3QgdG8gcmV0dXJuIG1ldGFkYXRhIGZvci5cclxuICAgKiBAcmV0dXJuIHtPYmplY3R9IE9iamVjdCBjb250YWluaW5nIHRoZSBtZXRhZGF0YS5cclxuICAgKiBAcmV0dXJuIHtTdHJpbmd8TnVtYmVyfSByZXR1cm4uaWRcclxuICAgKi9cclxuICBnZXRNZXRhZGF0YTogZnVuY3Rpb24gZ2V0TWV0YWRhdGEob2JqZWN0KSB7XHJcbiAgICBpZiAob2JqZWN0KSB7XHJcbiAgICAgIHJldHVybiB7XHJcbiAgICAgICAgaWQ6IHRoaXMuZ2V0SWRlbnRpdHkob2JqZWN0KSxcclxuICAgICAgICByZXZpc2lvbjogdGhpcy5nZXRSZXZpc2lvbihvYmplY3QpLFxyXG4gICAgICB9O1xyXG4gICAgfVxyXG5cclxuICAgIHJldHVybiBudWxsO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogUmV0dXJucyBhbiBvYmplY3QncyByZXZpc2lvbiB1c2luZyB0aGlzLnJldmlzaW9uUHJvcGVydHlcclxuICAgKiBAcGFyYW0ge09iamVjdH0gb2JqZWN0IFRoZSBvYmplY3QgdG8gZ2V0IHRoZSByZXZpc2lvbiBmcm9tXHJcbiAgICogQHJldHVybnMge1N0cmluZ31cclxuICAgKi9cclxuICBnZXRSZXZpc2lvbjogZnVuY3Rpb24gZ2V0UmV2aXNpb24ob2JqZWN0KSB7XHJcbiAgICByZXR1cm4gbGFuZy5nZXRPYmplY3QodGhpcy5yZXZpc2lvblByb3BlcnR5LCBmYWxzZSwgb2JqZWN0KTtcclxuICB9LFxyXG59KTtcclxuIl19
+</pre>
+</body>
+</html>

@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">define('argos/Fields/_Field', ['exports', 'module', 'dojo/_base/declare', 'dojo/_base/lang', 'dojo/string', 'dojo/dom-class', 'dijit/_Widget', '../_ActionMixin', '../_Templated'], function (exports, module, _dojo_baseDeclare, _dojo_baseLang, _dojoString, _dojoDomClass, _dijit_Widget, _ActionMixin2, _Templated2) {
+  function _interopRequireDefault(obj) { return obj &amp;&amp; obj.__esModule ? obj : { 'default': obj }; }
+
+  /* Copyright (c) 2010, Sage Software, Inc. All rights reserved.
+   *
+   * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   * you may not use this file except in compliance with the License.
+   * You may obtain a copy of the License at
+   *
+   *     http://www.apache.org/licenses/LICENSE-2.0
+   *
+   * Unless required by applicable law or agreed to in writing, software
+   * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   * See the License for the specific language governing permissions and
+   * limitations under the License.
+   */
+
+<span id='argos-Fields-_Field'>  /**
+</span>   * @class argos.Fields._Field
+   * Field is the base class for all field controls. It describes all the functions a field should support giving no implementation itself, merely a shell. The one function that `_Field` does provide that most fields leave untouched is `validate`.
+   *
+   * All fields are dijit Widgets meaning it goes through the same lifecycle and has all the Widget functionality.
+   *
+   * @alternateClassName _Field
+   * @mixins argos._ActionMixin
+   * @mixins argos._Templated
+   * @requires argos.FieldManager
+   */
+
+  var _declare = _interopRequireDefault(_dojo_baseDeclare);
+
+  var _lang = _interopRequireDefault(_dojo_baseLang);
+
+  var _string = _interopRequireDefault(_dojoString);
+
+  var _domClass = _interopRequireDefault(_dojoDomClass);
+
+  var _Widget2 = _interopRequireDefault(_dijit_Widget);
+
+  var _ActionMixin3 = _interopRequireDefault(_ActionMixin2);
+
+  var _Templated3 = _interopRequireDefault(_Templated2);
+
+  var __class = (0, _declare['default'])('argos.Fields._Field', [_Widget2['default'], _ActionMixin3['default'], _Templated3['default']], {
+<span id='argos-Fields-_Field-property-owner'>    /**
+</span>     * @property {View}
+     * View that controls the field.
+     */
+    owner: false,
+<span id='argos-Fields-_Field-property-applyTo'>    /**
+</span>     * @property {String}
+     * If defined it will use the applyTo string when getting and setting properties from
+     * the SData object instead of the `property` property.
+     */
+    applyTo: false,
+<span id='argos-Fields-_Field-property-alwaysUseValue'>    /**
+</span>     * @property {Boolean}
+     * Signifies that the field should always be included when the form calls {@link Edit#getValues getValues}.
+     */
+    alwaysUseValue: false,
+<span id='argos-Fields-_Field-property-disabled'>    /**
+</span>     * @property {Boolean}
+     * Indicates the disabled state
+     */
+    disabled: false,
+<span id='argos-Fields-_Field-property-hidden'>    /**
+</span>     * @property {Boolean}
+     * Indicates the visibility state
+     */
+    hidden: false,
+<span id='argos-Fields-_Field-property-default'>    /**
+</span>     * This applies a default value when inserting a new record, the default value
+     * is applied after the template entry but before the context and changes are applied.
+     *
+     * Note the word `default` must be in quotes as default is a reserved word in javascript.
+     */
+    'default': undefined,
+<span id='argos-Fields-_Field-property-name'>    /**
+</span>     * @property {String}
+     * The unique (within the current form) name of the field
+     */
+    name: null,
+<span id='argos-Fields-_Field-property-label'>    /**
+</span>     * @property {String}
+     * The text that will, by default, show to the left of a field.
+     */
+    label: null,
+<span id='argos-Fields-_Field-property-property'>    /**
+</span>     * @property {String}
+     * The SData property that the field will be bound to.
+     */
+    property: null,
+<span id='argos-Fields-_Field-property-type'>    /**
+</span>     * @property {String}
+     * The registered name of the field that gets mapped in {@link FieldManager FieldManager} when
+     * the field is constructed
+     */
+    type: null,
+
+<span id='argos-Fields-_Field-property-autoFocus'>    /**
+</span>     * @property {Boolean}
+     * Flag to indicate if this field should be focused when the form is shown.
+     */
+    autoFocus: false,
+
+    app: null,
+    reui: null,
+    highlightCls: 'field-highlight',
+
+<span id='argos-Fields-_Field-property-widgetTemplate'>    /**
+</span>     * @property {Simplate}
+     * Simplate used to define the fields HTML Markup
+     */
+    widgetTemplate: new Simplate(['&lt;input data-dojo-attach-point=&quot;inputNode&quot;&gt;']),
+<span id='argos-Fields-_Field-property-containerNode'>    /**
+</span>     * @property {HTMLElement}
+     * The parent container element of the field.
+     */
+    containerNode: null,
+<span id='argos-Fields-_Field-method-constructor'>    /**
+</span>     * Passed options object will be mixed into the field, overwriting any defaults.
+     * @param {Object} o Override options
+     */
+    constructor: function constructor(o) {
+      _lang['default'].mixin(this, o);
+
+      if (this.app === null) {
+        this.app = window.App;
+      }
+
+      if (this.reui === null) {
+        this.reui = window.ReUI;
+      }
+    },
+<span id='argos-Fields-_Field-method-focus'>    /**
+</span>     * Focuses the input for the field
+     */
+    focus: function focus() {},
+<span id='argos-Fields-_Field-method-renderTo'>    /**
+</span>     * Inserts the field into the given DOM node using dijit Widget `placeAt(node)` and saves
+     * a reference to it to `this.containerNode`.
+     * @param {HTMLElement} node Target node to insert the field into
+     */
+    renderTo: function renderTo(node) {
+      this.containerNode = node; // todo: should node actually be containerNode instead of last rendered node?
+      this.placeAt(node);
+    },
+<span id='argos-Fields-_Field-method-init'>    /**
+</span>     * Calledd during app startup after all fields have been inserted into the view
+     * @template
+     */
+    init: function init() {},
+<span id='argos-Fields-_Field-method-isDirty'>    /**
+</span>     * Determines if the fields' value has changed from the original value. Each field type
+     * should override this function and provide one tailored to its datatype.
+     * @template
+     * @return {Boolean} True if the value has been modified (dirty).
+     */
+    isDirty: function isDirty() {
+      return true;
+    },
+<span id='argos-Fields-_Field-method-enable'>    /**
+</span>     * Sets disabled to false and fires {@link #onEnable onEnable}.
+     */
+    enable: function enable() {
+      this.disabled = false;
+      this.onEnable(this);
+    },
+<span id='argos-Fields-_Field-method-disable'>    /**
+</span>     * Sets disabled to true and fires {@link #onDisable onDisable}.
+     */
+    disable: function disable() {
+      this.disabled = true;
+      this.onDisable(this);
+    },
+<span id='argos-Fields-_Field-method-isDisabled'>    /**
+</span>     * Returns the disabled state
+     * @return {Boolean}
+     */
+    isDisabled: function isDisabled() {
+      return this.disabled;
+    },
+<span id='argos-Fields-_Field-method-show'>    /**
+</span>     * Sets hidden to false and fires {@link #onShow onShow}.
+     */
+    show: function show() {
+      this.hidden = false;
+      this.onShow(this);
+    },
+<span id='argos-Fields-_Field-method-hide'>    /**
+</span>     * Sets hidden to true and fires {@link #onHide onHide}.
+     */
+    hide: function hide() {
+      this.hidden = true;
+      this.onHide(this);
+    },
+    toggleHighlight: function toggleHighlight() {
+      var node = this.domNode;
+      if (node) {
+        _domClass['default'].toggle(node, this.highlightCls);
+      }
+    },
+    clearHighlight: function clearHighlight() {
+      var node = this.domNode;
+      if (node) {
+        _domClass['default'].remove(node, this.highlightCls);
+      }
+    },
+<span id='argos-Fields-_Field-method-isHidden'>    /**
+</span>     * Returns the hidden state
+     * @return {Boolean}
+     */
+    isHidden: function isHidden() {
+      return this.hidden;
+    },
+<span id='argos-Fields-_Field-method-getValue'>    /**
+</span>     * Each field type will need to implement this function to return the value of the field.
+     * @template
+     */
+    getValue: function getValue() {},
+<span id='argos-Fields-_Field-method-setValue'>    /**
+</span>     * Each field type will need to implement this function to set the value and represent the change visually.
+     * @param {String/Boolean/Number/Object} val The value to set
+     * @param {Boolean} initial If true the value is meant to be the default/original/clean value.
+     * @template
+     */
+    setValue: function setValue() /*val, initial*/{},
+<span id='argos-Fields-_Field-method-clearValue'>    /**
+</span>     * Each field type will need to implement this function to clear the value and visually.
+     * @template
+     */
+    clearValue: function clearValue() {},
+<span id='argos-Fields-_Field-method-validate'>    /**
+</span>     * The validate function determines if there is any errors - meaning it will return false for a &quot;Error free&quot; field.
+     *
+     * ###Basic Flow:
+     *
+     * * loops over each `validator` defined on the field
+     *
+     * * Evaluate the result
+     *    * If the validator is a RegExp, use return `!regExp.test(value)`
+     *    * If the validator is a function, call and return the result of the function passing the value, _Field instance, and the `owner` property.
+     *    * If the validator is an object and has a `test` key, follow the RegExp path.
+     *    * If the validator is an object and has a `fn` key, follow the function path.
+     *
+     * * If the result is true and the validator is an object with a `message` key:
+     *   * If message is a function, call and return the result of the function passing the value, _Field instance and the `owner` property.
+     *   * Otherwise, assume it is a string format and call dojo's `string.substitute` using the message as the format, `${0}` as the value, `${1}` as the fields name, `${2}` as the fields label property.
+     *   * Save the result of the function or string substitution as the result itself.
+     *
+     * * Return the result.
+     * @param value Value of the field, if not passed then {@link #getValue getValue} is used.
+     * @return {Boolean/Object} False signifies that everything is okay and the field is valid, `true` or a `string message` indicates that it failed.
+     */
+    validate: function validate(value) {
+      if (typeof this.validator === 'undefined') {
+        return false;
+      }
+
+      var all = _lang['default'].isArray(this.validator) ? this.validator : [this.validator];
+
+      for (var i = 0; i &lt; all.length; i++) {
+        var current = all[i];
+        var definition = undefined;
+
+        if (current instanceof RegExp) {
+          definition = {
+            test: current
+          };
+        } else if (typeof current === 'function') {
+          definition = {
+            fn: current
+          };
+        } else {
+          definition = current;
+        }
+
+        var newValue = typeof value === 'undefined' ? this.getValue() : value;
+
+        var result = false;
+        if (typeof definition.fn === 'function') {
+          result = definition.fn.call(definition.scope || this, newValue, this, this.owner);
+        } else if (definition.test instanceof RegExp) {
+          result = !definition.test.test(newValue);
+        }
+
+        if (result) {
+          if (definition.message) {
+            result = typeof definition.message === 'function' ? definition.message.call(definition.scope || this, newValue, this, this.owner) : _string['default'].substitute(definition.message, [newValue, this.name, this.label]);
+          }
+
+          return result;
+        }
+      }
+
+      return false;
+    },
+<span id='argos-Fields-_Field-method-onEnable'>    /**
+</span>     * Event that fires when the field is enabled
+     * @param {_Field} field The field itself
+     * @template
+     */
+    onEnable: function onEnable() /*field*/{},
+<span id='argos-Fields-_Field-method-onDisable'>    /**
+</span>     * Event that fires when the field is disabled
+     * @param {_Field} field The field itself
+     * @template
+     */
+    onDisable: function onDisable() /*field*/{},
+<span id='argos-Fields-_Field-method-onShow'>    /**
+</span>     * Event that fires when the field is shown
+     * @param {_Field} field The field itself
+     * @template
+     */
+    onShow: function onShow() /*field*/{},
+<span id='argos-Fields-_Field-method-onHide'>    /**
+</span>     * Event that fires when the field is hidden
+     * @param {_Field} field The field itself
+     * @template
+     */
+    onHide: function onHide() /*field*/{},
+<span id='argos-Fields-_Field-method-onChange'>    /**
+</span>     * Event that fires when the field is changed
+     * @param {_Field} field The field itself
+     * @template
+     */
+    onChange: function onChange() /*value, field*/{}
+  });
+
+  _lang['default'].setObject('Sage.Platform.Mobile.Fields._Field', __class);
+  module.exports = __class;
+});
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInNyYy9GaWVsZHMvX0ZpZWxkLmpzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiI7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7O0FBa0NBLE1BQU0sT0FBTyxHQUFHLHlCQUFRLHFCQUFxQixFQUFFLHVFQUFtQyxFQUFFOzs7OztBQUtsRixTQUFLLEVBQUUsS0FBSzs7Ozs7O0FBTVosV0FBTyxFQUFFLEtBQUs7Ozs7O0FBS2Qsa0JBQWMsRUFBRSxLQUFLOzs7OztBQUtyQixZQUFRLEVBQUUsS0FBSzs7Ozs7QUFLZixVQUFNLEVBQUUsS0FBSzs7Ozs7OztBQU9iLGFBQVMsRUFBRSxTQUFTOzs7OztBQUtwQixRQUFJLEVBQUUsSUFBSTs7Ozs7QUFLVixTQUFLLEVBQUUsSUFBSTs7Ozs7QUFLWCxZQUFRLEVBQUUsSUFBSTs7Ozs7O0FBTWQsUUFBSSxFQUFFLElBQUk7Ozs7OztBQU1WLGFBQVMsRUFBRSxLQUFLOztBQUVoQixPQUFHLEVBQUUsSUFBSTtBQUNULFFBQUksRUFBRSxJQUFJO0FBQ1YsZ0JBQVksRUFBRSxpQkFBaUI7Ozs7OztBQU0vQixrQkFBYyxFQUFFLElBQUksUUFBUSxDQUFDLENBQzNCLDRDQUE0QyxDQUM3QyxDQUFDOzs7OztBQUtGLGlCQUFhLEVBQUUsSUFBSTs7Ozs7QUFLbkIsZUFBVyxFQUFFLFNBQVMsV0FBVyxDQUFDLENBQUMsRUFBRTtBQUNuQyx1QkFBSyxLQUFLLENBQUMsSUFBSSxFQUFFLENBQUMsQ0FBQyxDQUFDOztBQUVwQixVQUFJLElBQUksQ0FBQyxHQUFHLEtBQUssSUFBSSxFQUFFO0FBQ3JCLFlBQUksQ0FBQyxHQUFHLEdBQUcsTUFBTSxDQUFDLEdBQUcsQ0FBQztPQUN2Qjs7QUFFRCxVQUFJLElBQUksQ0FBQyxJQUFJLEtBQUssSUFBSSxFQUFFO0FBQ3RCLFlBQUksQ0FBQyxJQUFJLEdBQUcsTUFBTSxDQUFDLElBQUksQ0FBQztPQUN6QjtLQUNGOzs7O0FBSUQsU0FBSyxFQUFFLFNBQVMsS0FB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UUFBUSxZQUFZLEVBQUU7Ozs7OztBQU16QyxhQUFTLEVBQUUsU0FBUyxTQUFTLFlBQVksRUFBRTs7Ozs7O0FBTTNDLFVBQU0sRUFBRSxTQUFTLE1BQU0sWUFBWSxFQUFFOzs7Ozs7QUFNckMsVUFBTSxFQUFFLFNBQVMsTUFBTSxZQUFZLEVBQUU7Ozs7OztBQU1yQyxZQUFRLEVBQUUsU0FBUyxRQUFRLG1CQUFtQixFQUFFO0dBQ2pELENBQUMsQ0FBQzs7QUFFSCxtQkFBSyxTQUFTLENBQUMsb0NBQW9DLEVBQUUsT0FBTyxDQUFDLENBQUM7bUJBQy9DLE9BQU8iLCJmaWxlIjoic3JjL0ZpZWxkcy9fRmllbGQuanMiLCJzb3VyY2VSb290Ijoic3JjIiwic291cmNlc0NvbnRlbnQiOlsiLyogQ29weXJpZ2h0IChjKSAyMDEwLCBTYWdlIFNvZnR3YXJlLCBJbmMuIEFsbCByaWdodHMgcmVzZXJ2ZWQuXHJcbiAqXHJcbiAqIExpY2Vuc2VkIHVuZGVyIHRoZSBBcGFjaGUgTGljZW5zZSwgVmVyc2lvbiAyLjAgKHRoZSBcIkxpY2Vuc2VcIik7XHJcbiAqIHlvdSBtYXkgbm90IHVzZSB0aGlzIGZpbGUgZXhjZXB0IGluIGNvbXBsaWFuY2Ugd2l0aCB0aGUgTGljZW5zZS5cclxuICogWW91IG1heSBvYnRhaW4gYSBjb3B5IG9mIHRoZSBMaWNlbnNlIGF0XHJcbiAqXHJcbiAqICAgICBodHRwOi8vd3d3LmFwYWNoZS5vcmcvbGljZW5zZXMvTElDRU5TRS0yLjBcclxuICpcclxuICogVW5sZXNzIHJlcXVpcmVkIGJ5IGFwcGxpY2FibGUgbGF3IG9yIGFncmVlZCB0byBpbiB3cml0aW5nLCBzb2Z0d2FyZVxyXG4gKiBkaXN0cmlidXRlZCB1bmRlciB0aGUgTGljZW5zZSBpcyBkaXN0cmlidXRlZCBvbiBhbiBcIkFTIElTXCIgQkFTSVMsXHJcbiAqIFdJVEhPVVQgV0FSUkFOVElFUyBPUiBDT05ESVRJT05TIE9GIEFOWSBLSU5ELCBlaXRoZXIgZXhwcmVzcyBvciBpbXBsaWVkLlxyXG4gKiBTZWUgdGhlIExpY2Vuc2UgZm9yIHRoZSBzcGVjaWZpYyBsYW5ndWFnZSBnb3Zlcm5pbmcgcGVybWlzc2lvbnMgYW5kXHJcbiAqIGxpbWl0YXRpb25zIHVuZGVyIHRoZSBMaWNlbnNlLlxyXG4gKi9cclxuXHJcbi8qKlxyXG4gKiBAY2xhc3MgYXJnb3MuRmllbGRzLl9GaWVsZFxyXG4gKiBGaWVsZCBpcyB0aGUgYmFzZSBjbGFzcyBmb3IgYWxsIGZpZWxkIGNvbnRyb2xzLiBJdCBkZXNjcmliZXMgYWxsIHRoZSBmdW5jdGlvbnMgYSBmaWVsZCBzaG91bGQgc3VwcG9ydCBnaXZpbmcgbm8gaW1wbGVtZW50YXRpb24gaXRzZWxmLCBtZXJlbHkgYSBzaGVsbC4gVGhlIG9uZSBmdW5jdGlvbiB0aGF0IGBfRmllbGRgIGRvZXMgcHJvdmlkZSB0aGF0IG1vc3QgZmllbGRzIGxlYXZlIHVudG91Y2hlZCBpcyBgdmFsaWRhdGVgLlxyXG4gKlxyXG4gKiBBbGwgZmllbGRzIGFyZSBkaWppdCBXaWRnZXRzIG1lYW5pbmcgaXQgZ29lcyB0aHJvdWdoIHRoZSBzYW1lIGxpZmVjeWNsZSBhbmQgaGFzIGFsbCB0aGUgV2lkZ2V0IGZ1bmN0aW9uYWxpdHkuXHJcbiAqXHJcbiAqIEBhbHRlcm5hdGVDbGFzc05hbWUgX0ZpZWxkXHJcbiAqIEBtaXhpbnMgYXJnb3MuX0FjdGlvbk1peGluXHJcbiAqIEBtaXhpbnMgYXJnb3MuX1RlbXBsYXRlZFxyXG4gKiBAcmVxdWlyZXMgYXJnb3MuRmllbGRNYW5hZ2VyXHJcbiAqL1xyXG5pbXBvcnQgZGVjbGFyZSBmcm9tICdkb2pvL19iYXNlL2RlY2xhcmUnO1xyXG5pbXBvcnQgbGFuZyBmcm9tICdkb2pvL19iYXNlL2xhbmcnO1xyXG5pbXBvcnQgc3RyaW5nIGZyb20gJ2Rvam8vc3RyaW5nJztcclxuaW1wb3J0IGRvbUNsYXNzIGZyb20gJ2Rvam8vZG9tLWNsYXNzJztcclxuaW1wb3J0IF9XaWRnZXQgZnJvbSAnZGlqaXQvX1dpZGdldCc7XHJcbmltcG9ydCBfQWN0aW9uTWl4aW4gZnJvbSAnLi4vX0FjdGlvbk1peGluJztcclxuaW1wb3J0IF9UZW1wbGF0ZWQgZnJvbSAnLi4vX1RlbXBsYXRlZCc7XHJcblxyXG5jb25zdCBfX2NsYXNzID0gZGVjbGFyZSgnYXJnb3MuRmllbGRzLl9GaWVsZCcsIFtfV2lkZ2V0LCBfQWN0aW9uTWl4aW4sIF9UZW1wbGF0ZWRdLCB7XHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtWaWV3fVxyXG4gICAqIFZpZXcgdGhhdCBjb250cm9scyB0aGUgZmllbGQuXHJcbiAgICovXHJcbiAgb3duZXI6IGZhbHNlLFxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7U3RyaW5nfVxyXG4gICAqIElmIGRlZmluZWQgaXQgd2lsbCB1c2UgdGhlIGFwcGx5VG8gc3RyaW5nIHdoZW4gZ2V0dGluZyBhbmQgc2V0dGluZyBwcm9wZXJ0aWVzIGZyb21cclxuICAgKiB0aGUgU0RhdGEgb2JqZWN0IGluc3RlYWQgb2YgdGhlIGBwcm9wZXJ0eWAgcHJvcGVydHkuXHJcbiAgICovXHJcbiAgYXBwbHlUbzogZmFsc2UsXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtCb29sZWFufVxyXG4gICAqIFNpZ25pZmllcyB0aGF0IHRoZSBmaWVsZCBzaG91bGQgYWx3YXlzIGJlIGluY2x1ZGVkIHdoZW4gdGhlIGZvcm0gY2FsbHMge0BsaW5rIEVkaXQjZ2V0VmFsdWVzIGdldFZhbHVlc30uXHJcbiAgICovXHJcbiAgYWx3YXlzVXNlVmFsdWU6IGZhbHNlLFxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7Qm9vbGVhbn1cclxuICAgKiBJbmRpY2F0ZXMgdGhlIGRpc2FibGVkIHN0YXRlXHJcbiAgICovXHJcbiAgZGlzYWJsZWQ6IGZhbHNlLFxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7Qm9vbGVhbn1cclxuICAgKiBJbmRpY2F0ZXMgdGhlIHZpc2liaWxpdHkgc3RhdGVcclxuICAgKi9cclxuICBoaWRkZW46IGZhbHNlLFxyXG4gIC8qKlxyXG4gICAqIFRoaXMgYXBwbGllcyBhIGRlZmF1bHQgdmFsdWUgd2hlbiBpbnNlcnRpbmcgYSBuZXcgcmVjb3JkLCB0aGUgZGVmYXVsdCB2YWx1ZVxyXG4gICAqIGlzIGFwcGxpZWQgYWZ0ZXIgdGhlIHRlbXBsYXRlIGVudHJ5IGJ1dCBiZWZvcmUgdGhlIGNvbnRleHQgYW5kIGNoYW5nZXMgYXJlIGFwcGxpZWQuXHJcbiAgICpcclxuICAgKiBOb3RlIHRoZSB3b3JkIGBkZWZhdWx0YCBtdXN0IGJlIGluIHF1b3RlcyBhcyBkZWZhdWx0IGlzIGEgcmVzZXJ2ZWQgd29yZCBpbiBqYXZhc2NyaXB0LlxyXG4gICAqL1xyXG4gICdkZWZhdWx0JzogdW5kZWZpbmVkLFxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7U3RyaW5nfVxyXG4gICAqIFRoZSB1bmlxdWUgKHdpdGhpbiB0aGUgY3VycmVudCBmb3JtKSBuYW1lIG9mIHRoZSBmaWVsZFxyXG4gICAqL1xyXG4gIG5hbWU6IG51bGwsXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtTdHJpbmd9XHJcbiAgICogVGhlIHRleHQgdGhhdCB3aWxsLCBieSBkZWZhdWx0LCBzaG93IHRvIHRoZSBsZWZ0IG9mIGEgZmllbGQuXHJcbiAgICovXHJcbiAgbGFiZWw6IG51bGwsXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtTdHJpbmd9XHJcbiAgICogVGhlIFNEYXRhIHByb3BlcnR5IHRoYXQgdGhlIGZpZWxkIHdpbGwgYmUgYm91bmQgdG8uXHJcbiAgICovXHJcbiAgcHJvcGVydHk6IG51bGwsXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtTdHJpbmd9XHJcbiAgICogVGhlIHJlZ2lzdGVyZWQgbmFtZSBvZiB0aGUgZmllbGQgdGhhdCBnZXRzIG1hcHBlZCBpbiB7QGxpbmsgRmllbGRNYW5hZ2VyIEZpZWxkTWFuYWdlcn0gd2hlblxyXG4gICAqIHRoZSBmaWVsZCBpcyBjb25zdHJ1Y3RlZFxyXG4gICAqL1xyXG4gIHR5cGU6IG51bGwsXHJcblxyXG4gIC8qKlxyXG4gICAqIEBwcm9wZXJ0eSB7Qm9vbGVhbn1cclxuICAgKiBGbGFnIHRvIGluZGljYXRlIGlmIHRoaXMgZmllbGQgc2hvdWxkIGJlIGZvY3VzZWQgd2hlbiB0aGUgZm9ybSBpcyBzaG93bi5cclxuICAgKi9cclxuICBhdXRvRm9jdXM6IGZhbHNlLFxyXG5cclxuICBhcHA6IG51bGwsXHJcbiAgcmV1aTogbnVsbCxcclxuICBoaWdobGlnaHRDbHM6ICdmaWVsZC1oaWdobGlnaHQnLFxyXG5cclxuICAvKipcclxuICAgKiBAcHJvcGVydHkge1NpbXBsYXRlfVxyXG4gICAqIFNpbXBsYXRlIHVzZWQgdG8gZGVmaW5lIHRoZSBmaWVsZHMgSFRNTCBNYXJrdXBcclxuICAgKi9cclxuICB3aWRnZXRUZW1wbGF0ZTogbmV3IFNpbXBsYXRlKFtcclxuICAgICc8aW5wdXQgZGF0YS1kb2pvLWF0dGFjaC1wb2ludD1cImlucHV0Tm9kZVwiPicsXHJcbiAgXSksXHJcbiAgLyoqXHJcbiAgICogQHByb3BlcnR5IHtIVE1MRWxlbWVudH1cclxuICAgKiBUaGUgcGFyZW50IGNvbnRhaW5lciBlbGVtZW50IG9mIHRoZSBmaWVsZC5cclxuICAgKi9cclxuICBjb250YWluZXJOb2RlOiBudWxsLFxyXG4gIC8qKlxyXG4gICAqIFBhc3NlZCBvcHRpb25zIG9iamVjdCB3aWxsIGJlIG1peGVkIGludG8gdGhlIGZpZWxkLCBvdmVyd3JpdGluZyBhbnkgZGVmYXVsdHMuXHJcbiAgICogQHBhcmFtIHtPYmplY3R9IG8gT3ZlcnJpZGUgb3B0aW9uc1xyXG4gICAqL1xyXG4gIGNvbnN0cnVjdG9yOiBmdW5jdGlvbiBjb25zdHJ1Y3RvcihvKSB7XHJcbiAgICBsYW5nLm1peGluKHRoaXMsIG8pO1xyXG5cclxuICAgIGlmICh0aGlzLmFwcCA9PT0gbnVsbCkge1xyXG4gICAgICB0aGlzLmFwcCA9IHdpbmRvdy5BcHA7XHJcbiAgICB9XHJcblxyXG4gICAgaWYgKHRoaXMucmV1aSA9PT0gbnVsbCkge1xyXG4gICAgICB0aGlzLnJldWkgPSB3aW5kb3cuUmVVSTtcclxuICAgIH1cclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIEZvY3VzZXMgdGhlIGlucHV0IGZvciB0aGUgZmllbGRcclxuICAgKi9cclxuICBmb2N1czogZnVuY3Rpb24gZm9jdXMoKSB7fSxcclxuICAvKipcclxuICAgKiBJbnNlcnRzIHRoZSBmaWVsZCBpbnRvIHRoZSBnaXZlbiBET00gbm9kZSB1c2luZyBkaWppdCBXaWRnZXQgYHBsYWNlQXQobm9kZSlgIGFuZCBzYXZlc1xyXG4gICAqIGEgcmVmZXJlbmNlIHRvIGl0IHRvIGB0aGlzLmNvbnRhaW5lck5vZGVgLlxyXG4gICAqIEBwYXJhbSB7SFRNTEVsZW1lbnR9IG5vZGUgVGFyZ2V0IG5vZGUgdG8gaW5zZXJ0IHRoZSBmaWVsZCBpbnRvXHJcbiAgICovXHJcbiAgcmVuZGVyVG86IGZ1bmN0aW9uIHJlbmRlclRvKG5vZGUpIHtcclxuICAgIHRoaXMuY29udGFpbmVyTm9kZSA9IG5vZGU7IC8vIHRvZG86IHNob3VsZCBub2RlIGFjdHVhbGx5IGJlIGNvbnRhaW5lck5vZGUgaW5zdGVhZCBvZiBsYXN0IHJlbmRlcmVkIG5vZGU/XHJcbiAgICB0aGlzLnBsYWNlQXQobm9kZSk7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBDYWxsZWRkIGR1cmluZyBhcHAgc3RhcnR1cCBhZnRlciBhbGwgZmllbGRzIGhhdmUgYmVlbiBpbnNlcnRlZCBpbnRvIHRoZSB2aWV3XHJcbiAgICogQHRlbXBsYXRlXHJcbiAgICovXHJcbiAgaW5pdDogZnVuY3Rpb24gaW5pdCgpIHt9LFxyXG4gIC8qKlxyXG4gICAqIERldGVybWluZXMgaWYgdGhlIGZpZWxkcycgdmFsdWUgaGFzIGNoYW5nZWQgZnJvbSB0aGUgb3JpZ2luYWwgdmFsdWUuIEVhY2ggZmllbGQgdHlwZVxyXG4gICAqIHNob3VsZCBvdmVycmlkZSB0aGlzIGZ1bmN0aW9uIGFuZCBwcm92aWRlIG9uZSB0YWlsb3JlZCB0byBpdHMgZGF0YXR5cGUuXHJcbiAgICogQHRlbXBsYXRlXHJcbiAgICogQHJldHVybiB7Qm9vbGVhbn0gVHJ1ZSBpZiB0aGUgdmFsdWUgaGFzIGJlZW4gbW9kaWZpZWQgKGRpcnR5KS5cclxuICAgKi9cclxuICBpc0RpcnR5OiBmdW5jdGlvbiBpc0RpcnR5KCkge1xyXG4gICAgcmV0dXJuIHRydWU7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBTZXRzIGRpc2FibGVkIHRvIGZhbHNlIGFuZCBmaXJlcyB7QGxpbmsgI29uRW5hYmxlIG9uRW5hYmxlfS5cclxuICAgKi9cclxuICBlbmFibGU6IGZ1bmN0aW9uIGVuYWJsZSgpIHtcclxuICAgIHRoaXMuZGlzYWJsZWQgPSBmYWxzZTtcclxuICAgIHRoaXMub25FbmFibGUodGhpcyk7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBTZXRzIGRpc2FibGVkIHRvIHRydWUgYW5kIGZpcmVzIHtAbGluayAjb25EaXNhYmxlIG9uRGlzYWJsZX0uXHJcbiAgICovXHJcbiAgZGlzYWJsZTogZnVuY3Rpb24gZGlzYWJsZSgpIHtcclxuICAgIHRoaXMuZGlzYWJsZWQgPSB0cnVlO1xyXG4gICAgdGhpcy5vbkRpc2FibGUodGhpcyk7XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBSZXR1cm5zIHRoZSBkaXNhYmxlZCBzdGF0ZVxyXG4gICAqIEByZXR1cm4ge0Jvb2xlYW59XHJcbiAgICovXHJcbiAgaXNEaXNhYmxlZDogZnVuY3Rpb24gaXNEaXNhYmxlZCgpIHtcclxuICAgIHJldHVybiB0aGlzLmRpc2FibGVkO1xyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogU2V0cyBoaWRkZW4gdG8gZmFsc2UgYW5kIGZpcmVzIHtAbGluayAjb25TaG93IG9uU2hvd30uXHJcbiAgICovXHJcbiAgc2hvdzogZnVuY3Rpb24gc2hvdygpIHtcclxuICAgIHRoaXMuaGlkZGVuID0gZmFsc2U7XHJcbiAgICB0aGlzLm9uU2hvdyh0aGlzKTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIFNldHMgaGlkZGVuIHRvIHRydWUgYW5kIGZpcmVzIHtAbGluayAjb25IaWRlIG9uSGlkZX0uXHJcbiAgICovXHJcbiAgaGlkZTogZnVuY3Rpb24gaGlkZSgpIHtcclxuICAgIHRoaXMuaGlkZGVuID0gdHJ1ZTtcclxuICAgIHRoaXMub25IaWRlKHRoaXMpO1xyXG4gIH0sXHJcbiAgdG9nZ2xlSGlnaGxpZ2h0OiBmdW5jdGlvbiB0b2dnbGVIaWdobGlnaHQoKSB7XHJcbiAgICBjb25zdCBub2RlID0gdGhpcy5kb21Ob2RlO1xyXG4gICAgaWYgKG5vZGUpIHtcclxuICAgICAgZG9tQ2xhc3MudG9nZ2xlKG5vZGUsIHRoaXMuaGlnaGxpZ2h0Q2xzKTtcclxuICAgIH1cclxuICB9LFxyXG4gIGNsZWFySGlnaGxpZ2h0OiBmdW5jdGlvbiBjbGVhckhpZ2hsaWdodCgpIHtcclxuICAgIGNvbnN0IG5vZGUgPSB0aGlzLmRvbU5vZGU7XHJcbiAgICBpZiAobm9kZSkge1xyXG4gICAgICBkb21DbGFzcy5yZW1vdmUobm9kZSwgdGhpcy5oaWdobGlnaHRDbHMpO1xyXG4gICAgfVxyXG4gIH0sXHJcbiAgLyoqXHJcbiAgICogUmV0dXJucyB0aGUgaGlkZGVuIHN0YXRlXHJcbiAgICogQHJldHVybiB7Qm9vbGVhbn1cclxuICAgKi9cclxuICBpc0hpZGRlbjogZnVuY3Rpb24gaXNIaWRkZW4oKSB7XHJcbiAgICByZXR1cm4gdGhpcy5oaWRkZW47XHJcbiAgfSxcclxuICAvKipcclxuICAgKiBFYWNoIGZpZWxkIHR5cGUgd2lsbCBuZWVkIHRvIGltcGxlbWVudCB0aGlzIGZ1bmN0aW9uIHRvIHJldHVybiB0aGUgdmFsdWUgb2YgdGhlIGZpZWxkLlxyXG4gICAqIEB0ZW1wbGF0ZVxyXG4gICAqL1xyXG4gIGdldFZhbHVlOiBmdW5jdGlvbiBnZXRWYWx1ZSgpIHt9LFxyXG4gIC8qKlxyXG4gICAqIEVhY2ggZmllbGQgdHlwZSB3aWxsIG5lZWQgdG8gaW1wbGVtZW50IHRoaXMgZnVuY3Rpb24gdG8gc2V0IHRoZSB2YWx1ZSBhbmQgcmVwcmVzZW50IHRoZSBjaGFuZ2UgdmlzdWFsbHkuXHJcbiAgICogQHBhcmFtIHtTdHJpbmcvQm9vbGVhbi9OdW1iZXIvT2JqZWN0fSB2YWwgVGhlIHZhbHVlIHRvIHNldFxyXG4gICAqIEBwYXJhbSB7Qm9vbGVhbn0gaW5pdGlhbCBJZiB0cnVlIHRoZSB2YWx1ZSBpcyBtZWFudCB0byBiZSB0aGUgZGVmYXVsdC9vcmlnaW5hbC9jbGVhbiB2YWx1ZS5cclxuICAgKiBAdGVtcGxhdGVcclxuICAgKi9cclxuICBzZXRWYWx1ZTogZnVuY3Rpb24gc2V0VmFsdWUoLyp2YWwsIGluaXRpYWwqLykge30sXHJcbiAgLyoqXHJcbiAgICogRWFjaCBmaWVsZCB0eXBlIHdpbGwgbmVlZCB0byBpbXBsZW1lbnQgdGhpcyBmdW5jdGlvbiB0byBjbGVhciB0aGUgdmFsdWUgYW5kIHZpc3VhbGx5LlxyXG4gICAqIEB0ZW1wbGF0ZVxyXG4gICAqL1xyXG4gIGNsZWFyVmFsdWU6IGZ1bmN0aW9uIGNsZWFyVmFsdWUoKSB7fSxcclxuICAvKipcclxuICAgKiBUaGUgdmFsaWRhdGUgZnVuY3Rpb24gZGV0ZXJtaW5lcyBpZiB0aGVyZSBpcyBhbnkgZXJyb3JzIC0gbWVhbmluZyBpdCB3aWxsIHJldHVybiBmYWxzZSBmb3IgYSBcIkVycm9yIGZyZWVcIiBmaWVsZC5cclxuICAgKlxyXG4gICAqICMjI0Jhc2ljIEZsb3c6XHJcbiAgICpcclxuICAgKiAqIGxvb3BzIG92ZXIgZWFjaCBgdmFsaWRhdG9yYCBkZWZpbmVkIG9uIHRoZSBmaWVsZFxyXG4gICAqXHJcbiAgICogKiBFdmFsdWF0ZSB0aGUgcmVzdWx0XHJcbiAgICogICAgKiBJZiB0aGUgdmFsaWRhdG9yIGlzIGEgUmVnRXhwLCB1c2UgcmV0dXJuIGAhcmVnRXhwLnRlc3QodmFsdWUpYFxyXG4gICAqICAgICogSWYgdGhlIHZhbGlkYXRvciBpcyBhIGZ1bmN0aW9uLCBjYWxsIGFuZCByZXR1cm4gdGhlIHJlc3VsdCBvZiB0aGUgZnVuY3Rpb24gcGFzc2luZyB0aGUgdmFsdWUsIF9GaWVsZCBpbnN0YW5jZSwgYW5kIHRoZSBgb3duZXJgIHByb3BlcnR5LlxyXG4gICAqICAgICogSWYgdGhlIHZhbGlkYXRvciBpcyBhbiBvYmplY3QgYW5kIGhhcyBhIGB0ZXN0YCBrZXksIGZvbGxvdyB0aGUgUmVnRXhwIHBhdGguXHJcbiAgICogICAgKiBJZiB0aGUgdmFsaWRhdG9yIGlzIGFuIG9iamVjdCBhbmQgaGFzIGEgYGZuYCBrZXksIGZvbGxvdyB0aGUgZnVuY3Rpb24gcGF0aC5cclxuICAgKlxyXG4gICAqICogSWYgdGhlIHJlc3VsdCBpcyB0cnVlIGFuZCB0aGUgdmFsaWRhdG9yIGlzIGFuIG9iamVjdCB3aXRoIGEgYG1lc3NhZ2VgIGtleTpcclxuICAgKiAgICogSWYgbWVzc2FnZSBpcyBhIGZ1bmN0aW9uLCBjYWxsIGFuZCByZXR1cm4gdGhlIHJlc3VsdCBvZiB0aGUgZnVuY3Rpb24gcGFzc2luZyB0aGUgdmFsdWUsIF9GaWVsZCBpbnN0YW5jZSBhbmQgdGhlIGBvd25lcmAgcHJvcGVydHkuXHJcbiAgICogICAqIE90aGVyd2lzZSwgYXNzdW1lIGl0IGlzIGEgc3RyaW5nIGZvcm1hdCBhbmQgY2FsbCBkb2pvJ3MgYHN0cmluZy5zdWJzdGl0dXRlYCB1c2luZyB0aGUgbWVzc2FnZSBhcyB0aGUgZm9ybWF0LCBgJHswfWAgYXMgdGhlIHZhbHVlLCBgJHsxfWAgYXMgdGhlIGZpZWxkcyBuYW1lLCBgJHsyfWAgYXMgdGhlIGZpZWxkcyBsYWJlbCBwcm9wZXJ0eS5cclxuICAgKiAgICogU2F2ZSB0aGUgcmVzdWx0IG9mIHRoZSBmdW5jdGlvbiBvciBzdHJpbmcgc3Vic3RpdHV0aW9uIGFzIHRoZSByZXN1bHQgaXRzZWxmLlxyXG4gICAqXHJcbiAgICogKiBSZXR1cm4gdGhlIHJlc3VsdC5cclxuICAgKiBAcGFyYW0gdmFsdWUgVmFsdWUgb2YgdGhlIGZpZWxkLCBpZiBub3QgcGFzc2VkIHRoZW4ge0BsaW5rICNnZXRWYWx1ZSBnZXRWYWx1ZX0gaXMgdXNlZC5cclxuICAgKiBAcmV0dXJuIHtCb29sZWFuL09iamVjdH0gRmFsc2Ugc2lnbmlmaWVzIHRoYXQgZXZlcnl0aGluZyBpcyBva2F5IGFuZCB0aGUgZmllbGQgaXMgdmFsaWQsIGB0cnVlYCBvciBhIGBzdHJpbmcgbWVzc2FnZWAgaW5kaWNhdGVzIHRoYXQgaXQgZmFpbGVkLlxyXG4gICAqL1xyXG4gIHZhbGlkYXRlOiBmdW5jdGlvbiB2YWxpZGF0ZSh2YWx1ZSkge1xyXG4gICAgaWYgKHR5cGVvZiB0aGlzLnZhbGlkYXRvciA9PT0gJ3VuZGVmaW5lZCcpIHtcclxuICAgICAgcmV0dXJuIGZhbHNlO1xyXG4gICAgfVxyXG5cclxuICAgIGNvbnN0IGFsbCA9IGxhbmcuaXNBcnJheSh0aGlzLnZhbGlkYXRvcikgPyB0aGlzLnZhbGlkYXRvciA6IFt0aGlzLnZhbGlkYXRvcl07XHJcblxyXG4gICAgZm9yIChsZXQgaSA9IDA7IGkgPCBhbGwubGVuZ3RoOyBpKyspIHtcclxuICAgICAgY29uc3QgY3VycmVudCA9IGFsbFtpXTtcclxuICAgICAgbGV0IGRlZmluaXRpb247XHJcblxyXG4gICAgICBpZiAoY3VycmVudCBpbnN0YW5jZW9mIFJlZ0V4cCkge1xyXG4gICAgICAgIGRlZmluaXRpb24gPSB7XHJcbiAgICAgICAgICB0ZXN0OiBjdXJyZW50LFxyXG4gICAgICAgIH07XHJcbiAgICAgIH0gZWxzZSBpZiAodHlwZW9mIGN1cnJlbnQgPT09ICdmdW5jdGlvbicpIHtcclxuICAgICAgICBkZWZpbml0aW9uID0ge1xyXG4gICAgICAgICAgZm46IGN1cnJlbnQsXHJcbiAgICAgICAgfTtcclxuICAgICAgfSBlbHNlIHtcclxuICAgICAgICBkZWZpbml0aW9uID0gY3VycmVudDtcclxuICAgICAgfVxyXG5cclxuICAgICAgY29uc3QgbmV3VmFsdWUgPSB0eXBlb2YgdmFsdWUgPT09ICd1bmRlZmluZWQnID8gdGhpcy5nZXRWYWx1ZSgpIDogdmFsdWU7XHJcblxyXG4gICAgICBsZXQgcmVzdWx0ID0gZmFsc2U7XHJcbiAgICAgIGlmICh0eXBlb2YgZGVmaW5pdGlvbi5mbiA9PT0gJ2Z1bmN0aW9uJykge1xyXG4gICAgICAgIHJlc3VsdCA9IGRlZmluaXRpb24uZm4uY2FsbChkZWZpbml0aW9uLnNjb3BlIHx8IHRoaXMsIG5ld1ZhbHVlLCB0aGlzLCB0aGlzLm93bmVyKTtcclxuICAgICAgfSBlbHNlIGlmIChkZWZpbml0aW9uLnRlc3QgaW5zdGFuY2VvZiBSZWdFeHApIHtcclxuICAgICAgICByZXN1bHQgPSAhZGVmaW5pdGlvbi50ZXN0LnRlc3QobmV3VmFsdWUpO1xyXG4gICAgICB9XHJcblxyXG4gICAgICBpZiAocmVzdWx0KSB7XHJcbiAgICAgICAgaWYgKGRlZmluaXRpb24ubWVzc2FnZSkge1xyXG4gICAgICAgICAgcmVzdWx0ID0gdHlwZW9mIGRlZmluaXRpb24ubWVzc2FnZSA9PT0gJ2Z1bmN0aW9uJyA/IGRlZmluaXRpb24ubWVzc2FnZS5jYWxsKGRlZmluaXRpb24uc2NvcGUgfHwgdGhpcywgbmV3VmFsdWUsIHRoaXMsIHRoaXMub3duZXIpIDogc3RyaW5nLnN1YnN0aXR1dGUoZGVmaW5pdGlvbi5tZXNzYWdlLCBbbmV3VmFsdWUsIHRoaXMubmFtZSwgdGhpcy5sYWJlbF0pO1xyXG4gICAgICAgIH1cclxuXHJcbiAgICAgICAgcmV0dXJuIHJlc3VsdDtcclxuICAgICAgfVxyXG4gICAgfVxyXG5cclxuICAgIHJldHVybiBmYWxzZTtcclxuICB9LFxyXG4gIC8qKlxyXG4gICAqIEV2ZW50IHRoYXQgZmlyZXMgd2hlbiB0aGUgZmllbGQgaXMgZW5hYmxlZFxyXG4gICAqIEBwYXJhbSB7X0ZpZWxkfSBmaWVsZCBUaGUgZmllbGQgaXRzZWxmXHJcbiAgICogQHRlbXBsYXRlXHJcbiAgICovXHJcbiAgb25FbmFibGU6IGZ1bmN0aW9uIG9uRW5hYmxlKC8qZmllbGQqLykge30sXHJcbiAgLyoqXHJcbiAgICogRXZlbnQgdGhhdCBmaXJlcyB3aGVuIHRoZSBmaWVsZCBpcyBkaXNhYmxlZFxyXG4gICAqIEBwYXJhbSB7X0ZpZWxkfSBmaWVsZCBUaGUgZmllbGQgaXRzZWxmXHJcbiAgICogQHRlbXBsYXRlXHJcbiAgICovXHJcbiAgb25EaXNhYmxlOiBmdW5jdGlvbiBvbkRpc2FibGUoLypmaWVsZCovKSB7fSxcclxuICAvKipcclxuICAgKiBFdmVudCB0aGF0IGZpcmVzIHdoZW4gdGhlIGZpZWxkIGlzIHNob3duXHJcbiAgICogQHBhcmFtIHtfRmllbGR9IGZpZWxkIFRoZSBmaWVsZCBpdHNlbGZcclxuICAgKiBAdGVtcGxhdGVcclxuICAgKi9cclxuICBvblNob3c6IGZ1bmN0aW9uIG9uU2hvdygvKmZpZWxkKi8pIHt9LFxyXG4gIC8qKlxyXG4gICAqIEV2ZW50IHRoYXQgZmlyZXMgd2hlbiB0aGUgZmllbGQgaXMgaGlkZGVuXHJcbiAgICogQHBhcmFtIHtfRmllbGR9IGZpZWxkIFRoZSBmaWVsZCBpdHNlbGZcclxuICAgKiBAdGVtcGxhdGVcclxuICAgKi9cclxuICBvbkhpZGU6IGZ1bmN0aW9uIG9uSGlkZSgvKmZpZWxkKi8pIHt9LFxyXG4gIC8qKlxyXG4gICAqIEV2ZW50IHRoYXQgZmlyZXMgd2hlbiB0aGUgZmllbGQgaXMgY2hhbmdlZFxyXG4gICAqIEBwYXJhbSB7X0ZpZWxkfSBmaWVsZCBUaGUgZmllbGQgaXRzZWxmXHJcbiAgICogQHRlbXBsYXRlXHJcbiAgICovXHJcbiAgb25DaGFuZ2U6IGZ1bmN0aW9uIG9uQ2hhbmdlKC8qdmFsdWUsIGZpZWxkKi8pIHt9LFxyXG59KTtcclxuXHJcbmxhbmcuc2V0T2JqZWN0KCdTYWdlLlBsYXRmb3JtLk1vYmlsZS5GaWVsZHMuX0ZpZWxkJywgX19jbGFzcyk7XHJcbmV4cG9ydCBkZWZhdWx0IF9fY2xhc3M7XHJcbiJdfQ==
+</pre>
+</body>
+</html>
