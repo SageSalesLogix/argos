@@ -9,7 +9,7 @@ If you have completed [How List Search Works](#!/guide/v2_beyond_the_guide_list_
 1\. Create a new folder in `argos-template/src/Views` named Contact. Within that folder create a file named `List.js` and open it up.
 
 2\. Add the following code and note we are now pulling in, referencing and mixing in `GroupedList` instead of `List`:
-
+```javascript
     define('Mobile/SalesLogix/Views/Contact/List', [
         'dojo/_base/declare',
         'dojo/string',
@@ -29,9 +29,9 @@ If you have completed [How List Search Works](#!/guide/v2_beyond_the_guide_list_
             resourceKind: 'contacts'
         });
     });
-
+```
 3\. For querySelect get: `NameLF` and `AccountName`, order by `'LastNameUpper, FirstName'` and for the itemTemplate use `NameLF` in a `<h3>` and `AccountName` in a `<h4>`:
-
+```javascript
         return declare('Mobile.SalesLogix.Views.Contact.List', [GroupedList], {
             titleText: 'Contacts',
 
@@ -48,19 +48,19 @@ If you have completed [How List Search Works](#!/guide/v2_beyond_the_guide_list_
                 'AccountName'
             ],
             resourceKind: 'contacts',
-
+```
 4\. Now add the `formatSearchQuery()` function that formats to `like LastNameUpper or like upper(FirstName)`:
-
+```javascript
             formatSearchQuery: function(searchQuery) {
                 return string.substitute('(LastNameUpper like "${0}%" or upper(FirstName) like "${0}%")', [this.escapeSearchQuery(searchQuery.toUpperCase())]);
             }
-
+```
 5\. Save, register and add it to the home view. You now see a fully functioning List view for contacts - but not grouped. We need to add the Grouped List logic.
 
 6\. GroupedLists have a function named {@link GroupedList#getGroupForEntry getGroupForEntry()} and it is passed each list item and it should return an object with two keys: `tag` and `title`. Each entry will be grouped with other entries that have the same `tag` and will be added to the List view under a collapsible header using the `title` as the header text.
 
 7\. Add the `getGroupForEntry` function that takes the first letter of `NameLF` and uses it for both title and tag:
-
+```javascript
             getGroupForEntry: function(entry) {
                 var firstChar = entry['NameLF'].substring(0,1).toUpperCase();
                 return {
@@ -68,5 +68,5 @@ If you have completed [How List Search Works](#!/guide/v2_beyond_the_guide_list_
                     title: firstChar
                 };
             },
-
+```
 8\. Save, run your app and browse to the Contacts List. You should now see results grouped by letter and you can collapse/expand each section.
