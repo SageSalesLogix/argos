@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: argos-sdk/src/_DetailBase.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: argos-sdk/src/_DetailBase.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/* Copyright (c) 2010, Sage Software, Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/**
+ * @module argos/_DetailBase
+ */
+import declare from 'dojo/_base/declare';
+import lang from 'dojo/_base/lang';
+import when from 'dojo/when';
+import connect from 'dojo/_base/connect';
+import format from './Format';
+import utility from './Utility';
+import ErrorManager from './ErrorManager';
+import View from './View';
+import TabWidget from './TabWidget';
+import getResource from './I18n';
+import string from 'dojo/string';
+
+
+const resource = getResource('detailBase');
+
+/**
+ * @class
+ * @alias module:argos/_DetailBase
+ * @classdesc A Detail View represents a single record and should display all the info the user may need about the entry.
+ *
+ * A Detail entry is identified by its key (idProperty) which is how it requests the data via the endpoint.
+ *
+ * @extends module:argos/View
+ */
+const __class = declare('argos._DetailBase', [View, TabWidget], /** @lends module:argos/_DetailBase.prototype */{
+  /**
+   * @property {Object}
+   * Creates a setter map to html nodes, namely:
+   *
+   * * detailContent => contentNode's innerHTML
+   *
+   */
+  attributeMap: {
+    detailContent: {
+      node: 'contentNode',
+      type: 'innerHTML',
+    },
+    title: View.prototype.attributeMap.title,
+    selected: View.prototype.attributeMap.selected,
+  },
+  /**
+   * @property {Simplate}
+   * The template used to render the view's main DOM element when the view is initialized.
+   * This template includes loadingTemplate.
+   *
+   * The default template uses the following properties:
+   *
+   *      name                description
+   *      ----------------------------------------------------------------
+   *      id                   main container div id
+   *      title                main container div title attr
+   *      cls                  additional class string added to the main container div
+   *      resourceKind         set to data-resource-kind
+   *
+   */
+  widgetTemplate: new Simplate([
+    '&lt;div id="{%= $.id %}" data-title="{%= $.titleText %}" class="detail panel scrollable {%= $.cls %}" {% if ($.resourceKind) { %}data-resource-kind="{%= $.resourceKind %}"{% } %}>',
+    '{%! $.loadingTemplate %}',
+    '{%! $.quickActionTemplate %}',
+    '&lt;div data-dojo-attach-point="contentNode" class="column">',
+    '{%! $.tabContentTemplate %}',
+    '&lt;/div>',
+    '&lt;/div>',
+  ]),
+  /**
+   * @property {Simplate}
+   * HTML shown when no data is available.
+   */
+  emptyTemplate: new Simplate([]),
+  /**
+   * @property {Simplate}
+   * HTML shown when data is being loaded.
+   *
+   * `$` => the view instance
+   */
+  loadingTemplate: new Simplate([
+    '&lt;div class="panel-loading-indicator">',
+    '&lt;div class="busy-indicator-container blocked-ui" aria-live="polite">',
+    '&lt;div class="busy-indicator active">',
+    '&lt;div class="bar one">&lt;/div>',
+    '&lt;div class="bar two">&lt;/div>',
+    '&lt;div class="bar three">&lt;/div>',
+    '&lt;div class="bar four">&lt;/div>',
+    '&lt;div class="bar five">&lt;/div>',
+    '&lt;/div>',
+    '&lt;span>{%: $.loadingText %}&lt;/span>',
+    '&lt;/div>',
+    '&lt;/div>',
+  ]),
+  /**
+   * @property {Simplate}
+   * HTML that creates the quick action list
+   */
+  quickActionTemplate: new Simplate([
+    '&lt;div class="quick-actions toolbar" data-dojo-attach-point="quickActions">&lt;/div>',
+  ]),
+  /**
+   * @property {Simplate}
+   * HTML that creates the detail header displaying information about the tab list
+   *
+   * `$` => the view instance
+   */
+  detailHeaderTemplate: new Simplate([
+    '&lt;div class="detail-header">',
+    '{%: $.value %}',
+    '&lt;/div>',
+  ]),
+  /**
+   * @property {Simplate}
+   * HTML that starts a new section
+   *
+   * `$` => the view instance
+   */
+  sectionBeginTemplate: new Simplate([
+    '{% if (!$$.isTabbed) { %}',
+    '&lt;h2 data-action="toggleSection" class="{% if ($.collapsed || $.options.collapsed) { %}collapsed{% } %}">',
+    '&lt;button class="{% if ($.collapsed) { %}{%: $$.toggleExpandClass %}{% } else { %}{%: $$.toggleCollapseClass %}{% } %}" aria-label="{%: $$.toggleCollapseText %}">&lt;/button>',
+    '{%: ($.title || $.options.title) %}',
+    '&lt;/h2>',
+    '{% } %}',
+    '{% if ($.list || $.options.list) { %}',
+    '{% if ($.cls || $.options.cls) { %}',
+    '&lt;ul class="{%= ($.cls || $.options.cls) %}" id="{%: $$.id %}_{%: $.name %}">',
+    '{% } else { %}',
+    '&lt;ul class="detailContent tab-panel listview" id="{%: $$.id %}_{%: $.name %}">',
+    '{% } %}',
+    '{% } else { %}',
+    '{% if ($.cls || $.options.cls) { %}',
+    '&lt;div class="tab-panel {%= ($.cls || $.options.cls) %}" id="{%: $$.id %}_{%: $.name %}">',
+    '{% } else { %}',
+    '&lt;div class="detailContent tab-panel summary-form" id="{%: $$.id %}_{%: $.name %}">',
+    '{% } %}',
+    '{% } %}',
+  ]),
+  /**
+   * @property {Simplate}
+   * HTML that ends a section
+   *
+   * `$` => the view instance
+   */
+  sectionEndTemplate: new Simplate([
+    '{% if ($.list || $.options.list) { %}',
+    '&lt;/ul>',
+    '{% } else { %}',
+    '&lt;/div>',
+    '{% } %}',
+  ]),
+  /**
+   * @property {Simplate}
+   * HTML that is used for a property in the detail layout
+   *
+   * * `$` => detail layout row
+   * * `$$` => view instance
+   */
+  propertyTemplate: new Simplate([
+    '&lt;div class="{%= $$.multiColumnClass %} columns{%= $.cls %}" data-property="{%= $.property || $.name %}">',
+    '&lt;label>{%: $.label %}&lt;/label>',
+    '&lt;span class="data">{%= $.value %}&lt;/span>', // todo: create a way to allow the value to not be surrounded with a span tag
+    '&lt;/div>',
+  ]),
+  /**
+   * @property {Simplate}
+   * HTML that is used for detail layout items that point to related views, includes a label and links the value text
+   *
+   * * `$` => detail layout row
+   * * `$$` => view instance
+   */
+  relatedPropertyTemplate: new Simplate([
+    '&lt;div class="{%= $$.multiColumnClass %} columns{%= $.cls %}">',
+    '&lt;label>{%: $.label %}&lt;/label>',
+    '&lt;span class="data">',
+    '&lt;a class="hyperlink" data-action="activateRelatedEntry" data-view="{%= $.view %}" data-context="{%: $.context %}" data-descriptor="{%: $.descriptor || $.value %}">',
+    '{%= $.value %}',
+    '&lt;/a>',
+    '&lt;/span>',
+    '&lt;/div>',
+  ]),
+  /**
+   * @property {Simplate}
+   * HTML that is used for detail layout items that point to related views, displayed as an icon and text
+   *
+   * * `$` => detail layout row
+   * * `$$` => view instance
+   */
+  relatedTemplate: new Simplate([
+    '&lt;li class="relatedviewitem {%= $.cls %}" data-action="activateRelatedList" data-view="{%= $.view %}" data-context="{%: $.context %}" {% if ($.disabled) { %}data-disable-action="true"{% } %}>',
+    '&lt;a class="{% if ($.disabled) { %}disabled{% } %}">',
+    '{% if ($.icon) { %}',
+    '&lt;img src="{%= $.icon %}" alt="icon" class="icon" />',
+    '{% } else if ($.iconClass) { %}',
+    '&lt;div class="{%= $.iconClass %}" alt="icon">&lt;/div>',
+    '{% } %}',
+    '&lt;span class="related-item-label">',
+    '&lt;div class="busy-xs badge"',
+    '&lt;div class="busy-indicator-container" aria-live="polite">',
+    '&lt;div class="busy-indicator active">',
+    '&lt;div class="bar one">&lt;/div>',
+    '&lt;div class="bar two">&lt;/div>',
+    '&lt;div class="bar three">&lt;/div>',
+    '&lt;div class="bar four">&lt;/div>',
+    '&lt;div class="bar five">&lt;/div>',
+    '&lt;/div>',
+    '&lt;/div>',
+    '&lt;/div>',
+    '{%: $.label %}&lt;/span>',
+    '&lt;/a>',
+    '&lt;/li>',
+  ]),
+  /**
+   * @property {Simplate}
+   * HTML that is used for detail layout items that fire an action, displayed with label and property value
+   *
+   * * `$` => detail layout row
+   * * `$$` => view instance
+   */
+  actionPropertyTemplate: new Simplate([
+    '&lt;div class="{%= $$.multiColumnClass %} columns{%= $.cls %}">',
+    '&lt;label>{%: $.label %}&lt;/label>',
+    '&lt;span class="data">',
+    '&lt;a class="hyperlink" data-action="{%= $.action %}" {% if ($.disabled) { %}data-disable-action="true"{% } %} class="{% if ($.disabled) { %}disabled{% } %}">',
+    '{%= $.value %}',
+    '&lt;/a>',
+    '&lt;/span>',
+    '&lt;/div>',
+  ]),
+  /**
+   * @property {Simplate}
+   * HTML that is used for detail layout items that fire an action, displayed as an icon and text
+   *
+   * * `$` => detail layout row
+   * * `$$` => view instance
+   */
+  actionTemplate: new Simplate([
+    '&lt;li class="{%= $.cls %}{% if ($.disabled) { %} disabled{% } %}">',
+    '&lt;a data-action="{%= $.action %}" {% if ($.disabled) { %}data-disable-action="true"{% } %} class="{% if ($.disabled) { %}disabled{% } %}">',
+    '{% if ($.icon) { %}',
+    '&lt;img src="{%= $.icon %}" alt="icon" class="icon" />',
+    '{% } else if ($.iconClass) { %}',
+    `&lt;button type="button" class="btn-icon hide-focus">
+      &lt;svg class="icon" focusable="false" aria-hidden="true" role="presentation">
+        &lt;use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#icon-{%: $.iconClass %}">&lt;/use>
+      &lt;/svg>
+    &lt;/button>`,
+    '{% } %}',
+    '&lt;label>{%: $.label %}&lt;/label>',
+    '&lt;span class="data">{%= $.value %}&lt;/span>',
+    '&lt;/a>',
+    '&lt;/li>',
+  ]),
+  /**
+   * @property {Simplate}
+   * HTML that is used for rows created with columns
+   */
+  rowTemplate: new Simplate([
+    '&lt;div class="row">&lt;/div>',
+  ]),
+  /**
+   * @property {Simplate}
+   * HTML that is shown when not available
+   *
+   * `$` => the view instance
+   */
+  notAvailableTemplate: new Simplate([
+    '&lt;p class="not-available">{%: $.notAvailableText %}&lt;/p>',
+  ]),
+  /**
+   * @property {String}
+   * The unique identifier of the view
+   */
+  id: 'generic_detail',
+  /**
+   * @property {Object}
+   * The dojo store this view will use for data exchange.
+   */
+  store: null,
+  /**
+   * @property {Object}
+   * The data entry
+   */
+  entry: null,
+  /**
+   * @property {Object}
+   * The layout definition that constructs the detail view with sections and rows
+   */
+  layout: null,
+  /**
+   * @cfg {String/Object}
+   * May be used for verifying the view is accessible
+   */
+  security: false,
+  /**
+   * @property {String}
+   * The customization identifier for this class. When a customization is registered it is passed
+   * a path/identifier which is then matched to this property.
+   */
+  customizationSet: 'detail',
+  /**
+   * @property {Boolean}
+   * Controls if the view should be exposed
+   */
+  expose: false,
+  /**
+   * @property {Boolean}
+   * Controls whether the view will render as a tab view or the previous list view
+   */
+  isTabbed: true,
+  /**
+   * @property {String}
+   * Controls how the view determines the quick action section by mapping this string with that on the detail view (should be overwritten)
+   */
+  quickActionSection: 'QuickActionsSection',
+  /**
+   * @deprecated
+   */
+  editText: resource.editText,
+  /**
+   * @cfg {String}
+   * Font awesome icon to be used by the more list item
+   */
+  icon: 'fa fa-chevron',
+
+  viewType: 'detail',
+  /**
+   * @cfg {String}
+   * Information text that is concatenated with the entity type
+   */
+  informationText: resource.informationText,
+  /**
+   * @cfg {String}
+   * Default title text shown in the top toolbar
+   */
+  titleText: resource.titleText,
+  /**
+   * @cfg {String}
+   * Default text used in the header title, followed by information
+   */
+  entityText: resource.entityText,
+  /**
+   * @property {String}
+   * Helper string for a basic section header text
+   */
+  detailsText: resource.detailsText,
+  /**
+   * @property {String}
+   * Text shown while loading and used in loadingTemplate
+   */
+  loadingText: resource.loadingText,
+  /**
+   * @property {String}
+   * Text used in the notAvailableTemplate
+   */
+  notAvailableText: resource.notAvailableText,
+  /**
+   * @property {String}
+   * ARIA label text for a collapsible section header
+   */
+  toggleCollapseText: resource.toggleCollapseText,
+  /**
+   * @property {String}
+   * CSS class for the collapse button when in a expanded state
+   */
+  toggleCollapseClass: 'fa fa-chevron-down',
+  /**
+   * @property {String}
+   * CSS class for the collapse button when in a collapsed state
+   */
+  toggleExpandClass: 'fa fa-chevron-right',
+  /**
+   * @cfg {String}
+   * The view id to be taken to when the Edit button is pressed in the toolbar
+   */
+  editView: false,
+  /**
+   * @property {Object[]}
+   * Store for mapping layout options to an index on the HTML node
+   */
+  _navigationOptions: null,
+  /**
+   * @property {Boolean}
+   * Flag to signal that the interface is loading and clicking refresh will be ignored to prevent double entity loading
+   */
+  isRefreshing: false,
+  /**
+   * @property {String}
+   * Determines the SoHo class implemented in property templates
+   */
+  multiColumnClass: 'four',
+  /**
+   * @property {Number}
+   * Determines how many columns the detail view property views should contain
+   */
+  multiColumnCount: 3,
+  /**
+   * @property {String}
+   * Text shown in the top toolbar refresh button
+   */
+  refreshTooltipText: resource.refreshTooltipText,
+  /**
+   * @property {String}
+   * Text shown in the top toolbar edit button
+   */
+  editTooltipText: resource.editTooltipText,
+
+  // Store properties
+  itemsProperty: '',
+  idProperty: '',
+  labelProperty: '',
+  entityProperty: '',
+  versionProperty: '',
+
+  /**
+   * Extends the dijit widget postCreate to subscribe to the global `/app/refresh` event and clear the view.
+   */
+  postCreate: function postCreate() {
+    this.inherited(postCreate, arguments);
+    this.subscribe('/app/refresh', this._onRefresh);
+    this.clear();
+  },
+  createErrorHandlers: function createErrorHandlers() {
+    this.errorHandlers = this.errorHandlers || [{
+      name: 'Aborted',
+      test: (error) => {
+        return error.aborted;
+      },
+      handle: (error, next) => {
+        this.options = false; // force a refresh
+        next();
+      },
+    }, {
+      name: 'AlertError',
+      test: (error) => {
+        return error.status !== this.HTTP_STATUS.NOT_FOUND &amp;&amp; !error.aborted;
+      },
+      handle: (error, next) => {
+        alert(this.getErrorMessage(error)); //eslint-disable-line
+        next();
+      },
+    }, {
+      name: 'NotFound',
+      test: (error) => {
+        return error.status === this.HTTP_STATUS.NOT_FOUND;
+      },
+      handle: (error, next) => {
+        $(this.contentNode).empty().append(this.notAvailableTemplate.apply(this));
+        next();
+      },
+    }, {
+      name: 'CatchAll',
+      test: () => true,
+      handle: (error, next) => {
+        const fromContext = this.options.fromContext;
+        this.options.fromContext = null;
+        const errorItem = {
+          viewOptions: this.options,
+          serverError: error,
+        };
+
+        ErrorManager.addError(this.getErrorMessage(error), errorItem);
+        this.options.fromContext = fromContext;
+        $(this.domNode).removeClass('panel-loading');
+        next();
+      },
+    }];
+
+    return this.errorHandlers;
+  },
+  /**
+   * Sets and returns the toolbar item layout definition, this method should be overriden in the view
+   * so that you may define the views toolbar items.
+   * @return {Object} this.tools
+   * @template
+   */
+  createToolLayout: function createToolLayout() {
+    const tools = [];
+
+    if (this.editView) {
+      tools.push({
+        id: 'edit',
+        svg: 'edit',
+        title: this.editTooltipText,
+        action: 'navigateToEditView',
+        security: App.getViewSecurity(this.editView, 'update'),
+      });
+    }
+
+    tools.push({
+      id: 'refresh',
+      svg: 'refresh',
+      title: this.refreshTooltipText,
+      action: '_refreshClicked',
+    });
+
+    return this.tools || (this.tools = {
+      tbar: tools,
+    });
+  },
+  _refreshClicked: function _refreshClicked() {
+    // If the user has hit refresh already, let the interface load first set of assets
+    if (this.isRefreshing) {
+      return;
+    }
+    this.isRefreshing = true;
+    this.clear();
+    this.refreshRequired = true;
+    this.refresh();
+
+    this.onRefreshClicked();
+  },
+  /**
+   * Called when the user clicks the refresh toolbar button.
+   */
+  onRefreshClicked: function onRefreshClicked() {},
+  /**
+   * Extends the {@link _ActionMixin#invokeAction mixins invokeAction} to stop if `data-disableAction` is true
+   * @param name
+   * @param {Object} parameters Collection of `data-` attributes from the node
+   * @param {Event} evt
+   * @param {HTMLElement} el
+   */
+  invokeAction: function invokeAction(name, parameters, evt, el) {
+    if (parameters &amp;&amp; /true/i.test(parameters.disableAction)) {
+      return null;
+    }
+    return this._ActionMixin.invokeAction(name, parameters, evt, el);
+  },
+  /**
+   * Toggles the collapsed state of the section.
+   */
+  toggleSection: function toggleSection(params) {
+    const node = $(`#${params.$source}`);
+    if (node.length) {
+      node.toggleClass('collapsed');
+      const button = $('button', node).first();
+      if (button.length) {
+        button.toggleClass(this.toggleCollapseClass);
+        button.toggleClass(this.toggleExpandClass);
+      }
+    }
+  },
+  /**
+   * Handler for the getting the detail resource type from the id and placing the header into the detail view..
+   * @private
+   */
+  placeDetailHeader: function placeDetailHeader() {
+    const value = string.substitute(this.informationText, [this.entityText]);
+    $(this.tabContainer).before(this.detailHeaderTemplate.apply({ value }, this));
+  },
+  /**
+   * Handler for the global `/app/refresh` event. Sets `refreshRequired` to true if the key matches.
+   * @param {Object} options The object published by the event.
+   * @private
+   */
+  _onRefresh: function _onRefresh(o) {
+    const descriptor = o.data &amp;&amp; o.data[this.labelProperty];
+
+    if (this.options &amp;&amp; this.options.key === o.key) {
+      this.refreshRequired = true;
+
+      if (descriptor) {
+        this.options.title = descriptor;
+        this.set('title', descriptor);
+      }
+    }
+  },
+  /**
+   * Handler for the related entry action, navigates to the defined `data-view` passing the `data-context`.
+   * @param {Object} params Collection of `data-` attributes from the source node.
+   */
+  activateRelatedEntry: function activateRelatedEntry(params) {
+    if (params.context) {
+      this.navigateToRelatedView(params.view, parseInt(params.context, 10), params.descriptor);
+    }
+  },
+  /**
+   * Handler for the related list action, navigates to the defined `data-view` passing the `data-context`.
+   * @param {Object} params Collection of `data-` attributes from the source node.
+   */
+  activateRelatedList: function activateRelatedList(params) {
+    if (params.context) {
+      this.navigateToRelatedView(params.view, parseInt(params.context, 10), params.descriptor);
+    }
+  },
+  /**
+   * Navigates to the defined `this.editView` passing the current `this.entry` as default data.
+   * @param {HTMLElement} el
+   */
+  navigateToEditView: function navigateToEditView(/* el*/) {
+    const view = App.getView(this.editView);
+    if (view) {
+      const entry = this.entry;
+      view.show({
+        entry,
+        fromContext: this,
+      });
+    }
+  },
+  /**
+   * Navigates to a given view id passing the options retrieved using the slot index to `this._navigationOptions`.
+   * @param {String} id View id to go to
+   * @param {Number} slot Index of the context to use in `this._navigationOptions`.
+   * @param {String} descriptor Optional descriptor option that is mixed in.
+   */
+  navigateToRelatedView: function navigateToRelatedView(id, slot, descriptor) {
+    const options = this._navigationOptions[slot];
+    const view = App.getView(id);
+
+    if (descriptor &amp;&amp; options) {
+      options.descriptor = descriptor;
+    }
+
+    if (this.entry) {
+      options.selectedEntry = this.entry;
+    }
+
+    options.fromContext = this;
+    if (view &amp;&amp; options) {
+      view.show(options);
+    }
+  },
+  /**
+   * Sets and returns the Detail view layout by following a standard for section and rows:
+   *
+   * The `this.layout` itself is an array of section objects where a section object is defined as such:
+   *
+   *     {
+   *        name: 'String', // Required. unique name for identification/customization purposes
+   *        title: 'String', // Required. Text shown in the section header
+   *        list: boolean, // Optional. Default false. Controls if the group container for child rows should be a div (false) or ul (true)
+   *        children: [], // Array of child row objects
+   *     }
+   *
+   * A child row object has:
+   *
+   *     {
+   *        name: 'String', // Required. unique name for identification/customization purposes
+   *        property: 'String', // Optional. The property of the current entity to bind to
+   *        label: 'String', // Optional. Text shown in the label to the left of the property
+   *        onCreate: function(), // Optional. You may pass a function to be called when the row is added to the DOM
+   *        include: boolean, // Optional. If false the row will not be included in the layout
+   *        exclude: boolean, // Optional. If true the row will not be included in the layout
+   *        template: Simplate, // Optional. Override the HTML Simplate used for rendering the value (not the row) where `$` is the row object
+   *        tpl: Simplate, // Optional. Same as template.
+   *        renderer: function(), // Optional. Pass a function that receives the current value and returns a value to be rendered
+   *        encode: boolean, // Optional. If true it will encode HTML entities
+   *        cls: 'String', // Optional. Additional CSS class string to be added to the row div
+   *        use: Simplate, // Optional. Override the HTML Simplate used for rendering the row (not value)
+   *        provider: function(entry, propertyName), // Optional. Function that accepts the data entry and the property name and returns the extracted value. By default simply extracts directly.
+   *        value: Any // Optional. Provide a value directly instead of binding
+   *     }
+   *
+   * @return {Object[]} Detail layout definition
+   */
+  createLayout: function createLayout() {
+    return this.layout || [];
+  },
+  /**
+   * Processes the given layout definition using the data entry response by rendering and inserting the HTML nodes and
+   * firing any onCreate events defined.
+   * @param {Object[]} layout Layout definition
+   * @param {Object} entry data response
+   */
+  processLayout: function processLayout(layout, entry) {
+    const items = (layout.children || layout.as || layout);
+    const options = layout.options || (layout.options = {
+      title: this.detailsText,
+    });
+    const sectionQueue = [];
+    let sectionStarted = false;
+    const callbacks = [];
+    let row = [];
+
+    let sectionNode;
+
+    if (this.isTabbed) {
+      this.placeTabList(this.contentNode);
+    }
+
+    for (let i = 0; i &lt; items.length; i++) {
+      const current = items[i];
+      const include = this.expandExpression(current.include, entry);
+      const exclude = this.expandExpression(current.exclude, entry);
+      let context;
+
+      if (include !== undefined &amp;&amp; !include) {
+        if (i >= (items.length - 1) &amp;&amp; row.length > 0) {
+          const rowNode = this.createRow(row);
+          $(sectionNode).append(rowNode);
+          row = [];
+        }
+        continue;
+      }
+
+      if (exclude !== undefined &amp;&amp; exclude) {
+        if (i >= (items.length - 1) &amp;&amp; row.length > 0) {
+          const rowNode = this.createRow(row);
+          $(sectionNode).append(rowNode);
+          row = [];
+        }
+        continue;
+      }
+
+      if (current.children || current.as) {
+        if (sectionStarted) {
+          sectionQueue.push(current);
+        } else {
+          this.processLayout(current, entry);
+        }
+
+        continue;
+      }
+
+      if (!sectionStarted) {
+        let section;
+        sectionStarted = true;
+        if (this.isTabbed) {
+          if (layout.name === this.quickActionSection) {
+            section = $(this.sectionBeginTemplate.apply(layout, this) + this.sectionEndTemplate.apply(layout, this));
+            sectionNode = section.get(0);
+            $(this.quickActions).append(section);
+          } else {
+            const tab = $(this.tabListItemTemplate.apply(layout, this)).get(0);
+            section = $(this.sectionBeginTemplate.apply(layout, this) + this.sectionEndTemplate.apply(layout, this));
+            sectionNode = section.get(0);
+            this.tabMapping.push(section.get(0));
+            this.tabs.push(tab);
+            $(this.tabContainer).append(section);
+          }
+        } else {
+          section = $(this.sectionBeginTemplate.apply(layout, this) + this.sectionEndTemplate.apply(layout, this));
+          sectionNode = section.get(0).childNodes[1];
+          $(this.tabContainer).append(section);
+        }
+      }
+
+      const provider = current.provider || utility.getValue;
+      const property = typeof current.property === 'string' ? current.property : current.name;
+      const value = typeof current.value === 'undefined' ? provider(entry, property, entry) : current.value;
+      let rendered;
+      let formatted;
+      if (current.template || current.tpl) {
+        rendered = (current.template || current.tpl).apply(value, this);
+        formatted = current.encode === true ? format.encode(rendered) : rendered;
+      } else if (current.renderer &amp;&amp; typeof current.renderer === 'function') {
+        rendered = current.renderer.call(this, value);
+        formatted = current.encode === true ? format.encode(rendered) : rendered;
+      } else {
+        formatted = current.encode !== false ? format.encode(value) : value;
+      }
+
+      const data = lang.mixin({}, {
+        entry,
+        value: formatted,
+        raw: value,
+      }, current);
+
+      if (current.descriptor) {
+        data.descriptor = typeof current.descriptor === 'function' ? this.expandExpression(current.descriptor, entry, value) : provider(entry, current.descriptor);
+      }
+
+      if (current.action) {
+        data.action = this.expandExpression(current.action, entry, value);
+      }
+
+      const hasAccess = App.hasAccessTo(current.security);
+
+      if (current.security) {
+        data.disabled = !hasAccess;
+      }
+
+      if (current.disabled &amp;&amp; hasAccess) {
+        data.disabled = this.expandExpression(current.disabled, entry, value);
+      }
+
+      if (current.view) {
+        context = lang.mixin({}, current.options);
+
+        if (current.key) {
+          context.key = typeof current.key === 'function' ? this.expandExpression(current.key, entry) : provider(entry, current.key);
+        }
+        if (current.where) {
+          context.where = this.expandExpression(current.where, entry);
+          if (context.where === '') {
+            data.disabled = true;
+          }
+        }
+        if (current.contractName) {
+          context.contractName = this.expandExpression(current.contractName, entry);
+        }
+        if (current.resourceKind) {
+          context.resourceKind = this.expandExpression(current.resourceKind, entry);
+        }
+        if (current.resourceProperty) {
+          context.resourceProperty = this.expandExpression(current.resourceProperty, entry);
+        }
+        if (current.resourcePredicate) {
+          context.resourcePredicate = this.expandExpression(current.resourcePredicate, entry);
+        }
+        if (current.dataSet) {
+          context.dataSet = this.expandExpression(current.dataSet, entry);
+        }
+        if (current.title) {
+          context.title = current.title;
+        }
+
+        if (current.resetSearch) {
+          context.resetSearch = current.resetSearch;
+        } else {
+          context.resetSearch = true;
+        }
+
+        data.view = current.view;
+        data.context = (this._navigationOptions.push(context) - 1);
+      }
+
+      const useListTemplate = (layout.list || options.list);
+
+      let template;
+      let isColumnItem = false;
+      // priority: use > (relatedPropertyTemplate | relatedTemplate) > (actionPropertyTemplate | actionTemplate) > propertyTemplate
+      if (current.use) {
+        template = current.use;
+      } else if (current.view &amp;&amp; useListTemplate) {
+        template = this.relatedTemplate;
+        current.relatedItem = true;
+      } else if (current.view) {
+        template = this.relatedPropertyTemplate;
+        isColumnItem = true;
+      } else if (current.action &amp;&amp; useListTemplate) {
+        template = this.actionTemplate;
+      } else if (current.action) {
+        template = this.actionPropertyTemplate;
+        isColumnItem = true;
+      } else {
+        template = this.propertyTemplate;
+        isColumnItem = true;
+      }
+
+      let rowNode = this.createRowNode(current, sectionNode, entry, template, data);
+      if ((data.raw !== undefined) &amp;&amp; data.value) {
+        if (isColumnItem) {
+          row.push(rowNode);
+        } else {
+          $(sectionNode).append(rowNode);
+        }
+      }
+
+      if (row.length >= this.multiColumnCount || (i >= (items.length - 1) &amp;&amp; row.length > 0)) {
+        rowNode = this.createRow(row);
+        $(sectionNode).append(rowNode);
+        row = [];
+      }
+      if (current.relatedItem) {
+        try {
+          this._processRelatedItem(data, context, rowNode);
+        } catch (e) {
+          // error processing related node
+          console.error(e); //eslint-disable-line
+        }
+      }
+
+      if (current.onCreate) {
+        callbacks.push({
+          row: current,
+          node: rowNode,
+          value,
+          entry,
+        });
+      }
+    }
+
+    for (let i = 0; i &lt; callbacks.length; i++) {
+      const item = callbacks[i];
+      item.row.onCreate.apply(this, [item.row, item.node, item.value, item.entry]);
+    }
+
+    for (let i = 0; i &lt; sectionQueue.length; i++) {
+      const current = sectionQueue[i];
+      this.processLayout(current, entry);
+    }
+    this.isRefreshing = false;
+  },
+  createRow: function createRow(row) {
+    const rowTemplate = $(this.rowTemplate.apply(null, this));
+    row.forEach((element) => {
+      rowTemplate.append(element);
+    });
+    return rowTemplate;
+  },
+  createRowNode: function createRowNode(layout, sectionNode, entry, template, data) {
+    const frag = $(template.apply(data, this));
+    return frag.get(0);
+  },
+  _getStoreAttr: function _getStoreAttr() {
+    return this.store || (this.store = this.createStore());
+  },
+  /**
+   * CreateStore is the core of the data handling for Detail Views. By default it is empty but it should return
+   * a dojo store of your choosing. There are {@link _SDataDetailMixin Mixins} available for SData.
+   * @return {*}
+   */
+  createStore: function createStore() {
+    return null;
+  },
+  /**
+   * @template
+   * Optional processing of the returned entry before it gets processed into layout.
+   * @param {Object} entry Entry from data store
+   * @return {Object} By default does not do any processing
+   */
+  preProcessEntry: function preProcessEntry(entry) {
+    return entry;
+  },
+  /**
+   * Takes the entry from the data store, applies customization, applies any custom item process and then
+   * passes it to process layout.
+   * @param {Object} entry Entry from data store
+   */
+  processEntry: function processEntry(entry) {
+    this.entry = this.preProcessEntry(entry);
+
+    if (this.entry) {
+      this.processLayout(this._createCustomizedLayout(this.createLayout()), this.entry);
+      if (this.isTabbed) {
+        this.createTabs(this.tabs);
+        this.placeDetailHeader(this.entry);
+      }
+    } else {
+      this.set('detailContent', '');
+    }
+  },
+  _onGetComplete: function _onGetComplete(entry) {
+    try {
+      if (entry) {
+        this.processEntry(entry);
+      } else {
+        $(this.contentNode).empty().append(this.notAvailableTemplate.apply(this));
+      }
+
+      $(this.domNode).removeClass('panel-loading');
+
+      /* this must take place when the content is visible */
+      this.onContentChange();
+    } catch (e) {
+      console.error(e); //eslint-disable-line
+    } finally {
+      this.isRefreshing = false;
+    }
+  },
+  _onGetError: function _onGetError(getOptions, error) {
+    this.handleError(error);
+    this.isRefreshing = false;
+  },
+  /**
+   * Initiates the request.
+   */
+  requestData: function requestData() {
+    $(this.domNode).addClass('panel-loading');
+
+    const store = this.get('store');
+
+    if (this._model) {
+      return this.requestDataUsingModel().then((data) => {
+        this._onGetComplete(data);
+      }, (err) => {
+        this._onGetError(null, err);
+      });
+    } else if (store) {
+      const getOptions = {};
+
+      this._applyStateToGetOptions(getOptions);
+
+      const getExpression = this._buildGetExpression() || null;
+      const getResults = this.requestDataUsingStore(getExpression, getOptions);
+
+      when(getResults,
+        this._onGetComplete.bind(this),
+        this._onGetError.bind(this, getOptions)
+      );
+
+      return getResults;
+    }
+
+    throw new Error('requestData called without a model or store defined.');
+  },
+  requestDataUsingModel: function requestDataUsingModel() {
+    const key = this._buildGetExpression();
+    return this._model.getEntry(key, this.options);
+  },
+  requestDataUsingStore: function requestDataUsingStore(getExpression, getOptions) {
+    const store = this.get('store');
+    return store.get(getExpression, getOptions);
+  },
+  _buildGetExpression: function _buildGetExpression() {
+    const options = this.options;
+    return options &amp;&amp; (options.id || options.key);
+  },
+  _applyStateToGetOptions: function _applyStateToGetOptions(/* getOptions*/) {},
+  /**
+   * Determines if the view should be refresh by inspecting and comparing the passed navigation option key with current key.
+   * @param {Object} options Passed navigation options.
+   * @return {Boolean} True if the view should be refreshed, false if not.
+   */
+  refreshRequiredFor: function refreshRequiredFor(options) {
+    if (this.options) {
+      if (options) {
+        if (this.options.key !== options.key) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    return this.inherited(refreshRequiredFor, arguments);
+  },
+  /**
+   * Extends the {@link View#activate parent implementation} to set the nav options title attribute to the descriptor
+   * @param tag
+   * @param data
+   */
+  activate: function activate(tag, data) {
+    const options = data &amp;&amp; data.options;
+    if (options &amp;&amp; options.descriptor) {
+      options.title = options.title || options.descriptor;
+    }
+
+    this.inherited(activate, arguments);
+  },
+  show: function show(options) {
+    if (options &amp;&amp; options.descriptor) {
+      options.title = options.title || options.descriptor;
+    }
+
+    this.inherited(show, arguments);
+  },
+  /**
+   * Returns the view key
+   * @return {String} View key
+   */
+  getTag: function getTag() {
+    return this.options &amp;&amp; this.options.key;
+  },
+  /**
+   * Extends the {@link View#getContext parent implementation} to also set the resourceKind, key and descriptor
+   * @return {Object} View context object
+   */
+  getContext: function getContext() {
+    return lang.mixin(this.inherited(getContext, arguments), {
+      resourceKind: this.resourceKind,
+      key: this.options.key,
+      descriptor: this.options.descriptor,
+    });
+  },
+  /**
+   * Extends the {@link View#beforeTransitionTo parent implementation} to also clear the view if `refreshRequired` is true
+   * @return {Object} View context object
+   */
+  beforeTransitionTo: function beforeTransitionTo() {
+    this.inherited(beforeTransitionTo, arguments);
+
+    if (this.refreshRequired) {
+      this.clear();
+    }
+  },
+  /**
+   * If a security breach is detected it sets the content to the notAvailableTemplate, otherwise it calls
+   * {@link #requestData requestData} which starts the process sequence.
+   */
+  refresh: function refresh() {
+    if (this.security &amp;&amp; !App.hasAccessTo(this.expandExpression(this.security))) {
+      $(this.contentNode).append(this.notAvailableTemplate.apply(this));
+      return;
+    }
+
+    this.requestData();
+  },
+  /**
+   * Clears the view by replacing the content with the empty template and emptying the stored row contexts.
+   */
+  clear: function clear() {
+    this.set('detailContent', this.emptyTemplate.apply(this));
+    this.clearTabs();
+    if (this.quickActions) {
+      $(this.quickActions).empty();
+    }
+
+    this._navigationOptions = [];
+  },
+  _processRelatedItem: function _processRelatedItem(data, context, rowNode) {
+    const view = App.getView(data.view);
+    const options = {};
+
+    const renderRelated = (result) => {
+      if (result >= 0) {
+        const labelNode = $('.related-item-label', rowNode).first();
+        if (labelNode.length) {
+          $('.busy-xs', labelNode).remove();
+          labelNode.before(`&lt;span class="info badge">${result}&lt;/span>`);
+        } else {
+          console.warn('Missing the "related-item-label" dom node.'); //eslint-disable-line
+        }
+      }
+    };
+
+    if (view &amp;&amp; context &amp;&amp; context.where) {
+      options.where = context.where;
+      view.getListCount(options)
+        .then(renderRelated);
+    } else {
+      renderRelated(0);
+    }
+  },
+  removeEntry: function removeEntry() {
+    const entry = this._createEntryForRemove();
+    if (entry) {
+      const store = this.get('store');
+      if (store) {
+        store.remove(entry).then(
+          this._onRemoveSuccess.bind(this),
+          this._onRemoveError.bind(this)
+        );
+      }
+    }
+  },
+  _createEntryForRemove: function _createEntryForRemove() {
+    const entry = {
+      $key: this.entry.$key,
+      $etag: this.entry.$etag,
+      $name: this.entry.$name,
+    };
+    return entry;
+  },
+  _onRemoveSuccess: function _onRemoveSuccess() {
+    connect.publish('/app/refresh', [{
+      resourceKind: this.resourceKind,
+    }]);
+    ReUI.back();
+  },
+  _onRemoveError: function _onRemoveError(error) {
+    if (error) {
+      this._onGetError(null, error);
+    }
+  },
+  destroy: function destroy() {
+    this.inherited(destroy, arguments);
+  },
+});
+
+export default __class;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-argos__ActionMixin.html">argos/_ActionMixin</a></li><li><a href="module-argos__ConfigureBase.html">argos/_ConfigureBase</a></li><li><a href="module-argos__CustomizationMixin.html">argos/_CustomizationMixin</a></li><li><a href="module-argos__DetailBase.html">argos/_DetailBase</a></li><li><a href="module-argos__DraggableBase.html">argos/_DraggableBase</a></li><li><a href="module-argos__EditBase.html">argos/_EditBase</a></li><li><a href="module-argos__LegacySDataDetailMixin.html">argos/_LegacySDataDetailMixin</a></li><li><a href="module-argos__LegacySDataEditMixin.html">argos/_LegacySDataEditMixin</a></li><li><a href="module-argos__LegacySDataListMixin.html">argos/_LegacySDataListMixin</a></li><li><a href="module-argos__ListBase.html">argos/_ListBase</a></li><li><a href="module-argos__PullToRefreshMixin.html">argos/_PullToRefreshMixin</a></li><li><a href="module-argos__RelatedViewWidgetBase.html">argos/_RelatedViewWidgetBase</a></li><li><a href="module-argos__RelatedViewWidgetDetailMixin.html">argos/_RelatedViewWidgetDetailMixin</a></li><li><a href="module-argos__RelatedViewWidgetEditMixin.html">argos/_RelatedViewWidgetEditMixin</a></li><li><a href="module-argos__RelatedViewWidgetListMixin.html">argos/_RelatedViewWidgetListMixin</a></li><li><a href="module-argos__SDataDetailMixin.html">argos/_SDataDetailMixin</a></li><li><a href="module-argos__SDataEditMixin.html">argos/_SDataEditMixin</a></li><li><a href="module-argos__SDataListMixin.html">argos/_SDataListMixin</a></li><li><a href="module-argos__ServiceMixin.html">argos/_ServiceMixin</a></li><li><a href="module-argos__Templated.html">argos/_Templated</a></li><li><a href="module-argos_actions.html">argos/actions</a></li><li><a href="module-argos_actions_connection.html">argos/actions/connection</a></li><li><a href="module-argos_Application.html">argos/Application</a></li><li><a href="module-argos_ApplicationModule.html">argos/ApplicationModule</a></li><li><a href="module-argos_Calendar.html">argos/Calendar</a></li><li><a href="module-argos_ConfigurableSelectionModel.html">argos/ConfigurableSelectionModel</a></li><li><a href="module-argos_Convert.html">argos/Convert</a></li><li><a href="module-argos_CultureInfo.html">argos/CultureInfo</a></li><li><a href="module-argos_DateTimePicker.html">argos/DateTimePicker</a></li><li><a href="module-argos_Detail.html">argos/Detail</a></li><li><a href="module-argos_Dialogs_BusyIndicator.html">argos/Dialogs/BusyIndicator</a></li><li><a href="module-argos_Dialogs_Modal.html">argos/Dialogs/Modal</a></li><li><a href="module-argos_Dialogs_Toast.html">argos/Dialogs/Toast</a></li><li><a href="module-argos_DraggableList.html">argos/DraggableList</a></li><li><a href="module-argos_Dropdown.html">argos/Dropdown</a></li><li><a href="module-argos_Edit.html">argos/Edit</a></li><li><a href="module-argos_ErrorManager.html">argos/ErrorManager</a></li><li><a href="module-argos_FieldManager.html">argos/FieldManager</a></li><li><a href="module-argos_Fields__Field.html">argos/Fields/_Field</a></li><li><a href="module-argos_Fields_BooleanField.html">argos/Fields/BooleanField</a></li><li><a href="module-argos_Fields_DateField.html">argos/Fields/DateField</a></li><li><a href="module-argos_Fields_DecimalField.html">argos/Fields/DecimalField</a></li><li><a href="module-argos_Fields_DropdownField.html">argos/Fields/DropdownField</a></li><li><a href="module-argos_Fields_DurationField.html">argos/Fields/DurationField</a></li><li><a href="module-argos_Fields_EditorField.html">argos/Fields/EditorField</a></li><li><a href="module-argos_Fields_HiddenField.html">argos/Fields/HiddenField</a></li><li><a href="module-argos_Fields_LookupField.html">argos/Fields/LookupField</a></li><li><a href="module-argos_Fields_NoteField.html">argos/Fields/NoteField</a></li><li><a href="module-argos_Fields_PhoneField.html">argos/Fields/PhoneField</a></li><li><a href="module-argos_Fields_SelectField.html">argos/Fields/SelectField</a></li><li><a href="module-argos_Fields_SignatureField.html">argos/Fields/SignatureField</a></li><li><a href="module-argos_Fields_TextAreaField.html">argos/Fields/TextAreaField</a></li><li><a href="module-argos_Fields_TextField.html">argos/Fields/TextField</a></li><li><a href="module-argos_Format.html">argos/Format</a></li><li><a href="module-argos_GroupedList.html">argos/GroupedList</a></li><li><a href="module-argos_Groups__GroupBySection.html">argos/Groups/_GroupBySection</a></li><li><a href="module-argos_Groups_DateTimeSection.html">argos/Groups/DateTimeSection</a></li><li><a href="module-argos_Groups_GroupByValueSection.html">argos/Groups/GroupByValueSection</a></li><li><a href="module-argos_I18n.html">argos/I18n</a></li><li><a href="module-argos_LanguageService.html">argos/LanguageService</a></li><li><a href="module-argos_List.html">argos/List</a></li><li><a href="module-argos_MainToolbar.html">argos/MainToolbar</a></li><li><a href="module-argos_Models__ModelBase.html">argos/Models/_ModelBase</a></li><li><a href="module-argos_Models__OfflineModelBase.html">argos/Models/_OfflineModelBase</a></li><li><a href="module-argos_Models_Adapter.html">argos/Models/Adapter</a></li><li><a href="module-argos_Models_Briefcase_Offline.html">argos/Models/Briefcase/Offline</a></li><li><a href="module-argos_Models_Manager.html">argos/Models/Manager</a></li><li><a href="module-argos_Models_RecentlyViewed_Offline.html">argos/Models/RecentlyViewed/Offline</a></li><li><a href="module-argos_Models_SDataModelBase.html">argos/Models/SDataModelBase</a></li><li><a href="module-argos_Models_Types.html">argos/Models/Types</a></li><li><a href="module-argos_Offline__DetailOfflineMixin.html">argos/Offline/_DetailOfflineMixin</a></li><li><a href="module-argos_Offline__ListOfflineMixin.html">argos/Offline/_ListOfflineMixin</a></li><li><a href="module-argos_Offline_Manager.html">argos/Offline/Manager</a></li><li><a href="module-argos_reducers.html">argos/reducers</a></li><li><a href="module-argos_RelatedViewManager.html">argos/RelatedViewManager</a></li><li><a href="module-argos_RelatedViewWidget.html">argos/RelatedViewWidget</a></li><li><a href="module-argos_RelativeDateTimePicker.html">argos/RelativeDateTimePicker</a></li><li><a href="module-argos_Scene.html">argos/Scene</a></li><li><a href="module-argos_SearchWidget.html">argos/SearchWidget</a></li><li><a href="module-argos_SelectionModel.html">argos/SelectionModel</a></li><li><a href="module-argos_SohoIcons.html">argos/SohoIcons</a></li><li><a href="module-argos_Store_PouchDB.html">argos/Store/PouchDB</a></li><li><a href="module-argos_Store_SData.html">argos/Store/SData</a></li><li><a href="module-argos_TabWidget.html">argos/TabWidget</a></li><li><a href="module-argos_TimePicker.html">argos/TimePicker</a></li><li><a href="module-argos_Toolbar.html">argos/Toolbar</a></li><li><a href="module-argos_Utility.html">argos/Utility</a></li><li><a href="module-argos_View.html">argos/View</a></li><li><a href="module-argos_Views_ConfigureQuickActions.html">argos/Views/ConfigureQuickActions</a></li><li><a href="module-argos_Views_FileSelect.html">argos/Views/FileSelect</a></li><li><a href="module-argos_Views_Link.html">argos/Views/Link</a></li><li><a href="module-argos_Views_Signature.html">argos/Views/Signature</a></li><li><a href="module-argos_WidgetBase.html">argos/WidgetBase</a></li><li><a href="module-crm_Action.html">crm/Action</a></li><li><a href="module-crm_Aggregate.html">crm/Aggregate</a></li><li><a href="module-crm_Application.html">crm/Application</a></li><li><a href="module-crm_ApplicationModule.html">crm/ApplicationModule</a></li><li><a href="module-crm_AttachmentManager.html">crm/AttachmentManager</a></li><li><a href="module-crm_Bootstrap.html">crm/Bootstrap</a></li><li><a href="module-crm_Bootstrap_localization.html">crm/Bootstrap/localization</a></li><li><a href="module-crm_Environment.html">crm/Environment</a></li><li><a href="module-crm_FileManager.html">crm/FileManager</a></li><li><a href="module-crm_Format.html">crm/Format</a></li><li><a href="module-crm_GroupUtility.html">crm/GroupUtility</a></li><li><a href="module-crm_Integrations_BOE_Aggregate.html">crm/Integrations/BOE/Aggregate</a></li><li><a href="module-crm_Integrations_BOE_Utility.html">crm/Integrations/BOE/Utility</a></li><li><a href="module-crm_MingleUtility.html">crm/MingleUtility</a></li><li><a href="module-crm_PicklistService.html">crm/PicklistService</a></li><li><a href="module-crm_Recurrence.html">crm/Recurrence</a></li><li><a href="module-crm_SalesProcessUtility.html">crm/SalesProcessUtility</a></li><li><a href="module-crm_Template.html">crm/Template</a></li><li><a href="module-crm_Utility.html">crm/Utility</a></li><li><a href="module-crm_Validator.html">crm/Validator</a></li><li><a href="module-crm_Views__GroupListMixin.html">crm/Views/_GroupListMixin</a></li><li><a href="module-crm_Views__MetricDetailMixin.html">crm/Views/_MetricDetailMixin</a></li><li><a href="module-crm_Views__MetricListMixin.html">crm/Views/_MetricListMixin</a></li><li><a href="module-crm_Views__RightDrawerBaseMixin.html">crm/Views/_RightDrawerBaseMixin</a></li><li><a href="module-crm_Views__RightDrawerListMixin.html">crm/Views/_RightDrawerListMixin</a></li><li><a href="module-crm_Views__SpeedSearchRightDrawerListMixin.html">crm/Views/_SpeedSearchRightDrawerListMixin</a></li><li><a href="module-crm_Views_Charts__ChartMixin.html">crm/Views/Charts/_ChartMixin</a></li><li><a href="module-crm_Views_Charts_GenericBar.html">crm/Views/Charts/GenericBar</a></li><li><a href="module-crm_Views_Charts_GenericLine.html">crm/Views/Charts/GenericLine</a></li><li><a href="module-crm_Views_Charts_GenericPie.html">crm/Views/Charts/GenericPie</a></li><li><a href="module-crm_Views_MetricWidget.html">crm/Views/MetricWidget</a></li><li><a href="module-crm_Views_Offline__RightDrawerListMixin.html">crm/Views/Offline/_RightDrawerListMixin</a></li><li><a href="module-crm_Views_RecentlyViewed__RightDrawerListMixin.html">crm/Views/RecentlyViewed/_RightDrawerListMixin</a></li></ul><h3>Classes</h3><ul><li><a href="module-_crm_Integrations_BOE_Aggregate.html">/crm/Integrations/BOE/Aggregate</a></li><li><a href="module-argos__ActionMixin.html">argos/_ActionMixin</a></li><li><a href="module-argos__ConfigureBase.html">argos/_ConfigureBase</a></li><li><a href="module-argos__CustomizationMixin.html">argos/_CustomizationMixin</a></li><li><a href="module-argos__DetailBase.html">argos/_DetailBase</a></li><li><a href="module-argos__DraggableBase.html">argos/_DraggableBase</a></li><li><a href="module-argos__EditBase.html">argos/_EditBase</a></li><li><a href="module-argos__LegacySDataDetailMixin.html">argos/_LegacySDataDetailMixin</a></li><li><a href="module-argos__LegacySDataEditMixin.html">argos/_LegacySDataEditMixin</a></li><li><a href="module-argos__LegacySDataListMixin.html">argos/_LegacySDataListMixin</a></li><li><a href="module-argos__ListBase.html">argos/_ListBase</a></li><li><a href="module-argos__RelatedViewWidgetBase.html">argos/_RelatedViewWidgetBase</a></li><li><a href="module-argos__SDataEditMixin.html">argos/_SDataEditMixin</a></li><li><a href="module-argos_Application.html">argos/Application</a></li><li><a href="module-argos_ApplicationModule.html">argos/ApplicationModule</a></li><li><a href="module-argos_Calendar.html">argos/Calendar</a></li><li><a href="module-argos_ConfigurableSelectionModel.html">argos/ConfigurableSelectionModel</a></li><li><a href="module-argos_Convert.html">argos/Convert</a></li><li><a href="module-argos_DateTimePicker.html">argos/DateTimePicker</a></li><li><a href="module-argos_Detail.html">argos/Detail</a></li><li><a href="module-argos_Dialogs_BusyIndicator.html">argos/Dialogs/BusyIndicator</a></li><li><a href="module-argos_Dialogs_Modal.html">argos/Dialogs/Modal</a></li><li><a href="module-argos_Dialogs_Toast.html">argos/Dialogs/Toast</a></li><li><a href="module-argos_DraggableList.html">argos/DraggableList</a></li><li><a href="module-argos_Dropdown.html">argos/Dropdown</a></li><li><a href="module-argos_Edit.html">argos/Edit</a></li><li><a href="module-argos_ErrorManager.html">argos/ErrorManager</a></li><li><a href="module-argos_FieldManager.html">argos/FieldManager</a></li><li><a href="module-argos_Fields__SignatureField.html">argos/Fields//SignatureField</a></li><li><a href="module-argos_Fields__Field.html">argos/Fields/_Field</a></li><li><a href="module-argos_Fields_BooleanField.html">argos/Fields/BooleanField</a></li><li><a href="module-argos_Fields_DateField.html">argos/Fields/DateField</a></li><li><a href="module-argos_Fields_DecimalField.html">argos/Fields/DecimalField</a></li><li><a href="module-argos_Fields_DropdownField.html">argos/Fields/DropdownField</a></li><li><a href="module-argos_Fields_DurationField.html">argos/Fields/DurationField</a></li><li><a href="module-argos_Fields_EditorField.html">argos/Fields/EditorField</a></li><li><a href="module-argos_Fields_HiddenField.html">argos/Fields/HiddenField</a></li><li><a href="module-argos_Fields_LookupField.html">argos/Fields/LookupField</a></li><li><a href="module-argos_Fields_NoteField.html">argos/Fields/NoteField</a></li><li><a href="module-argos_Fields_PhoneField.html">argos/Fields/PhoneField</a></li><li><a href="module-argos_Fields_SelectField.html">argos/Fields/SelectField</a></li><li><a href="module-argos_Fields_TextAreaField.html">argos/Fields/TextAreaField</a></li><li><a href="module-argos_Fields_TextField.html">argos/Fields/TextField</a></li><li><a href="module-argos_Format.html">argos/Format</a></li><li><a href="module-argos_GroupedList.html">argos/GroupedList</a></li><li><a href="module-argos_Groups__GroupBySection.html">argos/Groups/_GroupBySection</a></li><li><a href="module-argos_Groups_DateTimeSection.html">argos/Groups/DateTimeSection</a></li><li><a href="module-argos_Groups_GroupByValueSection.html">argos/Groups/GroupByValueSection</a></li><li><a href="module-argos_LanguageService.html">argos/LanguageService</a></li><li><a href="module-argos_List.html">argos/List</a></li><li><a href="module-argos_MainToolbar.html">argos/MainToolbar</a></li><li><a href="module-argos_Models__ModelBase.html">argos/Models/_ModelBase</a></li><li><a href="module-argos_Models__OfflineModelBase.html">argos/Models/_OfflineModelBase</a></li><li><a href="module-argos_Models_Adapter.html">argos/Models/Adapter</a></li><li><a href="module-argos_Models_Briefcase_Offline.html">argos/Models/Briefcase/Offline</a></li><li><a href="module-argos_Models_Manager.html">argos/Models/Manager</a></li><li><a href="module-argos_Models_RecentlyViewed_Offline.html">argos/Models/RecentlyViewed/Offline</a></li><li><a href="module-argos_Models_SDataModelBase.html">argos/Models/SDataModelBase</a></li><li><a href="module-argos_Offline__DetailOfflineMixin.html">argos/Offline/_DetailOfflineMixin</a></li><li><a href="module-argos_Offline__ListOfflineMixin.html">argos/Offline/_ListOfflineMixin</a></li><li><a href="module-argos_Offline_Manager.html">argos/Offline/Manager</a></li><li><a href="module-argos_RelatedViewManager.html">argos/RelatedViewManager</a></li><li><a href="module-argos_RelatedViewWidget.html">argos/RelatedViewWidget</a></li><li><a href="module-argos_RelativeDateTimePicker.html">argos/RelativeDateTimePicker</a></li><li><a href="module-argos_Scene.html">argos/Scene</a></li><li><a href="module-argos_SearchWidget.html">argos/SearchWidget</a></li><li><a href="module-argos_SelectionModel.html">argos/SelectionModel</a></li><li><a href="module-argos_Store_PouchDB.html">argos/Store/PouchDB</a></li><li><a href="module-argos_Store_SData.html">argos/Store/SData</a></li><li><a href="module-argos_TabWidget.html">argos/TabWidget</a></li><li><a href="module-argos_TimePicker.html">argos/TimePicker</a></li><li><a href="module-argos_Toolbar.html">argos/Toolbar</a></li><li><a href="module-argos_Utility.html">argos/Utility</a></li><li><a href="module-argos_View.html">argos/View</a></li><li><a href="module-argos_Views_ConfigureQuickActions.html">argos/Views/ConfigureQuickActions</a></li><li><a href="module-argos_Views_FileSelect.html">argos/Views/FileSelect</a></li><li><a href="module-argos_Views_Link.html">argos/Views/Link</a></li><li><a href="module-argos_Views_Signature.html">argos/Views/Signature</a></li><li><a href="module-argos_WidgetBase.html">argos/WidgetBase</a></li><li><a href="module-crm_Action.html">crm/Action</a></li><li><a href="module-crm_Aggregate.html">crm/Aggregate</a></li><li><a href="module-crm_Application.html">crm/Application</a></li><li><a href="module-crm_ApplicationModule.html">crm/ApplicationModule</a></li><li><a href="module-crm_AttachmentManager.html">crm/AttachmentManager</a></li><li><a href="module-crm_Environment.html">crm/Environment</a></li><li><a href="module-crm_FileManager.html">crm/FileManager</a></li><li><a href="module-crm_Format.html">crm/Format</a></li><li><a href="module-crm_GroupUtility.html">crm/GroupUtility</a></li><li><a href="module-crm_Integrations_BOE_Utility.html">crm/Integrations/BOE/Utility</a></li><li><a href="module-crm_MingleUtility.html">crm/MingleUtility</a></li><li><a href="module-crm_PicklistService.html">crm/PicklistService</a></li><li><a href="module-crm_Recurrence.html">crm/Recurrence</a></li><li><a href="module-crm_SalesProcessUtility.html">crm/SalesProcessUtility</a></li><li><a href="module-crm_Template.html">crm/Template</a></li><li><a href="module-crm_Utility.html">crm/Utility</a></li><li><a href="module-crm_Validator.html">crm/Validator</a></li><li><a href="module-crm_Views__SpeedSearchRightDrawerListMixin.html">crm/Views/_SpeedSearchRightDrawerListMixin</a></li><li><a href="module-crm_Views_Charts_GenericBar.html">crm/Views/Charts/GenericBar</a></li><li><a href="module-crm_Views_Charts_GenericLine.html">crm/Views/Charts/GenericLine</a></li><li><a href="module-crm_Views_Charts_GenericPie.html">crm/Views/Charts/GenericPie</a></li><li><a href="module-crm_Views_MetricWidget.html">crm/Views/MetricWidget</a></li></ul><h3>Mixins</h3><ul><li><a href="module-argos__PullToRefreshMixin.html">argos/_PullToRefreshMixin</a></li><li><a href="module-argos__RelatedViewWidgetDetailMixin.html">argos/_RelatedViewWidgetDetailMixin</a></li><li><a href="module-argos__RelatedViewWidgetEditMixin.html">argos/_RelatedViewWidgetEditMixin</a></li><li><a href="module-argos__RelatedViewWidgetListMixin.html">argos/_RelatedViewWidgetListMixin</a></li><li><a href="module-argos__SDataDetailMixin.html">argos/_SDataDetailMixin</a></li><li><a href="module-argos__SDataListMixin.html">argos/_SDataListMixin</a></li><li><a href="module-argos__ServiceMixin.html">argos/_ServiceMixin</a></li><li><a href="module-argos__Templated.html">argos/_Templated</a></li><li><a href="module-crm_Views__GroupListMixin.html">crm/Views/_GroupListMixin</a></li><li><a href="module-crm_Views__MetricDetailMixin.html">crm/Views/_MetricDetailMixin</a></li><li><a href="module-crm_Views__MetricListMixin.html">crm/Views/_MetricListMixin</a></li><li><a href="module-crm_Views__RightDrawerBaseMixin.html">crm/Views/_RightDrawerBaseMixin</a></li><li><a href="module-crm_Views__RightDrawerListMixin.html">crm/Views/_RightDrawerListMixin</a></li><li><a href="module-crm_Views_Charts__ChartMixin.html">crm/Views/Charts/_ChartMixin</a></li><li><a href="module-crm_Views_Offline__RightDrawerListMixin.html">crm/Views/Offline/_RightDrawerListMixin</a></li><li><a href="module-crm_Views_RecentlyViewed__RightDrawerListMixin.html">crm/Views/RecentlyViewed/_RightDrawerListMixin</a></li></ul><h3>Tutorials</h3><ul><li><a href="tutorial-amd.html">AMD - Define and Declare</a></li><li><a href="tutorial-browser_setup.html">Browser Setup / Information</a></li><li><a href="tutorial-stores.html">Data Stores</a></li><li><a href="tutorial-lifecycles.html">View Lifecycles</a></li><li><a href="tutorial-upgrading_v12_to_v20.html">Upgrading 1.2 to 2.0</a></li><li><a href="tutorial-wire_detail_to_edit.html">Wiring Detail to Edit</a></li><li><a href="tutorial-wire_list_to_detail.html">Wiring List to Detail</a></li><li><a href="tutorial-wire_list_to_edit.html">Wiring List to Edit</a></li><li><a href="tutorial-grouped_list.html">Grouped List</a></li><li><a href="tutorial-basic_auth.html">Login - Basic Authentication</a></li><li><a href="tutorial-hashtags.html">#Hashtags</a></li><li><a href="tutorial-list_actions.html">List Actions</a></li><li><a href="tutorial-quick_actions.html">Quick Actions</a></li><li><a href="tutorial-related_views.html">Related Views</a></li><li><a href="tutorial-detail_layout.html">Detail Layout</a></li><li><a href="tutorial-validation.html">Validation</a></li><li><a href="tutorial-list_search.html">List Search Widget</a></li><li><a href="tutorial-advanced_localization.html">Localization - Advanced</a></li><li><a href="tutorial-navigation.html">Navigation</a></li><li><a href="tutorial-toolbars.html">Toolbars</a></li><li><a href="tutorial-localization_detection.html">localization_detection</a></li><li><a href="tutorial-localization.html">Localization - Basic</a></li><li><a href="tutorial-overview.html">Overview</a></li><li><a href="tutorial-template_guide.html">Template Guide</a></li></ul><h3>Global</h3><ul><li><a href="global.html#defaultToAddress">defaultToAddress</a></li><li><a href="global.html#getModel">getModel</a></li><li><a href="global.html#hideFieldsForLocale">hideFieldsForLocale</a></li><li><a href="global.html#itemTemplate">itemTemplate</a></li><li><a href="global.html#localeFieldHidden">localeFieldHidden</a></li><li><a href="global.html#multiColumnClass">multiColumnClass</a></li><li><a href="global.html#multiColumnCount">multiColumnCount</a></li><li><a href="global.html#navigateToDetailView">navigateToDetailView</a></li><li><a href="global.html#pastDays">pastDays</a></li><li><a href="global.html#pastDaysLt">pastDaysLt</a></li><li><a href="global.html#picklistsByType">picklistsByType</a></li><li><a href="global.html#queryInclude">queryInclude</a></li><li><a href="global.html#queryOrderBy">queryOrderBy</a></li><li><a href="global.html#querySelect">querySelect</a></li><li><a href="global.html#queryWhere">queryWhere</a></li><li><a href="global.html#refresh">refresh</a></li><li><a href="global.html#resourceKind">resourceKind</a></li><li><a href="global.html#resourcePredicate">resourcePredicate</a></li><li><a href="global.html#resourceProperty">resourceProperty</a></li><li><a href="global.html#ROUND_MINUTES">ROUND_MINUTES</a></li><li><a href="global.html#searchText">searchText</a></li><li><a href="global.html#values">values</a></li><li><a href="global.html#widgetTemplate">widgetTemplate</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.3</a> on Fri Jan 10 2020 11:27:24 GMT-0500 (Eastern Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: argos-sdk/src/_DraggableBase.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: argos-sdk/src/_DraggableBase.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/* Copyright 2017 Infor
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/**
+ * @module argos/_DraggableBase
+ */
+import declare from 'dojo/_base/declare';
+import domGeom from 'dojo/dom-geometry';
+
+
+/**
+ * @class
+ * @alias module:argos/_DraggableBase
+ * @classdesc A base class used to enable draggable features
+ */
+const __class = declare('argos._DraggableBase', null, /** @lends module:argos/_DraggableBase.prototype */ {
+  _container: null,
+  _isScrolling: null,
+  _scrollingTouch: null,
+  _scrollDirection: null,
+  _scroller: null, // Used if the scroller is not equivalent to the container
+  _scrollerPos: null,
+  _source: null,
+  _position: null,
+  _previousElement: null,
+  _nextElement: null,
+  _type: null,
+  _class: null,
+  _parentTypeToDrag: null, // This is used when the draggable class is a child of the parent that is desired to drag (ex. a button within a div)
+  _parentClassToDrag: null,
+  _isDragging: false,
+  includeScroll: false, // This is the dojo includeScroll for dom-geometry
+  allowScroll: true, // This tells the draggable object that the container should scroll when the source is brought to the top/bottom
+  scrollSpeed: 15, // This is the scroll speed in pixels
+  scrollInterval: 16, // This is the scrolling interval in ms, using 16 you will get approximately 60fps (1000ms/60frames ~ 16.67ms/frame)
+  scrollAt: 0.15, // This is a percentage to tell the draggable value to scroll once it reaches +-scrollAt of the container height
+  zIndex: null,
+
+  // TODO: Need to add functionality for scrolling, using scrollSpeed and checking allowScroll
+
+  accountForAnimation: function accountForAnimation() {
+    if (this._previousElement) {
+      return this._position.h - $(this._previousElement).css('margin-bottom').replace('px', '') + this._source.previousMarginBottom + this._source.previousMarginTop;
+    }
+    if (this._nextElement) {
+      return this._position.h - $(this._nextElement).css('margin-top').replace('px', '') + this._source.previousMarginBottom + this._source.previousMarginTop;
+    }
+    return 0;
+  },
+  applyInitialStyling: function applyInitialStyling() {
+    const containerZ = $(this._container).css('zIndex');
+    const containerHeight = $(this._container).css('height');
+    if (!this.zIndex) {
+      if (containerZ > 0) {
+        $(this._source).css({
+          zIndex: containerZ + 1,
+        });
+      } else {
+        $(this._source).css({
+          zIndex: 8000,
+        });
+      }
+    } else {
+      $(this._source).css({
+        zIndex: this.zIndex,
+      });
+    }
+    $(this._source).css({
+      opacity: '0.6',
+      position: 'absolute',
+      width: $(this._source).css('width'),
+      top: `${this._position.y - this._position.offset}px`,
+    });
+    if (this._scroller) {
+      $(this._scroller).css({
+        overflow: 'hidden',
+      });
+    } else {
+      $(this._container).css({
+        overflow: 'hidden',
+      });
+    }
+    $(this._container).css({
+      height: `${containerHeight + this._position.h}px`,
+    });
+    this.applyStyling();
+    return this;
+  },
+  applyStyling: function applyStyling() {
+    if (!this.isScrolling) {
+      if (this._previousElement) {
+        this._previousElement.previousMargin = $(this._previousElement).css('margin-bottom').replace('px', '');
+        this.setMargins(this._previousElement, 'bottom');
+      } else {
+        this._nextElement.previousMargin = $(this._nextElement).css('margin-top').replace('px', '');
+        this.setMargins(this._nextElement, 'top');
+      }
+    }
+    return this;
+  },
+  checkAtTop: function checkAtTop(sourceTop) {
+    if (sourceTop &lt;= this._scrollerPos.offset) {
+      if (this._scroller) {
+        if (this._scroller.scrollTop &lt;= 0) {
+          return true;
+        }
+        return false;
+      }
+      if (this._container.scrollTop &lt;= 0) {
+        return true;
+      }
+    }
+    return false;
+  },
+  checkScroll: function checkScroll(touch = {}) {
+    if (touch.pageY - this._scrollerPos.offset > (this._scrollerPos.h * (1 - this.scrollAt))) {
+      this._scrollingTouch = touch;
+      if (!this._isScrolling) {
+        this._scrollDirection = 'down';
+        this._isScrolling = setInterval(this.scrollTimer.bind(this), this.scrollInterval);
+      }
+    } else if (touch.pageY &lt; this._scrollerPos.h * this.scrollAt + this._scrollerPos.offset) {
+      this._scrollingTouch = touch;
+      if (!this._isScrolling) {
+        this._scrollDirection = 'up';
+        this._isScrolling = setInterval(this.scrollTimer.bind(this), this.scrollInterval);
+      }
+    } else {
+      this.clearScrollTimer();
+    }
+    return this;
+  },
+  clearScrollTimer: function clearScrollTimer() {
+    if (this._isScrolling) {
+      clearInterval(this._isScrolling);
+      this._isScrolling = null;
+      this._scrollDirection = null;
+    }
+  },
+  clearValues: function clearValues() {
+    this._source = null;
+    this._previousElement = null;
+    this._nextElement = null;
+    this._position = null;
+    this._isDragging = false;
+    if (this._scroller) {
+      $(this._scroller).css({
+        overflow: 'auto',
+      });
+    } else {
+      $(this._container).css({
+        overflow: 'auto',
+      });
+    }
+    $(this._container).css({
+      height: '',
+    });
+    this.clearScrollTimer();
+  },
+  computeMovement: function computeMovement({ pageY }) {
+    let sourceTop = pageY - (this._position.h / 2);
+    if (this.checkAtTop(sourceTop)) {
+      sourceTop = this._position.offset;
+    }
+    this.computePrevNext(sourceTop);
+    $(this._source).css({
+      top: `${sourceTop - this._position.offset}px`,
+    });
+    this._position = this.getPositionOf(this._source);
+    return this;
+  },
+  computePrevNext: function computePrevNext(sourceTop) {
+    const sourceBot = sourceTop + this._position.h;
+    if (this._previousElement) {
+      // This is the case where the selected element is the last element of the container
+      const prevPosition = this.getPositionOf(this._previousElement);
+      if (!(sourceTop > (prevPosition.y + (prevPosition.h / 2)))) {
+        this.resetMargins(this._previousElement, 'bottom');
+        this._nextElement = this._previousElement;
+        this._previousElement = this._previousElement.previousSibling;
+        if (this._previousElement === this._source) {
+          this._previousElement = this._previousElement.previousSibling;
+        }
+        this.applyStyling();
+      } else if (this._nextElement) {
+        // This is the case where the selected element is between two elements in the container
+        const nextPosition = this.getPositionOf(this._nextElement);
+        if (!(sourceBot &lt; nextPosition.y + nextPosition.h / 2 + this.accountForAnimation())) {
+          this.resetMargins(this._previousElement, 'bottom');
+          this._previousElement = this._nextElement;
+          this._nextElement = this._nextElement.nextSibling;
+          if (this._nextElement === this._source) {
+            this._nextElement = this._nextElement.nextSibling;
+          }
+          this.applyStyling();
+        }
+      }
+    } else {
+      // This is the case where the selected element is the first in the container
+      const nextPosition = this.getPositionOf(this._nextElement);
+      if (!(sourceBot &lt; nextPosition.y + nextPosition.h / 2 + this.accountForAnimation())) {
+        this.resetMargins(this._nextElement, 'top');
+        this._previousElement = this._nextElement;
+        this._nextElement = this._nextElement.nextSibling;
+        if (this._nextElement === this._source) {
+          this._nextElement = this._nextElement.nextSibling;
+        }
+        this.applyStyling();
+      }
+    }
+  },
+  findByClass: function findByClass(element = {}, byClass = {}) {
+    if (element === this._container) {
+      return false;
+    }
+    if ($(element).hasClass(byClass)) {
+      return element;
+    }
+    return this.findByClass(element.parentNode, byClass);
+  },
+  findByType: function findByType(element = {}, byType = {}) {
+    if (element === this._container) {
+      return null;
+    }
+    if (element.localName === byType) {
+      return element;
+    }
+    return this.findByType(element.parentNode, byType);
+  },
+  findSource: function findSource(element = {}) {
+    let source;
+    if (this._class) {
+      source = this.findByClass(element, this._class);
+      if (source &amp;&amp; this._parentClassToDrag) {
+        source = this.findByClass(element, this._parentClassToDrag);
+      } else if (source &amp;&amp; this._parentTypeToDrag) {
+        source = this.findByType(element, this._parentTypeToDrag);
+      }
+    } else if (this._type) {
+      source = this.findByType(element, this._type);
+      if (source &amp;&amp; this._parentClassToDrag) {
+        source = this.findByClass(element, this._parentClassToDrag);
+      } else if (source &amp;&amp; this._parentTypeToDrag) {
+        source = this.findByType(element, this._parentTypeToDrag);
+      }
+    }
+    return source;
+  },
+  getPositionOf: function getPositionOf(element = {}) {
+    const position = domGeom.position(element, this.includeScroll);
+    if (position.y !== element.offsetTop) {
+      position.offset = position.y - element.offsetTop;
+    } else {
+      position.offset = 0;
+    }
+    return position;
+  },
+  onTouchStart: function onTouchStart(touch = {}) {
+    this._source = this.findSource(touch.target);
+    if (!this._scrollerPos) {
+      if (this._scroller) {
+        this._scrollerPos = this.getPositionOf(this._scroller);
+      } else {
+        this._scrollerPos = this.getPositionOf(this._container);
+      }
+    }
+    if (this._source) {
+      this._source.previousMarginBottom = $(this._source).css('margin-bottom').replace('px', '');
+      this._source.previousMarginTop = $(this._source).css('margin-top').replace('px', '');
+      this._position = this.getPositionOf(this._source);
+      this._previousElement = this._source.previousSibling;
+      this._nextElement = this._source.nextSibling;
+      touch.preventDefault();
+    }
+  },
+  onTouchMove: function onTouchMove(touch = {}) {
+    if (this._source) {
+      let touchMovement;
+      if (touch.type === 'mousemove') {
+        touchMovement = touch;
+      } else {
+        touchMovement = touch.changedTouches[0];
+      }
+      if (touchMovement) {
+        if (!this._isDragging) {
+          this._isDragging = true;
+          this.applyInitialStyling();
+        }
+        this.checkScroll(touchMovement);
+        this.computeMovement(touchMovement);
+      }
+    }
+  },
+  onTouchEnd: function onTouchEnd(touch = {}) {
+    if (this._source) {
+      this.placeItem(touch)
+        .removeStyling()
+        .clearValues();
+    }
+  },
+  placeItem: function placeItem() {
+    this._source = this._container.removeChild(this._source);
+    if (this._previousElement) {
+      // This accounts for when the source is between two nodes or the last element in the container
+      $(this._previousElement).after(this._source);
+    } else {
+      // This is the situation in which the source was placed as the first element of the container
+      $(this._nextElement).before(this._source);
+    }
+    $(this._source).css({
+      top: '',
+    });
+    return this;
+  },
+  removeStyling: function removeStyling() {
+    $(this._source).css({
+      opacity: '',
+      zIndex: '',
+      position: '',
+      width: '',
+    });
+    $(this._container).css({
+      overflow: '',
+    });
+    if (this._previousElement) {
+      this.resetMargins(this._previousElement, 'bottom');
+    } else {
+      this.resetMargins(this._nextElement, 'top');
+    }
+    return this;
+  },
+  resetMargins: function resetMargins(element = {}, marginType = {}) {
+    if (marginType === 'bottom') {
+      $(element).css({
+        'margin-bottom': `${element.previousMargin}px`,
+      });
+    } else if (marginType === 'top') {
+      $(element).css({
+        'margin-top': `${element.previousMargin}px`,
+      });
+    }
+    return this;
+  },
+  scrollSmooth: function scrollSmooth(toScroll = {}, speed = {}) {
+    const currentScrollTop = toScroll.scrollTop;
+    if (speed &lt; 0) {
+      if (currentScrollTop >= Math.abs(speed)) {
+        toScroll.scrollTop = currentScrollTop + speed;
+        this.computeMovement(this._scrollingTouch);
+      } else {
+        toScroll.scrollTop = 0;
+        this.clearScrollTimer();
+      }
+    } else {
+      if (toScroll.scrollHeight - currentScrollTop - toScroll.offsetHeight >= speed) {
+        toScroll.scrollTop = currentScrollTop + speed;
+        this.computeMovement(this._scrollingTouch);
+      } else {
+        toScroll.scrollTop = toScroll.scrollHeight - toScroll.offsetHeight + this._position.h;
+        this.clearScrollTimer();
+      }
+    }
+  },
+  scrollTimer: function scrollTimer() {
+    let scrollSpeed = 0;
+    if (this._scrollDirection === 'down' &amp;&amp; this._source.offsetTop &lt; this._container.lastChild.offsetTop + this._position.h &amp;&amp; this._source !== this._container.lastChild) {
+      let x = (this._scrollingTouch.pageY - this._scrollerPos.offset - this._scrollerPos.h * (1 - this.scrollAt)) / (this._scrollerPos.h * this.scrollAt); // (this._scrollerPos.h - this._scrollerPos.h * (1 - this.scrollAt))
+      if (x &lt; 0) {
+        x = 0;
+      }
+      scrollSpeed = x * x * this.scrollSpeed;
+      if (this._scroller) {
+        this.scrollSmooth(this._scroller, scrollSpeed);
+      } else {
+        this.scrollSmooth(this._container, scrollSpeed);
+      }
+    } else if (this._scrollDirection === 'up' &amp;&amp; this._position.y > this._container.firstChild.offsetTop) { // (this._scroller.scrollTop > 0 || this._container.scrollTop > 0)
+      let x = 1 - ((this._scrollingTouch.pageY - this._scrollerPos.offset) / (this._scrollerPos.h * this.scrollAt));
+      if (x &lt; 0) {
+        x = 1;
+      }
+      scrollSpeed = -1 * x * x * this.scrollSpeed;
+      if (this._scroller) {
+        this.scrollSmooth(this._scroller, scrollSpeed);
+      } else {
+        this.scrollSmooth(this._container, scrollSpeed);
+      }
+    }
+  },
+  setClass: function setClass(className = {}) {
+    this._class = className;
+    return this;
+  },
+  setMargins: function setMargins(element = {}, marginType = {}) {
+    let sourceMargins = this._source.previousMarginBottom + this._source.previousMarginTop;
+    if (!(sourceMargins > 0)) {
+      sourceMargins = 0;
+    }
+    if (marginType === 'bottom') {
+      $(element).css({
+        'margin-bottom': `${element.previousMargin + sourceMargins + this._position.h}px`,
+      });
+    } else if (marginType === 'top') {
+      $(element).css({
+        'margin-top': `${element.previousMargin + sourceMargins + this._position.h}px`,
+      });
+    }
+    return this;
+  },
+  setParentTypeToDrag: function setParentTypeToDrag(parentType = {}) {
+    this._parentTypeToDrag = parentType;
+    return this;
+  },
+  setParentClassToDrag: function setParentClassToDrag(parentClass = {}) {
+    this._parentClassToDrag = parentClass;
+  },
+  setType: function setType(type = {}) {
+    this._type = type;
+    return this;
+  },
+  setupDraggable: function setupDraggable(container = {}, scroller = {}) {
+    if (container) {
+      this._container = container;
+      if (scroller) {
+        this._scroller = scroller;
+      }
+      this._container.addEventListener('touchstart', this.onTouchStart.bind(this), false);
+      this._container.addEventListener('touchmove', this.onTouchMove.bind(this), false);
+      this._container.addEventListener('touchend', this.onTouchEnd.bind(this), false);
+      this._container.addEventListener('touchcancel', this.onTouchEnd.bind(this), false);
+      this._container.addEventListener('mousedown', this.onTouchStart.bind(this), false);
+      this._container.addEventListener('mousemove', this.onTouchMove.bind(this), false);
+      this._container.addEventListener('mouseup', this.onTouchEnd.bind(this), false);
+    }
+    return this;
+  },
+});
+
+export default __class;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-argos__ActionMixin.html">argos/_ActionMixin</a></li><li><a href="module-argos__ConfigureBase.html">argos/_ConfigureBase</a></li><li><a href="module-argos__CustomizationMixin.html">argos/_CustomizationMixin</a></li><li><a href="module-argos__DetailBase.html">argos/_DetailBase</a></li><li><a href="module-argos__DraggableBase.html">argos/_DraggableBase</a></li><li><a href="module-argos__EditBase.html">argos/_EditBase</a></li><li><a href="module-argos__LegacySDataDetailMixin.html">argos/_LegacySDataDetailMixin</a></li><li><a href="module-argos__LegacySDataEditMixin.html">argos/_LegacySDataEditMixin</a></li><li><a href="module-argos__LegacySDataListMixin.html">argos/_LegacySDataListMixin</a></li><li><a href="module-argos__ListBase.html">argos/_ListBase</a></li><li><a href="module-argos__PullToRefreshMixin.html">argos/_PullToRefreshMixin</a></li><li><a href="module-argos__RelatedViewWidgetBase.html">argos/_RelatedViewWidgetBase</a></li><li><a href="module-argos__RelatedViewWidgetDetailMixin.html">argos/_RelatedViewWidgetDetailMixin</a></li><li><a href="module-argos__RelatedViewWidgetEditMixin.html">argos/_RelatedViewWidgetEditMixin</a></li><li><a href="module-argos__RelatedViewWidgetListMixin.html">argos/_RelatedViewWidgetListMixin</a></li><li><a href="module-argos__SDataDetailMixin.html">argos/_SDataDetailMixin</a></li><li><a href="module-argos__SDataEditMixin.html">argos/_SDataEditMixin</a></li><li><a href="module-argos__SDataListMixin.html">argos/_SDataListMixin</a></li><li><a href="module-argos__ServiceMixin.html">argos/_ServiceMixin</a></li><li><a href="module-argos__Templated.html">argos/_Templated</a></li><li><a href="module-argos_actions.html">argos/actions</a></li><li><a href="module-argos_actions_connection.html">argos/actions/connection</a></li><li><a href="module-argos_Application.html">argos/Application</a></li><li><a href="module-argos_ApplicationModule.html">argos/ApplicationModule</a></li><li><a href="module-argos_Calendar.html">argos/Calendar</a></li><li><a href="module-argos_ConfigurableSelectionModel.html">argos/ConfigurableSelectionModel</a></li><li><a href="module-argos_Convert.html">argos/Convert</a></li><li><a href="module-argos_CultureInfo.html">argos/CultureInfo</a></li><li><a href="module-argos_DateTimePicker.html">argos/DateTimePicker</a></li><li><a href="module-argos_Detail.html">argos/Detail</a></li><li><a href="module-argos_Dialogs_BusyIndicator.html">argos/Dialogs/BusyIndicator</a></li><li><a href="module-argos_Dialogs_Modal.html">argos/Dialogs/Modal</a></li><li><a href="module-argos_Dialogs_Toast.html">argos/Dialogs/Toast</a></li><li><a href="module-argos_DraggableList.html">argos/DraggableList</a></li><li><a href="module-argos_Dropdown.html">argos/Dropdown</a></li><li><a href="module-argos_Edit.html">argos/Edit</a></li><li><a href="module-argos_ErrorManager.html">argos/ErrorManager</a></li><li><a href="module-argos_FieldManager.html">argos/FieldManager</a></li><li><a href="module-argos_Fields__Field.html">argos/Fields/_Field</a></li><li><a href="module-argos_Fields_BooleanField.html">argos/Fields/BooleanField</a></li><li><a href="module-argos_Fields_DateField.html">argos/Fields/DateField</a></li><li><a href="module-argos_Fields_DecimalField.html">argos/Fields/DecimalField</a></li><li><a href="module-argos_Fields_DropdownField.html">argos/Fields/DropdownField</a></li><li><a href="module-argos_Fields_DurationField.html">argos/Fields/DurationField</a></li><li><a href="module-argos_Fields_EditorField.html">argos/Fields/EditorField</a></li><li><a href="module-argos_Fields_HiddenField.html">argos/Fields/HiddenField</a></li><li><a href="module-argos_Fields_LookupField.html">argos/Fields/LookupField</a></li><li><a href="module-argos_Fields_NoteField.html">argos/Fields/NoteField</a></li><li><a href="module-argos_Fields_PhoneField.html">argos/Fields/PhoneField</a></li><li><a href="module-argos_Fields_SelectField.html">argos/Fields/SelectField</a></li><li><a href="module-argos_Fields_SignatureField.html">argos/Fields/SignatureField</a></li><li><a href="module-argos_Fields_TextAreaField.html">argos/Fields/TextAreaField</a></li><li><a href="module-argos_Fields_TextField.html">argos/Fields/TextField</a></li><li><a href="module-argos_Format.html">argos/Format</a></li><li><a href="module-argos_GroupedList.html">argos/GroupedList</a></li><li><a href="module-argos_Groups__GroupBySection.html">argos/Groups/_GroupBySection</a></li><li><a href="module-argos_Groups_DateTimeSection.html">argos/Groups/DateTimeSection</a></li><li><a href="module-argos_Groups_GroupByValueSection.html">argos/Groups/GroupByValueSection</a></li><li><a href="module-argos_I18n.html">argos/I18n</a></li><li><a href="module-argos_LanguageService.html">argos/LanguageService</a></li><li><a href="module-argos_List.html">argos/List</a></li><li><a href="module-argos_MainToolbar.html">argos/MainToolbar</a></li><li><a href="module-argos_Models__ModelBase.html">argos/Models/_ModelBase</a></li><li><a href="module-argos_Models__OfflineModelBase.html">argos/Models/_OfflineModelBase</a></li><li><a href="module-argos_Models_Adapter.html">argos/Models/Adapter</a></li><li><a href="module-argos_Models_Briefcase_Offline.html">argos/Models/Briefcase/Offline</a></li><li><a href="module-argos_Models_Manager.html">argos/Models/Manager</a></li><li><a href="module-argos_Models_RecentlyViewed_Offline.html">argos/Models/RecentlyViewed/Offline</a></li><li><a href="module-argos_Models_SDataModelBase.html">argos/Models/SDataModelBase</a></li><li><a href="module-argos_Models_Types.html">argos/Models/Types</a></li><li><a href="module-argos_Offline__DetailOfflineMixin.html">argos/Offline/_DetailOfflineMixin</a></li><li><a href="module-argos_Offline__ListOfflineMixin.html">argos/Offline/_ListOfflineMixin</a></li><li><a href="module-argos_Offline_Manager.html">argos/Offline/Manager</a></li><li><a href="module-argos_reducers.html">argos/reducers</a></li><li><a href="module-argos_RelatedViewManager.html">argos/RelatedViewManager</a></li><li><a href="module-argos_RelatedViewWidget.html">argos/RelatedViewWidget</a></li><li><a href="module-argos_RelativeDateTimePicker.html">argos/RelativeDateTimePicker</a></li><li><a href="module-argos_Scene.html">argos/Scene</a></li><li><a href="module-argos_SearchWidget.html">argos/SearchWidget</a></li><li><a href="module-argos_SelectionModel.html">argos/SelectionModel</a></li><li><a href="module-argos_SohoIcons.html">argos/SohoIcons</a></li><li><a href="module-argos_Store_PouchDB.html">argos/Store/PouchDB</a></li><li><a href="module-argos_Store_SData.html">argos/Store/SData</a></li><li><a href="module-argos_TabWidget.html">argos/TabWidget</a></li><li><a href="module-argos_TimePicker.html">argos/TimePicker</a></li><li><a href="module-argos_Toolbar.html">argos/Toolbar</a></li><li><a href="module-argos_Utility.html">argos/Utility</a></li><li><a href="module-argos_View.html">argos/View</a></li><li><a href="module-argos_Views_ConfigureQuickActions.html">argos/Views/ConfigureQuickActions</a></li><li><a href="module-argos_Views_FileSelect.html">argos/Views/FileSelect</a></li><li><a href="module-argos_Views_Link.html">argos/Views/Link</a></li><li><a href="module-argos_Views_Signature.html">argos/Views/Signature</a></li><li><a href="module-argos_WidgetBase.html">argos/WidgetBase</a></li><li><a href="module-crm_Action.html">crm/Action</a></li><li><a href="module-crm_Aggregate.html">crm/Aggregate</a></li><li><a href="module-crm_Application.html">crm/Application</a></li><li><a href="module-crm_ApplicationModule.html">crm/ApplicationModule</a></li><li><a href="module-crm_AttachmentManager.html">crm/AttachmentManager</a></li><li><a href="module-crm_Bootstrap.html">crm/Bootstrap</a></li><li><a href="module-crm_Bootstrap_localization.html">crm/Bootstrap/localization</a></li><li><a href="module-crm_Environment.html">crm/Environment</a></li><li><a href="module-crm_FileManager.html">crm/FileManager</a></li><li><a href="module-crm_Format.html">crm/Format</a></li><li><a href="module-crm_GroupUtility.html">crm/GroupUtility</a></li><li><a href="module-crm_Integrations_BOE_Aggregate.html">crm/Integrations/BOE/Aggregate</a></li><li><a href="module-crm_Integrations_BOE_Utility.html">crm/Integrations/BOE/Utility</a></li><li><a href="module-crm_MingleUtility.html">crm/MingleUtility</a></li><li><a href="module-crm_PicklistService.html">crm/PicklistService</a></li><li><a href="module-crm_Recurrence.html">crm/Recurrence</a></li><li><a href="module-crm_SalesProcessUtility.html">crm/SalesProcessUtility</a></li><li><a href="module-crm_Template.html">crm/Template</a></li><li><a href="module-crm_Utility.html">crm/Utility</a></li><li><a href="module-crm_Validator.html">crm/Validator</a></li><li><a href="module-crm_Views__GroupListMixin.html">crm/Views/_GroupListMixin</a></li><li><a href="module-crm_Views__MetricDetailMixin.html">crm/Views/_MetricDetailMixin</a></li><li><a href="module-crm_Views__MetricListMixin.html">crm/Views/_MetricListMixin</a></li><li><a href="module-crm_Views__RightDrawerBaseMixin.html">crm/Views/_RightDrawerBaseMixin</a></li><li><a href="module-crm_Views__RightDrawerListMixin.html">crm/Views/_RightDrawerListMixin</a></li><li><a href="module-crm_Views__SpeedSearchRightDrawerListMixin.html">crm/Views/_SpeedSearchRightDrawerListMixin</a></li><li><a href="module-crm_Views_Charts__ChartMixin.html">crm/Views/Charts/_ChartMixin</a></li><li><a href="module-crm_Views_Charts_GenericBar.html">crm/Views/Charts/GenericBar</a></li><li><a href="module-crm_Views_Charts_GenericLine.html">crm/Views/Charts/GenericLine</a></li><li><a href="module-crm_Views_Charts_GenericPie.html">crm/Views/Charts/GenericPie</a></li><li><a href="module-crm_Views_MetricWidget.html">crm/Views/MetricWidget</a></li><li><a href="module-crm_Views_Offline__RightDrawerListMixin.html">crm/Views/Offline/_RightDrawerListMixin</a></li><li><a href="module-crm_Views_RecentlyViewed__RightDrawerListMixin.html">crm/Views/RecentlyViewed/_RightDrawerListMixin</a></li></ul><h3>Classes</h3><ul><li><a href="module-_crm_Integrations_BOE_Aggregate.html">/crm/Integrations/BOE/Aggregate</a></li><li><a href="module-argos__ActionMixin.html">argos/_ActionMixin</a></li><li><a href="module-argos__ConfigureBase.html">argos/_ConfigureBase</a></li><li><a href="module-argos__CustomizationMixin.html">argos/_CustomizationMixin</a></li><li><a href="module-argos__DetailBase.html">argos/_DetailBase</a></li><li><a href="module-argos__DraggableBase.html">argos/_DraggableBase</a></li><li><a href="module-argos__EditBase.html">argos/_EditBase</a></li><li><a href="module-argos__LegacySDataDetailMixin.html">argos/_LegacySDataDetailMixin</a></li><li><a href="module-argos__LegacySDataEditMixin.html">argos/_LegacySDataEditMixin</a></li><li><a href="module-argos__LegacySDataListMixin.html">argos/_LegacySDataListMixin</a></li><li><a href="module-argos__ListBase.html">argos/_ListBase</a></li><li><a href="module-argos__RelatedViewWidgetBase.html">argos/_RelatedViewWidgetBase</a></li><li><a href="module-argos__SDataEditMixin.html">argos/_SDataEditMixin</a></li><li><a href="module-argos_Application.html">argos/Application</a></li><li><a href="module-argos_ApplicationModule.html">argos/ApplicationModule</a></li><li><a href="module-argos_Calendar.html">argos/Calendar</a></li><li><a href="module-argos_ConfigurableSelectionModel.html">argos/ConfigurableSelectionModel</a></li><li><a href="module-argos_Convert.html">argos/Convert</a></li><li><a href="module-argos_DateTimePicker.html">argos/DateTimePicker</a></li><li><a href="module-argos_Detail.html">argos/Detail</a></li><li><a href="module-argos_Dialogs_BusyIndicator.html">argos/Dialogs/BusyIndicator</a></li><li><a href="module-argos_Dialogs_Modal.html">argos/Dialogs/Modal</a></li><li><a href="module-argos_Dialogs_Toast.html">argos/Dialogs/Toast</a></li><li><a href="module-argos_DraggableList.html">argos/DraggableList</a></li><li><a href="module-argos_Dropdown.html">argos/Dropdown</a></li><li><a href="module-argos_Edit.html">argos/Edit</a></li><li><a href="module-argos_ErrorManager.html">argos/ErrorManager</a></li><li><a href="module-argos_FieldManager.html">argos/FieldManager</a></li><li><a href="module-argos_Fields__SignatureField.html">argos/Fields//SignatureField</a></li><li><a href="module-argos_Fields__Field.html">argos/Fields/_Field</a></li><li><a href="module-argos_Fields_BooleanField.html">argos/Fields/BooleanField</a></li><li><a href="module-argos_Fields_DateField.html">argos/Fields/DateField</a></li><li><a href="module-argos_Fields_DecimalField.html">argos/Fields/DecimalField</a></li><li><a href="module-argos_Fields_DropdownField.html">argos/Fields/DropdownField</a></li><li><a href="module-argos_Fields_DurationField.html">argos/Fields/DurationField</a></li><li><a href="module-argos_Fields_EditorField.html">argos/Fields/EditorField</a></li><li><a href="module-argos_Fields_HiddenField.html">argos/Fields/HiddenField</a></li><li><a href="module-argos_Fields_LookupField.html">argos/Fields/LookupField</a></li><li><a href="module-argos_Fields_NoteField.html">argos/Fields/NoteField</a></li><li><a href="module-argos_Fields_PhoneField.html">argos/Fields/PhoneField</a></li><li><a href="module-argos_Fields_SelectField.html">argos/Fields/SelectField</a></li><li><a href="module-argos_Fields_TextAreaField.html">argos/Fields/TextAreaField</a></li><li><a href="module-argos_Fields_TextField.html">argos/Fields/TextField</a></li><li><a href="module-argos_Format.html">argos/Format</a></li><li><a href="module-argos_GroupedList.html">argos/GroupedList</a></li><li><a href="module-argos_Groups__GroupBySection.html">argos/Groups/_GroupBySection</a></li><li><a href="module-argos_Groups_DateTimeSection.html">argos/Groups/DateTimeSection</a></li><li><a href="module-argos_Groups_GroupByValueSection.html">argos/Groups/GroupByValueSection</a></li><li><a href="module-argos_LanguageService.html">argos/LanguageService</a></li><li><a href="module-argos_List.html">argos/List</a></li><li><a href="module-argos_MainToolbar.html">argos/MainToolbar</a></li><li><a href="module-argos_Models__ModelBase.html">argos/Models/_ModelBase</a></li><li><a href="module-argos_Models__OfflineModelBase.html">argos/Models/_OfflineModelBase</a></li><li><a href="module-argos_Models_Adapter.html">argos/Models/Adapter</a></li><li><a href="module-argos_Models_Briefcase_Offline.html">argos/Models/Briefcase/Offline</a></li><li><a href="module-argos_Models_Manager.html">argos/Models/Manager</a></li><li><a href="module-argos_Models_RecentlyViewed_Offline.html">argos/Models/RecentlyViewed/Offline</a></li><li><a href="module-argos_Models_SDataModelBase.html">argos/Models/SDataModelBase</a></li><li><a href="module-argos_Offline__DetailOfflineMixin.html">argos/Offline/_DetailOfflineMixin</a></li><li><a href="module-argos_Offline__ListOfflineMixin.html">argos/Offline/_ListOfflineMixin</a></li><li><a href="module-argos_Offline_Manager.html">argos/Offline/Manager</a></li><li><a href="module-argos_RelatedViewManager.html">argos/RelatedViewManager</a></li><li><a href="module-argos_RelatedViewWidget.html">argos/RelatedViewWidget</a></li><li><a href="module-argos_RelativeDateTimePicker.html">argos/RelativeDateTimePicker</a></li><li><a href="module-argos_Scene.html">argos/Scene</a></li><li><a href="module-argos_SearchWidget.html">argos/SearchWidget</a></li><li><a href="module-argos_SelectionModel.html">argos/SelectionModel</a></li><li><a href="module-argos_Store_PouchDB.html">argos/Store/PouchDB</a></li><li><a href="module-argos_Store_SData.html">argos/Store/SData</a></li><li><a href="module-argos_TabWidget.html">argos/TabWidget</a></li><li><a href="module-argos_TimePicker.html">argos/TimePicker</a></li><li><a href="module-argos_Toolbar.html">argos/Toolbar</a></li><li><a href="module-argos_Utility.html">argos/Utility</a></li><li><a href="module-argos_View.html">argos/View</a></li><li><a href="module-argos_Views_ConfigureQuickActions.html">argos/Views/ConfigureQuickActions</a></li><li><a href="module-argos_Views_FileSelect.html">argos/Views/FileSelect</a></li><li><a href="module-argos_Views_Link.html">argos/Views/Link</a></li><li><a href="module-argos_Views_Signature.html">argos/Views/Signature</a></li><li><a href="module-argos_WidgetBase.html">argos/WidgetBase</a></li><li><a href="module-crm_Action.html">crm/Action</a></li><li><a href="module-crm_Aggregate.html">crm/Aggregate</a></li><li><a href="module-crm_Application.html">crm/Application</a></li><li><a href="module-crm_ApplicationModule.html">crm/ApplicationModule</a></li><li><a href="module-crm_AttachmentManager.html">crm/AttachmentManager</a></li><li><a href="module-crm_Environment.html">crm/Environment</a></li><li><a href="module-crm_FileManager.html">crm/FileManager</a></li><li><a href="module-crm_Format.html">crm/Format</a></li><li><a href="module-crm_GroupUtility.html">crm/GroupUtility</a></li><li><a href="module-crm_Integrations_BOE_Utility.html">crm/Integrations/BOE/Utility</a></li><li><a href="module-crm_MingleUtility.html">crm/MingleUtility</a></li><li><a href="module-crm_PicklistService.html">crm/PicklistService</a></li><li><a href="module-crm_Recurrence.html">crm/Recurrence</a></li><li><a href="module-crm_SalesProcessUtility.html">crm/SalesProcessUtility</a></li><li><a href="module-crm_Template.html">crm/Template</a></li><li><a href="module-crm_Utility.html">crm/Utility</a></li><li><a href="module-crm_Validator.html">crm/Validator</a></li><li><a href="module-crm_Views__SpeedSearchRightDrawerListMixin.html">crm/Views/_SpeedSearchRightDrawerListMixin</a></li><li><a href="module-crm_Views_Charts_GenericBar.html">crm/Views/Charts/GenericBar</a></li><li><a href="module-crm_Views_Charts_GenericLine.html">crm/Views/Charts/GenericLine</a></li><li><a href="module-crm_Views_Charts_GenericPie.html">crm/Views/Charts/GenericPie</a></li><li><a href="module-crm_Views_MetricWidget.html">crm/Views/MetricWidget</a></li></ul><h3>Mixins</h3><ul><li><a href="module-argos__PullToRefreshMixin.html">argos/_PullToRefreshMixin</a></li><li><a href="module-argos__RelatedViewWidgetDetailMixin.html">argos/_RelatedViewWidgetDetailMixin</a></li><li><a href="module-argos__RelatedViewWidgetEditMixin.html">argos/_RelatedViewWidgetEditMixin</a></li><li><a href="module-argos__RelatedViewWidgetListMixin.html">argos/_RelatedViewWidgetListMixin</a></li><li><a href="module-argos__SDataDetailMixin.html">argos/_SDataDetailMixin</a></li><li><a href="module-argos__SDataListMixin.html">argos/_SDataListMixin</a></li><li><a href="module-argos__ServiceMixin.html">argos/_ServiceMixin</a></li><li><a href="module-argos__Templated.html">argos/_Templated</a></li><li><a href="module-crm_Views__GroupListMixin.html">crm/Views/_GroupListMixin</a></li><li><a href="module-crm_Views__MetricDetailMixin.html">crm/Views/_MetricDetailMixin</a></li><li><a href="module-crm_Views__MetricListMixin.html">crm/Views/_MetricListMixin</a></li><li><a href="module-crm_Views__RightDrawerBaseMixin.html">crm/Views/_RightDrawerBaseMixin</a></li><li><a href="module-crm_Views__RightDrawerListMixin.html">crm/Views/_RightDrawerListMixin</a></li><li><a href="module-crm_Views_Charts__ChartMixin.html">crm/Views/Charts/_ChartMixin</a></li><li><a href="module-crm_Views_Offline__RightDrawerListMixin.html">crm/Views/Offline/_RightDrawerListMixin</a></li><li><a href="module-crm_Views_RecentlyViewed__RightDrawerListMixin.html">crm/Views/RecentlyViewed/_RightDrawerListMixin</a></li></ul><h3>Tutorials</h3><ul><li><a href="tutorial-amd.html">AMD - Define and Declare</a></li><li><a href="tutorial-browser_setup.html">Browser Setup / Information</a></li><li><a href="tutorial-stores.html">Data Stores</a></li><li><a href="tutorial-lifecycles.html">View Lifecycles</a></li><li><a href="tutorial-upgrading_v12_to_v20.html">Upgrading 1.2 to 2.0</a></li><li><a href="tutorial-wire_detail_to_edit.html">Wiring Detail to Edit</a></li><li><a href="tutorial-wire_list_to_detail.html">Wiring List to Detail</a></li><li><a href="tutorial-wire_list_to_edit.html">Wiring List to Edit</a></li><li><a href="tutorial-grouped_list.html">Grouped List</a></li><li><a href="tutorial-basic_auth.html">Login - Basic Authentication</a></li><li><a href="tutorial-hashtags.html">#Hashtags</a></li><li><a href="tutorial-list_actions.html">List Actions</a></li><li><a href="tutorial-quick_actions.html">Quick Actions</a></li><li><a href="tutorial-related_views.html">Related Views</a></li><li><a href="tutorial-detail_layout.html">Detail Layout</a></li><li><a href="tutorial-validation.html">Validation</a></li><li><a href="tutorial-list_search.html">List Search Widget</a></li><li><a href="tutorial-advanced_localization.html">Localization - Advanced</a></li><li><a href="tutorial-navigation.html">Navigation</a></li><li><a href="tutorial-toolbars.html">Toolbars</a></li><li><a href="tutorial-localization_detection.html">localization_detection</a></li><li><a href="tutorial-localization.html">Localization - Basic</a></li><li><a href="tutorial-overview.html">Overview</a></li><li><a href="tutorial-template_guide.html">Template Guide</a></li></ul><h3>Global</h3><ul><li><a href="global.html#defaultToAddress">defaultToAddress</a></li><li><a href="global.html#getModel">getModel</a></li><li><a href="global.html#hideFieldsForLocale">hideFieldsForLocale</a></li><li><a href="global.html#itemTemplate">itemTemplate</a></li><li><a href="global.html#localeFieldHidden">localeFieldHidden</a></li><li><a href="global.html#multiColumnClass">multiColumnClass</a></li><li><a href="global.html#multiColumnCount">multiColumnCount</a></li><li><a href="global.html#navigateToDetailView">navigateToDetailView</a></li><li><a href="global.html#pastDays">pastDays</a></li><li><a href="global.html#pastDaysLt">pastDaysLt</a></li><li><a href="global.html#picklistsByType">picklistsByType</a></li><li><a href="global.html#queryInclude">queryInclude</a></li><li><a href="global.html#queryOrderBy">queryOrderBy</a></li><li><a href="global.html#querySelect">querySelect</a></li><li><a href="global.html#queryWhere">queryWhere</a></li><li><a href="global.html#refresh">refresh</a></li><li><a href="global.html#resourceKind">resourceKind</a></li><li><a href="global.html#resourcePredicate">resourcePredicate</a></li><li><a href="global.html#resourceProperty">resourceProperty</a></li><li><a href="global.html#ROUND_MINUTES">ROUND_MINUTES</a></li><li><a href="global.html#searchText">searchText</a></li><li><a href="global.html#values">values</a></li><li><a href="global.html#widgetTemplate">widgetTemplate</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.3</a> on Fri Jan 10 2020 11:27:24 GMT-0500 (Eastern Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

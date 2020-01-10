@@ -1,0 +1,1400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: argos-sdk/src/_EditBase.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: argos-sdk/src/_EditBase.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/* Copyright (c) 2010, Sage Software, Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+/**
+ * @module argos/_EditBase
+ */
+import declare from 'dojo/_base/declare';
+import lang from 'dojo/_base/lang';
+import connect from 'dojo/_base/connect';
+import when from 'dojo/when';
+import utility from './Utility';
+import ErrorManager from './ErrorManager';
+import FieldManager from './FieldManager';
+import View from './View';
+import getResource from './I18n';
+
+import './Fields/BooleanField';
+import './Fields/DateField';
+import './Fields/DecimalField';
+import './Fields/DropdownField';
+import './Fields/DurationField';
+import './Fields/HiddenField';
+import './Fields/LookupField';
+import './Fields/NoteField';
+import './Fields/PhoneField';
+import './Fields/SelectField';
+import './Fields/SignatureField';
+import './Fields/TextAreaField';
+import './Fields/TextField';
+
+const resource = getResource('editBase');
+
+const __class = declare('argos._EditBase', [View], /** @lends module:argos/_EditBase */{
+  /**
+   * @property {Object}
+   * Creates a setter map to html nodes, namely:
+   *
+   * * validationContent => validationContentNode's innerHTML
+   *
+   */
+  attributeMap: {
+    validationContent: {
+      node: 'validationContentNode',
+      type: 'innerHTML',
+    },
+    concurrencyContent: {
+      node: 'concurrencyContentNode',
+      type: 'innerHTML',
+    },
+    title: View.prototype.attributeMap.title,
+    selected: View.prototype.attributeMap.selected,
+  },
+  /**
+   * @property {Simplate}
+   * The template used to render the view's main DOM element when the view is initialized.
+   * This template includes loadingTemplate and validationSummaryTemplate.
+   *
+   * The default template uses the following properties:
+   *
+   *      name                description
+   *      ----------------------------------------------------------------
+   *      id                   main container div id
+   *      title                main container div title attr
+   *      cls                  additional class string added to the main container div
+   *      resourceKind         set to data-resource-kind
+   *
+   */
+  widgetTemplate: new Simplate([
+    '&lt;div id="{%= $.id %}" data-title="{%: $.titleText %}" class="edit panel scrollable {%= $.cls %}" {% if ($.resourceKind) { %}data-resource-kind="{%= $.resourceKind %}"{% } %}>',
+    '{%! $.loadingTemplate %}',
+    '{%! $.validationSummaryTemplate %}',
+    '{%! $.concurrencySummaryTemplate %}',
+    '&lt;div data-dojo-attach-point="contentNode">&lt;/div>',
+    '&lt;/div>',
+  ]),
+  /**
+   * @property {Simplate}
+   * HTML shown when data is being loaded.
+   *
+   * `$` => the view instance
+   */
+  loadingTemplate: new Simplate([
+    '&lt;fieldset class="panel-loading-indicator">',
+    '&lt;div class="busy-indicator-container" aria-live="polite">',
+    '&lt;div class="busy-indicator active">',
+    '&lt;div class="bar one">&lt;/div>',
+    '&lt;div class="bar two">&lt;/div>',
+    '&lt;div class="bar three">&lt;/div>',
+    '&lt;div class="bar four">&lt;/div>',
+    '&lt;div class="bar five">&lt;/div>',
+    '&lt;/div>',
+    '&lt;span>{%: $.loadingText %}&lt;/span>',
+    '&lt;/div>',
+    '&lt;/fieldset>',
+  ]),
+  /**
+   * @property {Simplate}
+   * HTML for the validation summary area, this div is shown/hidden as needed.
+   *
+   * `$` => the view instance
+   */
+  validationSummaryTemplate: new Simplate([
+    '&lt;div class="panel-validation-summary">',
+    '&lt;h3>{%: $.validationSummaryText %}&lt;/h3>',
+    '&lt;ul class="panel-validation-messages" data-dojo-attach-point="validationContentNode">',
+    '&lt;/ul>',
+    '&lt;/div>',
+  ]),
+  /**
+   * @property {Simplate}
+   * HTML for the concurrency error area, this div is shown/hidden as needed.
+   *
+   * `$` => the view instance
+   */
+  concurrencySummaryTemplate: new Simplate([
+    '&lt;div class="panel-concurrency-summary">',
+    '&lt;h3>{%: $.concurrencySummaryText %}&lt;/h3>',
+    '&lt;ul data-dojo-attach-point="concurrencyContentNode">',
+    '&lt;/ul>',
+    '&lt;/div>',
+  ]),
+  /**
+   * @property {Simplate}
+   * HTML shown when data is being loaded.
+   *
+   * * `$` => validation error object
+   * * `$$` => field instance that the error is on
+   */
+  validationSummaryItemTemplate: new Simplate([
+    '&lt;li>&lt;p>',
+    '&lt;a class="hyperlink" href="#{%= $.name %}">',
+    '&lt;b>{%: $$.label %}&lt;/b>: {%: $.message %}',
+    '&lt;/a>&lt;/p>&lt;/li>',
+  ]),
+  /**
+   * @property {Simplate}
+   * * `$` => validation error object
+   */
+  concurrencySummaryItemTemplate: new Simplate([
+    '&lt;li>&lt;p>&lt;b>{%: $$.name %}&lt;/b>: {%: $.message %}&lt;/p>&lt;/li>',
+  ]),
+  /**
+   * @property {Simplate}
+   * HTML that starts a new section including the collapsible header
+   *
+   * `$` => the view instance
+   */
+  sectionBeginTemplate: new Simplate([
+    `&lt;div class="accordion">
+      &lt;div class="accordion-header is-selected">
+        &lt;a href="#">&lt;span>{%: ($.title || $.options.title) %}&lt;/span>&lt;/a>
+      &lt;/div>
+      &lt;div class="accordion-pane">
+        &lt;fieldset class="accordion-content {%= ($.cls || $.options.cls) %}">
+    `,
+  ]),
+  /**
+   * @property {Simplate}
+   * HTML that ends a section
+   *
+   * `$` => the view instance
+   */
+  sectionEndTemplate: new Simplate([
+    '&lt;/fieldset>&lt;/div>&lt;/div>',
+  ]),
+  /**
+   * @property {Simplate}
+   * HTML created for each property (field row).
+   *
+   * * `$` => the field row object defined in {@link #createLayout createLayout}.
+   * * `$$` => the view instance
+   */
+  propertyTemplate: new Simplate([
+    '&lt;a name="{%= $.name || $.property %}">&lt;/a>',
+    '&lt;div class="row-edit {%= $.cls %}{% if ($.readonly) { %}row-readonly{% } %}" data-field="{%= $.name || $.property %}" data-field-type="{%= $.type %}">',
+    '&lt;/div>',
+  ]),
+
+  /**
+   * @cfg {String}
+   * The unique identifier of the view
+   */
+  id: 'generic_edit',
+  store: null,
+  /**
+   * @property {Object}
+   * The layout definition that constructs the detail view with sections and rows
+   */
+  layout: null,
+  /**
+   * @cfg {Boolean}
+   * Enables the use of the customization engine on this view instance
+   */
+  enableCustomizations: true,
+  /**
+   * @property {String}
+   * The customization identifier for this class. When a customization is registered it is passed
+   * a path/identifier which is then matched to this property.
+   */
+  customizationSet: 'edit',
+  /**
+   * @cfg {Boolean}
+   * Controls if the view should be exposed
+   */
+  expose: false,
+  /**
+   * @cfg {String/Object}
+   * May be used for verifying the view is accessible for creating entries
+   */
+  insertSecurity: false,
+  /**
+   * @cfg {String/Object}
+   * May be used for verifying the view is accessible for editing entries
+   */
+  updateSecurity: false,
+
+  viewType: 'edit',
+
+  /**
+   * @deprecated
+   */
+  saveText: resource.saveText,
+  /**
+   * @cfg {String}
+   * Default title text shown in the top toolbar
+   */
+  titleText: resource.titleText,
+  /**
+   * @cfg {String}
+   * The text placed in the header when there are validation errors
+   */
+  validationSummaryText: resource.validationSummaryText,
+  /**
+   * @cfg {String}
+   * The text placed in the header when there are validation errors
+   */
+  concurrencySummaryText: resource.concurrencySummaryText,
+  /**
+   * @property {String}
+   * Default text used in the section header
+   */
+  detailsText: resource.detailsText,
+  /**
+   * @property {String}
+   * Text shown while the view is loading.
+   */
+  loadingText: resource.loadingText,
+  /**
+   * @property {Object}
+   * Localized error messages. One general error message, and messages by HTTP status code.
+   */
+  errorText: {
+    general: resource.errorGeneral,
+    status: {
+      410: resource.error401,
+    },
+  },
+  /**
+   * @property {String}
+   * Text alerted to user when the data has been updated since they last fetched the data.
+   */
+  concurrencyErrorText: resource.concurrencyErrorText,
+  /**
+   * @property {String}
+   * ARIA label text for a collapsible section header
+   */
+  toggleCollapseText: resource.toggleCollapseText,
+  /**
+   * @property {Object}
+   * Collection of the fields in the layout where the key is the `name` of the field.
+   */
+  fields: null,
+  /**
+   * @property {Object}
+   * The saved data response.
+   */
+  entry: null,
+  /**
+   * @property {Boolean}
+   * Flags if the view is in "insert" (create) mode, or if it is in "update" (edit) mode.
+   */
+  inserting: null,
+
+  _focusField: null,
+  _hasFocused: false,
+  /**
+   * @property {Boolean}
+   * Flags if the view is multi column or single column.
+   */
+  multiColumnView: true,
+  /**
+   * @property {string}
+   * SoHo class to be applied on multi column.
+   */
+  multiColumnClass: 'four',
+  /**
+   * @property {number}
+   * Number of columns in view
+   */
+  multiColumnCount: 3,
+  /**
+   * @property {String}
+   * Text shown in the top toolbar save button
+   */
+  saveTooltipText: resource.saveTooltipText,
+  /**
+   * @property {String}
+   * Text shown in the top toolbar cancel button
+   */
+  cancelTooltipText: resource.cancelTooltipText,
+
+  /**
+   * @class
+   * @alias module:argos/_EditBase
+   * @classdesc An Edit View is a dual purpose view - used for both Creating and Updating records. It is comprised
+   * of a layout similar to Detail rows but are instead Edit fields.
+   *
+   * A unique part of the Edit view is it's lifecycle in comparison to Detail. The Detail view is torn
+   * down and rebuilt with every record. With Edit the form is emptied (HTML left in-tact) and new values
+   * are applied to the fields.
+   *
+   * Since Edit Views are typically the "last" view (you always come from a List or Detail view) it warrants
+   * special attention to the navigation options that are passed, as they greatly control how the Edit view
+   * functions and operates.
+   * @extends module:argos/View
+   * @param {Object} options
+   */
+  constructor: function constructor(/* o*/) {
+    this.fields = {};
+  },
+  /**
+   * When the app is started this fires, the Edit view renders its layout immediately, then
+   * renders each field instance.
+   *
+   * On refresh it will clear the values, but leave the layout intact.
+   *
+   */
+  startup: function startup() {
+    this.inherited(startup, arguments);
+    this.processLayout(this._createCustomizedLayout(this.createLayout()));
+
+    $('div[data-field]', this.contentNode)
+      .each((i, node) => {
+        const name = $(node).attr('data-field');
+        const field = this.fields[name];
+        if (field) {
+          $(field.domNode).addClass('field');
+          field.renderTo(node);
+        }
+      });
+  },
+  /**
+   * Extends init to also init the fields in `this.fields`.
+   */
+  init: function init() {
+    this.inherited(init, arguments);
+
+    for (const name in this.fields) {
+      if (this.fields.hasOwnProperty(name)) {
+        this.fields[name].init();
+      }
+    }
+  },
+  /**
+   * Sets and returns the toolbar item layout definition, this method should be overriden in the view
+   * so that you may define the views toolbar items.
+   *
+   * By default it adds a save button bound to `this.save()` and cancel that fires `ReUI.back()`
+   *
+   * @return {Object} this.tools
+   * @template
+   */
+  createToolLayout: function createToolLayout() {
+    const tbar = [{
+      id: 'save',
+      action: 'save',
+      svg: 'save',
+      title: this.saveText,
+      security: this.options &amp;&amp; this.options.insert ? this.insertSecurity : this.updateSecurity,
+    }];
+
+    if (!App.isOnFirstView()) {
+      tbar.unshift({
+        id: 'cancel',
+        svg: 'cancel',
+        title: this.cancelTooltipText,
+        side: 'left',
+        action: 'onToolCancel',
+      });
+    }
+
+    return this.tools || (this.tools = {
+      tbar,
+    });
+  },
+  onToolCancel: function onToolCancel() {
+    this.refreshRequired = true;
+    ReUI.back();
+  },
+  _getStoreAttr: function _getStoreAttr() {
+    return this.store || (this.store = this.createStore());
+  },
+  /**
+   * Handler for a fields on show event.
+   *
+   * Removes the row-hidden css class.
+   *
+   * @param {_Field} field Field instance that is being shown
+   */
+  _onShowField: function _onShowField(field) {
+    $(field.containerNode).removeClass('row-hidden');
+    $(field.containerNode).parent().removeClass('display-none');
+  },
+  /**
+   * Handler for a fields on hide event.
+   *
+   * Adds the row-hidden css class.
+   *
+   * @param {_Field} field Field instance that is being hidden
+   */
+  _onHideField: function _onHideField(field) {
+    $(field.containerNode).addClass('row-hidden');
+    $(field.containerNode).parent().addClass('display-none');
+  },
+  /**
+   * Handler for a fields on enable event.
+   *
+   * Removes the row-disabled css class.
+   *
+   * @param {_Field} field Field instance that is being enabled
+   */
+  _onEnableField: function _onEnableField(field) {
+    $(field.containerNode).removeClass('row-disabled');
+  },
+  /**
+   * Handler for a fields on disable event.
+   *
+   * Adds the row-disabled css class.
+   *
+   * @param {_Field} field Field instance that is being disabled
+   */
+  _onDisableField: function _onDisableField(field) {
+    $(field.containerNode).addClass('row-disabled');
+  },
+  /**
+   * Extends invokeAction to first look for the specified function name on the field instance
+   * first before passing it to the view.
+   * @param {String} name Name of the function to invoke
+   * @param {Object} parameters Parameters of the function to be passed
+   * @param {Event} evt The original click/tap event
+   * @param {HTMLElement} node The node that initiated the event
+   * @return {Function} Either calls the fields action or returns the inherited version which looks at the view for the action
+   */
+  invokeAction: function invokeAction(name, parameters, evt, node) {
+    const fieldNode = $(node, this.contentNode).parents('[data-field]');
+    const field = this.fields[fieldNode.length > 0 &amp;&amp; fieldNode.first().attr('data-field')];
+
+    if (field &amp;&amp; typeof field[name] === 'function') {
+      return field[name].apply(field, [parameters, evt, node]);
+    }
+
+    return this._ActionMixin.invokeAction(name, parameters, evt, node);
+  },
+  /**
+   * Determines if a field has defined on it the supplied name as a function
+   * @param {String} name Name of the function to test for
+   * @param {Event} evt The original click/tap event
+   * @param {HTMLElement} node The node that initiated the event
+   * @return {Boolean} If the field has the named function defined
+   */
+  hasAction: function hasAction(name, evt, node) {
+    const fieldNode = $(node, this.contentNode).parents('[data-field]');
+    const field = fieldNode &amp;&amp; this.fields[fieldNode.length > 0 &amp;&amp; fieldNode.first().attr('data-field')];
+
+    if (field &amp;&amp; typeof field[name] === 'function') {
+      return true;
+    }
+
+    return this._ActionMixin.hasAction(name, evt, node);
+  },
+  createStore: function createStore() {
+    return null;
+  },
+  onContentChange: function onContentChange() {},
+  processEntry: function processEntry(entry) {
+    return entry;
+  },
+  /**
+   * Pre-processes the entry before processEntry runs.
+   * @param {Object} entry data
+   * @return {Object} entry with actual Date objects
+   */
+  convertEntry: function convertEntry(entry) {
+    return entry;
+  },
+  processFieldLevelSecurity: function processFieldLevelSecurity(entry) { // eslint-disable-line
+  },
+  processData: function processData(entry) {
+    this.entry = this.processEntry(this.convertEntry(entry || {})) || {};
+    this.processFieldLevelSecurity(this.entry);
+
+    this.setValues(entry, true);
+
+    // Re-apply changes saved from concurrency/precondition failure
+    if (this.previousValuesAll) {
+      // Make a copy of the current values, so we can diff them
+      const currentValues = this.getValues(true);
+      const diffs = this.diffs(this.previousValuesAll, currentValues);
+
+      if (diffs.length > 0) {
+        diffs.forEach(function forEach(val) {
+          this.errors.push({
+            name: val,
+            message: this.concurrencyErrorText,
+          });
+        }, this);
+
+        this.showConcurrencySummary();
+      } else {
+        // No diffs found, attempt to re-save
+        this.save();
+      }
+
+      this.previousValuesAll = null;
+    }
+
+    // Re-apply any passed changes as they may have been overwritten
+    if (this.options.changes) {
+      this.changes = this.options.changes;
+      this.setValues(this.changes);
+    }
+  },
+  _onGetComplete: function _onGetComplete(entry) {
+    try {
+      if (entry) {
+        this.processData(entry);
+      } else { // eslint-disable-line
+        /* todo: show error message? */
+      }
+
+      $(this.domNode).removeClass('panel-loading');
+
+      /* this must take place when the content is visible */
+      this.onContentChange();
+    } catch (e) {
+      console.error(e); // eslint-disable-line
+    }
+  },
+  _onGetError: function _onGetError(getOptions, error) {
+    this.handleError(error);
+    $(this.domNode).removeClass('panel-loading');
+  },
+  /**
+   * Sets and returns the Edit view layout by following a standard for section and field:
+   *
+   * The `this.layout` itself is an array of section objects where a section object is defined as such:
+   *
+   *     {
+   *        name: 'String', // Required. unique name for identification/customization purposes
+   *        title: 'String', // Required. Text shown in the section header
+   *        children: [], // Array of child row objects
+   *     }
+   *
+   * A child row object has:
+   *
+   *     {
+   *        name: 'String', // Required. unique name for identification/customization purposes
+   *        property: 'String', // Optional. The property of the current entity to bind to
+   *        label: 'String', // Optional. Text shown in the label to the left of the property
+   *        type: 'String', // Required. The field type as registered with the FieldManager.
+   *        // Examples of type: 'text', 'decimal', 'date', 'lookup', 'select', 'duration'
+   *        'default': value // Optional. If defined the value will be set as the default "unmodified" value (not dirty).
+   *     }
+   *
+   * All further properties are set by their respective type, please see the individual field for
+   * its configurable options.
+   *
+   * @return {Object[]} Edit layout definition
+   */
+  createLayout: function createLayout() {
+    return this.layout || [];
+  },
+
+  createErrorHandlers: function createErrorHandlers() {
+    this.errorHandlers = this.errorHandlers || [{
+      name: 'PreCondition',
+      test: function testPreCondition(error) {
+        return error &amp;&amp; error.status === this.HTTP_STATUS.PRECONDITION_FAILED;
+      },
+      handle: function handlePreCondition(error, next) {
+        next(); // Invoke the next error handler first, the refresh will change a lot of mutable/shared state
+
+        // Preserve our current form values (all of them),
+        // and reload the view to fetch the new data.
+        this.previousValuesAll = this.getValues(true);
+        this.options.key = this.entry.$key; // Force a fetch by key
+        delete this.options.entry; // Remove this, or the form will load the entry that came from the detail view
+        this.refresh();
+      },
+    }, {
+      name: 'AlertError',
+      test: function testAlert(error) {
+        return error.status !== this.HTTP_STATUS.PRECONDITION_FAILED;
+      },
+      handle: function handleAlert(error, next) {
+        alert(this.getErrorMessage(error)); // eslint-disable-line
+        next();
+      },
+    }, {
+      name: 'CatchAll',
+      test: function testCatchAll() {
+        return true;
+      },
+      handle: function handleCatchAll(error, next) {
+        const fromContext = this.options.fromContext;
+        this.options.fromContext = null;
+        const errorItem = {
+          serverError: error,
+        };
+
+        ErrorManager.addError(this.getErrorMessage(error), errorItem);
+        this.options.fromContext = fromContext;
+        next();
+      },
+    }];
+
+    return this.errorHandlers;
+  },
+  /**
+   *
+   * Returns the view key
+   * @return {String} View key
+   */
+  getTag: function getTag() {
+    let tag = this.options &amp;&amp; this.options.entry &amp;&amp; this.options.entry[this.idProperty];
+    if (!tag) {
+      tag = this.options &amp;&amp; this.options.key;
+    }
+
+    return tag;
+  },
+  processLayout: function processLayout(layout) {
+    const rows = (layout.children || layout.as || layout);
+    const sectionQueue = [];
+    const content = [];
+    let sectionStarted = false;
+    let current;
+
+    if (!layout.options) {
+      layout.options = {
+        title: this.detailsText,
+      };
+    }
+    for (let i = 0; i &lt; rows.length; i++) {
+      current = rows[i];
+
+      if (current.children || current.as) {
+        if (sectionStarted) {
+          sectionQueue.push(current);
+        } else {
+          this.processLayout(current);
+        }
+
+        continue;
+      }
+
+      if (!sectionStarted) {
+        sectionStarted = true;
+        content.push(this.sectionBeginTemplate.apply(layout, this));
+        content.push('&lt;div class="row edit-row">');
+      }
+
+      this.createRowContent(current, content);
+    }
+    content.push('&lt;/div>');
+    content.push(this.sectionEndTemplate.apply(layout, this));
+    const sectionNode = $(content.join(''));
+    sectionNode.accordion();
+    this.onApplySectionNode(sectionNode.get(0), current);
+    $(this.contentNode).append(sectionNode);
+
+    for (let i = 0; i &lt; sectionQueue.length; i++) {
+      current = sectionQueue[i];
+
+      this.processLayout(current);
+    }
+  },
+  onApplySectionNode: function onApplySectionNode(/* sectionNode, layout*/) {},
+  createRowContent: function createRowContent(layout, content) {
+    const Ctor = FieldManager.get(layout.type);
+    if (Ctor) {
+      const field = this.fields[layout.name || layout.property] = new Ctor(lang.mixin({
+        owner: this,
+      }, layout));
+
+      const template = field.propertyTemplate || this.propertyTemplate;
+
+      if (field.autoFocus &amp;&amp; !this._focusField) {
+        this._focusField = field;
+      } else if (field.autoFocus &amp;&amp; this._focusField) {
+        throw new Error('Only one field can have autoFocus set to true in the Edit layout.');
+      }
+
+      this.connect(field, 'onShow', this._onShowField);
+      this.connect(field, 'onHide', this._onHideField);
+      this.connect(field, 'onEnable', this._onEnableField);
+      this.connect(field, 'onDisable', this._onDisableField);
+
+      if (this.multiColumnView) {
+        let hidden = '';
+        if (field.type === 'hidden') {
+          hidden = 'display-none';
+        }
+        content.push(`&lt;div class="${this.multiColumnClass} columns ${hidden}">`);
+      }
+      content.push(template.apply(field, this));
+      if (this.multiColumnView) {
+        content.push('&lt;/div>');
+      }
+    }
+  },
+  /**
+   * Initiates the request.
+   */
+  requestData: function requestData() {
+    const store = this.get('store');
+
+    if (this._model) {
+      return this.requestDataUsingModel().then((data) => {
+        this._onGetComplete(data);
+      }, (err) => {
+        this._onGetError(null, err);
+      });
+    } else if (store) {
+      const getOptions = {};
+
+      this._applyStateToGetOptions(getOptions);
+
+      const getExpression = this._buildGetExpression() || null;
+      const getResults = this.requestDataUsingStore(getExpression, getOptions);
+
+      when(getResults,
+        this._onGetComplete.bind(this),
+        this._onGetError.bind(this, getOptions)
+      );
+
+      return getResults;
+    }
+
+    console.warn('Error requesting data, no model or store was defined. Did you mean to mixin _SDataEditMixin to your edit view?'); // eslint-disable-line
+  },
+  requestDataUsingModel: function requestDataUsingModel() {
+    return this._model.getEntry(this.options);
+  },
+  requestDataUsingStore: function requestDataUsingStore(getExpression, getOptions) {
+    const store = this.get('store');
+    return store.get(getExpression, getOptions);
+  },
+  /**
+   * Loops all the fields looking for any with the `default` property set, if set apply that
+   * value as the initial value of the field. If the value is a function, its expanded then applied.
+   */
+  applyFieldDefaults: function applyFieldDefaults() {
+    for (const name in this.fields) {
+      if (this.fields.hasOwnProperty(name)) {
+        const field = this.fields[name];
+        const defaultValue = field.default;
+
+        if (typeof defaultValue === 'undefined') {
+          continue;
+        }
+
+        field.setValue(this.expandExpression(defaultValue, field));
+      }
+    }
+  },
+  /**
+   * Loops all fields and calls its `clearValue()`.
+   */
+  clearValues: function clearValues() {
+    for (const name in this.fields) {
+      if (this.fields.hasOwnProperty(name)) {
+        this.fields[name].clearValue();
+      }
+    }
+  },
+  /**
+   * Sets the given values by looping the fields and checking if the field property matches
+   * a key in the passed values object (after considering a fields `applyTo`).
+   *
+   * The value set is then passed the initial state, true for default/unmodified/clean and false
+   * for dirty or altered.
+   *
+   * @param {Object} values data entry, or collection of key/values where key matches a fields property attribute
+   * @param {Boolean} initial Initial state of the value, true for clean, false for dirty
+   */
+  setValues: function setValues(values, initial) {
+    const noValue = {};
+
+    for (const name in this.fields) {
+      if (this.fields.hasOwnProperty(name)) {
+        const field = this.fields[name];
+        let value;
+        // for now, explicitly hidden fields (via. the field.hide() method) are not included
+        if (field.isHidden()) {
+          continue;
+        }
+
+        if (field.applyTo !== false) {
+          value = utility.getValue(values, field.applyTo, noValue);
+        } else {
+          value = utility.getValue(values, field.property || name, noValue);
+        }
+
+        // fyi: uses the fact that ({} !== {})
+        if (value !== noValue) {
+          field.setValue(value, initial);
+          $(field.containerNode).removeClass('row-error');
+        }
+      }
+    }
+  },
+  /**
+   * Retrieves the value from every field, skipping the ones excluded, and merges them into a
+   * single payload with the key being the fields `property` attribute, taking into consideration `applyTo` if defined.
+   *
+   * If all is passed as true, it also grabs hidden and unmodified (clean) values.
+   *
+   * @param {Boolean} all True to also include hidden and unmodified values.
+   * @return {Object} A single object payload with all the values.
+   */
+  getValues: function getValues(all) {
+    const payload = {};
+    let empty = true;
+
+    for (const name in this.fields) {
+      if (this.fields.hasOwnProperty(name)) {
+        const field = this.fields[name];
+        const value = field.getValue();
+
+        const include = this.expandExpression(field.include, value, field, this);
+        const exclude = this.expandExpression(field.exclude, value, field, this);
+
+        /**
+         * include:
+         *   true: always include value
+         *   false: always exclude value
+         * exclude:
+         *   true: always exclude value
+         *   false: default handling
+         */
+        if (include !== undefined &amp;&amp; !include) {
+          continue;
+        }
+        if (exclude !== undefined &amp;&amp; exclude) {
+          continue;
+        }
+
+        // for now, explicitly hidden fields (via. the field.hide() method) are not included
+        if (all || ((field.alwaysUseValue || field.isDirty() || include) &amp;&amp; !field.isHidden())) {
+          if (field.applyTo !== false) {
+            if (typeof field.applyTo === 'function') {
+              if (typeof value === 'object') {
+                // Copy the value properties into our payload object
+                for (const prop in value) {
+                  if (value.hasOwnProperty(prop)) {
+                    payload[prop] = value[prop];
+                  }
+                }
+              }
+
+              field.applyTo(payload, value);
+            } else if (typeof field.applyTo === 'string') {
+              const target = utility.getValue(payload, field.applyTo);
+              lang.mixin(target, value);
+            }
+          } else {
+            utility.setValue(payload, field.property || name, value);
+          }
+
+          empty = false;
+        }
+      }
+    }
+    return empty ? false : payload;
+  },
+  /**
+   * Loops and gathers the validation errors returned from each field and adds them to the
+   * validation summary area. If no errors, removes the validation summary.
+   * @return {Boolean/Object[]} Returns the array of errors if present or false for no errors.
+   */
+  validate: function validate() {
+    this.errors = [];
+
+    for (const name in this.fields) {
+      if (this.fields.hasOwnProperty(name)) {
+        const field = this.fields[name];
+
+        const result = field.validate();
+        if (!field.isHidden() &amp;&amp; result !== false) {
+          $(field.containerNode).addClass('row-error');
+
+          this.errors.push({
+            name,
+            message: result,
+          });
+        } else {
+          $(field.containerNode).removeClass('row-error');
+        }
+      }
+    }
+
+    return this.errors.length > 0 ? this.errors : false;
+  },
+  /**
+   * Determines if the form is currently busy/disabled
+   * @return {Boolean}
+   */
+  isFormDisabled: function isFormDisabled() {
+    return this.busy;
+  },
+  /**
+   * Disables the form by setting busy to true and disabling the toolbar.
+   */
+  disable: function disable() {
+    this.busy = true;
+
+    if (App.bars.tbar) {
+      App.bars.tbar.disableTool('save');
+    }
+
+    $('body').addClass('busy');// TODO: Make this the root/app container node
+  },
+  /**
+   * Enables the form by setting busy to false and enabling the toolbar
+   */
+  enable: function enable() {
+    this.busy = false;
+
+    if (App.bars.tbar) {
+      App.bars.tbar.enableTool('save');
+    }
+
+    $('body').removeClass('busy');// TODO: Make this the root/app container node
+  },
+  /**
+   * Called by save() when performing an insert (create).
+   * Gathers the values, creates the payload for insert, creates the sdata request and
+   * calls `create`.
+   */
+  insert: function insert() {
+    this.disable();
+
+    const values = this.getValues();
+    if (values) {
+      this.onInsert(values);
+    } else {
+      ReUI.back();
+    }
+  },
+  onInsert: function onInsert(values) {
+    const store = this.get('store');
+    const addOptions = {
+      overwrite: false,
+    };
+    const entry = this.createEntryForInsert(values);
+    this._applyStateToAddOptions(addOptions);
+    if (this._model) {
+      this._model.insertEntry(entry, addOptions).then((data) => {
+        this.onAddComplete(entry, data);
+      }, (err) => {
+        this.onAddError(addOptions, err);
+      });
+    } else if (store) {
+      when(store.add(entry, addOptions),
+        this.onAddComplete.bind(this, entry),
+        this.onAddError.bind(this, addOptions)
+      );
+    }
+  },
+  _applyStateToAddOptions: function _applyStateToAddOptions(/* addOptions*/) {},
+  onAddComplete: function onAddComplete(entry, result) {
+    this.enable();
+
+    const message = this._buildRefreshMessage(entry, result);
+    connect.publish('/app/refresh', [message]);
+
+    this.onInsertCompleted(result);
+  },
+  onAddError: function onAddError(addOptions, error) {
+    this.enable();
+    this.handleError(error);
+  },
+  /**
+   * Handler for insert complete, checks for `this.options.returnTo` else it simply goes back.
+   * @param entry
+   */
+  onInsertCompleted: function onInsertCompleted(/* entry*/) {
+    // returnTo is handled by ReUI back
+    ReUI.back();
+  },
+  /**
+   * Called by save() when performing an update (edit).
+   * Gathers the values, creates the payload for update, creates the sdata request and
+   * calls `update`.
+   */
+  update: function update() {
+    const values = this.getValues();
+    if (values) {
+      this.disable();
+      this.onUpdate(values);
+    } else {
+      this.onUpdateCompleted(false);
+    }
+  },
+  onUpdate: function onUpdate(values) {
+    const store = this.get('store');
+    const putOptions = {
+      overwrite: true,
+    };
+    const entry = this.createEntryForUpdate(values);
+    this._applyStateToPutOptions(putOptions);
+    if (this._model) {
+      this._model.updateEntry(entry, putOptions).then((data) => {
+        this.onPutComplete(entry, data);
+      }, (err) => {
+        this.onPutError(putOptions, err);
+      });
+    } else if (store) {
+      when(store.put(entry, putOptions),
+        this.onPutComplete.bind(this, entry),
+        this.onPutError.bind(this, putOptions)
+      );
+    }
+  },
+  /**
+   * Gathers the values for the entry to send back and returns the appropriate payload for
+   * creating or updating.
+   * @return {Object} Entry/payload
+   */
+  createItem: function createItem() {
+    const values = this.getValues();
+
+    return this.inserting ? this.createEntryForInsert(values) : this.createEntryForUpdate(values);
+  },
+  /**
+   * Takes the values object and adds the needed propertiers for updating.
+   * @param {Object} values
+   * @return {Object} Object with properties for updating
+   */
+  createEntryForUpdate: function createEntryForUpdate(values) {
+    return this.convertValues(values);
+  },
+  /**
+   * Takes the values object and adds the needed propertiers for creating/inserting.
+   * @param {Object} values
+   * @return {Object} Object with properties for inserting
+   */
+  createEntryForInsert: function createEntryForInsert(values) {
+    return this.convertValues(values);
+  },
+  /**
+   * Function to call to tranform values before save
+   */
+  convertValues: function convertValues(values) {
+    return values;
+  },
+  _applyStateToPutOptions: function _applyStateToPutOptions(/* putOptions*/) {},
+  onPutComplete: function onPutComplete(entry, result) {
+    this.enable();
+
+    const message = this._buildRefreshMessage(entry, result);
+
+    connect.publish('/app/refresh', [message]);
+
+    this.onUpdateCompleted(result);
+  },
+  onPutError: function onPutError(putOptions, error) {
+    this.enable();
+    this.handleError(error);
+  },
+  /**
+   * Array of strings that will get ignored when the diffing runs.
+   */
+  diffPropertyIgnores: [],
+  /**
+   * Diffs the results from the current values and the previous values.
+   * This is done for a concurrency check to indicate what has changed.
+   * @returns Array List of property names that have changed
+   */
+  diffs: function diffs(left, right) {
+    const acc = [];
+    const DIFF_EDITED = 'E';
+
+    if (DeepDiff) {
+      const _diffs = DeepDiff.diff(left, right, (path, key) => {
+        if (this.diffPropertyIgnores.indexOf(key) >= 0) {
+          return true;
+        }
+      });
+
+      if (_diffs) {
+        _diffs.forEach((diff) => {
+          const path = diff.path.join('.');
+          if (diff.kind === DIFF_EDITED &amp;&amp; acc.indexOf(path) === -1) {
+            acc.push(path);
+          }
+        });
+      }
+    }
+
+    return acc;
+  },
+  _extractIdPropertyFromEntry: function _extractIdPropertyFromEntry(entry) {
+    const store = this.get('store');
+    if (this._model) {
+      return this._model.getEntityId(entry);
+    } else if (store) {
+      return store.getIdentity(entry);
+    }
+
+    return '';
+  },
+  _buildRefreshMessage: function _buildRefreshMessage(originalEntry, response) {
+    if (originalEntry) {
+      const id = this._extractIdPropertyFromEntry(originalEntry);
+      return {
+        id,
+        key: id,
+        data: response,
+      };
+    }
+  },
+  /**
+   * Handler for update complete, checks for `this.options.returnTo` else it simply goes back.
+   * @param entry
+   */
+  onUpdateCompleted: function onUpdateCompleted(/* entry*/) {
+    // returnTo is handled by ReUI back
+    ReUI.back();
+  },
+  /**
+   * Creates the markup by applying the `validationSummaryItemTemplate` to each entry in `this.errors`
+   * then sets the combined result into the summary validation node and sets the styling to visible
+   */
+  showValidationSummary: function showValidationSummary() {
+    const content = [];
+
+    for (let i = 0; i &lt; this.errors.length; i++) {
+      content.push(this.validationSummaryItemTemplate.apply(this.errors[i], this.fields[this.errors[i].name]));
+    }
+
+    this.set('validationContent', content.join(''));
+    $(this.domNode).addClass('panel-form-error');
+  },
+  showConcurrencySummary: function showConcurrencySummary() {
+    const content = [];
+
+    for (let i = 0; i &lt; this.errors.length; i++) {
+      content.push(this.concurrencySummaryItemTemplate.apply(this.errors[i]));
+    }
+
+    this.set('concurrencyContent', content.join(''));
+    $(this.domNode).addClass('panel-form-concurrency-error');
+  },
+  /**
+   * Removes the summary validation visible styling and empties its contents of error markup
+   */
+  hideValidationSummary: function hideValidationSummary() {
+    $(this.domNode).removeClass('panel-form-error');
+    this.set('validationContent', '');
+  },
+  /**
+   * Removes teh summary for concurrency errors
+   */
+  hideConcurrencySummary: function hideConcurrencySummary() {
+    $(this.domNode).removeClass('panel-form-concurrency-error');
+    this.set('concurrencyContent', '');
+  },
+  /**
+   * Handler for the save toolbar action.
+   *
+   * First validates the forms, showing errors and stoping saving if found.
+   * Then calls either {@link #insert insert} or {@link #update update} based upon `this.inserting`.
+   *
+   */
+  save: function save() {
+    if (this.isFormDisabled()) {
+      return;
+    }
+
+    this.hideValidationSummary();
+    this.hideConcurrencySummary();
+
+    if (this.validate() !== false) {
+      this.showValidationSummary();
+      return;
+    }
+
+    if (this.inserting) {
+      this.insert();
+    } else {
+      this.update();
+    }
+  },
+  /**
+   * Extends the getContext function to also include the `resourceKind` of the view, `insert`
+   * state and `key` of the entry (false if inserting)
+   */
+  getContext: function getContext() {
+    return lang.mixin(this.inherited(getContext, arguments), {
+      resourceKind: this.resourceKind,
+      insert: this.options.insert,
+      key: this.options.insert ? false : this.options.key ? this.options.key : this.options.entry &amp;&amp; this.options.entry[this.idProperty] // eslint-disable-line
+    });
+  },
+  /**
+   * Wrapper for detecting security for update mode or insert mode
+   * @param {String} access Can be either "update" or "insert"
+   */
+  getSecurity: function getSecurity(access) {
+    const lookup = {
+      update: this.updateSecurity,
+      insert: this.insertSecurity,
+    };
+
+    return lookup[access];
+  },
+  /**
+   * Extends beforeTransitionTo to add the loading styling if refresh is needed
+   */
+  beforeTransitionTo: function beforeTransitionTo() {
+    if (this.refreshRequired) {
+      if (this.options.insert === true || (this.options.key &amp;&amp; !this.options.entry)) {
+        $(this.domNode).addClass('panel-loading');
+      } else {
+        $(this.domNode).removeClass('panel-loading');
+      }
+    }
+
+    this.inherited(beforeTransitionTo, arguments);
+  },
+  onTransitionTo: function onTransitionTo() {
+    // Focus the default focus field if it exists and it has not already been focused.
+    // This flag is important because onTransitionTo will fire multiple times if the user is using lookups and editor type fields that transition away from this view.
+    if (this._focusField &amp;&amp; !this._hasFocused) {
+      this._focusField.focus();
+      this._hasFocused = true;
+    }
+
+    this.inherited(onTransitionTo, arguments);
+  },
+  /**
+   * Empties the activate method which prevents detection of refresh from transititioning.
+   *
+   * External navigation (browser back/forward) never refreshes the edit view as it's always a terminal loop.
+   * i.e. you never move "forward" from an edit view; you navigate to child editors, from which you always return.
+   */
+  activate: function activate() {},
+  /**
+   * Extends refreshRequiredFor to return false if we already have the key the options is passing
+   * @param {Object} options Navigation options from previous view
+   */
+  refreshRequiredFor: function refreshRequiredFor(options) {
+    if (this.options) {
+      if (options) {
+        if (this.options.key &amp;&amp; this.options.key === options.key) {
+          return false;
+        }
+      }
+    }
+
+    return this.inherited(refreshRequiredFor, arguments);
+  },
+  /**
+   * Refresh first clears out any variables set to previous data.
+   *
+   * The mode of the Edit view is set and determined via `this.options.insert`, and the views values are cleared.
+   *
+   * Lastly it makes the appropiate data request:
+   */
+  refresh: function refresh() {
+    this.onRefresh();
+    this.entry = false;
+    this.changes = false;
+    this.inserting = (this.options.insert === true);
+    this._hasFocused = false;
+
+    $(this.domNode).removeClass('panel-form-error');
+    $(this.domNode).removeClass('panel-form-concurrency-error');
+
+    this.clearValues();
+
+    if (this.inserting) {
+      this.onRefreshInsert();
+    } else {
+      this.onRefreshUpdate();
+    }
+  },
+  onRefresh: function onRefresh() {},
+  onRefreshInsert: function onRefreshInsert() {},
+  onRefreshUpdate: function onRefreshUpdate() {
+    // apply as non-modified data
+    if (this.options.entry) {
+      this.processData(this.options.entry);
+
+      // apply changes as modified data, since we want this to feed-back through
+      if (this.options.changes) {
+        this.changes = this.options.changes;
+        this.setValues(this.changes);
+      }
+    } else {
+      // if key is passed request that keys entity and process
+      if (this.options.key) {
+        this.requestData();
+      }
+    }
+  },
+  getRoute: function getRoute() {
+    return `${this.id}/:key?`;
+  },
+  buildRoute: function buildRoute() {
+    const parts = [];
+    const id = this.id;
+    parts.push(id);
+
+    const key = this.getTag() || (this.entry &amp;&amp; this.entry[this.idProperty]);
+    if (key) {
+      parts.push(key);
+    }
+
+    return parts.join('/');
+  },
+});
+
+export default __class;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-argos__ActionMixin.html">argos/_ActionMixin</a></li><li><a href="module-argos__ConfigureBase.html">argos/_ConfigureBase</a></li><li><a href="module-argos__CustomizationMixin.html">argos/_CustomizationMixin</a></li><li><a href="module-argos__DetailBase.html">argos/_DetailBase</a></li><li><a href="module-argos__DraggableBase.html">argos/_DraggableBase</a></li><li><a href="module-argos__EditBase.html">argos/_EditBase</a></li><li><a href="module-argos__LegacySDataDetailMixin.html">argos/_LegacySDataDetailMixin</a></li><li><a href="module-argos__LegacySDataEditMixin.html">argos/_LegacySDataEditMixin</a></li><li><a href="module-argos__LegacySDataListMixin.html">argos/_LegacySDataListMixin</a></li><li><a href="module-argos__ListBase.html">argos/_ListBase</a></li><li><a href="module-argos__PullToRefreshMixin.html">argos/_PullToRefreshMixin</a></li><li><a href="module-argos__RelatedViewWidgetBase.html">argos/_RelatedViewWidgetBase</a></li><li><a href="module-argos__RelatedViewWidgetDetailMixin.html">argos/_RelatedViewWidgetDetailMixin</a></li><li><a href="module-argos__RelatedViewWidgetEditMixin.html">argos/_RelatedViewWidgetEditMixin</a></li><li><a href="module-argos__RelatedViewWidgetListMixin.html">argos/_RelatedViewWidgetListMixin</a></li><li><a href="module-argos__SDataDetailMixin.html">argos/_SDataDetailMixin</a></li><li><a href="module-argos__SDataEditMixin.html">argos/_SDataEditMixin</a></li><li><a href="module-argos__SDataListMixin.html">argos/_SDataListMixin</a></li><li><a href="module-argos__ServiceMixin.html">argos/_ServiceMixin</a></li><li><a href="module-argos__Templated.html">argos/_Templated</a></li><li><a href="module-argos_actions.html">argos/actions</a></li><li><a href="module-argos_actions_connection.html">argos/actions/connection</a></li><li><a href="module-argos_Application.html">argos/Application</a></li><li><a href="module-argos_ApplicationModule.html">argos/ApplicationModule</a></li><li><a href="module-argos_Calendar.html">argos/Calendar</a></li><li><a href="module-argos_ConfigurableSelectionModel.html">argos/ConfigurableSelectionModel</a></li><li><a href="module-argos_Convert.html">argos/Convert</a></li><li><a href="module-argos_CultureInfo.html">argos/CultureInfo</a></li><li><a href="module-argos_DateTimePicker.html">argos/DateTimePicker</a></li><li><a href="module-argos_Detail.html">argos/Detail</a></li><li><a href="module-argos_Dialogs_BusyIndicator.html">argos/Dialogs/BusyIndicator</a></li><li><a href="module-argos_Dialogs_Modal.html">argos/Dialogs/Modal</a></li><li><a href="module-argos_Dialogs_Toast.html">argos/Dialogs/Toast</a></li><li><a href="module-argos_DraggableList.html">argos/DraggableList</a></li><li><a href="module-argos_Dropdown.html">argos/Dropdown</a></li><li><a href="module-argos_Edit.html">argos/Edit</a></li><li><a href="module-argos_ErrorManager.html">argos/ErrorManager</a></li><li><a href="module-argos_FieldManager.html">argos/FieldManager</a></li><li><a href="module-argos_Fields__Field.html">argos/Fields/_Field</a></li><li><a href="module-argos_Fields_BooleanField.html">argos/Fields/BooleanField</a></li><li><a href="module-argos_Fields_DateField.html">argos/Fields/DateField</a></li><li><a href="module-argos_Fields_DecimalField.html">argos/Fields/DecimalField</a></li><li><a href="module-argos_Fields_DropdownField.html">argos/Fields/DropdownField</a></li><li><a href="module-argos_Fields_DurationField.html">argos/Fields/DurationField</a></li><li><a href="module-argos_Fields_EditorField.html">argos/Fields/EditorField</a></li><li><a href="module-argos_Fields_HiddenField.html">argos/Fields/HiddenField</a></li><li><a href="module-argos_Fields_LookupField.html">argos/Fields/LookupField</a></li><li><a href="module-argos_Fields_NoteField.html">argos/Fields/NoteField</a></li><li><a href="module-argos_Fields_PhoneField.html">argos/Fields/PhoneField</a></li><li><a href="module-argos_Fields_SelectField.html">argos/Fields/SelectField</a></li><li><a href="module-argos_Fields_SignatureField.html">argos/Fields/SignatureField</a></li><li><a href="module-argos_Fields_TextAreaField.html">argos/Fields/TextAreaField</a></li><li><a href="module-argos_Fields_TextField.html">argos/Fields/TextField</a></li><li><a href="module-argos_Format.html">argos/Format</a></li><li><a href="module-argos_GroupedList.html">argos/GroupedList</a></li><li><a href="module-argos_Groups__GroupBySection.html">argos/Groups/_GroupBySection</a></li><li><a href="module-argos_Groups_DateTimeSection.html">argos/Groups/DateTimeSection</a></li><li><a href="module-argos_Groups_GroupByValueSection.html">argos/Groups/GroupByValueSection</a></li><li><a href="module-argos_I18n.html">argos/I18n</a></li><li><a href="module-argos_LanguageService.html">argos/LanguageService</a></li><li><a href="module-argos_List.html">argos/List</a></li><li><a href="module-argos_MainToolbar.html">argos/MainToolbar</a></li><li><a href="module-argos_Models__ModelBase.html">argos/Models/_ModelBase</a></li><li><a href="module-argos_Models__OfflineModelBase.html">argos/Models/_OfflineModelBase</a></li><li><a href="module-argos_Models_Adapter.html">argos/Models/Adapter</a></li><li><a href="module-argos_Models_Briefcase_Offline.html">argos/Models/Briefcase/Offline</a></li><li><a href="module-argos_Models_Manager.html">argos/Models/Manager</a></li><li><a href="module-argos_Models_RecentlyViewed_Offline.html">argos/Models/RecentlyViewed/Offline</a></li><li><a href="module-argos_Models_SDataModelBase.html">argos/Models/SDataModelBase</a></li><li><a href="module-argos_Models_Types.html">argos/Models/Types</a></li><li><a href="module-argos_Offline__DetailOfflineMixin.html">argos/Offline/_DetailOfflineMixin</a></li><li><a href="module-argos_Offline__ListOfflineMixin.html">argos/Offline/_ListOfflineMixin</a></li><li><a href="module-argos_Offline_Manager.html">argos/Offline/Manager</a></li><li><a href="module-argos_reducers.html">argos/reducers</a></li><li><a href="module-argos_RelatedViewManager.html">argos/RelatedViewManager</a></li><li><a href="module-argos_RelatedViewWidget.html">argos/RelatedViewWidget</a></li><li><a href="module-argos_RelativeDateTimePicker.html">argos/RelativeDateTimePicker</a></li><li><a href="module-argos_Scene.html">argos/Scene</a></li><li><a href="module-argos_SearchWidget.html">argos/SearchWidget</a></li><li><a href="module-argos_SelectionModel.html">argos/SelectionModel</a></li><li><a href="module-argos_SohoIcons.html">argos/SohoIcons</a></li><li><a href="module-argos_Store_PouchDB.html">argos/Store/PouchDB</a></li><li><a href="module-argos_Store_SData.html">argos/Store/SData</a></li><li><a href="module-argos_TabWidget.html">argos/TabWidget</a></li><li><a href="module-argos_TimePicker.html">argos/TimePicker</a></li><li><a href="module-argos_Toolbar.html">argos/Toolbar</a></li><li><a href="module-argos_Utility.html">argos/Utility</a></li><li><a href="module-argos_View.html">argos/View</a></li><li><a href="module-argos_Views_ConfigureQuickActions.html">argos/Views/ConfigureQuickActions</a></li><li><a href="module-argos_Views_FileSelect.html">argos/Views/FileSelect</a></li><li><a href="module-argos_Views_Link.html">argos/Views/Link</a></li><li><a href="module-argos_Views_Signature.html">argos/Views/Signature</a></li><li><a href="module-argos_WidgetBase.html">argos/WidgetBase</a></li><li><a href="module-crm_Action.html">crm/Action</a></li><li><a href="module-crm_Aggregate.html">crm/Aggregate</a></li><li><a href="module-crm_Application.html">crm/Application</a></li><li><a href="module-crm_ApplicationModule.html">crm/ApplicationModule</a></li><li><a href="module-crm_AttachmentManager.html">crm/AttachmentManager</a></li><li><a href="module-crm_Bootstrap.html">crm/Bootstrap</a></li><li><a href="module-crm_Bootstrap_localization.html">crm/Bootstrap/localization</a></li><li><a href="module-crm_Environment.html">crm/Environment</a></li><li><a href="module-crm_FileManager.html">crm/FileManager</a></li><li><a href="module-crm_Format.html">crm/Format</a></li><li><a href="module-crm_GroupUtility.html">crm/GroupUtility</a></li><li><a href="module-crm_Integrations_BOE_Aggregate.html">crm/Integrations/BOE/Aggregate</a></li><li><a href="module-crm_Integrations_BOE_Utility.html">crm/Integrations/BOE/Utility</a></li><li><a href="module-crm_MingleUtility.html">crm/MingleUtility</a></li><li><a href="module-crm_PicklistService.html">crm/PicklistService</a></li><li><a href="module-crm_Recurrence.html">crm/Recurrence</a></li><li><a href="module-crm_SalesProcessUtility.html">crm/SalesProcessUtility</a></li><li><a href="module-crm_Template.html">crm/Template</a></li><li><a href="module-crm_Utility.html">crm/Utility</a></li><li><a href="module-crm_Validator.html">crm/Validator</a></li><li><a href="module-crm_Views__GroupListMixin.html">crm/Views/_GroupListMixin</a></li><li><a href="module-crm_Views__MetricDetailMixin.html">crm/Views/_MetricDetailMixin</a></li><li><a href="module-crm_Views__MetricListMixin.html">crm/Views/_MetricListMixin</a></li><li><a href="module-crm_Views__RightDrawerBaseMixin.html">crm/Views/_RightDrawerBaseMixin</a></li><li><a href="module-crm_Views__RightDrawerListMixin.html">crm/Views/_RightDrawerListMixin</a></li><li><a href="module-crm_Views__SpeedSearchRightDrawerListMixin.html">crm/Views/_SpeedSearchRightDrawerListMixin</a></li><li><a href="module-crm_Views_Charts__ChartMixin.html">crm/Views/Charts/_ChartMixin</a></li><li><a href="module-crm_Views_Charts_GenericBar.html">crm/Views/Charts/GenericBar</a></li><li><a href="module-crm_Views_Charts_GenericLine.html">crm/Views/Charts/GenericLine</a></li><li><a href="module-crm_Views_Charts_GenericPie.html">crm/Views/Charts/GenericPie</a></li><li><a href="module-crm_Views_MetricWidget.html">crm/Views/MetricWidget</a></li><li><a href="module-crm_Views_Offline__RightDrawerListMixin.html">crm/Views/Offline/_RightDrawerListMixin</a></li><li><a href="module-crm_Views_RecentlyViewed__RightDrawerListMixin.html">crm/Views/RecentlyViewed/_RightDrawerListMixin</a></li></ul><h3>Classes</h3><ul><li><a href="module-_crm_Integrations_BOE_Aggregate.html">/crm/Integrations/BOE/Aggregate</a></li><li><a href="module-argos__ActionMixin.html">argos/_ActionMixin</a></li><li><a href="module-argos__ConfigureBase.html">argos/_ConfigureBase</a></li><li><a href="module-argos__CustomizationMixin.html">argos/_CustomizationMixin</a></li><li><a href="module-argos__DetailBase.html">argos/_DetailBase</a></li><li><a href="module-argos__DraggableBase.html">argos/_DraggableBase</a></li><li><a href="module-argos__EditBase.html">argos/_EditBase</a></li><li><a href="module-argos__LegacySDataDetailMixin.html">argos/_LegacySDataDetailMixin</a></li><li><a href="module-argos__LegacySDataEditMixin.html">argos/_LegacySDataEditMixin</a></li><li><a href="module-argos__LegacySDataListMixin.html">argos/_LegacySDataListMixin</a></li><li><a href="module-argos__ListBase.html">argos/_ListBase</a></li><li><a href="module-argos__RelatedViewWidgetBase.html">argos/_RelatedViewWidgetBase</a></li><li><a href="module-argos__SDataEditMixin.html">argos/_SDataEditMixin</a></li><li><a href="module-argos_Application.html">argos/Application</a></li><li><a href="module-argos_ApplicationModule.html">argos/ApplicationModule</a></li><li><a href="module-argos_Calendar.html">argos/Calendar</a></li><li><a href="module-argos_ConfigurableSelectionModel.html">argos/ConfigurableSelectionModel</a></li><li><a href="module-argos_Convert.html">argos/Convert</a></li><li><a href="module-argos_DateTimePicker.html">argos/DateTimePicker</a></li><li><a href="module-argos_Detail.html">argos/Detail</a></li><li><a href="module-argos_Dialogs_BusyIndicator.html">argos/Dialogs/BusyIndicator</a></li><li><a href="module-argos_Dialogs_Modal.html">argos/Dialogs/Modal</a></li><li><a href="module-argos_Dialogs_Toast.html">argos/Dialogs/Toast</a></li><li><a href="module-argos_DraggableList.html">argos/DraggableList</a></li><li><a href="module-argos_Dropdown.html">argos/Dropdown</a></li><li><a href="module-argos_Edit.html">argos/Edit</a></li><li><a href="module-argos_ErrorManager.html">argos/ErrorManager</a></li><li><a href="module-argos_FieldManager.html">argos/FieldManager</a></li><li><a href="module-argos_Fields__SignatureField.html">argos/Fields//SignatureField</a></li><li><a href="module-argos_Fields__Field.html">argos/Fields/_Field</a></li><li><a href="module-argos_Fields_BooleanField.html">argos/Fields/BooleanField</a></li><li><a href="module-argos_Fields_DateField.html">argos/Fields/DateField</a></li><li><a href="module-argos_Fields_DecimalField.html">argos/Fields/DecimalField</a></li><li><a href="module-argos_Fields_DropdownField.html">argos/Fields/DropdownField</a></li><li><a href="module-argos_Fields_DurationField.html">argos/Fields/DurationField</a></li><li><a href="module-argos_Fields_EditorField.html">argos/Fields/EditorField</a></li><li><a href="module-argos_Fields_HiddenField.html">argos/Fields/HiddenField</a></li><li><a href="module-argos_Fields_LookupField.html">argos/Fields/LookupField</a></li><li><a href="module-argos_Fields_NoteField.html">argos/Fields/NoteField</a></li><li><a href="module-argos_Fields_PhoneField.html">argos/Fields/PhoneField</a></li><li><a href="module-argos_Fields_SelectField.html">argos/Fields/SelectField</a></li><li><a href="module-argos_Fields_TextAreaField.html">argos/Fields/TextAreaField</a></li><li><a href="module-argos_Fields_TextField.html">argos/Fields/TextField</a></li><li><a href="module-argos_Format.html">argos/Format</a></li><li><a href="module-argos_GroupedList.html">argos/GroupedList</a></li><li><a href="module-argos_Groups__GroupBySection.html">argos/Groups/_GroupBySection</a></li><li><a href="module-argos_Groups_DateTimeSection.html">argos/Groups/DateTimeSection</a></li><li><a href="module-argos_Groups_GroupByValueSection.html">argos/Groups/GroupByValueSection</a></li><li><a href="module-argos_LanguageService.html">argos/LanguageService</a></li><li><a href="module-argos_List.html">argos/List</a></li><li><a href="module-argos_MainToolbar.html">argos/MainToolbar</a></li><li><a href="module-argos_Models__ModelBase.html">argos/Models/_ModelBase</a></li><li><a href="module-argos_Models__OfflineModelBase.html">argos/Models/_OfflineModelBase</a></li><li><a href="module-argos_Models_Adapter.html">argos/Models/Adapter</a></li><li><a href="module-argos_Models_Briefcase_Offline.html">argos/Models/Briefcase/Offline</a></li><li><a href="module-argos_Models_Manager.html">argos/Models/Manager</a></li><li><a href="module-argos_Models_RecentlyViewed_Offline.html">argos/Models/RecentlyViewed/Offline</a></li><li><a href="module-argos_Models_SDataModelBase.html">argos/Models/SDataModelBase</a></li><li><a href="module-argos_Offline__DetailOfflineMixin.html">argos/Offline/_DetailOfflineMixin</a></li><li><a href="module-argos_Offline__ListOfflineMixin.html">argos/Offline/_ListOfflineMixin</a></li><li><a href="module-argos_Offline_Manager.html">argos/Offline/Manager</a></li><li><a href="module-argos_RelatedViewManager.html">argos/RelatedViewManager</a></li><li><a href="module-argos_RelatedViewWidget.html">argos/RelatedViewWidget</a></li><li><a href="module-argos_RelativeDateTimePicker.html">argos/RelativeDateTimePicker</a></li><li><a href="module-argos_Scene.html">argos/Scene</a></li><li><a href="module-argos_SearchWidget.html">argos/SearchWidget</a></li><li><a href="module-argos_SelectionModel.html">argos/SelectionModel</a></li><li><a href="module-argos_Store_PouchDB.html">argos/Store/PouchDB</a></li><li><a href="module-argos_Store_SData.html">argos/Store/SData</a></li><li><a href="module-argos_TabWidget.html">argos/TabWidget</a></li><li><a href="module-argos_TimePicker.html">argos/TimePicker</a></li><li><a href="module-argos_Toolbar.html">argos/Toolbar</a></li><li><a href="module-argos_Utility.html">argos/Utility</a></li><li><a href="module-argos_View.html">argos/View</a></li><li><a href="module-argos_Views_ConfigureQuickActions.html">argos/Views/ConfigureQuickActions</a></li><li><a href="module-argos_Views_FileSelect.html">argos/Views/FileSelect</a></li><li><a href="module-argos_Views_Link.html">argos/Views/Link</a></li><li><a href="module-argos_Views_Signature.html">argos/Views/Signature</a></li><li><a href="module-argos_WidgetBase.html">argos/WidgetBase</a></li><li><a href="module-crm_Action.html">crm/Action</a></li><li><a href="module-crm_Aggregate.html">crm/Aggregate</a></li><li><a href="module-crm_Application.html">crm/Application</a></li><li><a href="module-crm_ApplicationModule.html">crm/ApplicationModule</a></li><li><a href="module-crm_AttachmentManager.html">crm/AttachmentManager</a></li><li><a href="module-crm_Environment.html">crm/Environment</a></li><li><a href="module-crm_FileManager.html">crm/FileManager</a></li><li><a href="module-crm_Format.html">crm/Format</a></li><li><a href="module-crm_GroupUtility.html">crm/GroupUtility</a></li><li><a href="module-crm_Integrations_BOE_Utility.html">crm/Integrations/BOE/Utility</a></li><li><a href="module-crm_MingleUtility.html">crm/MingleUtility</a></li><li><a href="module-crm_PicklistService.html">crm/PicklistService</a></li><li><a href="module-crm_Recurrence.html">crm/Recurrence</a></li><li><a href="module-crm_SalesProcessUtility.html">crm/SalesProcessUtility</a></li><li><a href="module-crm_Template.html">crm/Template</a></li><li><a href="module-crm_Utility.html">crm/Utility</a></li><li><a href="module-crm_Validator.html">crm/Validator</a></li><li><a href="module-crm_Views__SpeedSearchRightDrawerListMixin.html">crm/Views/_SpeedSearchRightDrawerListMixin</a></li><li><a href="module-crm_Views_Charts_GenericBar.html">crm/Views/Charts/GenericBar</a></li><li><a href="module-crm_Views_Charts_GenericLine.html">crm/Views/Charts/GenericLine</a></li><li><a href="module-crm_Views_Charts_GenericPie.html">crm/Views/Charts/GenericPie</a></li><li><a href="module-crm_Views_MetricWidget.html">crm/Views/MetricWidget</a></li></ul><h3>Mixins</h3><ul><li><a href="module-argos__PullToRefreshMixin.html">argos/_PullToRefreshMixin</a></li><li><a href="module-argos__RelatedViewWidgetDetailMixin.html">argos/_RelatedViewWidgetDetailMixin</a></li><li><a href="module-argos__RelatedViewWidgetEditMixin.html">argos/_RelatedViewWidgetEditMixin</a></li><li><a href="module-argos__RelatedViewWidgetListMixin.html">argos/_RelatedViewWidgetListMixin</a></li><li><a href="module-argos__SDataDetailMixin.html">argos/_SDataDetailMixin</a></li><li><a href="module-argos__SDataListMixin.html">argos/_SDataListMixin</a></li><li><a href="module-argos__ServiceMixin.html">argos/_ServiceMixin</a></li><li><a href="module-argos__Templated.html">argos/_Templated</a></li><li><a href="module-crm_Views__GroupListMixin.html">crm/Views/_GroupListMixin</a></li><li><a href="module-crm_Views__MetricDetailMixin.html">crm/Views/_MetricDetailMixin</a></li><li><a href="module-crm_Views__MetricListMixin.html">crm/Views/_MetricListMixin</a></li><li><a href="module-crm_Views__RightDrawerBaseMixin.html">crm/Views/_RightDrawerBaseMixin</a></li><li><a href="module-crm_Views__RightDrawerListMixin.html">crm/Views/_RightDrawerListMixin</a></li><li><a href="module-crm_Views_Charts__ChartMixin.html">crm/Views/Charts/_ChartMixin</a></li><li><a href="module-crm_Views_Offline__RightDrawerListMixin.html">crm/Views/Offline/_RightDrawerListMixin</a></li><li><a href="module-crm_Views_RecentlyViewed__RightDrawerListMixin.html">crm/Views/RecentlyViewed/_RightDrawerListMixin</a></li></ul><h3>Tutorials</h3><ul><li><a href="tutorial-amd.html">AMD - Define and Declare</a></li><li><a href="tutorial-browser_setup.html">Browser Setup / Information</a></li><li><a href="tutorial-stores.html">Data Stores</a></li><li><a href="tutorial-lifecycles.html">View Lifecycles</a></li><li><a href="tutorial-upgrading_v12_to_v20.html">Upgrading 1.2 to 2.0</a></li><li><a href="tutorial-wire_detail_to_edit.html">Wiring Detail to Edit</a></li><li><a href="tutorial-wire_list_to_detail.html">Wiring List to Detail</a></li><li><a href="tutorial-wire_list_to_edit.html">Wiring List to Edit</a></li><li><a href="tutorial-grouped_list.html">Grouped List</a></li><li><a href="tutorial-basic_auth.html">Login - Basic Authentication</a></li><li><a href="tutorial-hashtags.html">#Hashtags</a></li><li><a href="tutorial-list_actions.html">List Actions</a></li><li><a href="tutorial-quick_actions.html">Quick Actions</a></li><li><a href="tutorial-related_views.html">Related Views</a></li><li><a href="tutorial-detail_layout.html">Detail Layout</a></li><li><a href="tutorial-validation.html">Validation</a></li><li><a href="tutorial-list_search.html">List Search Widget</a></li><li><a href="tutorial-advanced_localization.html">Localization - Advanced</a></li><li><a href="tutorial-navigation.html">Navigation</a></li><li><a href="tutorial-toolbars.html">Toolbars</a></li><li><a href="tutorial-localization_detection.html">localization_detection</a></li><li><a href="tutorial-localization.html">Localization - Basic</a></li><li><a href="tutorial-overview.html">Overview</a></li><li><a href="tutorial-template_guide.html">Template Guide</a></li></ul><h3>Global</h3><ul><li><a href="global.html#defaultToAddress">defaultToAddress</a></li><li><a href="global.html#getModel">getModel</a></li><li><a href="global.html#hideFieldsForLocale">hideFieldsForLocale</a></li><li><a href="global.html#itemTemplate">itemTemplate</a></li><li><a href="global.html#localeFieldHidden">localeFieldHidden</a></li><li><a href="global.html#multiColumnClass">multiColumnClass</a></li><li><a href="global.html#multiColumnCount">multiColumnCount</a></li><li><a href="global.html#navigateToDetailView">navigateToDetailView</a></li><li><a href="global.html#pastDays">pastDays</a></li><li><a href="global.html#pastDaysLt">pastDaysLt</a></li><li><a href="global.html#picklistsByType">picklistsByType</a></li><li><a href="global.html#queryInclude">queryInclude</a></li><li><a href="global.html#queryOrderBy">queryOrderBy</a></li><li><a href="global.html#querySelect">querySelect</a></li><li><a href="global.html#queryWhere">queryWhere</a></li><li><a href="global.html#refresh">refresh</a></li><li><a href="global.html#resourceKind">resourceKind</a></li><li><a href="global.html#resourcePredicate">resourcePredicate</a></li><li><a href="global.html#resourceProperty">resourceProperty</a></li><li><a href="global.html#ROUND_MINUTES">ROUND_MINUTES</a></li><li><a href="global.html#searchText">searchText</a></li><li><a href="global.html#values">values</a></li><li><a href="global.html#widgetTemplate">widgetTemplate</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.3</a> on Fri Jan 10 2020 11:27:24 GMT-0500 (Eastern Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
