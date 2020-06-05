@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: argos-sdk/src/Fields/DurationField.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: argos-sdk/src/Fields/DurationField.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/* Copyright (c) 2010, Sage Software, Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/**
+ * @module argos/Fields/DurationField
+ */
+import declare from 'dojo/_base/declare';
+import string from 'dojo/string';
+import format from '../Format';
+import LookupField from './LookupField';
+import FieldManager from '../FieldManager';
+import getResource from '../I18n';
+
+
+const resource = getResource('durationField');
+
+/**
+ * @class
+ * @alias module:argos/Fields/DurationField
+ * @classdesc The Duration field is a mashup of an auto-complete box and a {@link module:argos/Fields/LookupField LookupField} for handling
+ * duration's of: minutes, hours, days, weeks or years. Meaning a user can type directly into the input area the
+ * amount of time or press the lookup button and choose from pre-determined list of times.
+ *
+ * When typing in a value directly, the Duration field only supports one "measurement" meaning if you wanted to
+ * have 1 hour and 30 minutes you would need to type in 90 minutes or 1.5 hours.
+ *
+ * The auto-complete happens on blur, so if a user types in 5m they would need to go to the next field (or press
+ * Save) and the field will auto-complete to 5 minute(s), letting the user know it accepted the value. If a value
+ * entered is not accepted, 5abc, it will default to the last known measurement, defaulting to minutes.
+ *
+ * Setting and getting the value is always in minutes as a Number.
+ *
+ * @example
+ *     {
+ *         name: 'Duration',
+ *         property: 'Duration',
+ *         label: this.durationText,
+ *         type: 'duration',
+ *         view: 'durations_list'
+ *     }
+ *
+ * @extends module:argos/Fields/LookupField
+ */
+const control = declare('argos.Fields.DurationField', [LookupField], /** @lends module:argos/Fields/DurationField.prototype */{
+  /**
+   * Maps various attributes of nodes to setters.
+   */
+  attributeMap: {
+    inputValue: {
+      node: 'inputNode',
+      type: 'attribute',
+      attribute: 'value',
+    },
+    inputDisabled: {
+      node: 'inputNode',
+      type: 'attribute',
+      attribute: 'disabled',
+    },
+    autoCompleteContent: {
+      node: 'autoCompleteNode',
+      type: 'attribute',
+      attribute: 'innerHTML',
+    },
+  },
+  /**
+   * @property {Simplate}
+   * Simplate that defines the fields HTML Markup
+   *
+   * * `$` => Field instance
+   * * `$$` => Owner View instance
+   *
+   */
+  widgetTemplate: new Simplate([
+    `&lt;label for="{%= $.name %}">{%: $.label %}&lt;/label>
+    &lt;div class="field field-control-wrapper">
+      &lt;div class="autoComplete-watermark" data-dojo-attach-point="autoCompleteNode">&lt;/div>
+      &lt;button
+        class="button field-control-trigger simpleSubHeaderButton {% if ($$.iconClass) { %} {%: $$.iconClass %} {% } %}"
+        data-dojo-attach-event="onclick:navigateToListView"
+        aria-label="{%: $.lookupLabelText %}">
+        &lt;svg class="icon" focusable="false" aria-hidden="true" role="presentation">
+          &lt;use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#icon-{%: $.iconClass %}">&lt;/use>
+        &lt;/svg>
+      &lt;/button>
+      &lt;input data-dojo-attach-point="inputNode" data-dojo-attach-event="onkeyup: _onKeyUp, onblur: _onBlur, onfocus: _onFocus" class="" type="{%: $.inputType %}" name="{%= $.name %}" {% if ($.readonly) { %} readonly {% } %}>
+    &lt;/div>`,
+  ]),
+  iconClass: 'more',
+
+  // Localization
+  /**
+   * @property {String}
+   * Text used when no value or null is set to the field
+   */
+  emptyText: resource.emptyText,
+  /**
+   * @property {String}
+   * Text displayed when an invalid input is detected
+   */
+  invalidDurationErrorText: resource.invalidDurationErrorText,
+  /**
+   * @property {Object}
+   * The auto completed text and their corresponding values in minutes (SData is always minutes)
+   *
+   * Override ride this object to change the autocomplete units or their localization.
+   */
+  autoCompleteText: {
+    1: resource.minutes,
+    60: resource.hours,
+    1440: resource.days,
+    10080: resource.weeks,
+    525960: resource.years,
+  },
+  /**
+   * @property {Boolean}
+   * Overrides the {@link LookupField LookupField} default to explicitly set it to false forcing
+   * the view to use the currentValue instead of a key/descriptor
+   */
+  valueKeyProperty: false,
+  /**
+   * @property {Boolean}
+   * Overrides the {@link LookupField LookupField} default to explicitly set it to false forcing
+   * the view to use the currentValue instead of a key/descriptor
+   */
+  valueTextProperty: false,
+
+  /**
+   * @property {String}
+   * The current unit as detected by the parser
+   * @private
+   */
+  currentKey: null,
+  /**
+   * @property {Number}
+   * The current value, expressed as minutes.
+   */
+  currentValue: 0,
+
+  /**
+   * @property {RegExp}
+   * Regular expression for capturing the phrase (text).
+   *
+   * The first capture group must be non-text part
+   * Second capture is the phrase to be used in auto complete
+   */
+  autoCompletePhraseRE: /^((?:\d+(?:\.\d*)?|\.\d+)\s*?)(.+)/,
+
+  /**
+   * @property {RegExp}
+   * Regular expression for capturing the value.
+   * Only one capture which should correlate to the value portion
+   */
+  autoCompleteValueRE: /^((?:\d+(?:\.\d*)?|\.\d+))/,
+
+  /**
+   * Overrides the parent to skip the connections and alter the base capture RegExp's to account for localization
+   */
+  init: function init() {
+    // do not use lookups connects
+
+    const numberDecimalSeparator = Mobile.CultureInfo.numberFormat.numberDecimalSeparator;
+
+    this.autoCompletePhraseRE = new RegExp(
+      string.substitute('^((?:\\d+(?:\\${0}\\d*)?|\\${0}\\d+)\\s*?)(.+)', [numberDecimalSeparator])
+    );
+
+    this.autoCompleteValueRE = new RegExp(
+      string.substitute('^((?:\\d+(?:\\${0}\\d*)?|\\${0}\\d+))', [numberDecimalSeparator])
+    );
+  },
+  /**
+   * Handler for onkeyup on the input. The logic for comparing the matched value and phrase to the autocomplete
+   * is done here.
+   * @param {Event} evt onkeyup
+   * @private
+   */
+  _onKeyUp: function _onKeyUp(/* evt*/) {
+    const val = this.inputNode.value.toString();
+    const match = this.autoCompletePhraseRE.exec(val);
+
+    if (!match || val.length &lt; 1) {
+      this.hideAutoComplete();
+      return true;
+    }
+
+    for (const key in this.autoCompleteText) {
+      if (this.isWordMatch(match[2], this.autoCompleteText[key])) {
+        this.currentKey = this.autoCompleteText[key];
+        this.showAutoComplete(match[1] + this.autoCompleteText[key]);
+        return true;
+      }
+    }
+
+    this.hideAutoComplete();
+  },
+  /**
+   * Determines if the two provided values are the same word, ignoring capitalization and length:
+   *
+   * * h, hour(s) = true
+   * * hou, hour(s) = true
+   * * minn, minute(s) = false
+   * * year, year(s) = true
+   *
+   * @param {String} val First string to compare
+   * @param {String} word Second string to compare
+   * @return {Boolean} True if they are equal.
+   */
+  isWordMatch: function isWordMatch(val, word) {
+    let newVal = val;
+    let newWord = word;
+
+    if (newVal.length > newWord.length) {
+      newVal = newVal.slice(0, newWord.length);
+    } else {
+      newWord = newWord.slice(0, newVal.length);
+    }
+
+    return newVal.toUpperCase() === newWord.toUpperCase();
+  },
+  /**
+   * Shows the auto-complete version of the phrase
+   * @param {String} word Text to put in the autocomplete
+   */
+  showAutoComplete: function showAutoComplete(word) {
+    this.set('autoCompleteContent', word);
+  },
+  /**
+   * Clears the autocomplete input
+   */
+  hideAutoComplete: function hideAutoComplete() {
+    this.set('autoCompleteContent', '');
+  },
+  /**
+   * Inputs onblur handler, if an auto complete is matched it fills the text out the full text
+   * @param evt
+   * @return {Boolean}
+   * @private
+   */
+  _onBlur: function _onBlur(/* evt*/) {
+    const val = this.inputNode.value.toString();
+    const match = this.autoCompleteValueRE.exec(val);
+    const multiplier = this.getMultiplier(this.currentKey);
+    let newValue = 0;
+
+    if (val.length &lt; 1) {
+      return true;
+    }
+
+    if (!match) {
+      return true;
+    }
+
+    newValue = parseFloat(match[0]) * multiplier;
+    this.setValue(newValue);
+  },
+  /**
+   * Returns the corresponding value in minutes to the passed key (currentKey)
+   * @return {Number}
+   */
+  getMultiplier: function getMultiplier(key) {
+    let k;
+    for (k in this.autoCompleteText) {
+      if (this.autoCompleteText.hasOwnProperty(k) &amp;&amp; key === this.autoCompleteText[k]) {
+        break;
+      }
+    }
+    return k;
+  },
+  /**
+   * Returns the current value in minutes
+   * @return {Number}
+   */
+  getValue: function getValue() {
+    return this.currentValue;
+  },
+  /**
+   * Sets the currentValue to the passed value, but sets the displayed value after formatting with {@link #textFormat textFormat}.
+   * @param {Number} val Number of minutes
+   * @param init
+   */
+  setValue: function setValue(val = 0/* , init*/) {
+    let newVal = val;
+    if (newVal === null) {
+      newVal = 0;
+    }
+
+    this.currentValue = newVal;
+    this.set('inputValue', this.textFormat(newVal));
+    this.hideAutoComplete();
+  },
+  /**
+   * If used as a Lookup, this is invoked with the value of the lookup item.
+   * @param val
+   * @param {String/Number} key Number of minutes (will be converted via parseFloat)
+   */
+  setSelection: function setSelection(val, key) {
+    this.setValue(parseFloat(key));
+  },
+  /**
+   * Takes the number of minutes and converts it into a textual representation using the `autoCompleteText`
+   * collection as aguide
+   * @param {Number} val Number of minutes
+   * @return {String}
+   */
+  textFormat: function textFormat(val) {
+    let finalUnit = 1;
+    const autoCompleteValues = this.autoCompleteText;
+
+    for (const key in autoCompleteValues) {
+      if (autoCompleteValues.hasOwnProperty(key)) {
+        const stepValue = parseInt(key, 10);
+        if (val === 0 &amp;&amp; stepValue === 1) {
+          this.currentKey = autoCompleteValues[key];
+          break;
+        }
+
+        if (val / stepValue >= 1) {
+          finalUnit = stepValue;
+          this.currentKey = autoCompleteValues[key];
+        }
+      }
+    }
+
+    return this.formatUnit(this.convertUnit(val, finalUnit));
+  },
+  /**
+   * Divides two numbers and fixes the decimal point to two places.
+   * @param {Number} val
+   * @param {Number} to
+   * @return {Number}
+   */
+  convertUnit: function convertUnit(val, to) {
+    return format.fixed(val / to, 2);
+  },
+  /**
+   * Formats the unit with correct decimal separator.
+   * @param {Number} unit
+   * @return {string}
+   */
+  formatUnit: function formatUnit(unit) {
+    let sval;
+    if (isNaN(unit)) {
+      sval = '0';
+    } else {
+      sval = unit.toString().split('.');
+      if (sval.length === 1) {
+        sval = sval[0];
+      } else {
+        if (sval[1] === '0') {
+          sval = sval[0];
+        } else {
+          sval = string.substitute('${0}${1}${2}', [
+            sval[0],
+            Mobile.CultureInfo.numberFormat.currencyDecimalSeparator || '.',
+            sval[1],
+          ]);
+        }
+      }
+    }
+    return `${sval} ${this.currentKey}`;
+  },
+  /**
+   * Extends the {@link LookupField#createNavigationOptions parent implementation} to explicitly set hide search
+   * to true and data to `this.data`.
+   * @return {Object} Navigation options object to be passed
+   */
+  createNavigationOptions: function createNavigationOptions() {
+    const options = this.inherited(createNavigationOptions, arguments);
+    options.hideSearch = true;
+    options.data = this.expandExpression(this.data);
+    return options;
+  },
+  /**
+   * Validets the field by verifying it matches one of the auto complete text.
+   * @return {Boolean} False for no-errors, true for error.
+   */
+  validate: function validate() {
+    const val = this.inputNode.value.toString();
+    const phraseMatch = this.autoCompletePhraseRE.exec(val);
+
+    if (!phraseMatch) {
+      $(this.containerNode).addClass('row-error');
+      return string.substitute(this.invalidDurationErrorText, [val]);
+    }
+
+    $(this.containerNode).removeClass('row-error');
+    return false;
+  },
+});
+
+export default FieldManager.register('duration', control);
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-argos__ActionMixin.html">argos/_ActionMixin</a></li><li><a href="module-argos__ConfigureBase.html">argos/_ConfigureBase</a></li><li><a href="module-argos__CustomizationMixin.html">argos/_CustomizationMixin</a></li><li><a href="module-argos__DetailBase.html">argos/_DetailBase</a></li><li><a href="module-argos__DraggableBase.html">argos/_DraggableBase</a></li><li><a href="module-argos__EditBase.html">argos/_EditBase</a></li><li><a href="module-argos__LegacySDataDetailMixin.html">argos/_LegacySDataDetailMixin</a></li><li><a href="module-argos__LegacySDataEditMixin.html">argos/_LegacySDataEditMixin</a></li><li><a href="module-argos__LegacySDataListMixin.html">argos/_LegacySDataListMixin</a></li><li><a href="module-argos__ListBase.html">argos/_ListBase</a></li><li><a href="module-argos__PullToRefreshMixin.html">argos/_PullToRefreshMixin</a></li><li><a href="module-argos__RelatedViewWidgetBase.html">argos/_RelatedViewWidgetBase</a></li><li><a href="module-argos__RelatedViewWidgetDetailMixin.html">argos/_RelatedViewWidgetDetailMixin</a></li><li><a href="module-argos__RelatedViewWidgetEditMixin.html">argos/_RelatedViewWidgetEditMixin</a></li><li><a href="module-argos__RelatedViewWidgetListMixin.html">argos/_RelatedViewWidgetListMixin</a></li><li><a href="module-argos__SDataDetailMixin.html">argos/_SDataDetailMixin</a></li><li><a href="module-argos__SDataEditMixin.html">argos/_SDataEditMixin</a></li><li><a href="module-argos__SDataListMixin.html">argos/_SDataListMixin</a></li><li><a href="module-argos__ServiceMixin.html">argos/_ServiceMixin</a></li><li><a href="module-argos__Templated.html">argos/_Templated</a></li><li><a href="module-argos_actions.html">argos/actions</a></li><li><a href="module-argos_actions_connection.html">argos/actions/connection</a></li><li><a href="module-argos_Application.html">argos/Application</a></li><li><a href="module-argos_ApplicationModule.html">argos/ApplicationModule</a></li><li><a href="module-argos_Calendar.html">argos/Calendar</a></li><li><a href="module-argos_ConfigurableSelectionModel.html">argos/ConfigurableSelectionModel</a></li><li><a href="module-argos_Convert.html">argos/Convert</a></li><li><a href="module-argos_CultureInfo.html">argos/CultureInfo</a></li><li><a href="module-argos_DateTimePicker.html">argos/DateTimePicker</a></li><li><a href="module-argos_Detail.html">argos/Detail</a></li><li><a href="module-argos_Dialogs_BusyIndicator.html">argos/Dialogs/BusyIndicator</a></li><li><a href="module-argos_Dialogs_Modal.html">argos/Dialogs/Modal</a></li><li><a href="module-argos_Dialogs_Toast.html">argos/Dialogs/Toast</a></li><li><a href="module-argos_DraggableList.html">argos/DraggableList</a></li><li><a href="module-argos_Dropdown.html">argos/Dropdown</a></li><li><a href="module-argos_Edit.html">argos/Edit</a></li><li><a href="module-argos_ErrorManager.html">argos/ErrorManager</a></li><li><a href="module-argos_FieldManager.html">argos/FieldManager</a></li><li><a href="module-argos_Fields__Field.html">argos/Fields/_Field</a></li><li><a href="module-argos_Fields_BooleanField.html">argos/Fields/BooleanField</a></li><li><a href="module-argos_Fields_DateField.html">argos/Fields/DateField</a></li><li><a href="module-argos_Fields_DecimalField.html">argos/Fields/DecimalField</a></li><li><a href="module-argos_Fields_DropdownField.html">argos/Fields/DropdownField</a></li><li><a href="module-argos_Fields_DurationField.html">argos/Fields/DurationField</a></li><li><a href="module-argos_Fields_EditorField.html">argos/Fields/EditorField</a></li><li><a href="module-argos_Fields_HiddenField.html">argos/Fields/HiddenField</a></li><li><a href="module-argos_Fields_LookupField.html">argos/Fields/LookupField</a></li><li><a href="module-argos_Fields_NoteField.html">argos/Fields/NoteField</a></li><li><a href="module-argos_Fields_PhoneField.html">argos/Fields/PhoneField</a></li><li><a href="module-argos_Fields_SelectField.html">argos/Fields/SelectField</a></li><li><a href="module-argos_Fields_SignatureField.html">argos/Fields/SignatureField</a></li><li><a href="module-argos_Fields_TextAreaField.html">argos/Fields/TextAreaField</a></li><li><a href="module-argos_Fields_TextField.html">argos/Fields/TextField</a></li><li><a href="module-argos_Format.html">argos/Format</a></li><li><a href="module-argos_GroupedList.html">argos/GroupedList</a></li><li><a href="module-argos_Groups__GroupBySection.html">argos/Groups/_GroupBySection</a></li><li><a href="module-argos_Groups_DateTimeSection.html">argos/Groups/DateTimeSection</a></li><li><a href="module-argos_Groups_GroupByValueSection.html">argos/Groups/GroupByValueSection</a></li><li><a href="module-argos_I18n.html">argos/I18n</a></li><li><a href="module-argos_LanguageService.html">argos/LanguageService</a></li><li><a href="module-argos_List.html">argos/List</a></li><li><a href="module-argos_MainToolbar.html">argos/MainToolbar</a></li><li><a href="module-argos_Models__ModelBase.html">argos/Models/_ModelBase</a></li><li><a href="module-argos_Models__OfflineModelBase.html">argos/Models/_OfflineModelBase</a></li><li><a href="module-argos_Models_Adapter.html">argos/Models/Adapter</a></li><li><a href="module-argos_Models_Briefcase_Offline.html">argos/Models/Briefcase/Offline</a></li><li><a href="module-argos_Models_Manager.html">argos/Models/Manager</a></li><li><a href="module-argos_Models_RecentlyViewed_Offline.html">argos/Models/RecentlyViewed/Offline</a></li><li><a href="module-argos_Models_SDataModelBase.html">argos/Models/SDataModelBase</a></li><li><a href="module-argos_Models_Types.html">argos/Models/Types</a></li><li><a href="module-argos_Offline__DetailOfflineMixin.html">argos/Offline/_DetailOfflineMixin</a></li><li><a href="module-argos_Offline__ListOfflineMixin.html">argos/Offline/_ListOfflineMixin</a></li><li><a href="module-argos_Offline_Manager.html">argos/Offline/Manager</a></li><li><a href="module-argos_reducers.html">argos/reducers</a></li><li><a href="module-argos_RelatedViewManager.html">argos/RelatedViewManager</a></li><li><a href="module-argos_RelatedViewWidget.html">argos/RelatedViewWidget</a></li><li><a href="module-argos_RelativeDateTimePicker.html">argos/RelativeDateTimePicker</a></li><li><a href="module-argos_Scene.html">argos/Scene</a></li><li><a href="module-argos_SearchWidget.html">argos/SearchWidget</a></li><li><a href="module-argos_SelectionModel.html">argos/SelectionModel</a></li><li><a href="module-argos_SohoIcons.html">argos/SohoIcons</a></li><li><a href="module-argos_Store_PouchDB.html">argos/Store/PouchDB</a></li><li><a href="module-argos_Store_SData.html">argos/Store/SData</a></li><li><a href="module-argos_TabWidget.html">argos/TabWidget</a></li><li><a href="module-argos_TimePicker.html">argos/TimePicker</a></li><li><a href="module-argos_Toolbar.html">argos/Toolbar</a></li><li><a href="module-argos_Utility.html">argos/Utility</a></li><li><a href="module-argos_View.html">argos/View</a></li><li><a href="module-argos_Views_ConfigureQuickActions.html">argos/Views/ConfigureQuickActions</a></li><li><a href="module-argos_Views_FileSelect.html">argos/Views/FileSelect</a></li><li><a href="module-argos_Views_Link.html">argos/Views/Link</a></li><li><a href="module-argos_Views_Signature.html">argos/Views/Signature</a></li><li><a href="module-argos_WidgetBase.html">argos/WidgetBase</a></li><li><a href="module-crm_Action.html">crm/Action</a></li><li><a href="module-crm_Aggregate.html">crm/Aggregate</a></li><li><a href="module-crm_Application.html">crm/Application</a></li><li><a href="module-crm_ApplicationModule.html">crm/ApplicationModule</a></li><li><a href="module-crm_AttachmentManager.html">crm/AttachmentManager</a></li><li><a href="module-crm_Bootstrap.html">crm/Bootstrap</a></li><li><a href="module-crm_Bootstrap_localization.html">crm/Bootstrap/localization</a></li><li><a href="module-crm_Environment.html">crm/Environment</a></li><li><a href="module-crm_FileManager.html">crm/FileManager</a></li><li><a href="module-crm_Format.html">crm/Format</a></li><li><a href="module-crm_GroupUtility.html">crm/GroupUtility</a></li><li><a href="module-crm_Integrations_BOE_Aggregate.html">crm/Integrations/BOE/Aggregate</a></li><li><a href="module-crm_Integrations_BOE_Utility.html">crm/Integrations/BOE/Utility</a></li><li><a href="module-crm_MingleUtility.html">crm/MingleUtility</a></li><li><a href="module-crm_PicklistService.html">crm/PicklistService</a></li><li><a href="module-crm_Recurrence.html">crm/Recurrence</a></li><li><a href="module-crm_SalesProcessUtility.html">crm/SalesProcessUtility</a></li><li><a href="module-crm_Template.html">crm/Template</a></li><li><a href="module-crm_Utility.html">crm/Utility</a></li><li><a href="module-crm_Validator.html">crm/Validator</a></li><li><a href="module-crm_Views__GroupListMixin.html">crm/Views/_GroupListMixin</a></li><li><a href="module-crm_Views__MetricDetailMixin.html">crm/Views/_MetricDetailMixin</a></li><li><a href="module-crm_Views__MetricListMixin.html">crm/Views/_MetricListMixin</a></li><li><a href="module-crm_Views__RightDrawerBaseMixin.html">crm/Views/_RightDrawerBaseMixin</a></li><li><a href="module-crm_Views__RightDrawerListMixin.html">crm/Views/_RightDrawerListMixin</a></li><li><a href="module-crm_Views__SpeedSearchRightDrawerListMixin.html">crm/Views/_SpeedSearchRightDrawerListMixin</a></li><li><a href="module-crm_Views_Charts__ChartMixin.html">crm/Views/Charts/_ChartMixin</a></li><li><a href="module-crm_Views_Charts_GenericBar.html">crm/Views/Charts/GenericBar</a></li><li><a href="module-crm_Views_Charts_GenericLine.html">crm/Views/Charts/GenericLine</a></li><li><a href="module-crm_Views_Charts_GenericPie.html">crm/Views/Charts/GenericPie</a></li><li><a href="module-crm_Views_MetricWidget.html">crm/Views/MetricWidget</a></li><li><a href="module-crm_Views_Offline__RightDrawerListMixin.html">crm/Views/Offline/_RightDrawerListMixin</a></li><li><a href="module-crm_Views_RecentlyViewed__RightDrawerListMixin.html">crm/Views/RecentlyViewed/_RightDrawerListMixin</a></li></ul><h3>Classes</h3><ul><li><a href="module-_crm_Integrations_BOE_Aggregate.html">/crm/Integrations/BOE/Aggregate</a></li><li><a href="module-argos__ActionMixin.html">argos/_ActionMixin</a></li><li><a href="module-argos__ConfigureBase.html">argos/_ConfigureBase</a></li><li><a href="module-argos__CustomizationMixin.html">argos/_CustomizationMixin</a></li><li><a href="module-argos__DetailBase.html">argos/_DetailBase</a></li><li><a href="module-argos__DraggableBase.html">argos/_DraggableBase</a></li><li><a href="module-argos__EditBase.html">argos/_EditBase</a></li><li><a href="module-argos__LegacySDataDetailMixin.html">argos/_LegacySDataDetailMixin</a></li><li><a href="module-argos__LegacySDataEditMixin.html">argos/_LegacySDataEditMixin</a></li><li><a href="module-argos__LegacySDataListMixin.html">argos/_LegacySDataListMixin</a></li><li><a href="module-argos__ListBase.html">argos/_ListBase</a></li><li><a href="module-argos__RelatedViewWidgetBase.html">argos/_RelatedViewWidgetBase</a></li><li><a href="module-argos__SDataEditMixin.html">argos/_SDataEditMixin</a></li><li><a href="module-argos_Application.html">argos/Application</a></li><li><a href="module-argos_ApplicationModule.html">argos/ApplicationModule</a></li><li><a href="module-argos_Calendar.html">argos/Calendar</a></li><li><a href="module-argos_ConfigurableSelectionModel.html">argos/ConfigurableSelectionModel</a></li><li><a href="module-argos_Convert.html">argos/Convert</a></li><li><a href="module-argos_DateTimePicker.html">argos/DateTimePicker</a></li><li><a href="module-argos_Detail.html">argos/Detail</a></li><li><a href="module-argos_Dialogs_BusyIndicator.html">argos/Dialogs/BusyIndicator</a></li><li><a href="module-argos_Dialogs_Modal.html">argos/Dialogs/Modal</a></li><li><a href="module-argos_Dialogs_Toast.html">argos/Dialogs/Toast</a></li><li><a href="module-argos_DraggableList.html">argos/DraggableList</a></li><li><a href="module-argos_Dropdown.html">argos/Dropdown</a></li><li><a href="module-argos_Edit.html">argos/Edit</a></li><li><a href="module-argos_ErrorManager.html">argos/ErrorManager</a></li><li><a href="module-argos_FieldManager.html">argos/FieldManager</a></li><li><a href="module-argos_Fields__SignatureField.html">argos/Fields//SignatureField</a></li><li><a href="module-argos_Fields__Field.html">argos/Fields/_Field</a></li><li><a href="module-argos_Fields_BooleanField.html">argos/Fields/BooleanField</a></li><li><a href="module-argos_Fields_DateField.html">argos/Fields/DateField</a></li><li><a href="module-argos_Fields_DecimalField.html">argos/Fields/DecimalField</a></li><li><a href="module-argos_Fields_DropdownField.html">argos/Fields/DropdownField</a></li><li><a href="module-argos_Fields_DurationField.html">argos/Fields/DurationField</a></li><li><a href="module-argos_Fields_EditorField.html">argos/Fields/EditorField</a></li><li><a href="module-argos_Fields_HiddenField.html">argos/Fields/HiddenField</a></li><li><a href="module-argos_Fields_LookupField.html">argos/Fields/LookupField</a></li><li><a href="module-argos_Fields_NoteField.html">argos/Fields/NoteField</a></li><li><a href="module-argos_Fields_PhoneField.html">argos/Fields/PhoneField</a></li><li><a href="module-argos_Fields_SelectField.html">argos/Fields/SelectField</a></li><li><a href="module-argos_Fields_TextAreaField.html">argos/Fields/TextAreaField</a></li><li><a href="module-argos_Fields_TextField.html">argos/Fields/TextField</a></li><li><a href="module-argos_Format.html">argos/Format</a></li><li><a href="module-argos_GroupedList.html">argos/GroupedList</a></li><li><a href="module-argos_Groups__GroupBySection.html">argos/Groups/_GroupBySection</a></li><li><a href="module-argos_Groups_DateTimeSection.html">argos/Groups/DateTimeSection</a></li><li><a href="module-argos_Groups_GroupByValueSection.html">argos/Groups/GroupByValueSection</a></li><li><a href="module-argos_LanguageService.html">argos/LanguageService</a></li><li><a href="module-argos_List.html">argos/List</a></li><li><a href="module-argos_MainToolbar.html">argos/MainToolbar</a></li><li><a href="module-argos_Models__ModelBase.html">argos/Models/_ModelBase</a></li><li><a href="module-argos_Models__OfflineModelBase.html">argos/Models/_OfflineModelBase</a></li><li><a href="module-argos_Models_Adapter.html">argos/Models/Adapter</a></li><li><a href="module-argos_Models_Briefcase_Offline.html">argos/Models/Briefcase/Offline</a></li><li><a href="module-argos_Models_Manager.html">argos/Models/Manager</a></li><li><a href="module-argos_Models_RecentlyViewed_Offline.html">argos/Models/RecentlyViewed/Offline</a></li><li><a href="module-argos_Models_SDataModelBase.html">argos/Models/SDataModelBase</a></li><li><a href="module-argos_Offline__DetailOfflineMixin.html">argos/Offline/_DetailOfflineMixin</a></li><li><a href="module-argos_Offline__ListOfflineMixin.html">argos/Offline/_ListOfflineMixin</a></li><li><a href="module-argos_Offline_Manager.html">argos/Offline/Manager</a></li><li><a href="module-argos_RelatedViewManager.html">argos/RelatedViewManager</a></li><li><a href="module-argos_RelatedViewWidget.html">argos/RelatedViewWidget</a></li><li><a href="module-argos_RelativeDateTimePicker.html">argos/RelativeDateTimePicker</a></li><li><a href="module-argos_Scene.html">argos/Scene</a></li><li><a href="module-argos_SearchWidget.html">argos/SearchWidget</a></li><li><a href="module-argos_SelectionModel.html">argos/SelectionModel</a></li><li><a href="module-argos_Store_PouchDB.html">argos/Store/PouchDB</a></li><li><a href="module-argos_Store_SData.html">argos/Store/SData</a></li><li><a href="module-argos_TabWidget.html">argos/TabWidget</a></li><li><a href="module-argos_TimePicker.html">argos/TimePicker</a></li><li><a href="module-argos_Toolbar.html">argos/Toolbar</a></li><li><a href="module-argos_Utility.html">argos/Utility</a></li><li><a href="module-argos_View.html">argos/View</a></li><li><a href="module-argos_Views_ConfigureQuickActions.html">argos/Views/ConfigureQuickActions</a></li><li><a href="module-argos_Views_FileSelect.html">argos/Views/FileSelect</a></li><li><a href="module-argos_Views_Link.html">argos/Views/Link</a></li><li><a href="module-argos_Views_Signature.html">argos/Views/Signature</a></li><li><a href="module-argos_WidgetBase.html">argos/WidgetBase</a></li><li><a href="module-crm_Action.html">crm/Action</a></li><li><a href="module-crm_Aggregate.html">crm/Aggregate</a></li><li><a href="module-crm_Application.html">crm/Application</a></li><li><a href="module-crm_ApplicationModule.html">crm/ApplicationModule</a></li><li><a href="module-crm_AttachmentManager.html">crm/AttachmentManager</a></li><li><a href="module-crm_Environment.html">crm/Environment</a></li><li><a href="module-crm_FileManager.html">crm/FileManager</a></li><li><a href="module-crm_Format.html">crm/Format</a></li><li><a href="module-crm_GroupUtility.html">crm/GroupUtility</a></li><li><a href="module-crm_Integrations_BOE_Utility.html">crm/Integrations/BOE/Utility</a></li><li><a href="module-crm_MingleUtility.html">crm/MingleUtility</a></li><li><a href="module-crm_PicklistService.html">crm/PicklistService</a></li><li><a href="module-crm_Recurrence.html">crm/Recurrence</a></li><li><a href="module-crm_SalesProcessUtility.html">crm/SalesProcessUtility</a></li><li><a href="module-crm_Template.html">crm/Template</a></li><li><a href="module-crm_Utility.html">crm/Utility</a></li><li><a href="module-crm_Validator.html">crm/Validator</a></li><li><a href="module-crm_Views__SpeedSearchRightDrawerListMixin.html">crm/Views/_SpeedSearchRightDrawerListMixin</a></li><li><a href="module-crm_Views_Charts_GenericBar.html">crm/Views/Charts/GenericBar</a></li><li><a href="module-crm_Views_Charts_GenericLine.html">crm/Views/Charts/GenericLine</a></li><li><a href="module-crm_Views_Charts_GenericPie.html">crm/Views/Charts/GenericPie</a></li><li><a href="module-crm_Views_MetricWidget.html">crm/Views/MetricWidget</a></li></ul><h3>Mixins</h3><ul><li><a href="module-argos__PullToRefreshMixin.html">argos/_PullToRefreshMixin</a></li><li><a href="module-argos__RelatedViewWidgetDetailMixin.html">argos/_RelatedViewWidgetDetailMixin</a></li><li><a href="module-argos__RelatedViewWidgetEditMixin.html">argos/_RelatedViewWidgetEditMixin</a></li><li><a href="module-argos__RelatedViewWidgetListMixin.html">argos/_RelatedViewWidgetListMixin</a></li><li><a href="module-argos__SDataDetailMixin.html">argos/_SDataDetailMixin</a></li><li><a href="module-argos__SDataListMixin.html">argos/_SDataListMixin</a></li><li><a href="module-argos__ServiceMixin.html">argos/_ServiceMixin</a></li><li><a href="module-argos__Templated.html">argos/_Templated</a></li><li><a href="module-crm_Views__GroupListMixin.html">crm/Views/_GroupListMixin</a></li><li><a href="module-crm_Views__MetricDetailMixin.html">crm/Views/_MetricDetailMixin</a></li><li><a href="module-crm_Views__MetricListMixin.html">crm/Views/_MetricListMixin</a></li><li><a href="module-crm_Views__RightDrawerBaseMixin.html">crm/Views/_RightDrawerBaseMixin</a></li><li><a href="module-crm_Views__RightDrawerListMixin.html">crm/Views/_RightDrawerListMixin</a></li><li><a href="module-crm_Views_Charts__ChartMixin.html">crm/Views/Charts/_ChartMixin</a></li><li><a href="module-crm_Views_Offline__RightDrawerListMixin.html">crm/Views/Offline/_RightDrawerListMixin</a></li><li><a href="module-crm_Views_RecentlyViewed__RightDrawerListMixin.html">crm/Views/RecentlyViewed/_RightDrawerListMixin</a></li></ul><h3>Tutorials</h3><ul><li><a href="tutorial-amd.html">AMD - Define and Declare</a></li><li><a href="tutorial-browser_setup.html">Browser Setup / Information</a></li><li><a href="tutorial-stores.html">Data Stores</a></li><li><a href="tutorial-lifecycles.html">View Lifecycles</a></li><li><a href="tutorial-upgrading_v12_to_v20.html">Upgrading 1.2 to 2.0</a></li><li><a href="tutorial-wire_detail_to_edit.html">Wiring Detail to Edit</a></li><li><a href="tutorial-wire_list_to_detail.html">Wiring List to Detail</a></li><li><a href="tutorial-wire_list_to_edit.html">Wiring List to Edit</a></li><li><a href="tutorial-grouped_list.html">Grouped List</a></li><li><a href="tutorial-basic_auth.html">Login - Basic Authentication</a></li><li><a href="tutorial-hashtags.html">#Hashtags</a></li><li><a href="tutorial-list_actions.html">List Actions</a></li><li><a href="tutorial-quick_actions.html">Quick Actions</a></li><li><a href="tutorial-related_views.html">Related Views</a></li><li><a href="tutorial-detail_layout.html">Detail Layout</a></li><li><a href="tutorial-validation.html">Validation</a></li><li><a href="tutorial-list_search.html">List Search Widget</a></li><li><a href="tutorial-advanced_localization.html">Localization - Advanced</a></li><li><a href="tutorial-navigation.html">Navigation</a></li><li><a href="tutorial-toolbars.html">Toolbars</a></li><li><a href="tutorial-localization_detection.html">localization_detection</a></li><li><a href="tutorial-localization.html">Localization - Basic</a></li><li><a href="tutorial-overview.html">Overview</a></li><li><a href="tutorial-template_guide.html">Template Guide</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.4</a> on Fri Jun 05 2020 13:35:40 GMT-0400 (Eastern Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: products/argos-saleslogix/src/Recurrence.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: products/argos-saleslogix/src/Recurrence.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/* Copyright 2017 Infor
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/**
+ * @module crm/Recurrence
+ */
+import lang from 'dojo/_base/lang';
+import string from 'dojo/string';
+import getResource from 'argos/I18n';
+
+
+const resource = getResource('recurrence');
+const dtFormatResource = getResource('recurrenceDateTimeFormat');
+
+/**
+ * @class
+ * @alias module:crm/Recurrence
+ * @static
+ */
+const __class = lang.setObject('crm.Recurrence', /** @lends module:crm/Recurrence */{
+  // Localization
+  neverText: resource.neverText,
+  dailyText: resource.dailyText,
+  weeklyText: resource.weeklyText,
+  monthlyText: resource.monthlyText,
+  yearlyText: resource.yearlyText,
+  dayFormatText: dtFormatResource.dayFormatText,
+  monthFormatText: dtFormatResource.monthFormatText,
+  monthAndDayFormatText: dtFormatResource.monthAndDayFormatText,
+  weekdayFormatText: dtFormatResource.weekdayFormatText,
+  endDateFormatText: dtFormatResource.endDateFormatText,
+  dateFormatText: dtFormatResource.endDateFormatText,
+  timeFormatText: dtFormatResource.timeFormatText,
+  timeFormatText24: dtFormatResource.timeFormatText24,
+  singleActivitySummary: resource.singleActivitySummary,
+  dailySummary: resource.dailySummary,
+  dailyEverySummary: resource.dailyEverySummary,
+  dailyAfterCompletionSummary: resource.dailyAfterCompletionSummary,
+  dailyEveryAfterCompletionSummary: resource.dailyEveryAfterCompletionSummary,
+  weeklySummary: resource.weeklySummary,
+  weeklyEverySummary: resource.weeklyEverySummary,
+  weeklyAfterCompletionSummary: resource.weeklyAfterCompletionSummary,
+  weeklyEveryAfterCompletionSummary: resource.weeklyEveryAfterCompletionSummary,
+  monthlyOrdSummary: resource.monthlyOrdSummary,
+  monthlyEveryOrdSummary: resource.monthlyEveryOrdSummary,
+  monthlySummary: resource.monthlySummary,
+  monthlyEverySummary: resource.monthlyEverySummary,
+  monthlyAfterCompletionSummary: resource.monthlyAfterCompletionSummary,
+  monthlyEveryAfterCompletionSummary: resource.monthlyEveryAfterCompletionSummary,
+  yearlySummary: resource.yearlySummary,
+  yearlyEverySummary: resource.yearlyEverySummary,
+  yearlyOrdSummary: resource.yearlyOrdSummary,
+  yearlyEveryOrdSummary: resource.yearlyEveryOrdSummary,
+  yearlyAfterCompletionSummary: resource.yearlyAfterCompletionSummary,
+  yearlyEveryAfterCompletionSummary: resource.yearlyEveryAfterCompletionSummary,
+  daySeparator: resource.daySeparator,
+  weekDaysText: [
+    resource.sunday,
+    resource.monday,
+    resource.tuesday,
+    resource.wednesday,
+    resource.thursday,
+    resource.friday,
+    resource.saturday,
+  ],
+  ordText: [
+    resource.day,
+    resource.first,
+    resource.second,
+    resource.third,
+    resource.fourth,
+    resource.last,
+  ],
+
+  interval: 1, // repeat every interval days/weeks/months/years
+  defaultIterations: [ // by RecurPeriod, -1 for After Completed. Configurable.
+    7, // days
+    -1,
+    8, // weeks
+    -1,
+    12, // months
+    12, -1,
+    5, // years
+    5, -1,
+  ],
+  _weekDayValues: [
+    131072, // sun
+    262144, // mon
+    524288, // tue
+    1048576, // wed
+    2097152, // thu
+    4194304, // fri
+    8388608, // sat
+  ],
+  simplifiedOptions: [{
+    label: 'neverText',
+    Recurring: false,
+    RecurPeriod: -1, // not recurring
+    basePeriodSpec: 0,
+    RecurPeriodSpec: 0,
+    RecurIterations: 0,
+    RecurrenceState: 'rsNotRecurring',
+  }, {
+    label: 'dailyText',
+    Recurring: true,
+    RecurPeriod: 0,
+    basePeriodSpec: 0,
+    RecurPeriodSpec: 0,
+    RecurIterations: 7, // override from this.defaultIterations
+    RecurrenceState: 'rstMaster',
+  }, {
+    label: 'weeklyText',
+    Recurring: true,
+    RecurPeriod: 2,
+    basePeriodSpec: 0,
+    weekdays: [0, 0, 0, 0, 0, 0, 0], // none selected by default
+    RecurPeriodSpec: 0,
+    RecurIterations: 8,
+    RecurrenceState: 'rstMaster',
+    calc: true,
+  }, {
+    label: 'monthlyText',
+    Recurring: true,
+    RecurPeriod: 4,
+    basePeriodSpec: 1048576,
+    RecurPeriodSpec: 0,
+    RecurIterations: 12,
+    RecurrenceState: 'rstMaster',
+  }, {
+    label: 'yearlyText',
+    Recurring: true,
+    RecurPeriod: 7,
+    basePeriodSpec: 38797312,
+    RecurPeriodSpec: 0,
+    RecurIterations: 5,
+    RecurrenceState: 'rstMaster',
+  }],
+
+  createSimplifiedOptions: function createSimplifiedOptions(startDate) {
+    this.recalculateSimplifiedPeriodSpec(startDate);
+
+    const list = [];
+    const currentDate = startDate || new Date();
+    const wrapped = moment(currentDate);
+    const day = currentDate.getDate();
+    const ord = this.ordText[parseInt(((day - 1) / 7).toString(), 10) + 1];
+    const textOptions = [
+      null, // scale, replaced in loop
+      day,
+      wrapped.format(this.dayFormatText),
+      wrapped.localeData().weekdays(wrapped),
+      wrapped.localeData().monthsShort(wrapped),
+      ord,
+    ];
+
+    for (const recurOption in this.simplifiedOptions) {
+      if (this.simplifiedOptions.hasOwnProperty(recurOption)) {
+        textOptions[0] = this.getPanel(this.simplifiedOptions[recurOption].RecurPeriod);
+        this.simplifiedOptions[recurOption].RecurIterations = this.defaultIterations[this.simplifiedOptions[recurOption].RecurPeriod] || 0;
+
+        if (this[this.simplifiedOptions[recurOption].label]) {
+          list.push({
+            $key: recurOption, // this.simplifiedOptions[recurOption].RecurPeriod,
+            $descriptor: string.substitute(this[this.simplifiedOptions[recurOption].label], textOptions),
+            recurrence: this.simplifiedOptions[recurOption],
+          });
+        }
+      }
+    }
+
+    return {
+      $resources: list,
+    };
+  },
+  getPanel: function getPanel(recurPeriod) {
+    switch (recurPeriod) {
+      case 0:
+      case 1:
+        return this.dailyText;
+      case 2:
+      case 3:
+        return this.weeklyText;
+      case 4:
+      case 5:
+      case 6:
+        return this.monthlyText;
+      case 7:
+      case 8:
+      case 9:
+        return this.yearlyText;
+      default:
+        return this.neverText;
+    }
+  },
+  isAfterCompletion: function isAfterCompletion(panel) {
+    return '1369'.indexOf(panel) >= 0;
+  },
+  recalculateSimplifiedPeriodSpec: function recalculateSimplifiedPeriodSpec(startDate) {
+    for (const recurOption in this.simplifiedOptions) {
+      if (this.simplifiedOptions.hasOwnProperty(recurOption)) {
+        const opt = this.simplifiedOptions[recurOption];
+        this.simplifiedOptions[recurOption].RecurPeriodSpec = this.getRecurPeriodSpec(
+          opt.RecurPeriod,
+          startDate,
+          opt.weekdays
+        );
+      }
+    }
+  },
+  getWeekdays: function getWeekdays(rps, names) { // pass a RecurPeriodSpec (as long as RecurPeriod corresponds to a Spec with weekdays)
+    const weekdays = [];
+    for (let i = 0; i &lt; this._weekDayValues.length; i++) {
+      if (names) {
+        if (rps &amp; this._weekDayValues[i]) {
+          weekdays.push(this.weekDaysText[i]);
+        }
+      } else {
+        weekdays.push((rps &amp; this._weekDayValues[i]) ? 1 : 0);
+      }
+    }
+
+    return weekdays;
+  },
+  getOrd: function getOrd(entry) {
+    let nthWeek = 0;
+    let weekday = entry.StartDate.getDay();
+    let monthNum = entry.StartDate.getMonth() + 1;
+    const ordBits = entry.RecurPeriodSpec % 524288;
+    const monthBits = entry.RecurPeriodSpec % 4194304 - ordBits;
+
+    if (entry &amp;&amp; (entry.RecurPeriod === 5 || entry.RecurPeriod === 8)) {
+      nthWeek = parseInt((ordBits / 65536).toString(), 10) + 1;
+      weekday = parseInt((monthBits / 524288).toString(), 10) - 1;
+      monthNum = parseInt(((entry.RecurPeriodSpec - monthBits - ordBits) / 4194304).toString(), 10);
+    }
+
+    return {
+      week: nthWeek,
+      weekday,
+      month: monthNum,
+    };
+  },
+  getRecurPeriodSpec: function getRecurPeriodSpec(recurPeriod, startDate, weekdays, inter) {
+    let spec = 0;
+    let interval = inter || this.interval;
+    let weekDay;
+    let nthWeek;
+    let monthNum;
+
+    if (!startDate) {
+      return null;
+    }
+
+    switch (recurPeriod) {
+      case 0:
+        // daily
+        break;
+      case 1:
+        // daily occurances *after completion*
+        //
+        break;
+      case 2:
+        // weekly
+        for (let i = 0; i &lt; weekdays.length; i++) {
+          spec += (weekdays[i] ? this._weekDayValues[i] : 0);
+        }
+        if (spec === 0) {
+          spec += this._weekDayValues[startDate.getDay()];
+        }
+
+        break;
+      case 3:
+        // weekly occurances *after completion*
+        spec = 1048576;
+        break;
+      case 4:
+        // monthly on day ##
+        spec = 1048576;
+        break;
+      case 5:
+        // monthly on #ord #weekday
+        weekDay = startDate.getDay() + 1;
+        nthWeek = parseInt(((startDate.getDate() - 1) / 7).toString(), 10) + 1;
+        spec = ((weekDay * 524288) + ((nthWeek - 1) * 65536));
+        break;
+      case 6:
+        // monthly occurances *after completion*
+        spec = 1048576;
+        break;
+      case 7:
+        // yearly on #month #day
+        spec = 38797312;
+        break;
+      case 8:
+        // yearly on #ord #weekday of #month
+        spec = 18546688;
+        weekDay = startDate.getDay() + 1;
+        monthNum = startDate.getMonth() + 1;
+        nthWeek = parseInt(((startDate.getDate() - 1) / 7).toString(), 10) + 1;
+        spec = ((monthNum * 4194304) + (weekDay * 524288) + ((nthWeek - 1) * 65536));
+        break;
+      case 9:
+        // yearly occurances *after completion*
+        spec = 38797312;
+        break;
+      default:
+        // Not recurring, happens only once
+        interval = 0;
+    }
+
+    return spec + interval; // + every interval days/weeks/months/years
+  },
+  createTextOptions: function createTextOptions(entry) {
+    let weekdaysString = '';
+    const recurPeriodSpec = parseInt(entry.RecurPeriodSpec, 10);
+    const interval = recurPeriodSpec % 65536;
+    const momentCurrentDate = moment(entry.StartDate);
+    const currentDate = momentCurrentDate.toDate();
+    const day = currentDate.getDate();
+    const weekday = momentCurrentDate.format(this.weekdayFormatText);
+    const weekdays = this.getWeekdays(recurPeriodSpec, true);
+    const month = momentCurrentDate.localeData().months(momentCurrentDate);
+
+    let timeFormatted = momentCurrentDate.format(this.timeFormatText);
+
+    if (App &amp;&amp; App.is24HourClock()) {
+      timeFormatted = momentCurrentDate.format(this.timeFormatText24);
+    }
+
+    // eslint-disable-next-line guard-for-in
+    for (const key in weekdays) {
+      if (weekdays[key] &amp;&amp; parseInt(key, 10) &lt; weekdays.length - 1) {
+        weekdays[key] = string.substitute(this.daySeparator, [weekdays[key]]);
+      }
+      weekdaysString += weekdays[key];
+    }
+
+    return [
+      interval,
+      timeFormatted,
+      momentCurrentDate.format(this.dateFormatText),
+      this.calcEndDate(currentDate, entry).format(this.endDateFormatText),
+      weekdaysString,
+      month,
+      string.substitute(this.ordText[parseInt(((day - 1) / 7), 10) + 1], [weekday]),
+      day,
+    ];
+  },
+  buildSummaryText: function buildSummaryText(entry, textOptions) {
+    const rp = parseInt(entry.RecurPeriod, 10);
+    switch (rp) {
+      case -1:
+        // occurs only once
+        return this.singleActivitySummary;
+      case 0:
+        // daily
+        return (textOptions[0] &lt;= 1) ?
+          string.substitute(this.dailySummary, textOptions) :
+          string.substitute(this.dailyEverySummary, textOptions);
+      case 1:
+        // daily after completion
+        return (textOptions[0] &lt;= 1) ?
+          string.substitute(this.dailyAfterCompletionSummary, textOptions) :
+          string.substitute(this.dailyEveryAfterCompletionSummary, textOptions);
+      case 2:
+        // weekly
+        return (textOptions[0] &lt;= 1) ?
+          string.substitute(this.weeklySummary, textOptions) :
+          string.substitute(this.weeklyEverySummary, textOptions);
+      case 3:
+        // weekly after completion
+        return (textOptions[0] &lt;= 1) ?
+          string.substitute(this.weeklyAfterCompletionSummary, textOptions) :
+          string.substitute(this.weeklyEveryAfterCompletionSummary, textOptions);
+      case 4:
+        // monthly on day
+        return (textOptions[0] &lt;= 1) ?
+          string.substitute(this.monthlySummary, textOptions) :
+          string.substitute(this.monthlyEverySummary, textOptions);
+      case 5:
+        // monthly on day ordinal
+        return (textOptions[0] &lt;= 1) ?
+          string.substitute(this.monthlyOrdSummary, textOptions) :
+          string.substitute(this.monthlyEveryOrdSummary, textOptions);
+      case 6:
+        // monthly after completion
+        return (textOptions[0] &lt;= 1) ?
+          string.substitute(this.monthlyAfterCompletionSummary, textOptions) :
+          string.substitute(this.monthlyEveryAfterCompletionSummary, textOptions);
+      case 7:
+        // yearly on day of the month
+        return (textOptions[0] &lt;= 1) ?
+          string.substitute(this.yearlySummary, textOptions) :
+          string.substitute(this.yearlyEverySummary, textOptions);
+      case 8:
+      // yearly on day ordinal
+        return (textOptions[0] &lt;= 1) ?
+          string.substitute(this.yearlyOrdSummary, textOptions) :
+          string.substitute(this.yearlyEveryOrdSummary, textOptions);
+      case 9:
+      // Yearly after completion
+        return (textOptions[0] &lt;= 1) ?
+          string.substitute(this.yearlyAfterCompletionSummary, textOptions) :
+          string.substitute(this.yearlyEveryAfterCompletionSummary, textOptions);
+      default:
+        return '';
+    }
+  },
+  toString: function toString(entry) {
+    if (entry.RecurrenceState !== 'rstMaster' || !entry.StartDate) {
+      if (entry.RecurrenceState === 'rsNotRecurring' &amp;&amp; entry.StartDate) {
+        return this.singleActivitySummary;
+      }
+      return '';
+    }
+    const textOptions = this.createTextOptions(entry);
+    return this.buildSummaryText(entry, textOptions);
+  },
+  calcEndDate: function calcEndDate(date, entry) {
+    const interval = entry.RecurPeriodSpec % 65536;
+    let weekDay;
+    let nthWeek;
+    let tempDate = moment.isMoment(date) ? date.clone() :
+      new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds());
+
+    tempDate = moment(tempDate);
+    switch (parseInt(entry.RecurPeriod, 10)) {
+      case 0:
+        tempDate.add((interval * (entry.RecurIterations - 1)), 'days');
+        break;
+      case 2:
+        tempDate.add((interval * (entry.RecurIterations - 1)), 'weeks');
+        break;
+      case 4:
+        tempDate.add((interval * (entry.RecurIterations - 1)), 'months');
+        break;
+      case 5:
+        weekDay = tempDate.day();
+        nthWeek = parseInt((tempDate.date() / 7).toString(), 10) + 1;
+        tempDate.add((interval * (entry.RecurIterations - 1)), 'months');
+        tempDate = this.calcDateOfNthWeekday(tempDate.toDate(), weekDay, nthWeek);
+        break;
+      case 7:
+        tempDate.add((interval * (entry.RecurIterations - 1)), 'years');
+        break;
+      case 8:
+        weekDay = tempDate.day();
+        nthWeek = parseInt((tempDate.date() / 7).toString(), 10) + 1;
+        tempDate.add((interval * (entry.RecurIterations - 1)), 'years');
+        tempDate = this.calcDateOfNthWeekday(tempDate.toDate(), weekDay, nthWeek);
+        break;
+      default:
+        // RecurPeriod 1, 3, 6 &amp; 9 are iterations after completion. No end date.
+    }
+
+    return tempDate;
+  },
+  calcDateOfNthWeekday: function calcDateOfNthWeekday(date, weekDay, nthWeek) {
+    // calculate date of #nthWeek #weekDay  e.g. First Friday
+    let tempDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    tempDate = moment(tempDate);
+
+    if (nthWeek === 5) {
+      // "last" - count backwards...
+      tempDate.endOf('month');
+      for (let i = 0; i &lt; 7; i++) {
+        if (tempDate.day() === weekDay) {
+          break;
+        }
+        tempDate.subtract(1, 'days');
+      }
+    } else {
+      // count from the beginning...
+      tempDate.startOf('month');
+      // get to the first day that matches...
+      for (let i = 0; i &lt; 7; i++) {
+        if (tempDate.day() === weekDay) {
+          break;
+        }
+        tempDate.add(1, 'days');
+      }
+      // then add correct number of weeks (first week - add 0 etc.)
+      tempDate.add((nthWeek - 1), 'weeks');
+    }
+    return tempDate;
+  },
+  calcRecurIterations: function calcRecurIterations(endDate, startDate, interval, recurPeriod) {
+    // calculate number of occurances based on start and end dates
+    const days = (endDate - startDate) / (1000 * 60 * 60 * 24);
+    const years = endDate.getFullYear() - startDate.getFullYear();
+    let result;
+
+    switch (parseInt(recurPeriod, 10)) {
+      case 8:
+      case 7:
+        result = years;
+        break;
+      case 5:
+      case 4:
+        result = (endDate.getMonth() - startDate.getMonth()) + (years * 12);
+        break;
+      case 2:
+        result = days / 7;
+        break;
+      case 0:
+        result = days;
+        break;
+      default:
+        // no cases should fall here
+    }
+
+    return Math.floor((result / interval) + 1);
+  },
+});
+
+export default __class;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-argos__ActionMixin.html">argos/_ActionMixin</a></li><li><a href="module-argos__ConfigureBase.html">argos/_ConfigureBase</a></li><li><a href="module-argos__CustomizationMixin.html">argos/_CustomizationMixin</a></li><li><a href="module-argos__DetailBase.html">argos/_DetailBase</a></li><li><a href="module-argos__DraggableBase.html">argos/_DraggableBase</a></li><li><a href="module-argos__EditBase.html">argos/_EditBase</a></li><li><a href="module-argos__LegacySDataDetailMixin.html">argos/_LegacySDataDetailMixin</a></li><li><a href="module-argos__LegacySDataEditMixin.html">argos/_LegacySDataEditMixin</a></li><li><a href="module-argos__LegacySDataListMixin.html">argos/_LegacySDataListMixin</a></li><li><a href="module-argos__ListBase.html">argos/_ListBase</a></li><li><a href="module-argos__PullToRefreshMixin.html">argos/_PullToRefreshMixin</a></li><li><a href="module-argos__RelatedViewWidgetBase.html">argos/_RelatedViewWidgetBase</a></li><li><a href="module-argos__RelatedViewWidgetDetailMixin.html">argos/_RelatedViewWidgetDetailMixin</a></li><li><a href="module-argos__RelatedViewWidgetEditMixin.html">argos/_RelatedViewWidgetEditMixin</a></li><li><a href="module-argos__RelatedViewWidgetListMixin.html">argos/_RelatedViewWidgetListMixin</a></li><li><a href="module-argos__SDataDetailMixin.html">argos/_SDataDetailMixin</a></li><li><a href="module-argos__SDataEditMixin.html">argos/_SDataEditMixin</a></li><li><a href="module-argos__SDataListMixin.html">argos/_SDataListMixin</a></li><li><a href="module-argos__ServiceMixin.html">argos/_ServiceMixin</a></li><li><a href="module-argos__Templated.html">argos/_Templated</a></li><li><a href="module-argos_actions.html">argos/actions</a></li><li><a href="module-argos_actions_connection.html">argos/actions/connection</a></li><li><a href="module-argos_Application.html">argos/Application</a></li><li><a href="module-argos_ApplicationModule.html">argos/ApplicationModule</a></li><li><a href="module-argos_Calendar.html">argos/Calendar</a></li><li><a href="module-argos_ConfigurableSelectionModel.html">argos/ConfigurableSelectionModel</a></li><li><a href="module-argos_Convert.html">argos/Convert</a></li><li><a href="module-argos_CultureInfo.html">argos/CultureInfo</a></li><li><a href="module-argos_DateTimePicker.html">argos/DateTimePicker</a></li><li><a href="module-argos_Detail.html">argos/Detail</a></li><li><a href="module-argos_Dialogs_BusyIndicator.html">argos/Dialogs/BusyIndicator</a></li><li><a href="module-argos_Dialogs_Modal.html">argos/Dialogs/Modal</a></li><li><a href="module-argos_Dialogs_Toast.html">argos/Dialogs/Toast</a></li><li><a href="module-argos_DraggableList.html">argos/DraggableList</a></li><li><a href="module-argos_Dropdown.html">argos/Dropdown</a></li><li><a href="module-argos_Edit.html">argos/Edit</a></li><li><a href="module-argos_ErrorManager.html">argos/ErrorManager</a></li><li><a href="module-argos_FieldManager.html">argos/FieldManager</a></li><li><a href="module-argos_Fields__Field.html">argos/Fields/_Field</a></li><li><a href="module-argos_Fields_BooleanField.html">argos/Fields/BooleanField</a></li><li><a href="module-argos_Fields_DateField.html">argos/Fields/DateField</a></li><li><a href="module-argos_Fields_DecimalField.html">argos/Fields/DecimalField</a></li><li><a href="module-argos_Fields_DropdownField.html">argos/Fields/DropdownField</a></li><li><a href="module-argos_Fields_DurationField.html">argos/Fields/DurationField</a></li><li><a href="module-argos_Fields_EditorField.html">argos/Fields/EditorField</a></li><li><a href="module-argos_Fields_HiddenField.html">argos/Fields/HiddenField</a></li><li><a href="module-argos_Fields_LookupField.html">argos/Fields/LookupField</a></li><li><a href="module-argos_Fields_NoteField.html">argos/Fields/NoteField</a></li><li><a href="module-argos_Fields_PhoneField.html">argos/Fields/PhoneField</a></li><li><a href="module-argos_Fields_SelectField.html">argos/Fields/SelectField</a></li><li><a href="module-argos_Fields_SignatureField.html">argos/Fields/SignatureField</a></li><li><a href="module-argos_Fields_TextAreaField.html">argos/Fields/TextAreaField</a></li><li><a href="module-argos_Fields_TextField.html">argos/Fields/TextField</a></li><li><a href="module-argos_Format.html">argos/Format</a></li><li><a href="module-argos_GroupedList.html">argos/GroupedList</a></li><li><a href="module-argos_Groups__GroupBySection.html">argos/Groups/_GroupBySection</a></li><li><a href="module-argos_Groups_DateTimeSection.html">argos/Groups/DateTimeSection</a></li><li><a href="module-argos_Groups_GroupByValueSection.html">argos/Groups/GroupByValueSection</a></li><li><a href="module-argos_I18n.html">argos/I18n</a></li><li><a href="module-argos_LanguageService.html">argos/LanguageService</a></li><li><a href="module-argos_List.html">argos/List</a></li><li><a href="module-argos_MainToolbar.html">argos/MainToolbar</a></li><li><a href="module-argos_Models__ModelBase.html">argos/Models/_ModelBase</a></li><li><a href="module-argos_Models__OfflineModelBase.html">argos/Models/_OfflineModelBase</a></li><li><a href="module-argos_Models_Adapter.html">argos/Models/Adapter</a></li><li><a href="module-argos_Models_Briefcase_Offline.html">argos/Models/Briefcase/Offline</a></li><li><a href="module-argos_Models_Manager.html">argos/Models/Manager</a></li><li><a href="module-argos_Models_RecentlyViewed_Offline.html">argos/Models/RecentlyViewed/Offline</a></li><li><a href="module-argos_Models_SDataModelBase.html">argos/Models/SDataModelBase</a></li><li><a href="module-argos_Models_Types.html">argos/Models/Types</a></li><li><a href="module-argos_Offline__DetailOfflineMixin.html">argos/Offline/_DetailOfflineMixin</a></li><li><a href="module-argos_Offline__ListOfflineMixin.html">argos/Offline/_ListOfflineMixin</a></li><li><a href="module-argos_Offline_Manager.html">argos/Offline/Manager</a></li><li><a href="module-argos_reducers.html">argos/reducers</a></li><li><a href="module-argos_RelatedViewManager.html">argos/RelatedViewManager</a></li><li><a href="module-argos_RelatedViewWidget.html">argos/RelatedViewWidget</a></li><li><a href="module-argos_RelativeDateTimePicker.html">argos/RelativeDateTimePicker</a></li><li><a href="module-argos_Scene.html">argos/Scene</a></li><li><a href="module-argos_SearchWidget.html">argos/SearchWidget</a></li><li><a href="module-argos_SelectionModel.html">argos/SelectionModel</a></li><li><a href="module-argos_SohoIcons.html">argos/SohoIcons</a></li><li><a href="module-argos_Store_PouchDB.html">argos/Store/PouchDB</a></li><li><a href="module-argos_Store_SData.html">argos/Store/SData</a></li><li><a href="module-argos_TabWidget.html">argos/TabWidget</a></li><li><a href="module-argos_TimePicker.html">argos/TimePicker</a></li><li><a href="module-argos_Toolbar.html">argos/Toolbar</a></li><li><a href="module-argos_Utility.html">argos/Utility</a></li><li><a href="module-argos_View.html">argos/View</a></li><li><a href="module-argos_Views_ConfigureQuickActions.html">argos/Views/ConfigureQuickActions</a></li><li><a href="module-argos_Views_FileSelect.html">argos/Views/FileSelect</a></li><li><a href="module-argos_Views_Link.html">argos/Views/Link</a></li><li><a href="module-argos_Views_Signature.html">argos/Views/Signature</a></li><li><a href="module-argos_WidgetBase.html">argos/WidgetBase</a></li><li><a href="module-crm_Action.html">crm/Action</a></li><li><a href="module-crm_Aggregate.html">crm/Aggregate</a></li><li><a href="module-crm_Application.html">crm/Application</a></li><li><a href="module-crm_ApplicationModule.html">crm/ApplicationModule</a></li><li><a href="module-crm_AttachmentManager.html">crm/AttachmentManager</a></li><li><a href="module-crm_Bootstrap.html">crm/Bootstrap</a></li><li><a href="module-crm_Bootstrap_localization.html">crm/Bootstrap/localization</a></li><li><a href="module-crm_Environment.html">crm/Environment</a></li><li><a href="module-crm_FileManager.html">crm/FileManager</a></li><li><a href="module-crm_Format.html">crm/Format</a></li><li><a href="module-crm_GroupUtility.html">crm/GroupUtility</a></li><li><a href="module-crm_Integrations_BOE_Aggregate.html">crm/Integrations/BOE/Aggregate</a></li><li><a href="module-crm_Integrations_BOE_Utility.html">crm/Integrations/BOE/Utility</a></li><li><a href="module-crm_MingleUtility.html">crm/MingleUtility</a></li><li><a href="module-crm_PicklistService.html">crm/PicklistService</a></li><li><a href="module-crm_Recurrence.html">crm/Recurrence</a></li><li><a href="module-crm_SalesProcessUtility.html">crm/SalesProcessUtility</a></li><li><a href="module-crm_Template.html">crm/Template</a></li><li><a href="module-crm_Utility.html">crm/Utility</a></li><li><a href="module-crm_Validator.html">crm/Validator</a></li><li><a href="module-crm_Views__GroupListMixin.html">crm/Views/_GroupListMixin</a></li><li><a href="module-crm_Views__MetricDetailMixin.html">crm/Views/_MetricDetailMixin</a></li><li><a href="module-crm_Views__MetricListMixin.html">crm/Views/_MetricListMixin</a></li><li><a href="module-crm_Views__RightDrawerBaseMixin.html">crm/Views/_RightDrawerBaseMixin</a></li><li><a href="module-crm_Views__RightDrawerListMixin.html">crm/Views/_RightDrawerListMixin</a></li><li><a href="module-crm_Views__SpeedSearchRightDrawerListMixin.html">crm/Views/_SpeedSearchRightDrawerListMixin</a></li><li><a href="module-crm_Views_Charts__ChartMixin.html">crm/Views/Charts/_ChartMixin</a></li><li><a href="module-crm_Views_Charts_GenericBar.html">crm/Views/Charts/GenericBar</a></li><li><a href="module-crm_Views_Charts_GenericLine.html">crm/Views/Charts/GenericLine</a></li><li><a href="module-crm_Views_Charts_GenericPie.html">crm/Views/Charts/GenericPie</a></li><li><a href="module-crm_Views_MetricWidget.html">crm/Views/MetricWidget</a></li><li><a href="module-crm_Views_Offline__RightDrawerListMixin.html">crm/Views/Offline/_RightDrawerListMixin</a></li><li><a href="module-crm_Views_RecentlyViewed__RightDrawerListMixin.html">crm/Views/RecentlyViewed/_RightDrawerListMixin</a></li></ul><h3>Classes</h3><ul><li><a href="module-_crm_Integrations_BOE_Aggregate.html">/crm/Integrations/BOE/Aggregate</a></li><li><a href="module-argos__ActionMixin.html">argos/_ActionMixin</a></li><li><a href="module-argos__ConfigureBase.html">argos/_ConfigureBase</a></li><li><a href="module-argos__CustomizationMixin.html">argos/_CustomizationMixin</a></li><li><a href="module-argos__DetailBase.html">argos/_DetailBase</a></li><li><a href="module-argos__DraggableBase.html">argos/_DraggableBase</a></li><li><a href="module-argos__EditBase.html">argos/_EditBase</a></li><li><a href="module-argos__LegacySDataDetailMixin.html">argos/_LegacySDataDetailMixin</a></li><li><a href="module-argos__LegacySDataEditMixin.html">argos/_LegacySDataEditMixin</a></li><li><a href="module-argos__LegacySDataListMixin.html">argos/_LegacySDataListMixin</a></li><li><a href="module-argos__ListBase.html">argos/_ListBase</a></li><li><a href="module-argos__RelatedViewWidgetBase.html">argos/_RelatedViewWidgetBase</a></li><li><a href="module-argos__SDataEditMixin.html">argos/_SDataEditMixin</a></li><li><a href="module-argos_Application.html">argos/Application</a></li><li><a href="module-argos_ApplicationModule.html">argos/ApplicationModule</a></li><li><a href="module-argos_Calendar.html">argos/Calendar</a></li><li><a href="module-argos_ConfigurableSelectionModel.html">argos/ConfigurableSelectionModel</a></li><li><a href="module-argos_Convert.html">argos/Convert</a></li><li><a href="module-argos_DateTimePicker.html">argos/DateTimePicker</a></li><li><a href="module-argos_Detail.html">argos/Detail</a></li><li><a href="module-argos_Dialogs_BusyIndicator.html">argos/Dialogs/BusyIndicator</a></li><li><a href="module-argos_Dialogs_Modal.html">argos/Dialogs/Modal</a></li><li><a href="module-argos_Dialogs_Toast.html">argos/Dialogs/Toast</a></li><li><a href="module-argos_DraggableList.html">argos/DraggableList</a></li><li><a href="module-argos_Dropdown.html">argos/Dropdown</a></li><li><a href="module-argos_Edit.html">argos/Edit</a></li><li><a href="module-argos_ErrorManager.html">argos/ErrorManager</a></li><li><a href="module-argos_FieldManager.html">argos/FieldManager</a></li><li><a href="module-argos_Fields__SignatureField.html">argos/Fields//SignatureField</a></li><li><a href="module-argos_Fields__Field.html">argos/Fields/_Field</a></li><li><a href="module-argos_Fields_BooleanField.html">argos/Fields/BooleanField</a></li><li><a href="module-argos_Fields_DateField.html">argos/Fields/DateField</a></li><li><a href="module-argos_Fields_DecimalField.html">argos/Fields/DecimalField</a></li><li><a href="module-argos_Fields_DropdownField.html">argos/Fields/DropdownField</a></li><li><a href="module-argos_Fields_DurationField.html">argos/Fields/DurationField</a></li><li><a href="module-argos_Fields_EditorField.html">argos/Fields/EditorField</a></li><li><a href="module-argos_Fields_HiddenField.html">argos/Fields/HiddenField</a></li><li><a href="module-argos_Fields_LookupField.html">argos/Fields/LookupField</a></li><li><a href="module-argos_Fields_NoteField.html">argos/Fields/NoteField</a></li><li><a href="module-argos_Fields_PhoneField.html">argos/Fields/PhoneField</a></li><li><a href="module-argos_Fields_SelectField.html">argos/Fields/SelectField</a></li><li><a href="module-argos_Fields_TextAreaField.html">argos/Fields/TextAreaField</a></li><li><a href="module-argos_Fields_TextField.html">argos/Fields/TextField</a></li><li><a href="module-argos_Format.html">argos/Format</a></li><li><a href="module-argos_GroupedList.html">argos/GroupedList</a></li><li><a href="module-argos_Groups__GroupBySection.html">argos/Groups/_GroupBySection</a></li><li><a href="module-argos_Groups_DateTimeSection.html">argos/Groups/DateTimeSection</a></li><li><a href="module-argos_Groups_GroupByValueSection.html">argos/Groups/GroupByValueSection</a></li><li><a href="module-argos_LanguageService.html">argos/LanguageService</a></li><li><a href="module-argos_List.html">argos/List</a></li><li><a href="module-argos_MainToolbar.html">argos/MainToolbar</a></li><li><a href="module-argos_Models__ModelBase.html">argos/Models/_ModelBase</a></li><li><a href="module-argos_Models__OfflineModelBase.html">argos/Models/_OfflineModelBase</a></li><li><a href="module-argos_Models_Adapter.html">argos/Models/Adapter</a></li><li><a href="module-argos_Models_Briefcase_Offline.html">argos/Models/Briefcase/Offline</a></li><li><a href="module-argos_Models_Manager.html">argos/Models/Manager</a></li><li><a href="module-argos_Models_RecentlyViewed_Offline.html">argos/Models/RecentlyViewed/Offline</a></li><li><a href="module-argos_Models_SDataModelBase.html">argos/Models/SDataModelBase</a></li><li><a href="module-argos_Offline__DetailOfflineMixin.html">argos/Offline/_DetailOfflineMixin</a></li><li><a href="module-argos_Offline__ListOfflineMixin.html">argos/Offline/_ListOfflineMixin</a></li><li><a href="module-argos_Offline_Manager.html">argos/Offline/Manager</a></li><li><a href="module-argos_RelatedViewManager.html">argos/RelatedViewManager</a></li><li><a href="module-argos_RelatedViewWidget.html">argos/RelatedViewWidget</a></li><li><a href="module-argos_RelativeDateTimePicker.html">argos/RelativeDateTimePicker</a></li><li><a href="module-argos_Scene.html">argos/Scene</a></li><li><a href="module-argos_SearchWidget.html">argos/SearchWidget</a></li><li><a href="module-argos_SelectionModel.html">argos/SelectionModel</a></li><li><a href="module-argos_Store_PouchDB.html">argos/Store/PouchDB</a></li><li><a href="module-argos_Store_SData.html">argos/Store/SData</a></li><li><a href="module-argos_TabWidget.html">argos/TabWidget</a></li><li><a href="module-argos_TimePicker.html">argos/TimePicker</a></li><li><a href="module-argos_Toolbar.html">argos/Toolbar</a></li><li><a href="module-argos_Utility.html">argos/Utility</a></li><li><a href="module-argos_View.html">argos/View</a></li><li><a href="module-argos_Views_ConfigureQuickActions.html">argos/Views/ConfigureQuickActions</a></li><li><a href="module-argos_Views_FileSelect.html">argos/Views/FileSelect</a></li><li><a href="module-argos_Views_Link.html">argos/Views/Link</a></li><li><a href="module-argos_Views_Signature.html">argos/Views/Signature</a></li><li><a href="module-argos_WidgetBase.html">argos/WidgetBase</a></li><li><a href="module-crm_Action.html">crm/Action</a></li><li><a href="module-crm_Aggregate.html">crm/Aggregate</a></li><li><a href="module-crm_Application.html">crm/Application</a></li><li><a href="module-crm_ApplicationModule.html">crm/ApplicationModule</a></li><li><a href="module-crm_AttachmentManager.html">crm/AttachmentManager</a></li><li><a href="module-crm_Environment.html">crm/Environment</a></li><li><a href="module-crm_FileManager.html">crm/FileManager</a></li><li><a href="module-crm_Format.html">crm/Format</a></li><li><a href="module-crm_GroupUtility.html">crm/GroupUtility</a></li><li><a href="module-crm_Integrations_BOE_Utility.html">crm/Integrations/BOE/Utility</a></li><li><a href="module-crm_MingleUtility.html">crm/MingleUtility</a></li><li><a href="module-crm_PicklistService.html">crm/PicklistService</a></li><li><a href="module-crm_Recurrence.html">crm/Recurrence</a></li><li><a href="module-crm_SalesProcessUtility.html">crm/SalesProcessUtility</a></li><li><a href="module-crm_Template.html">crm/Template</a></li><li><a href="module-crm_Utility.html">crm/Utility</a></li><li><a href="module-crm_Validator.html">crm/Validator</a></li><li><a href="module-crm_Views__SpeedSearchRightDrawerListMixin.html">crm/Views/_SpeedSearchRightDrawerListMixin</a></li><li><a href="module-crm_Views_Charts_GenericBar.html">crm/Views/Charts/GenericBar</a></li><li><a href="module-crm_Views_Charts_GenericLine.html">crm/Views/Charts/GenericLine</a></li><li><a href="module-crm_Views_Charts_GenericPie.html">crm/Views/Charts/GenericPie</a></li><li><a href="module-crm_Views_MetricWidget.html">crm/Views/MetricWidget</a></li></ul><h3>Mixins</h3><ul><li><a href="module-argos__PullToRefreshMixin.html">argos/_PullToRefreshMixin</a></li><li><a href="module-argos__RelatedViewWidgetDetailMixin.html">argos/_RelatedViewWidgetDetailMixin</a></li><li><a href="module-argos__RelatedViewWidgetEditMixin.html">argos/_RelatedViewWidgetEditMixin</a></li><li><a href="module-argos__RelatedViewWidgetListMixin.html">argos/_RelatedViewWidgetListMixin</a></li><li><a href="module-argos__SDataDetailMixin.html">argos/_SDataDetailMixin</a></li><li><a href="module-argos__SDataListMixin.html">argos/_SDataListMixin</a></li><li><a href="module-argos__ServiceMixin.html">argos/_ServiceMixin</a></li><li><a href="module-argos__Templated.html">argos/_Templated</a></li><li><a href="module-crm_Views__GroupListMixin.html">crm/Views/_GroupListMixin</a></li><li><a href="module-crm_Views__MetricDetailMixin.html">crm/Views/_MetricDetailMixin</a></li><li><a href="module-crm_Views__MetricListMixin.html">crm/Views/_MetricListMixin</a></li><li><a href="module-crm_Views__RightDrawerBaseMixin.html">crm/Views/_RightDrawerBaseMixin</a></li><li><a href="module-crm_Views__RightDrawerListMixin.html">crm/Views/_RightDrawerListMixin</a></li><li><a href="module-crm_Views_Charts__ChartMixin.html">crm/Views/Charts/_ChartMixin</a></li><li><a href="module-crm_Views_Offline__RightDrawerListMixin.html">crm/Views/Offline/_RightDrawerListMixin</a></li><li><a href="module-crm_Views_RecentlyViewed__RightDrawerListMixin.html">crm/Views/RecentlyViewed/_RightDrawerListMixin</a></li></ul><h3>Tutorials</h3><ul><li><a href="tutorial-amd.html">AMD - Define and Declare</a></li><li><a href="tutorial-browser_setup.html">Browser Setup / Information</a></li><li><a href="tutorial-stores.html">Data Stores</a></li><li><a href="tutorial-lifecycles.html">View Lifecycles</a></li><li><a href="tutorial-upgrading_v12_to_v20.html">Upgrading 1.2 to 2.0</a></li><li><a href="tutorial-wire_detail_to_edit.html">Wiring Detail to Edit</a></li><li><a href="tutorial-wire_list_to_detail.html">Wiring List to Detail</a></li><li><a href="tutorial-wire_list_to_edit.html">Wiring List to Edit</a></li><li><a href="tutorial-grouped_list.html">Grouped List</a></li><li><a href="tutorial-basic_auth.html">Login - Basic Authentication</a></li><li><a href="tutorial-hashtags.html">#Hashtags</a></li><li><a href="tutorial-list_actions.html">List Actions</a></li><li><a href="tutorial-quick_actions.html">Quick Actions</a></li><li><a href="tutorial-related_views.html">Related Views</a></li><li><a href="tutorial-detail_layout.html">Detail Layout</a></li><li><a href="tutorial-validation.html">Validation</a></li><li><a href="tutorial-list_search.html">List Search Widget</a></li><li><a href="tutorial-advanced_localization.html">Localization - Advanced</a></li><li><a href="tutorial-navigation.html">Navigation</a></li><li><a href="tutorial-toolbars.html">Toolbars</a></li><li><a href="tutorial-localization_detection.html">localization_detection</a></li><li><a href="tutorial-localization.html">Localization - Basic</a></li><li><a href="tutorial-overview.html">Overview</a></li><li><a href="tutorial-template_guide.html">Template Guide</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.4</a> on Fri Jun 05 2020 13:35:40 GMT-0400 (Eastern Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

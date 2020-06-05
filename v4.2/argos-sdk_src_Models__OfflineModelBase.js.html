@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: argos-sdk/src/Models/_OfflineModelBase.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: argos-sdk/src/Models/_OfflineModelBase.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/* Copyright 2017 Infor
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/**
+ * @module argos/Models/_OfflineModelBase
+ */
+import declare from 'dojo/_base/declare';
+import lang from 'dojo/_base/lang';
+import PouchDBStore from '../Store/PouchDB';
+import Deferred from 'dojo/Deferred';
+import all from 'dojo/promise/all';
+import when from 'dojo/when';
+import utility from '../Utility';
+import _CustomizationMixin from '../_CustomizationMixin';
+import _ModelBase from './_ModelBase';
+import QueryResults from 'dojo/store/util/QueryResults';
+import MODEL_TYPES from './Types';
+import convert from '../Convert';
+
+const databaseName = 'crm-offline';
+const _store = new PouchDBStore(databaseName);
+
+/**
+ * @class
+ * @alias module:argos/Models/_OfflineModelBase
+ * @extends module:argos/Models/_ModelBase
+ * @extends module:argos/_CustomizationMixin
+ */
+const __class = declare('argos.Models.Offline.OfflineModelBase', [_ModelBase, _CustomizationMixin], /** @lends module:argos/Models/_OfflineModelBase.prototype */{
+
+  store: null,
+  modelType: MODEL_TYPES.OFFLINE,
+  init: function init() {
+    this.inherited(init, arguments);
+    this.createNamedQueries();
+  },
+  createNamedQueries: function createNamedQueries() {
+    const store = this.getStore();
+    // TODO: This is a shared named query, and probably doesn't belong here (will be called multiple times)
+    store.createNamedQuery({
+      _id: '_design/entities',
+      _rev: '1',
+      views: {
+        by_name: {
+          map: function map(doc) {
+            emit(doc.entityName); // eslint-disable-line
+          }.toString(),
+        },
+      },
+    });
+  },
+  getStore: function getStore() {
+    if (!this.store) {
+      this.store = _store;
+    }
+    return this.store;
+  },
+  getDocId: function getEntityId(entry) {
+    return this.getEntityId(entry);
+  },
+  getEntry: function getEntry(entityId) {
+    const def = new Deferred();
+    this.getEntryDoc(entityId).then((doc) => {
+      def.resolve(this.unWrap(doc));
+    }, (err) => {
+      def.reject(err);
+    });
+    return def;
+  },
+  getEntryDoc: function getEntry(entityId) {
+    const store = this.getStore();
+    const def = new Deferred();
+    store.get(entityId).then((results) => {
+      def.resolve(results);
+    }, (err) => {
+      def.reject(err);
+    });
+    return def;
+  },
+  saveEntry: function saveEntity(entry, options) {
+    const def = new Deferred();
+    this.updateEntry(entry, options).then((updateResult) => {
+      const odef = def;
+      this.saveRelatedEntries(entry, options).then(() => {
+        odef.resolve(updateResult);
+      }, (err) => {
+        odef.reject(err);
+      });
+    }, () => {
+      // Fetching the doc/entity failed, so we will insert a new doc instead.
+      this.insertEntry(entry, options).then((insertResult) => {
+        const odef = def;
+        this.saveRelatedEntries(entry, options).then(() => {
+          odef.resolve(insertResult);
+        }, (err) => {
+          odef.reject(err);
+        });
+      }, (err) => {
+        def.reject(err);
+      });
+    });
+    return def.promise;
+  },
+  insertEntry: function insertEntry(entry, options) {
+    const store = this.getStore();
+    const def = new Deferred();
+    const doc = this.wrap(entry, options);
+    store.add(doc).then((result) => {
+      def.resolve(result);
+    },
+    (err) => {
+      def.reject(`error inserting entity: ${err}`);
+    });
+    return def.promise;
+  },
+  updateEntry: function updateEntity(entry, options) {
+    const store = this.getStore();
+    const def = new Deferred();
+    const entityId = this.getEntityId(entry, options);
+    this.getEntryDoc(entityId).then((doc) => {
+      const odef = def;
+      doc.entity = entry;
+      doc.modifyDate = moment().toDate();
+      doc.description = this.getEntityDescription(entry);
+      store.put(doc).then((result) => {
+        odef.resolve(result);
+      }, (err) => {
+        odef.reject(`error updating entity: ${err}`);
+      });
+    }, (err) => {
+      def.reject(`entity not found to update:${err}`);
+    });
+    return def.promise;
+  },
+  createEntry: function createEntry() {
+    const entry = {}; // need to dynamicly create Properties;
+    entry.Id = null;
+    entry.CreateDate = moment().toDate();
+    entry.ModifyDate = moment().toDate();
+    return entry;
+  },
+  deleteEntry: function deleteEntry(entityId) {
+    const def = new Deferred();
+    const store = this.getStore();
+    store.get(entityId).then((doc) => {
+      const odef = def;
+      this._removeDoc(doc).then((result) => {
+        this.onEntryDelete(entityId);
+        odef.resolve(result);
+      }, (err) => {
+        odef.reject(err);
+      });
+    }, (err) => {
+      def.reject(err);
+    });
+    return def.promise;
+  },
+  _removeDoc: function _removeDoc(doc) {
+    const def = new Deferred();
+    const store = this.getStore();
+    store.remove(doc._id, doc._rev).then((result) => {
+      def.resolve(result);
+    }, (err) => {
+      def.reject(err);
+    });
+    return def.promise;
+  },
+  onEntryDelete: function onEntryDelete() {
+  },
+  saveRelatedEntries: function saveRelatedEntries(parentEntry, options) {
+    const entries = (parentEntry &amp;&amp; parentEntry.$relatedEntities) ? parentEntry.$relatedEntities : [];
+    let relatedPromises = [];
+    const def = new Deferred();
+    entries.forEach((related) => {
+      const model = App.ModelManager.getModel(related.entityName, MODEL_TYPES.OFFLINE);
+      if (model &amp;&amp; related.entities) {
+        relatedPromises = related.entities.map((relatedEntry) => {
+          return model.saveEntry(relatedEntry, options);
+        });
+      }
+    });
+    if (relatedPromises.length > 0) {
+      all(relatedPromises).then(
+        (relatedResults) => {
+          def.resolve(relatedResults);
+        },
+        (err) => {
+          def.reject(err);
+        });
+    } else {
+      def.resolve(parentEntry);
+    }
+    return def.promise;
+  },
+  wrap: function wrap(entry) {
+    const doc = {
+      _id: this.getDocId(entry),
+      entity: entry,
+      entityId: this.getEntityId(entry),
+      createDate: moment().toDate(),
+      modifyDate: moment().toDate(),
+      resourceKind: this.resourceKind,
+      description: this.getEntityDescription(entry),
+      entityName: this.entityName,
+      entityDisplayName: this.entityDisplayName,
+    };
+    return doc;
+  },
+  unWrap: function unWrap(doc) {
+    if (doc.entity) {
+      doc.entity.$offlineDate = doc.modifyDate;
+    }
+    return doc.entity;
+  },
+  getEntries: function getEntries(query, options) {
+    const store = this.getStore();
+    const def = new Deferred();
+    const queryOptions = this.buildQueryOptions();
+    lang.mixin(queryOptions, options);
+    const queryExpression = this.buildQueryExpression(query, queryOptions);
+    const queryResults = store.query(queryExpression, queryOptions);
+    when(queryResults, (docs) => {
+      const entities = this.processEntries(this.unWrapEntities(docs), queryOptions, docs);
+      def.resolve(entities);
+    }, (err) => {
+      def.reject(err);
+    });
+    if (queryOptions &amp;&amp; queryOptions.returnQueryResults) {
+      return QueryResults(def.promise); // eslint-disable-line
+    }
+    return def.promise;
+  },
+  processEntries: function processEntries(entities, queryOptions, docs) {
+    if (typeof queryOptions.filter === 'function') {
+      return entities.filter(queryOptions.filter);
+    }
+
+    if (typeof queryOptions.filterDocs === 'function') {
+      return docs.filter(queryOptions.filterDocs);
+    }
+
+    return entities;
+  },
+  buildQueryOptions: function buildQueryOptions() {
+    return {
+      include_docs: true,
+      descending: true,
+      key: this.entityName,
+    };
+  },
+  buildQueryExpression: function buildQueryExpression(queryExpression, options) { // eslint-disable-line
+    return 'entities/by_name';
+  },
+  unWrapEntities: function unWrapEntities(docs) {
+    return docs.map(doc => this.unWrap(doc.doc));
+  },
+  getRelatedCount: function getRelatedCount(relationship, entry) {
+    const def = new Deferred();
+    const model = App.ModelManager.getModel(relationship.relatedEntity, MODEL_TYPES.OFFLINE);
+    if (model) {
+      const queryOptions = {
+        returnQueryResults: true,
+        include_docs: true,
+        filter: this.buildRelatedQueryExpression(relationship, entry),
+        key: relationship.relatedEntity,
+      };
+      model.getEntries(null, queryOptions).then((result) => {
+        def.resolve(result.length);
+      }, () => {
+        def.resolve(-1);
+      });
+    } else {
+      def.resolve(-1);
+    }
+    return def.promise;
+  },
+  buildRelatedQueryExpression: function buildRelatedQueryExpression(relationship, entry) {
+    return (entity) => {
+      let parentDataPath;
+      let relatedDataPath;
+      let relatedValue;
+      if (relationship.parentProperty) {
+        parentDataPath = (relationship.parentDataPath) ? relationship.parentDataPath : relationship.parentProperty;
+        if (relationship.parentPropertyType &amp;&amp; (relationship.parentPropertyType === 'object')) {
+          parentDataPath = `${relationship.parentProperty}.$key`;
+        }
+      } else {
+        parentDataPath = this.idProperty;
+      }
+
+      if (relationship.relatedProperty) {
+        relatedDataPath = (relationship.relatedDataPath) ? relationship.relatedDataPath : relationship.relatedProperty;
+        if (relationship.relatedPropertyType &amp;&amp; (relationship.relatedPropertyType === 'object')) {
+          relatedDataPath = `${relationship.relatedProperty}.$key`;
+        }
+      } else {
+        relatedDataPath = '$key';
+      }
+
+      const parentValue = utility.getValue(entry, parentDataPath);
+      if (entity) {
+        relatedValue = utility.getValue(entity, relatedDataPath);
+      }
+      if ((parentValue &amp;&amp; relatedValue) &amp;&amp; (relatedValue === parentValue)) {
+        return true;
+      }
+
+      return false;
+    };
+  },
+  getUsage: function getUsage() {
+    const store = this.getStore();
+    const def = new Deferred();
+    const queryOptions = {
+      include_docs: true,
+      descending: false,
+      key: this.entityName,
+    };
+
+    const queryExpression = 'entities/by_name';
+    const queryResults = store.query(queryExpression, queryOptions);
+    when(queryResults, (docs) => {
+      const usage = {};
+      const size = this._getDocSize(docs[0]);
+      usage.iconClass = this.iconClass;
+      usage.entityName = this.entityName;
+      usage.description = this.entityDisplayNamePlural;
+      usage.oldestDate = (docs[0]) ? moment(docs[0].doc.modifyDate).toDate() : null; // see decending = false;
+      usage.newestDate = (docs[docs.length - 1]) ? moment(docs[docs.length - 1].doc.modifyDate).toDate() : null;
+      usage.count = docs.length;
+      usage.sizeAVG = size;
+      usage.size = usage.count * (size ? size : 10);
+      def.resolve(usage);
+    }, (err) => {
+      def.reject(err);
+    });
+    return def.promise;
+  },
+  _getDocSize: function _getDocSize(doc) {
+    let size = 0;
+    const charSize = 2; // 2 bytes
+    if (doc) {
+      const jsonString = JSON.stringify(doc);
+      size = charSize * jsonString.length;
+    }
+    return size;
+  },
+  clearAllData: function clearAllData() {
+    const store = this.getStore();
+    const def = new Deferred();
+    const queryOptions = {
+      include_docs: true,
+      descending: true,
+      key: this.entityName,
+    };
+    const queryExpression = 'entities/by_name';
+    const queryResults = store.query(queryExpression, queryOptions);
+    when(queryResults, (docs) => {
+      const odef = def;
+      const deleteRequests = docs.map((doc) => {
+        return this._removeDoc(doc.doc);
+      });
+      if (deleteRequests.length > 0) {
+        all(deleteRequests).then((results) => {
+          odef.resolve(results);
+        }, (err) => {
+          odef.reject(err);
+        });
+      } else {
+        def.resolve();
+      }
+    }, (err) => {
+      def.reject(err);
+    });
+    return def.promise;
+  },
+  clearDataOlderThan: function clearAllData(days = 0) {
+    const store = this.getStore();
+    const def = new Deferred();
+    const queryOptions = {
+      include_docs: true,
+      descending: true,
+      key: this.entityName,
+    };
+    const queryExpression = 'entities/by_name';
+    const queryResults = store.query(queryExpression, queryOptions);
+    when(queryResults, (docs) => {
+      const odef = def;
+      const deleteRequests = docs.filter(({ doc }) => {
+        if (!doc.modifyDate) {
+          return true;
+        }
+
+        if (days === 0) {
+          return true;
+        }
+
+        const recordDate = moment(convert.toDateFromString(doc.modifyDate));
+        const currentDate = moment();
+        const diff = currentDate.diff(recordDate, 'days');
+        if (diff > days) {
+          return true;
+        }
+
+        return false;
+      })
+        .map((doc) => {
+          return this._removeDoc(doc.doc);
+        });
+
+      if (deleteRequests.length > 0) {
+        all(deleteRequests).then((results) => {
+          odef.resolve(results);
+        }, (err) => {
+          odef.reject(err);
+        });
+      } else {
+        def.resolve();
+      }
+    }, (err) => {
+      def.reject(err);
+    });
+    return def.promise;
+  },
+  removeFromAuxiliaryEntities: function removeFromAuxiliaryEntities(entityId) {
+    const def = new Deferred();
+    const rvModel = App.ModelManager.getModel('RecentlyViewed', MODEL_TYPES.OFFLINE);
+    const bcModel = App.ModelManager.getModel('Briefcase', MODEL_TYPES.OFFLINE);
+    if (rvModel) {
+      rvModel.deleteEntryByEntityContext(entityId, this.entityName);
+    }
+    if (bcModel) {
+      bcModel.deleteEntryByEntityContext(entityId, this.entityName);
+    }
+    def.resolve();
+    return def.promise;
+  },
+});
+
+export default __class;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-argos__ActionMixin.html">argos/_ActionMixin</a></li><li><a href="module-argos__ConfigureBase.html">argos/_ConfigureBase</a></li><li><a href="module-argos__CustomizationMixin.html">argos/_CustomizationMixin</a></li><li><a href="module-argos__DetailBase.html">argos/_DetailBase</a></li><li><a href="module-argos__DraggableBase.html">argos/_DraggableBase</a></li><li><a href="module-argos__EditBase.html">argos/_EditBase</a></li><li><a href="module-argos__LegacySDataDetailMixin.html">argos/_LegacySDataDetailMixin</a></li><li><a href="module-argos__LegacySDataEditMixin.html">argos/_LegacySDataEditMixin</a></li><li><a href="module-argos__LegacySDataListMixin.html">argos/_LegacySDataListMixin</a></li><li><a href="module-argos__ListBase.html">argos/_ListBase</a></li><li><a href="module-argos__PullToRefreshMixin.html">argos/_PullToRefreshMixin</a></li><li><a href="module-argos__RelatedViewWidgetBase.html">argos/_RelatedViewWidgetBase</a></li><li><a href="module-argos__RelatedViewWidgetDetailMixin.html">argos/_RelatedViewWidgetDetailMixin</a></li><li><a href="module-argos__RelatedViewWidgetEditMixin.html">argos/_RelatedViewWidgetEditMixin</a></li><li><a href="module-argos__RelatedViewWidgetListMixin.html">argos/_RelatedViewWidgetListMixin</a></li><li><a href="module-argos__SDataDetailMixin.html">argos/_SDataDetailMixin</a></li><li><a href="module-argos__SDataEditMixin.html">argos/_SDataEditMixin</a></li><li><a href="module-argos__SDataListMixin.html">argos/_SDataListMixin</a></li><li><a href="module-argos__ServiceMixin.html">argos/_ServiceMixin</a></li><li><a href="module-argos__Templated.html">argos/_Templated</a></li><li><a href="module-argos_actions.html">argos/actions</a></li><li><a href="module-argos_actions_connection.html">argos/actions/connection</a></li><li><a href="module-argos_Application.html">argos/Application</a></li><li><a href="module-argos_ApplicationModule.html">argos/ApplicationModule</a></li><li><a href="module-argos_Calendar.html">argos/Calendar</a></li><li><a href="module-argos_ConfigurableSelectionModel.html">argos/ConfigurableSelectionModel</a></li><li><a href="module-argos_Convert.html">argos/Convert</a></li><li><a href="module-argos_CultureInfo.html">argos/CultureInfo</a></li><li><a href="module-argos_DateTimePicker.html">argos/DateTimePicker</a></li><li><a href="module-argos_Detail.html">argos/Detail</a></li><li><a href="module-argos_Dialogs_BusyIndicator.html">argos/Dialogs/BusyIndicator</a></li><li><a href="module-argos_Dialogs_Modal.html">argos/Dialogs/Modal</a></li><li><a href="module-argos_Dialogs_Toast.html">argos/Dialogs/Toast</a></li><li><a href="module-argos_DraggableList.html">argos/DraggableList</a></li><li><a href="module-argos_Dropdown.html">argos/Dropdown</a></li><li><a href="module-argos_Edit.html">argos/Edit</a></li><li><a href="module-argos_ErrorManager.html">argos/ErrorManager</a></li><li><a href="module-argos_FieldManager.html">argos/FieldManager</a></li><li><a href="module-argos_Fields__Field.html">argos/Fields/_Field</a></li><li><a href="module-argos_Fields_BooleanField.html">argos/Fields/BooleanField</a></li><li><a href="module-argos_Fields_DateField.html">argos/Fields/DateField</a></li><li><a href="module-argos_Fields_DecimalField.html">argos/Fields/DecimalField</a></li><li><a href="module-argos_Fields_DropdownField.html">argos/Fields/DropdownField</a></li><li><a href="module-argos_Fields_DurationField.html">argos/Fields/DurationField</a></li><li><a href="module-argos_Fields_EditorField.html">argos/Fields/EditorField</a></li><li><a href="module-argos_Fields_HiddenField.html">argos/Fields/HiddenField</a></li><li><a href="module-argos_Fields_LookupField.html">argos/Fields/LookupField</a></li><li><a href="module-argos_Fields_NoteField.html">argos/Fields/NoteField</a></li><li><a href="module-argos_Fields_PhoneField.html">argos/Fields/PhoneField</a></li><li><a href="module-argos_Fields_SelectField.html">argos/Fields/SelectField</a></li><li><a href="module-argos_Fields_SignatureField.html">argos/Fields/SignatureField</a></li><li><a href="module-argos_Fields_TextAreaField.html">argos/Fields/TextAreaField</a></li><li><a href="module-argos_Fields_TextField.html">argos/Fields/TextField</a></li><li><a href="module-argos_Format.html">argos/Format</a></li><li><a href="module-argos_GroupedList.html">argos/GroupedList</a></li><li><a href="module-argos_Groups__GroupBySection.html">argos/Groups/_GroupBySection</a></li><li><a href="module-argos_Groups_DateTimeSection.html">argos/Groups/DateTimeSection</a></li><li><a href="module-argos_Groups_GroupByValueSection.html">argos/Groups/GroupByValueSection</a></li><li><a href="module-argos_I18n.html">argos/I18n</a></li><li><a href="module-argos_LanguageService.html">argos/LanguageService</a></li><li><a href="module-argos_List.html">argos/List</a></li><li><a href="module-argos_MainToolbar.html">argos/MainToolbar</a></li><li><a href="module-argos_Models__ModelBase.html">argos/Models/_ModelBase</a></li><li><a href="module-argos_Models__OfflineModelBase.html">argos/Models/_OfflineModelBase</a></li><li><a href="module-argos_Models_Adapter.html">argos/Models/Adapter</a></li><li><a href="module-argos_Models_Briefcase_Offline.html">argos/Models/Briefcase/Offline</a></li><li><a href="module-argos_Models_Manager.html">argos/Models/Manager</a></li><li><a href="module-argos_Models_RecentlyViewed_Offline.html">argos/Models/RecentlyViewed/Offline</a></li><li><a href="module-argos_Models_SDataModelBase.html">argos/Models/SDataModelBase</a></li><li><a href="module-argos_Models_Types.html">argos/Models/Types</a></li><li><a href="module-argos_Offline__DetailOfflineMixin.html">argos/Offline/_DetailOfflineMixin</a></li><li><a href="module-argos_Offline__ListOfflineMixin.html">argos/Offline/_ListOfflineMixin</a></li><li><a href="module-argos_Offline_Manager.html">argos/Offline/Manager</a></li><li><a href="module-argos_reducers.html">argos/reducers</a></li><li><a href="module-argos_RelatedViewManager.html">argos/RelatedViewManager</a></li><li><a href="module-argos_RelatedViewWidget.html">argos/RelatedViewWidget</a></li><li><a href="module-argos_RelativeDateTimePicker.html">argos/RelativeDateTimePicker</a></li><li><a href="module-argos_Scene.html">argos/Scene</a></li><li><a href="module-argos_SearchWidget.html">argos/SearchWidget</a></li><li><a href="module-argos_SelectionModel.html">argos/SelectionModel</a></li><li><a href="module-argos_SohoIcons.html">argos/SohoIcons</a></li><li><a href="module-argos_Store_PouchDB.html">argos/Store/PouchDB</a></li><li><a href="module-argos_Store_SData.html">argos/Store/SData</a></li><li><a href="module-argos_TabWidget.html">argos/TabWidget</a></li><li><a href="module-argos_TimePicker.html">argos/TimePicker</a></li><li><a href="module-argos_Toolbar.html">argos/Toolbar</a></li><li><a href="module-argos_Utility.html">argos/Utility</a></li><li><a href="module-argos_View.html">argos/View</a></li><li><a href="module-argos_Views_ConfigureQuickActions.html">argos/Views/ConfigureQuickActions</a></li><li><a href="module-argos_Views_FileSelect.html">argos/Views/FileSelect</a></li><li><a href="module-argos_Views_Link.html">argos/Views/Link</a></li><li><a href="module-argos_Views_Signature.html">argos/Views/Signature</a></li><li><a href="module-argos_WidgetBase.html">argos/WidgetBase</a></li><li><a href="module-crm_Action.html">crm/Action</a></li><li><a href="module-crm_Aggregate.html">crm/Aggregate</a></li><li><a href="module-crm_Application.html">crm/Application</a></li><li><a href="module-crm_ApplicationModule.html">crm/ApplicationModule</a></li><li><a href="module-crm_AttachmentManager.html">crm/AttachmentManager</a></li><li><a href="module-crm_Bootstrap.html">crm/Bootstrap</a></li><li><a href="module-crm_Bootstrap_localization.html">crm/Bootstrap/localization</a></li><li><a href="module-crm_Environment.html">crm/Environment</a></li><li><a href="module-crm_FileManager.html">crm/FileManager</a></li><li><a href="module-crm_Format.html">crm/Format</a></li><li><a href="module-crm_GroupUtility.html">crm/GroupUtility</a></li><li><a href="module-crm_Integrations_BOE_Aggregate.html">crm/Integrations/BOE/Aggregate</a></li><li><a href="module-crm_Integrations_BOE_Utility.html">crm/Integrations/BOE/Utility</a></li><li><a href="module-crm_MingleUtility.html">crm/MingleUtility</a></li><li><a href="module-crm_PicklistService.html">crm/PicklistService</a></li><li><a href="module-crm_Recurrence.html">crm/Recurrence</a></li><li><a href="module-crm_SalesProcessUtility.html">crm/SalesProcessUtility</a></li><li><a href="module-crm_Template.html">crm/Template</a></li><li><a href="module-crm_Utility.html">crm/Utility</a></li><li><a href="module-crm_Validator.html">crm/Validator</a></li><li><a href="module-crm_Views__GroupListMixin.html">crm/Views/_GroupListMixin</a></li><li><a href="module-crm_Views__MetricDetailMixin.html">crm/Views/_MetricDetailMixin</a></li><li><a href="module-crm_Views__MetricListMixin.html">crm/Views/_MetricListMixin</a></li><li><a href="module-crm_Views__RightDrawerBaseMixin.html">crm/Views/_RightDrawerBaseMixin</a></li><li><a href="module-crm_Views__RightDrawerListMixin.html">crm/Views/_RightDrawerListMixin</a></li><li><a href="module-crm_Views__SpeedSearchRightDrawerListMixin.html">crm/Views/_SpeedSearchRightDrawerListMixin</a></li><li><a href="module-crm_Views_Charts__ChartMixin.html">crm/Views/Charts/_ChartMixin</a></li><li><a href="module-crm_Views_Charts_GenericBar.html">crm/Views/Charts/GenericBar</a></li><li><a href="module-crm_Views_Charts_GenericLine.html">crm/Views/Charts/GenericLine</a></li><li><a href="module-crm_Views_Charts_GenericPie.html">crm/Views/Charts/GenericPie</a></li><li><a href="module-crm_Views_MetricWidget.html">crm/Views/MetricWidget</a></li><li><a href="module-crm_Views_Offline__RightDrawerListMixin.html">crm/Views/Offline/_RightDrawerListMixin</a></li><li><a href="module-crm_Views_RecentlyViewed__RightDrawerListMixin.html">crm/Views/RecentlyViewed/_RightDrawerListMixin</a></li></ul><h3>Classes</h3><ul><li><a href="module-_crm_Integrations_BOE_Aggregate.html">/crm/Integrations/BOE/Aggregate</a></li><li><a href="module-argos__ActionMixin.html">argos/_ActionMixin</a></li><li><a href="module-argos__ConfigureBase.html">argos/_ConfigureBase</a></li><li><a href="module-argos__CustomizationMixin.html">argos/_CustomizationMixin</a></li><li><a href="module-argos__DetailBase.html">argos/_DetailBase</a></li><li><a href="module-argos__DraggableBase.html">argos/_DraggableBase</a></li><li><a href="module-argos__EditBase.html">argos/_EditBase</a></li><li><a href="module-argos__LegacySDataDetailMixin.html">argos/_LegacySDataDetailMixin</a></li><li><a href="module-argos__LegacySDataEditMixin.html">argos/_LegacySDataEditMixin</a></li><li><a href="module-argos__LegacySDataListMixin.html">argos/_LegacySDataListMixin</a></li><li><a href="module-argos__ListBase.html">argos/_ListBase</a></li><li><a href="module-argos__RelatedViewWidgetBase.html">argos/_RelatedViewWidgetBase</a></li><li><a href="module-argos__SDataEditMixin.html">argos/_SDataEditMixin</a></li><li><a href="module-argos_Application.html">argos/Application</a></li><li><a href="module-argos_ApplicationModule.html">argos/ApplicationModule</a></li><li><a href="module-argos_Calendar.html">argos/Calendar</a></li><li><a href="module-argos_ConfigurableSelectionModel.html">argos/ConfigurableSelectionModel</a></li><li><a href="module-argos_Convert.html">argos/Convert</a></li><li><a href="module-argos_DateTimePicker.html">argos/DateTimePicker</a></li><li><a href="module-argos_Detail.html">argos/Detail</a></li><li><a href="module-argos_Dialogs_BusyIndicator.html">argos/Dialogs/BusyIndicator</a></li><li><a href="module-argos_Dialogs_Modal.html">argos/Dialogs/Modal</a></li><li><a href="module-argos_Dialogs_Toast.html">argos/Dialogs/Toast</a></li><li><a href="module-argos_DraggableList.html">argos/DraggableList</a></li><li><a href="module-argos_Dropdown.html">argos/Dropdown</a></li><li><a href="module-argos_Edit.html">argos/Edit</a></li><li><a href="module-argos_ErrorManager.html">argos/ErrorManager</a></li><li><a href="module-argos_FieldManager.html">argos/FieldManager</a></li><li><a href="module-argos_Fields__SignatureField.html">argos/Fields//SignatureField</a></li><li><a href="module-argos_Fields__Field.html">argos/Fields/_Field</a></li><li><a href="module-argos_Fields_BooleanField.html">argos/Fields/BooleanField</a></li><li><a href="module-argos_Fields_DateField.html">argos/Fields/DateField</a></li><li><a href="module-argos_Fields_DecimalField.html">argos/Fields/DecimalField</a></li><li><a href="module-argos_Fields_DropdownField.html">argos/Fields/DropdownField</a></li><li><a href="module-argos_Fields_DurationField.html">argos/Fields/DurationField</a></li><li><a href="module-argos_Fields_EditorField.html">argos/Fields/EditorField</a></li><li><a href="module-argos_Fields_HiddenField.html">argos/Fields/HiddenField</a></li><li><a href="module-argos_Fields_LookupField.html">argos/Fields/LookupField</a></li><li><a href="module-argos_Fields_NoteField.html">argos/Fields/NoteField</a></li><li><a href="module-argos_Fields_PhoneField.html">argos/Fields/PhoneField</a></li><li><a href="module-argos_Fields_SelectField.html">argos/Fields/SelectField</a></li><li><a href="module-argos_Fields_TextAreaField.html">argos/Fields/TextAreaField</a></li><li><a href="module-argos_Fields_TextField.html">argos/Fields/TextField</a></li><li><a href="module-argos_Format.html">argos/Format</a></li><li><a href="module-argos_GroupedList.html">argos/GroupedList</a></li><li><a href="module-argos_Groups__GroupBySection.html">argos/Groups/_GroupBySection</a></li><li><a href="module-argos_Groups_DateTimeSection.html">argos/Groups/DateTimeSection</a></li><li><a href="module-argos_Groups_GroupByValueSection.html">argos/Groups/GroupByValueSection</a></li><li><a href="module-argos_LanguageService.html">argos/LanguageService</a></li><li><a href="module-argos_List.html">argos/List</a></li><li><a href="module-argos_MainToolbar.html">argos/MainToolbar</a></li><li><a href="module-argos_Models__ModelBase.html">argos/Models/_ModelBase</a></li><li><a href="module-argos_Models__OfflineModelBase.html">argos/Models/_OfflineModelBase</a></li><li><a href="module-argos_Models_Adapter.html">argos/Models/Adapter</a></li><li><a href="module-argos_Models_Briefcase_Offline.html">argos/Models/Briefcase/Offline</a></li><li><a href="module-argos_Models_Manager.html">argos/Models/Manager</a></li><li><a href="module-argos_Models_RecentlyViewed_Offline.html">argos/Models/RecentlyViewed/Offline</a></li><li><a href="module-argos_Models_SDataModelBase.html">argos/Models/SDataModelBase</a></li><li><a href="module-argos_Offline__DetailOfflineMixin.html">argos/Offline/_DetailOfflineMixin</a></li><li><a href="module-argos_Offline__ListOfflineMixin.html">argos/Offline/_ListOfflineMixin</a></li><li><a href="module-argos_Offline_Manager.html">argos/Offline/Manager</a></li><li><a href="module-argos_RelatedViewManager.html">argos/RelatedViewManager</a></li><li><a href="module-argos_RelatedViewWidget.html">argos/RelatedViewWidget</a></li><li><a href="module-argos_RelativeDateTimePicker.html">argos/RelativeDateTimePicker</a></li><li><a href="module-argos_Scene.html">argos/Scene</a></li><li><a href="module-argos_SearchWidget.html">argos/SearchWidget</a></li><li><a href="module-argos_SelectionModel.html">argos/SelectionModel</a></li><li><a href="module-argos_Store_PouchDB.html">argos/Store/PouchDB</a></li><li><a href="module-argos_Store_SData.html">argos/Store/SData</a></li><li><a href="module-argos_TabWidget.html">argos/TabWidget</a></li><li><a href="module-argos_TimePicker.html">argos/TimePicker</a></li><li><a href="module-argos_Toolbar.html">argos/Toolbar</a></li><li><a href="module-argos_Utility.html">argos/Utility</a></li><li><a href="module-argos_View.html">argos/View</a></li><li><a href="module-argos_Views_ConfigureQuickActions.html">argos/Views/ConfigureQuickActions</a></li><li><a href="module-argos_Views_FileSelect.html">argos/Views/FileSelect</a></li><li><a href="module-argos_Views_Link.html">argos/Views/Link</a></li><li><a href="module-argos_Views_Signature.html">argos/Views/Signature</a></li><li><a href="module-argos_WidgetBase.html">argos/WidgetBase</a></li><li><a href="module-crm_Action.html">crm/Action</a></li><li><a href="module-crm_Aggregate.html">crm/Aggregate</a></li><li><a href="module-crm_Application.html">crm/Application</a></li><li><a href="module-crm_ApplicationModule.html">crm/ApplicationModule</a></li><li><a href="module-crm_AttachmentManager.html">crm/AttachmentManager</a></li><li><a href="module-crm_Environment.html">crm/Environment</a></li><li><a href="module-crm_FileManager.html">crm/FileManager</a></li><li><a href="module-crm_Format.html">crm/Format</a></li><li><a href="module-crm_GroupUtility.html">crm/GroupUtility</a></li><li><a href="module-crm_Integrations_BOE_Utility.html">crm/Integrations/BOE/Utility</a></li><li><a href="module-crm_MingleUtility.html">crm/MingleUtility</a></li><li><a href="module-crm_PicklistService.html">crm/PicklistService</a></li><li><a href="module-crm_Recurrence.html">crm/Recurrence</a></li><li><a href="module-crm_SalesProcessUtility.html">crm/SalesProcessUtility</a></li><li><a href="module-crm_Template.html">crm/Template</a></li><li><a href="module-crm_Utility.html">crm/Utility</a></li><li><a href="module-crm_Validator.html">crm/Validator</a></li><li><a href="module-crm_Views__SpeedSearchRightDrawerListMixin.html">crm/Views/_SpeedSearchRightDrawerListMixin</a></li><li><a href="module-crm_Views_Charts_GenericBar.html">crm/Views/Charts/GenericBar</a></li><li><a href="module-crm_Views_Charts_GenericLine.html">crm/Views/Charts/GenericLine</a></li><li><a href="module-crm_Views_Charts_GenericPie.html">crm/Views/Charts/GenericPie</a></li><li><a href="module-crm_Views_MetricWidget.html">crm/Views/MetricWidget</a></li></ul><h3>Mixins</h3><ul><li><a href="module-argos__PullToRefreshMixin.html">argos/_PullToRefreshMixin</a></li><li><a href="module-argos__RelatedViewWidgetDetailMixin.html">argos/_RelatedViewWidgetDetailMixin</a></li><li><a href="module-argos__RelatedViewWidgetEditMixin.html">argos/_RelatedViewWidgetEditMixin</a></li><li><a href="module-argos__RelatedViewWidgetListMixin.html">argos/_RelatedViewWidgetListMixin</a></li><li><a href="module-argos__SDataDetailMixin.html">argos/_SDataDetailMixin</a></li><li><a href="module-argos__SDataListMixin.html">argos/_SDataListMixin</a></li><li><a href="module-argos__ServiceMixin.html">argos/_ServiceMixin</a></li><li><a href="module-argos__Templated.html">argos/_Templated</a></li><li><a href="module-crm_Views__GroupListMixin.html">crm/Views/_GroupListMixin</a></li><li><a href="module-crm_Views__MetricDetailMixin.html">crm/Views/_MetricDetailMixin</a></li><li><a href="module-crm_Views__MetricListMixin.html">crm/Views/_MetricListMixin</a></li><li><a href="module-crm_Views__RightDrawerBaseMixin.html">crm/Views/_RightDrawerBaseMixin</a></li><li><a href="module-crm_Views__RightDrawerListMixin.html">crm/Views/_RightDrawerListMixin</a></li><li><a href="module-crm_Views_Charts__ChartMixin.html">crm/Views/Charts/_ChartMixin</a></li><li><a href="module-crm_Views_Offline__RightDrawerListMixin.html">crm/Views/Offline/_RightDrawerListMixin</a></li><li><a href="module-crm_Views_RecentlyViewed__RightDrawerListMixin.html">crm/Views/RecentlyViewed/_RightDrawerListMixin</a></li></ul><h3>Tutorials</h3><ul><li><a href="tutorial-amd.html">AMD - Define and Declare</a></li><li><a href="tutorial-browser_setup.html">Browser Setup / Information</a></li><li><a href="tutorial-stores.html">Data Stores</a></li><li><a href="tutorial-lifecycles.html">View Lifecycles</a></li><li><a href="tutorial-upgrading_v12_to_v20.html">Upgrading 1.2 to 2.0</a></li><li><a href="tutorial-wire_detail_to_edit.html">Wiring Detail to Edit</a></li><li><a href="tutorial-wire_list_to_detail.html">Wiring List to Detail</a></li><li><a href="tutorial-wire_list_to_edit.html">Wiring List to Edit</a></li><li><a href="tutorial-grouped_list.html">Grouped List</a></li><li><a href="tutorial-basic_auth.html">Login - Basic Authentication</a></li><li><a href="tutorial-hashtags.html">#Hashtags</a></li><li><a href="tutorial-list_actions.html">List Actions</a></li><li><a href="tutorial-quick_actions.html">Quick Actions</a></li><li><a href="tutorial-related_views.html">Related Views</a></li><li><a href="tutorial-detail_layout.html">Detail Layout</a></li><li><a href="tutorial-validation.html">Validation</a></li><li><a href="tutorial-list_search.html">List Search Widget</a></li><li><a href="tutorial-advanced_localization.html">Localization - Advanced</a></li><li><a href="tutorial-navigation.html">Navigation</a></li><li><a href="tutorial-toolbars.html">Toolbars</a></li><li><a href="tutorial-localization_detection.html">localization_detection</a></li><li><a href="tutorial-localization.html">Localization - Basic</a></li><li><a href="tutorial-overview.html">Overview</a></li><li><a href="tutorial-template_guide.html">Template Guide</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.4</a> on Fri Jun 05 2020 13:35:40 GMT-0400 (Eastern Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

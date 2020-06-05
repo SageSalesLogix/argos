@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: argos-sdk/src/View.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: argos-sdk/src/View.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/* Copyright (c) 2010, Sage Software, Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/**
+  * @module argos/View
+  */
+import declare from 'dojo/_base/declare';
+import lang from 'dojo/_base/lang';
+import _WidgetBase from 'dijit/_WidgetBase';
+import _ActionMixin from './_ActionMixin';
+import _CustomizationMixin from './_CustomizationMixin';
+import _Templated from './_Templated';
+import Adapter from './Models/Adapter';
+import getResource from './I18n';
+import { insertHistory } from './actions/index';
+
+
+const resource = getResource('view');
+
+const __class = declare('argos.View', [_WidgetBase, _CustomizationMixin, _Templated], /** @lends module:argos/View.prototype */{
+
+  _ActionMixin: null,
+  postCreate: function postCreate() {
+    this._ActionMixin = new _ActionMixin();
+    this._ActionMixin.postCreate(this);
+    this._ActionMixin.onCheckAction = this.hasAction.bind(this);
+    this._ActionMixin.onInvokeAction = this.invokeAction.bind(this);
+  },
+  hasAction: function hasAction(name) {
+    return this._ActionMixin.hasAction(name);
+  },
+  invokeAction: function invokeAction(name, parameters, evt, el) {
+    return this._ActionMixin.invokeAction(name, parameters, evt, el);
+  },
+  _initiateActionFromEvent: function _initiateActionFromEvent(evt) {
+    return this._ActionMixin._initiateActionFromEvent(evt);
+  },
+  /**
+   * This map provides quick access to HTML properties, most notably the selected property of the container
+   * @memberof module:argos/View
+   * @static
+   */
+  attributeMap: {
+    title: {
+      node: 'domNode',
+      type: 'attribute',
+      attribute: 'data-title',
+    },
+    selected: {
+      node: 'domNode',
+      type: 'attribute',
+      attribute: 'selected',
+    },
+  },
+  /**
+   * The widgetTemplate is a Simplate that will be used as the main HTML markup of the View.
+   * @property {external:Simplate}
+   * @memberof module:argos/View
+   * @static
+   */
+  widgetTemplate: new Simplate([
+    '&lt;ul id="{%= $.id %}" data-title="{%= $.titleText %}" class="overthrow {%= $.cls %}">',
+    '&lt;/ul>',
+  ]),
+  _loadConnect: null,
+  /**
+   * The id is used to uniquely define a view and is used in navigating, history and for HTML markup.
+   * @property {String}
+   */
+  id: 'generic_view',
+  /**
+   * The titleText string will be applied to the top toolbar during {@link #show show}.
+   */
+  titleText: resource.titleText,
+  /**
+   * This views toolbar layout that defines all toolbar items in all toolbars.
+   * @property {Object}
+   */
+  tools: null,
+  /**
+   * May be defined along with {@link App#hasAccessTo Application hasAccessTo} to incorporate View restrictions.
+   */
+  security: null,
+  /**
+   * A reference to the global App object
+   */
+  app: null,
+
+  /**
+   * Registered model name to use.
+   */
+  modelName: '',
+
+  /**
+   * View type (detail, edit, list, etc)
+   */
+  viewType: 'view',
+  /**
+   * May be used to specify the service name to use for data requests. Setting false will force the use of the default service.
+   * @property {String/Boolean}
+   */
+  serviceName: false,
+  connectionName: false,
+  connectionState: null,
+  enableOfflineSupport: false,
+  previousState: null,
+  enableCustomizations: true,
+
+  /**
+   * @property {Object}
+   * Localized error messages. One general error message, and messages by HTTP status code.
+   * @memberof module:argos/View
+   * @static
+   */
+  errorText: {
+    general: resource.general,
+    status: {},
+  },
+  /**
+   * @property {Object}
+   * Http Error Status codes. See http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
+   * @memberof module:argos/View
+   * @static
+   */
+  HTTP_STATUS: {
+    BAD_REQUEST: 400,
+    UNAUTHORIZED: 401,
+    PAYMENT_REQUIRED: 402,
+    FORBIDDEN: 403,
+    NOT_FOUND: 404,
+    METHOD_NOT_ALLOWED: 405,
+    NOT_ACCEPTABLE: 406,
+    PROXY_AUTH_REQUIRED: 407,
+    REQUEST_TIMEOUT: 408,
+    CONFLICT: 409,
+    GONE: 410,
+    LENGTH_REQUIRED: 411,
+    PRECONDITION_FAILED: 412,
+    REQUEST_ENTITY_TOO_LARGE: 413,
+    REQUEST_URI_TOO_LONG: 414,
+    UNSUPPORTED_MEDIA_TYPE: 415,
+    REQUESTED_RANGE_NOT_SATISFIABLE: 416,
+    EXPECTATION_FAILED: 417,
+  },
+  /**
+   * @property {Array} errorHandlers
+   * Array of objects that should contain a name string property, test function, and handle function.
+   *
+   */
+  errorHandlers: null,
+
+  /**
+   * @class
+   * @alias module:argos/View
+   * @classdesc View is the root Class for all views and incorporates all the base features,
+   * events, and hooks needed to successfully render, hide, show, and transition.
+   * All Views are dijit Widgets, namely utilizing its: widgetTemplate, connections, and attributeMap
+   *
+   * @mixes module:argos/_ActionMixin
+   * @mixes module:argos/_CustomizationMixin
+   * @mixes module:argos/_Templated
+   * @param {Object} options
+   * @param {module:argos/Application} options.app Instance of the application
+   */
+  constructor: function constructor(options) {
+    this.app = (options &amp;&amp; options.app) || window.App;
+  },
+  startup: function startup() {
+    this.inherited(startup, arguments);
+  },
+  select: function select(node) {
+    $(node).attr('selected', 'true');
+  },
+  unselect: function unselect(node) {
+    $(node).removeAttr('selected');
+  },
+  /**
+   * Called from {@link App#_viewTransitionTo Applications view transition handler} and returns
+   * the fully customized toolbar layout.
+   * @return {Object} The toolbar layout
+   */
+  getTools: function getTools() {
+    const tools = this._createCustomizedLayout(this.createToolLayout(), 'tools');
+    this.onToolLayoutCreated(tools);
+    return tools;
+  },
+  /**
+   * Called after toolBar layout is created;
+   *
+   */
+  onToolLayoutCreated: function onToolLayoutCreated(/* tools*/) {},
+  /**
+   * Returns the tool layout that defines all toolbar items for the view
+   * @return {Object} The toolbar layout
+   */
+  createToolLayout: function createToolLayout() {
+    return this.tools || {};
+  },
+  /**
+   * Called on loading of the application.
+   */
+  init: function init(store) {
+    this.initStore(store);
+    this.startup();
+    this.initConnects();
+    this.initModel();
+  },
+  initStore: function initStore(store) {
+    this.appStore = store;
+    this.appStore.subscribe(this._onStateChange.bind(this));
+  },
+  _updateConnectionState: function _updateConnectionState(state) {
+    if (this.connectionState === state) {
+      return;
+    }
+
+    this.initModel();
+
+    const oldState = this.connectionState;
+    this.connectionState = state;
+    if (oldState !== null) {
+      this.onConnectionStateChange(state);
+    }
+  },
+  onConnectionStateChange: function onConnectionStateChange(state) { // eslint-disable-line
+  },
+  _onStateChange: function _onStateChange() {
+    const state = this.appStore.getState();
+    this._updateConnectionState(state.sdk.online);
+    this.onStateChange(state);
+    this.previousState = state;
+  },
+  onStateChange: function onStateChange(val) {}, // eslint-disable-line
+  /**
+   * Initializes the model instance that is returned with the current view.
+   */
+  initModel: function initModel() {
+    const model = this.getModel();
+    if (model) {
+      this._model = model;
+      this._model.init();
+    }
+  },
+  /**
+   * Returns a new instance of a model for the view.
+   */
+  getModel: function getModel() {
+    const model = Adapter.getModel(this.modelName);
+    return model;
+  },
+  /**
+   * Establishes this views connections to various events
+   */
+  initConnects: function initConnects() {
+    this._loadConnect = this.connect(this.domNode, 'onload', this._onLoad);
+  },
+  _onLoad: function _onLoad(evt, el, o) {
+    this.disconnect(this._loadConnect);
+    this.load(evt, el, o);
+  },
+  /**
+   * Called once the first time the view is about to be transitioned to.
+   * @deprecated
+   */
+  load: function load() {
+    // todo: remove load entirely?
+  },
+  /**
+   * Called in {@link #show show()} before route is invoked.
+   * @param {Object} options Navigation options passed from the previous view.
+   * @return {Boolean} True indicates view needs to be refreshed.
+   */
+  refreshRequiredFor: function refreshRequiredFor(options) {
+    if (this.options) {
+      return !!options; // if options provided, then refresh
+    }
+
+    return true;
+  },
+  /**
+   * @return {Array} Returns an array of error handlers
+   */
+  createErrorHandlers: function createErrorHandlers() {
+    return this.errorHandlers || [];
+  },
+  /**
+   * Starts matching and executing errorHandlers.
+   * @param {Error} error Error to pass to the errorHandlers
+   */
+  handleError: function handleError(error) {
+    if (!error) {
+      return;
+    }
+
+    function noop() {}
+
+    const matches = this.errorHandlers.filter((handler) => {
+      return handler.test &amp;&amp; handler.test.call(this, error);
+    });
+
+    const len = matches.length;
+
+    const getNext = function getNext(index) {
+      // next() chain has ended, return a no-op so calling next() in the last chain won't error
+      if (index === len) {
+        return noop;
+      }
+
+      // Return a closure with index and matches captured.
+      // The handle function can call its "next" param to continue the chain.
+      return function next() {
+        const nextHandler = matches[index];
+        const nextFn = nextHandler &amp;&amp; nextHandler.handle;
+
+        nextFn.call(this, error, getNext.call(this, index + 1));
+      }.bind(this);
+    }.bind(this);
+
+    if (len > 0 &amp;&amp; matches[0].handle) {
+      // Start the handle chain, the handle can call next() to continue the iteration
+      matches[0].handle.call(this, error, getNext.call(this, 1));
+    }
+  },
+  /**
+   * Gets the general error message, or the error message for the status code.
+   */
+  getErrorMessage: function getErrorMessage(error) {
+    let message = this.errorText.general;
+
+    if (error) {
+      message = this.errorText.status[error.status] || this.errorText.general;
+    }
+
+    return message;
+  },
+  /**
+   * Should refresh the view, such as but not limited to:
+   * Emptying nodes, requesting data, rendering new content
+   */
+  refresh: function refresh() {},
+  /**
+   * The onBeforeTransitionAway event.
+   * @param self
+   */
+  onBeforeTransitionAway: function onBeforeTransitionAway(/* self*/) {},
+  /**
+   * The onBeforeTransitionTo event.
+   * @param self
+   */
+  onBeforeTransitionTo: function onBeforeTransitionTo(/* self*/) {},
+  /**
+   * The onTransitionAway event.
+   * @param self
+   */
+  onTransitionAway: function onTransitionAway(/* self*/) {},
+  /**
+   * The onTransitionTo event.
+   * @param self
+   */
+  onTransitionTo: function onTransitionTo(/* self*/) {},
+  /**
+   * The onActivate event.
+   * @param self
+   */
+  onActivate: function onActivate(/* self*/) {},
+  /**
+   * The onShow event.
+   * @param self
+   */
+  onShow: function onShow(/* self*/) {},
+  activate: function activate(tag, data) {
+    // todo: use tag only?
+    if (data &amp;&amp; this.refreshRequiredFor(data.options)) {
+      this.refreshRequired = true;
+    }
+
+    this.options = (data &amp;&amp; data.options) || this.options || {};
+
+    if (this.options.title) {
+      this.set('title', this.options.title);
+    } else {
+      this.set('title', this.titleText);
+    }
+
+    this.onActivate(this);
+  },
+  _getScrollerAttr: function _getScrollerAttr() {
+    return this.scrollerNode || this.domNode;
+  },
+  _transitionOptions: null,
+  /**
+   * Shows the view using pagejs in order to transition to the new element.
+   * @param {Object} options The navigation options passed from the previous view.
+   * @param transitionOptions {Object} Optional transition object that is forwarded to open.
+   */
+  show: function show(options, transitionOptions) {
+    this.errorHandlers = this._createCustomizedLayout(this.createErrorHandlers(), 'errorHandlers');
+
+    if (this.onShow(this) === false) {
+      return;
+    }
+
+    if (this.refreshRequiredFor(options)) {
+      this.refreshRequired = true;
+    }
+
+    this.options = options || this.options || {};
+
+    if (this.options.title) {
+      this.set('title', this.options.title);
+    } else {
+      this.set('title', this.titleText);
+    }
+
+    const tag = this.getTag();
+    const data = this.getContext();
+
+    const to = lang.mixin(transitionOptions || {}, {
+      tag,
+      data,
+    });
+    this._transitionOptions = to;
+    page(this.buildRoute());
+  },
+  hashPrefix: '#!',
+  currentHash: '',
+  transitionComplete: function transitionComplete(_page, options) {
+    if (options.track !== false) {
+      this.currentHash = location.hash;
+
+      if (options.trimmed !== true) {
+        const data = {
+          hash: this.currentHash,
+          page: this.id,
+          tag: options.tag,
+          data: options.data,
+        };
+        App.context.history.push(data);
+        this.appStore.dispatch(insertHistory(data));
+      }
+    }
+  },
+  transition: function transition(from, to, options) {
+    function complete() {
+      this.transitionComplete(to, options);
+      $('body').removeClass('transition');
+
+      $(from).trigger({
+        out: true,
+        tag: options.tag,
+        data: options.data,
+        bubbles: true,
+        cancelable: true,
+        type: 'aftertransition',
+      });
+      $(to).trigger({
+        out: false,
+        tag: options.tag,
+        data: options.data,
+        bubbles: true,
+        cancelable: true,
+        type: 'aftertransition',
+      });
+
+      if (options.complete) {
+        options.complete(from, to, options);
+      }
+    }
+
+    $('body').addClass('transition');
+
+    // dispatch an 'show' event to let the page be aware that is being show as the result of an external
+    // event (i.e. browser back/forward navigation).
+    if (options.external) {
+      $(to).trigger({
+        tag: options.tag,
+        data: options.data,
+        bubbles: true,
+        cancelable: true,
+        type: 'show',
+      });
+    }
+
+    $(from).trigger({
+      out: true,
+      tag: options.tag,
+      data: options.data,
+      bubbles: true,
+      cancelable: true,
+      type: 'beforetransition',
+    });
+
+    $(to).trigger({
+      out: false,
+      tag: options.tag,
+      data: options.data,
+      bubbles: true,
+      cancelable: true,
+      type: 'beforetransition',
+    });
+
+    this.unselect(from);
+    this.select(to);
+    complete.apply(this);
+  },
+  setPrimaryTitle: function setPrimaryTitle() {
+    App.setPrimaryTitle(this.get('title'));
+  },
+  /**
+  * Available Options:
+  *   horizontal: True if the transition is horizontal, False otherwise.
+  *   reverse: True if the transition is a reverse transition (right/down), False otherwise.
+  *   track: False if the transition should not be tracked in history, True otherwise.
+  *   update: False if the transition should not update title and back button, True otherwise.
+  *   scroll: False if the transition should not scroll to the top, True otherwise.
+  */
+  open: function open() {
+    const p = this.domNode;
+    const options = this._transitionOptions || {};
+
+    if (!p) {
+      return;
+    }
+
+    this.setPrimaryTitle();
+
+    if (options.track !== false) {
+      const count = App.context.history.length;
+      let position = count - 1;
+
+      if (options.returnTo) {
+        if (typeof options.returnTo === 'function') {
+          for (position = count - 1; position >= 0; position--) {
+            if (options.returnTo(App.context.history[position])) {
+              break;
+            }
+          }
+        } else if (options.returnTo &lt; 0) {
+          position = (count - 1) + options.returnTo;
+        }
+
+        if (position > -1) {
+          // we fix up the history, but do not flag as trimmed, since we do want the new view to be pushed.
+          App.context.history = App.context.history.splice(0, position + 1);
+
+          this.currentHash = App.context.history[App.context.history.length - 1] &amp;&amp; App.context.history[App.context.history.length - 1].hash;
+        }
+
+        options.returnTo = null;
+      }
+    }
+
+    // don't auto-scroll by default if reversing
+    if (options.reverse &amp;&amp; typeof options.scroll === 'undefined') {
+      options.scroll = !options.reverse;
+    }
+
+    $(p).trigger({
+      bubbles: false,
+      cancelable: true,
+      type: 'load',
+    });
+
+    const from = App.getCurrentPage();
+
+    if (from) {
+      $(from).trigger({
+        bubbles: false,
+        cancelable: true,
+        type: 'blur',
+      });
+    }
+
+    App.setCurrentPage(p);
+
+    $(p).trigger({
+      bubbles: false,
+      cancelable: true,
+      type: 'focus',
+    });
+
+    if (from &amp;&amp; $(p).attr('selected') !== 'true') {
+      if (options.reverse) {
+        $(p).trigger({
+          bubbles: false,
+          cancelable: true,
+          type: 'unload',
+        });
+      }
+
+      window.setTimeout(this.transition.bind(this), App.checkOrientationTime, from, p, options);
+    } else {
+      $(p).trigger({
+        out: false,
+        tag: options.tag,
+        data: options.data,
+        bubbles: true,
+        cancelable: true,
+        type: 'beforetransition',
+      });
+
+      this.select(p);
+
+      this.transitionComplete(p, options);
+
+      $(p).trigger({
+        out: false,
+        tag: options.tag,
+        data: options.data,
+        bubbles: true,
+        cancelable: true,
+        type: 'aftertransition',
+      });
+    }
+  },
+  /**
+   * Expands the passed expression if it is a function.
+   * @param {String/Function} expression Returns string directly, if function it is called and the result returned.
+   * @return {String} String expression.
+   */
+  expandExpression: function expandExpression(expression) {
+    if (typeof expression === 'function') {
+      return expression.apply(this, Array.prototype.slice.call(arguments, 1));
+    }
+
+    return expression;
+  },
+  /**
+   * Called before the view is transitioned (slide animation complete) to.
+   */
+  beforeTransitionTo: function beforeTransitionTo() {
+    this.onBeforeTransitionTo(this);
+  },
+  /**
+   * Called before the view is transitioned (slide animation complete) away from.
+   */
+  beforeTransitionAway: function beforeTransitionAway() {
+    this.onBeforeTransitionAway(this);
+  },
+  /**
+   * Called after the view has been transitioned (slide animation complete) to.
+   */
+  transitionTo: function transitionTo() {
+    if (this.refreshRequired) {
+      this.refreshRequired = false;
+      this.isRefreshing = false;
+      this.refresh();
+    }
+
+    this.onTransitionTo(this);
+  },
+  /**
+   * Called after the view has been transitioned (slide animation complete) away from.
+   */
+  transitionAway: function transitionAway() {
+    this.onTransitionAway(this);
+  },
+  /**
+   * Returns the primary SDataService instance for the view.
+   * @return {Object} The Sage.SData.Client.SDataService instance.
+   */
+  getService: function getService() {
+    return this.app.getService(this.serviceName); /* if false is passed, the default service will be returned */
+  },
+  getConnection: function getConnection() {
+    return this.getService();
+  },
+  getTag: function getTag() {},
+  /**
+   * Returns the options used for the View {@link #getContext getContext()}.
+   * @return {Object} Options to be used for context.
+   */
+  getOptionsContext: function getOptionsContext() {
+    if (this.options &amp;&amp; this.options.negateHistory) {
+      return {
+        negateHistory: true,
+      };
+    }
+    return this.options;
+  },
+  /**
+   * Returns the context of the view which is a small summary of key properties.
+   * @return {Object} Vital View properties.
+   */
+  getContext: function getContext() {
+    // todo: should we track options?
+    return {
+      id: this.id,
+      options: this.getOptionsContext(),
+    };
+  },
+  /**
+   * Returns the defined security.
+   * @param access
+   */
+  getSecurity: function getSecurity(/* access*/) {
+    return this.security;
+  },
+  /**
+  * @property {String}
+  * Route passed into the router. RegEx expressions are also accepted.
+  */
+  route: '',
+  /**
+  * Gets the route associated with this view. Returns this.id if no route is defined.
+  */
+  getRoute: function getRoute() {
+    if ((typeof this.route === 'string' &amp;&amp; this.route.length > 0) || this.route instanceof RegExp) {
+      return this.route;
+    }
+
+    return this.id;
+  },
+  /**
+  * Show method calls this to build a route that it can navigate to. If you add a custom route,
+  * this should change to build a route that can match that.
+  * @returns {String}
+  */
+  buildRoute: function buildRoute() {
+    return this.id;
+  },
+  /**
+  * Fires first when a route is triggered. Any pre-loading should happen here.
+  * @param {Object} ctx
+  * @param {Function} next
+  */
+  routeLoad: function routeLoad(ctx, next) {
+    next();
+  },
+  /**
+  * Fires second when a route is triggered. Any pre-loading should happen here.
+  * @param {Object} ctx
+  * @param {Function} next
+  */
+  routeShow: function routeShow(ctx, next) { // eslint-disable-line
+    this.open();
+  },
+  /*
+  * Required for binding to ScrollContainer which utilizes iScroll that requires to be refreshed when the
+  * content (therefor scrollable area) changes.
+  */
+  onContentChange: function onContentChange() {
+  },
+  /**
+   * Returns true if view is disabled.
+   * @return {Boolean}.
+   */
+  isDisabled: function isDisabled() {
+    return false;
+  },
+});
+
+export default __class;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-argos__ActionMixin.html">argos/_ActionMixin</a></li><li><a href="module-argos__ConfigureBase.html">argos/_ConfigureBase</a></li><li><a href="module-argos__CustomizationMixin.html">argos/_CustomizationMixin</a></li><li><a href="module-argos__DetailBase.html">argos/_DetailBase</a></li><li><a href="module-argos__DraggableBase.html">argos/_DraggableBase</a></li><li><a href="module-argos__EditBase.html">argos/_EditBase</a></li><li><a href="module-argos__LegacySDataDetailMixin.html">argos/_LegacySDataDetailMixin</a></li><li><a href="module-argos__LegacySDataEditMixin.html">argos/_LegacySDataEditMixin</a></li><li><a href="module-argos__LegacySDataListMixin.html">argos/_LegacySDataListMixin</a></li><li><a href="module-argos__ListBase.html">argos/_ListBase</a></li><li><a href="module-argos__PullToRefreshMixin.html">argos/_PullToRefreshMixin</a></li><li><a href="module-argos__RelatedViewWidgetBase.html">argos/_RelatedViewWidgetBase</a></li><li><a href="module-argos__RelatedViewWidgetDetailMixin.html">argos/_RelatedViewWidgetDetailMixin</a></li><li><a href="module-argos__RelatedViewWidgetEditMixin.html">argos/_RelatedViewWidgetEditMixin</a></li><li><a href="module-argos__RelatedViewWidgetListMixin.html">argos/_RelatedViewWidgetListMixin</a></li><li><a href="module-argos__SDataDetailMixin.html">argos/_SDataDetailMixin</a></li><li><a href="module-argos__SDataEditMixin.html">argos/_SDataEditMixin</a></li><li><a href="module-argos__SDataListMixin.html">argos/_SDataListMixin</a></li><li><a href="module-argos__ServiceMixin.html">argos/_ServiceMixin</a></li><li><a href="module-argos__Templated.html">argos/_Templated</a></li><li><a href="module-argos_actions.html">argos/actions</a></li><li><a href="module-argos_actions_connection.html">argos/actions/connection</a></li><li><a href="module-argos_Application.html">argos/Application</a></li><li><a href="module-argos_ApplicationModule.html">argos/ApplicationModule</a></li><li><a href="module-argos_Calendar.html">argos/Calendar</a></li><li><a href="module-argos_ConfigurableSelectionModel.html">argos/ConfigurableSelectionModel</a></li><li><a href="module-argos_Convert.html">argos/Convert</a></li><li><a href="module-argos_CultureInfo.html">argos/CultureInfo</a></li><li><a href="module-argos_DateTimePicker.html">argos/DateTimePicker</a></li><li><a href="module-argos_Detail.html">argos/Detail</a></li><li><a href="module-argos_Dialogs_BusyIndicator.html">argos/Dialogs/BusyIndicator</a></li><li><a href="module-argos_Dialogs_Modal.html">argos/Dialogs/Modal</a></li><li><a href="module-argos_Dialogs_Toast.html">argos/Dialogs/Toast</a></li><li><a href="module-argos_DraggableList.html">argos/DraggableList</a></li><li><a href="module-argos_Dropdown.html">argos/Dropdown</a></li><li><a href="module-argos_Edit.html">argos/Edit</a></li><li><a href="module-argos_ErrorManager.html">argos/ErrorManager</a></li><li><a href="module-argos_FieldManager.html">argos/FieldManager</a></li><li><a href="module-argos_Fields__Field.html">argos/Fields/_Field</a></li><li><a href="module-argos_Fields_BooleanField.html">argos/Fields/BooleanField</a></li><li><a href="module-argos_Fields_DateField.html">argos/Fields/DateField</a></li><li><a href="module-argos_Fields_DecimalField.html">argos/Fields/DecimalField</a></li><li><a href="module-argos_Fields_DropdownField.html">argos/Fields/DropdownField</a></li><li><a href="module-argos_Fields_DurationField.html">argos/Fields/DurationField</a></li><li><a href="module-argos_Fields_EditorField.html">argos/Fields/EditorField</a></li><li><a href="module-argos_Fields_HiddenField.html">argos/Fields/HiddenField</a></li><li><a href="module-argos_Fields_LookupField.html">argos/Fields/LookupField</a></li><li><a href="module-argos_Fields_NoteField.html">argos/Fields/NoteField</a></li><li><a href="module-argos_Fields_PhoneField.html">argos/Fields/PhoneField</a></li><li><a href="module-argos_Fields_SelectField.html">argos/Fields/SelectField</a></li><li><a href="module-argos_Fields_SignatureField.html">argos/Fields/SignatureField</a></li><li><a href="module-argos_Fields_TextAreaField.html">argos/Fields/TextAreaField</a></li><li><a href="module-argos_Fields_TextField.html">argos/Fields/TextField</a></li><li><a href="module-argos_Format.html">argos/Format</a></li><li><a href="module-argos_GroupedList.html">argos/GroupedList</a></li><li><a href="module-argos_Groups__GroupBySection.html">argos/Groups/_GroupBySection</a></li><li><a href="module-argos_Groups_DateTimeSection.html">argos/Groups/DateTimeSection</a></li><li><a href="module-argos_Groups_GroupByValueSection.html">argos/Groups/GroupByValueSection</a></li><li><a href="module-argos_I18n.html">argos/I18n</a></li><li><a href="module-argos_LanguageService.html">argos/LanguageService</a></li><li><a href="module-argos_List.html">argos/List</a></li><li><a href="module-argos_MainToolbar.html">argos/MainToolbar</a></li><li><a href="module-argos_Models__ModelBase.html">argos/Models/_ModelBase</a></li><li><a href="module-argos_Models__OfflineModelBase.html">argos/Models/_OfflineModelBase</a></li><li><a href="module-argos_Models_Adapter.html">argos/Models/Adapter</a></li><li><a href="module-argos_Models_Briefcase_Offline.html">argos/Models/Briefcase/Offline</a></li><li><a href="module-argos_Models_Manager.html">argos/Models/Manager</a></li><li><a href="module-argos_Models_RecentlyViewed_Offline.html">argos/Models/RecentlyViewed/Offline</a></li><li><a href="module-argos_Models_SDataModelBase.html">argos/Models/SDataModelBase</a></li><li><a href="module-argos_Models_Types.html">argos/Models/Types</a></li><li><a href="module-argos_Offline__DetailOfflineMixin.html">argos/Offline/_DetailOfflineMixin</a></li><li><a href="module-argos_Offline__ListOfflineMixin.html">argos/Offline/_ListOfflineMixin</a></li><li><a href="module-argos_Offline_Manager.html">argos/Offline/Manager</a></li><li><a href="module-argos_reducers.html">argos/reducers</a></li><li><a href="module-argos_RelatedViewManager.html">argos/RelatedViewManager</a></li><li><a href="module-argos_RelatedViewWidget.html">argos/RelatedViewWidget</a></li><li><a href="module-argos_RelativeDateTimePicker.html">argos/RelativeDateTimePicker</a></li><li><a href="module-argos_Scene.html">argos/Scene</a></li><li><a href="module-argos_SearchWidget.html">argos/SearchWidget</a></li><li><a href="module-argos_SelectionModel.html">argos/SelectionModel</a></li><li><a href="module-argos_SohoIcons.html">argos/SohoIcons</a></li><li><a href="module-argos_Store_PouchDB.html">argos/Store/PouchDB</a></li><li><a href="module-argos_Store_SData.html">argos/Store/SData</a></li><li><a href="module-argos_TabWidget.html">argos/TabWidget</a></li><li><a href="module-argos_TimePicker.html">argos/TimePicker</a></li><li><a href="module-argos_Toolbar.html">argos/Toolbar</a></li><li><a href="module-argos_Utility.html">argos/Utility</a></li><li><a href="module-argos_View.html">argos/View</a></li><li><a href="module-argos_Views_ConfigureQuickActions.html">argos/Views/ConfigureQuickActions</a></li><li><a href="module-argos_Views_FileSelect.html">argos/Views/FileSelect</a></li><li><a href="module-argos_Views_Link.html">argos/Views/Link</a></li><li><a href="module-argos_Views_Signature.html">argos/Views/Signature</a></li><li><a href="module-argos_WidgetBase.html">argos/WidgetBase</a></li><li><a href="module-crm_Action.html">crm/Action</a></li><li><a href="module-crm_Aggregate.html">crm/Aggregate</a></li><li><a href="module-crm_Application.html">crm/Application</a></li><li><a href="module-crm_ApplicationModule.html">crm/ApplicationModule</a></li><li><a href="module-crm_AttachmentManager.html">crm/AttachmentManager</a></li><li><a href="module-crm_Bootstrap.html">crm/Bootstrap</a></li><li><a href="module-crm_Bootstrap_localization.html">crm/Bootstrap/localization</a></li><li><a href="module-crm_Environment.html">crm/Environment</a></li><li><a href="module-crm_FileManager.html">crm/FileManager</a></li><li><a href="module-crm_Format.html">crm/Format</a></li><li><a href="module-crm_GroupUtility.html">crm/GroupUtility</a></li><li><a href="module-crm_Integrations_BOE_Aggregate.html">crm/Integrations/BOE/Aggregate</a></li><li><a href="module-crm_Integrations_BOE_Utility.html">crm/Integrations/BOE/Utility</a></li><li><a href="module-crm_MingleUtility.html">crm/MingleUtility</a></li><li><a href="module-crm_PicklistService.html">crm/PicklistService</a></li><li><a href="module-crm_Recurrence.html">crm/Recurrence</a></li><li><a href="module-crm_SalesProcessUtility.html">crm/SalesProcessUtility</a></li><li><a href="module-crm_Template.html">crm/Template</a></li><li><a href="module-crm_Utility.html">crm/Utility</a></li><li><a href="module-crm_Validator.html">crm/Validator</a></li><li><a href="module-crm_Views__GroupListMixin.html">crm/Views/_GroupListMixin</a></li><li><a href="module-crm_Views__MetricDetailMixin.html">crm/Views/_MetricDetailMixin</a></li><li><a href="module-crm_Views__MetricListMixin.html">crm/Views/_MetricListMixin</a></li><li><a href="module-crm_Views__RightDrawerBaseMixin.html">crm/Views/_RightDrawerBaseMixin</a></li><li><a href="module-crm_Views__RightDrawerListMixin.html">crm/Views/_RightDrawerListMixin</a></li><li><a href="module-crm_Views__SpeedSearchRightDrawerListMixin.html">crm/Views/_SpeedSearchRightDrawerListMixin</a></li><li><a href="module-crm_Views_Charts__ChartMixin.html">crm/Views/Charts/_ChartMixin</a></li><li><a href="module-crm_Views_Charts_GenericBar.html">crm/Views/Charts/GenericBar</a></li><li><a href="module-crm_Views_Charts_GenericLine.html">crm/Views/Charts/GenericLine</a></li><li><a href="module-crm_Views_Charts_GenericPie.html">crm/Views/Charts/GenericPie</a></li><li><a href="module-crm_Views_MetricWidget.html">crm/Views/MetricWidget</a></li><li><a href="module-crm_Views_Offline__RightDrawerListMixin.html">crm/Views/Offline/_RightDrawerListMixin</a></li><li><a href="module-crm_Views_RecentlyViewed__RightDrawerListMixin.html">crm/Views/RecentlyViewed/_RightDrawerListMixin</a></li></ul><h3>Classes</h3><ul><li><a href="module-_crm_Integrations_BOE_Aggregate.html">/crm/Integrations/BOE/Aggregate</a></li><li><a href="module-argos__ActionMixin.html">argos/_ActionMixin</a></li><li><a href="module-argos__ConfigureBase.html">argos/_ConfigureBase</a></li><li><a href="module-argos__CustomizationMixin.html">argos/_CustomizationMixin</a></li><li><a href="module-argos__DetailBase.html">argos/_DetailBase</a></li><li><a href="module-argos__DraggableBase.html">argos/_DraggableBase</a></li><li><a href="module-argos__EditBase.html">argos/_EditBase</a></li><li><a href="module-argos__LegacySDataDetailMixin.html">argos/_LegacySDataDetailMixin</a></li><li><a href="module-argos__LegacySDataEditMixin.html">argos/_LegacySDataEditMixin</a></li><li><a href="module-argos__LegacySDataListMixin.html">argos/_LegacySDataListMixin</a></li><li><a href="module-argos__ListBase.html">argos/_ListBase</a></li><li><a href="module-argos__RelatedViewWidgetBase.html">argos/_RelatedViewWidgetBase</a></li><li><a href="module-argos__SDataEditMixin.html">argos/_SDataEditMixin</a></li><li><a href="module-argos_Application.html">argos/Application</a></li><li><a href="module-argos_ApplicationModule.html">argos/ApplicationModule</a></li><li><a href="module-argos_Calendar.html">argos/Calendar</a></li><li><a href="module-argos_ConfigurableSelectionModel.html">argos/ConfigurableSelectionModel</a></li><li><a href="module-argos_Convert.html">argos/Convert</a></li><li><a href="module-argos_DateTimePicker.html">argos/DateTimePicker</a></li><li><a href="module-argos_Detail.html">argos/Detail</a></li><li><a href="module-argos_Dialogs_BusyIndicator.html">argos/Dialogs/BusyIndicator</a></li><li><a href="module-argos_Dialogs_Modal.html">argos/Dialogs/Modal</a></li><li><a href="module-argos_Dialogs_Toast.html">argos/Dialogs/Toast</a></li><li><a href="module-argos_DraggableList.html">argos/DraggableList</a></li><li><a href="module-argos_Dropdown.html">argos/Dropdown</a></li><li><a href="module-argos_Edit.html">argos/Edit</a></li><li><a href="module-argos_ErrorManager.html">argos/ErrorManager</a></li><li><a href="module-argos_FieldManager.html">argos/FieldManager</a></li><li><a href="module-argos_Fields__SignatureField.html">argos/Fields//SignatureField</a></li><li><a href="module-argos_Fields__Field.html">argos/Fields/_Field</a></li><li><a href="module-argos_Fields_BooleanField.html">argos/Fields/BooleanField</a></li><li><a href="module-argos_Fields_DateField.html">argos/Fields/DateField</a></li><li><a href="module-argos_Fields_DecimalField.html">argos/Fields/DecimalField</a></li><li><a href="module-argos_Fields_DropdownField.html">argos/Fields/DropdownField</a></li><li><a href="module-argos_Fields_DurationField.html">argos/Fields/DurationField</a></li><li><a href="module-argos_Fields_EditorField.html">argos/Fields/EditorField</a></li><li><a href="module-argos_Fields_HiddenField.html">argos/Fields/HiddenField</a></li><li><a href="module-argos_Fields_LookupField.html">argos/Fields/LookupField</a></li><li><a href="module-argos_Fields_NoteField.html">argos/Fields/NoteField</a></li><li><a href="module-argos_Fields_PhoneField.html">argos/Fields/PhoneField</a></li><li><a href="module-argos_Fields_SelectField.html">argos/Fields/SelectField</a></li><li><a href="module-argos_Fields_TextAreaField.html">argos/Fields/TextAreaField</a></li><li><a href="module-argos_Fields_TextField.html">argos/Fields/TextField</a></li><li><a href="module-argos_Format.html">argos/Format</a></li><li><a href="module-argos_GroupedList.html">argos/GroupedList</a></li><li><a href="module-argos_Groups__GroupBySection.html">argos/Groups/_GroupBySection</a></li><li><a href="module-argos_Groups_DateTimeSection.html">argos/Groups/DateTimeSection</a></li><li><a href="module-argos_Groups_GroupByValueSection.html">argos/Groups/GroupByValueSection</a></li><li><a href="module-argos_LanguageService.html">argos/LanguageService</a></li><li><a href="module-argos_List.html">argos/List</a></li><li><a href="module-argos_MainToolbar.html">argos/MainToolbar</a></li><li><a href="module-argos_Models__ModelBase.html">argos/Models/_ModelBase</a></li><li><a href="module-argos_Models__OfflineModelBase.html">argos/Models/_OfflineModelBase</a></li><li><a href="module-argos_Models_Adapter.html">argos/Models/Adapter</a></li><li><a href="module-argos_Models_Briefcase_Offline.html">argos/Models/Briefcase/Offline</a></li><li><a href="module-argos_Models_Manager.html">argos/Models/Manager</a></li><li><a href="module-argos_Models_RecentlyViewed_Offline.html">argos/Models/RecentlyViewed/Offline</a></li><li><a href="module-argos_Models_SDataModelBase.html">argos/Models/SDataModelBase</a></li><li><a href="module-argos_Offline__DetailOfflineMixin.html">argos/Offline/_DetailOfflineMixin</a></li><li><a href="module-argos_Offline__ListOfflineMixin.html">argos/Offline/_ListOfflineMixin</a></li><li><a href="module-argos_Offline_Manager.html">argos/Offline/Manager</a></li><li><a href="module-argos_RelatedViewManager.html">argos/RelatedViewManager</a></li><li><a href="module-argos_RelatedViewWidget.html">argos/RelatedViewWidget</a></li><li><a href="module-argos_RelativeDateTimePicker.html">argos/RelativeDateTimePicker</a></li><li><a href="module-argos_Scene.html">argos/Scene</a></li><li><a href="module-argos_SearchWidget.html">argos/SearchWidget</a></li><li><a href="module-argos_SelectionModel.html">argos/SelectionModel</a></li><li><a href="module-argos_Store_PouchDB.html">argos/Store/PouchDB</a></li><li><a href="module-argos_Store_SData.html">argos/Store/SData</a></li><li><a href="module-argos_TabWidget.html">argos/TabWidget</a></li><li><a href="module-argos_TimePicker.html">argos/TimePicker</a></li><li><a href="module-argos_Toolbar.html">argos/Toolbar</a></li><li><a href="module-argos_Utility.html">argos/Utility</a></li><li><a href="module-argos_View.html">argos/View</a></li><li><a href="module-argos_Views_ConfigureQuickActions.html">argos/Views/ConfigureQuickActions</a></li><li><a href="module-argos_Views_FileSelect.html">argos/Views/FileSelect</a></li><li><a href="module-argos_Views_Link.html">argos/Views/Link</a></li><li><a href="module-argos_Views_Signature.html">argos/Views/Signature</a></li><li><a href="module-argos_WidgetBase.html">argos/WidgetBase</a></li><li><a href="module-crm_Action.html">crm/Action</a></li><li><a href="module-crm_Aggregate.html">crm/Aggregate</a></li><li><a href="module-crm_Application.html">crm/Application</a></li><li><a href="module-crm_ApplicationModule.html">crm/ApplicationModule</a></li><li><a href="module-crm_AttachmentManager.html">crm/AttachmentManager</a></li><li><a href="module-crm_Environment.html">crm/Environment</a></li><li><a href="module-crm_FileManager.html">crm/FileManager</a></li><li><a href="module-crm_Format.html">crm/Format</a></li><li><a href="module-crm_GroupUtility.html">crm/GroupUtility</a></li><li><a href="module-crm_Integrations_BOE_Utility.html">crm/Integrations/BOE/Utility</a></li><li><a href="module-crm_MingleUtility.html">crm/MingleUtility</a></li><li><a href="module-crm_PicklistService.html">crm/PicklistService</a></li><li><a href="module-crm_Recurrence.html">crm/Recurrence</a></li><li><a href="module-crm_SalesProcessUtility.html">crm/SalesProcessUtility</a></li><li><a href="module-crm_Template.html">crm/Template</a></li><li><a href="module-crm_Utility.html">crm/Utility</a></li><li><a href="module-crm_Validator.html">crm/Validator</a></li><li><a href="module-crm_Views__SpeedSearchRightDrawerListMixin.html">crm/Views/_SpeedSearchRightDrawerListMixin</a></li><li><a href="module-crm_Views_Charts_GenericBar.html">crm/Views/Charts/GenericBar</a></li><li><a href="module-crm_Views_Charts_GenericLine.html">crm/Views/Charts/GenericLine</a></li><li><a href="module-crm_Views_Charts_GenericPie.html">crm/Views/Charts/GenericPie</a></li><li><a href="module-crm_Views_MetricWidget.html">crm/Views/MetricWidget</a></li></ul><h3>Mixins</h3><ul><li><a href="module-argos__PullToRefreshMixin.html">argos/_PullToRefreshMixin</a></li><li><a href="module-argos__RelatedViewWidgetDetailMixin.html">argos/_RelatedViewWidgetDetailMixin</a></li><li><a href="module-argos__RelatedViewWidgetEditMixin.html">argos/_RelatedViewWidgetEditMixin</a></li><li><a href="module-argos__RelatedViewWidgetListMixin.html">argos/_RelatedViewWidgetListMixin</a></li><li><a href="module-argos__SDataDetailMixin.html">argos/_SDataDetailMixin</a></li><li><a href="module-argos__SDataListMixin.html">argos/_SDataListMixin</a></li><li><a href="module-argos__ServiceMixin.html">argos/_ServiceMixin</a></li><li><a href="module-argos__Templated.html">argos/_Templated</a></li><li><a href="module-crm_Views__GroupListMixin.html">crm/Views/_GroupListMixin</a></li><li><a href="module-crm_Views__MetricDetailMixin.html">crm/Views/_MetricDetailMixin</a></li><li><a href="module-crm_Views__MetricListMixin.html">crm/Views/_MetricListMixin</a></li><li><a href="module-crm_Views__RightDrawerBaseMixin.html">crm/Views/_RightDrawerBaseMixin</a></li><li><a href="module-crm_Views__RightDrawerListMixin.html">crm/Views/_RightDrawerListMixin</a></li><li><a href="module-crm_Views_Charts__ChartMixin.html">crm/Views/Charts/_ChartMixin</a></li><li><a href="module-crm_Views_Offline__RightDrawerListMixin.html">crm/Views/Offline/_RightDrawerListMixin</a></li><li><a href="module-crm_Views_RecentlyViewed__RightDrawerListMixin.html">crm/Views/RecentlyViewed/_RightDrawerListMixin</a></li></ul><h3>Tutorials</h3><ul><li><a href="tutorial-amd.html">AMD - Define and Declare</a></li><li><a href="tutorial-browser_setup.html">Browser Setup / Information</a></li><li><a href="tutorial-stores.html">Data Stores</a></li><li><a href="tutorial-lifecycles.html">View Lifecycles</a></li><li><a href="tutorial-upgrading_v12_to_v20.html">Upgrading 1.2 to 2.0</a></li><li><a href="tutorial-wire_detail_to_edit.html">Wiring Detail to Edit</a></li><li><a href="tutorial-wire_list_to_detail.html">Wiring List to Detail</a></li><li><a href="tutorial-wire_list_to_edit.html">Wiring List to Edit</a></li><li><a href="tutorial-grouped_list.html">Grouped List</a></li><li><a href="tutorial-basic_auth.html">Login - Basic Authentication</a></li><li><a href="tutorial-hashtags.html">#Hashtags</a></li><li><a href="tutorial-list_actions.html">List Actions</a></li><li><a href="tutorial-quick_actions.html">Quick Actions</a></li><li><a href="tutorial-related_views.html">Related Views</a></li><li><a href="tutorial-detail_layout.html">Detail Layout</a></li><li><a href="tutorial-validation.html">Validation</a></li><li><a href="tutorial-list_search.html">List Search Widget</a></li><li><a href="tutorial-advanced_localization.html">Localization - Advanced</a></li><li><a href="tutorial-navigation.html">Navigation</a></li><li><a href="tutorial-toolbars.html">Toolbars</a></li><li><a href="tutorial-localization_detection.html">localization_detection</a></li><li><a href="tutorial-localization.html">Localization - Basic</a></li><li><a href="tutorial-overview.html">Overview</a></li><li><a href="tutorial-template_guide.html">Template Guide</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.4</a> on Fri Jun 05 2020 13:35:40 GMT-0400 (Eastern Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

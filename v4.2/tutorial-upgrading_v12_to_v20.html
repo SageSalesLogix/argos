@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Tutorial: Upgrading 1.2 to 2.0</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Tutorial: Upgrading 1.2 to 2.0</h1>
+
+    <section>
+
+<header>
+    
+
+    <h2>Upgrading 1.2 to 2.0</h2>
+</header>
+
+<article>
+    <p>With the release of SLX Mobile 2.0 there have been many major changes in how the application works. This was done not only to align with SLX Web
+but to also bring faster performance, newer features and a more customize-able environment. These changes include:</p>
+<ul>
+<li>AMD script loading;</li>
+<li>Removed the Ext framework and replaced it with Dojo 1.7.1;</li>
+<li>Minor folder restructuring;</li>
+<li>Properties and Functions renamed to be more descriptive; and</li>
+<li>Additional properties and functions to enhance customizing.</li>
+</ul>
+<h2>Steps to Convert</h2>
+<ol>
+<li>Change all modules (files) to use AMD loading.</li>
+<li>Change all Ext calls to Dojo equivalents.</li>
+<li>Verify that all modules names are fixed to reflect the new folder structure.</li>
+<li>Verify that any property name changes do not effect your views or customization's.</li>
+<li>Verify that the changed function names/removal do not effect your views or customization's.</li>
+<li>Consider the newly added properties and methods to enhance existing customization's.</li>
+</ol>
+<h2>AMD Script Loading</h2>
+<p>AMD stands for Asynchronous Module Definition which means that instead of declaring globals in every script file you use
+the <code>define()</code> function to setup a module. In the definition you also declare what dependencies (requires) that module needs.
+The AMD loader will load all files asynch, then define each module in the correct order passing in references to each dependency.</p>
+<p>What this means for upgrading is that you go from:</p>
+<h4>Ext:</h4>
+<pre><code>Ext.namespace(&quot;Mobile.SalesLogix.Calendar&quot;);
+(function() {
+    Mobile.SalesLogix.Calendar.MonthView = Ext.extend(Sage.Platform.Mobile.List, {
+        // define view
+    });
+});
+</code></pre>
+<h4>To Dojo AMD:</h4>
+<pre class="prettyprint source lang-javascript"><code>    define('Mobile/SalesLogix/Views/Calendar/MonthView', [
+        'dojo/_base/declare',
+        'dojo/_base/array',
+        'dojo/string',
+        'dojo/query',
+        'dojo/dom-attr',
+        'dojo/dom-class',
+        'dojo/dom-construct',
+        'Mobile/SalesLogix/Format',
+        'Sage/Platform/Mobile/ErrorManager',
+        'Sage/Platform/Mobile/Convert',
+        'Sage/Platform/Mobile/List'
+    ], function(
+        declare,
+        array,
+        string,
+        query,
+        domAttr,
+        domClass,
+        domConstruct,
+        format,
+        ErrorManager,
+        convert,
+        List
+    ) {
+
+        return declare('crm.Views.Calendar.MonthView', [List], {
+            // define view
+        });
+    });
+</code></pre>
+<p>While this does seem to be a lot of extra code the gains far outweigh the additional keystrokes. We now can see what other modules the <code>MonthView</code> requires, we also know the path name and no longer have to memorize global variable names.</p>
+<p>To break down the define statement we have:</p>
+<pre class="prettyprint source lang-javascript"><code>    define('Path/To/My/Script',
+        [dependencies],
+    function(references), {
+
+        /*private space*/
+
+        return declare('My.Module.Name', [Inheritances], {
+            /* definition */
+        });
+    });
+</code></pre>
+<h5>Path/To/My/Script</h5>
+<p>This is the path to the script minus the extension. In the <code>index</code> file you can setup shortcuts (namespaces) and in this case <code>Mobile/SalesLogix</code> links to <code>argos-saleslogix/src</code>, so the final path for Month View is:
+<code>argos-saleslogix/src/Views/Calendar/MonthView.js</code>, which translates to: <code>crm.Views.Calendar.MonthView</code>.</p>
+<h5>[dependencies]</h5>
+<p>This is an array of other script paths that this module needs to run, again using the shortcuts defined in the <code>index</code> file.</p>
+<h5>function(references)</h5>
+<p>This function will recieve an instance of each dependency required. The reason each dependency and reference is on its own line in the code
+above is to quickly make sure there is a one-for-one match as it needs to go in the same order.</p>
+<h5>/<em>private space/</em></h5>
+<p>The code inside here will only be ran once when defined, the returned object will be what actually defines the module meaning anything before the return space is private unless exposed in your returned object.</p>
+<h5>declare()</h5>
+<p>This is the dojo equivalent of Ext's <code>Ext.extend</code>, as it sets up a constructor (factory) to be later used with the new keyword to create instances.</p>
+<h5>'My.Module.Name'</h5>
+<p>The name of the module, for our purposes this will match the path used to eliminate confusion.</p>
+<h5>[Inheritances]</h5>
+<p>An array of objects that this new module should inherit from - in Dojo terms these are called <code>mixins</code>.</p>
+<h3>Notes</h3>
+<p>As seen in the first example you will no longer reference global variables as you have a local variable instance as a reference. Notice in the old Ext code we had:</p>
+<p><code>argos.List</code></p>
+<p>and now we pull it in as a dependency: <code>argos/List</code>, get passed a reference: <code>function(,,, List)</code> and then use the List variable:</p>
+<p><code>declare('crm.Views.Calendar.MonthView', [List], ...</code></p>
+<p>This happens for all globals like <code>crm.Format</code> or <code>argos.Convert</code> - you will see them pulled in and used in code as <code>format</code> and <code>convert</code>.</p>
+<p>Naming the references is completely up to the person creating the module but the standard used by SLX Mobile, and in general Dojo, is that constructors (factories) are initial case and everything else is lowercase.</p>
+<p>When viewing the Dojo documentation you will want to look for the <code>Dojo 1.7+</code> example which will show you the path to add as a dependency and the suggested reference name.</p>
+<h2>Ext to Dojo Functions</h2>
+<p>Ext has been removed completely, all references to <code>Ext.*</code> and any of it's extended functions such as String.format will need to be replaced with Dojo 1.7.1 equivalents. The following is a short list of typical Ext code used in SLX Mobile and it's Dojo translation:</p>
+<p>Ext: <code>Ext.namespace('my.object')</code>
+Dojo: No longer required when defining views. For singletons, require &quot;dojo/_base/lang&quot; and use <code>lang.setObject('my.object', {})</code></p>
+<p>Ext: <code>Ext.extend()</code>
+Dojo: Require &quot;dojo/_base/declare&quot; and use <code>declare()</code></p>
+<p>Ext: <code>Object.superclass.function.apply(this, arguments)</code>
+Dojo: <code>this.inherited(arguments)</code>. Where <code>this</code> is in the &quot;child&quot; of the inherited object context.</p>
+<p>Ext: <code>Ext.override(object, {})</code>
+Dojo: Require &quot;dojo/_base/lang&quot; and use <code>lang.extend(object, {})</code></p>
+<p>Ext: <code>String.format('format', arg1, arg2)</code>. Where <code>{0}</code> = arg1
+Dojo: Require &quot;dojo/string&quot; and use <code>string.substitute('format', [arg1, arg2])</code>. Where <code>${0}</code> = arg1</p>
+<p>Ext: <code>function.createDelegate(scope, [arg1, arg2], bool appendArgs)</code>
+Dojo: <code>function.bindDelegate(scope, arg1, arg2)</code></p>
+<p>Ext: <code>Object.on('event', handler, scope)</code>
+Dojo: <code>this.connect(object, 'event', handler)</code>. Where <code>this</code> is in a View context</p>
+<p>Ext: <code>Ext.each(myArray, function(item){}, scope)</code>
+Dojo: Require &quot;dojo/_base/array&quot; and use <code>array.forEach(myArray, function(item){}, scope)</code></p>
+<p>Ext: <code>this.el</code>. Where <code>this</code> is in a View context
+Dojo: <code>this.domNode</code>. Where <code>this</code> is in a View context</p>
+<p>Ext: <code>attachmentPoints: { name : selector }</code>
+Dojo: In the actual HTML markup add the attribute: <code>data-dojo-attach-point=&quot;name&quot;</code>.</p>
+<h2>Folder Re-structure</h2>
+<p>With the move to AMD the folder structure has been re-organized and since all module names are based off their physical path the object names themselves have changed.</p>
+<p>Folder Name Changes:
+<code>argos-sdk/src/Controls</code> to <code>argos-sdk/src/Fields</code>
+<code>argos-saleslogix/src/views</code> to <code>argos-saleslogix/src/Views</code></p>
+<p>What this means for your code is if you are referencing <code>Account.Detail</code> like so:
+<code>crm.Accout.Detail</code>
+it is now:
+<code>crm.Views.Account.Detail</code></p>
+<p>The same goes for Controls which are now Fields:
+<code>Sage.Platform.Mobile.Controls.BooleanField</code>
+to:
+<code>argos.Fields.BooleanField</code></p>
+<p>The following modules have been moved from <code>argos-sdk/src/Controls</code> to <code>argos-saleslogix/src/Fields</code>:</p>
+<ul>
+<li>AddressField</li>
+<li>NameField</li>
+<li>PicklistField</li>
+</ul>
+<p>With their name change correspondingly:
+<code>SalesLogix.Platform.Mobile.Controls.AddressField</code>
+to:
+<code>crm.Fields.AddressField</code></p>
+<h2>Properties Renamed</h2>
+<p>To better describe several properties they have been renamed to a more intuitive name.</p>
+<p>1.2: View.viewTemplate
+2.0: View.widgetTemplate
+Notes: Simple rename now that all Views are Dojo Dijits</p>
+<p>1.2: List.itemTemplate
+2.0: List.rowTemplate
+Notes: This is the <code>&lt;li&gt;</code> markup for describing the rows structure, not normally changed.</p>
+<p>1.2: List.contentTemplate
+2.0: List.itemTemplate
+Notes: This template sets up the markup for an item within a row (within rowTemplate). This template is overriden every view to be tailored to its entity.</p>
+<p>1.2: Detail/Edit createLayout children fields. <code>name</code> is used for SData binding
+2.0: Detail/Edit createLayout children fields. <code>name</code> is now the unique identifer, <code>property</code> is for SData binding
+Notes: This is backward compatible, if <code>property</code> does not exist it will use <code>name</code> for identification and SData binding</p>
+<h2>Function Changes</h2>
+<p>1.2: View.setTitle(value)
+2.0: View.set('title', value)
+Notes: The function has been removed and replaced with normal get/set.</p>
+<p>1.2: View.isActive()
+2.0: App.isViewActive(view)
+Notes: Views no longer have the function it is globally available in the App namespace.</p>
+<p>1.2: App.getActiveView()
+2.0: App.getPrimaryActiveView()
+Notes: Renamed</p>
+<h2>Additional Properties</h2>
+<h3>Detail/Edit createLayout</h3>
+<p>All objects within layout now have a <code>name</code> property as a unique identifier. This includes sections, quick actions, fields, controls and related views.
+The purpose of this so in <code>registerCustomization</code> the <code>at: function(row)</code> part can now use <code>row.name</code> to target any piece of the layout.</p>
+<h3>Hash Tag Customization</h3>
+<p>Hash Tags now use the same customization engine as detail/edit views, enabling ease of modifying, inserting or removing hash tags.</p>
+<pre><code>this.registerCustomization('list/hashTagQueries', 'opportunity_list', {
+    at: true, // insert anywhere (hash tag queries are not ordered)
+    type: 'insert',
+    value: {
+        tag: 'g500k',
+        query: 'SalesPotential gt &quot;500000&quot;'
+    }
+});
+
+this.registerCustomization('list/hashTagQueries', 'history_list', {
+    // hashes are identified by their key property
+    at: function(hash) { return hash['key'] === 'phonecall'; },
+    type: 'modify',
+    value: {
+        query: 'Type eq &quot;atMobileCall&quot;'
+    }
+});
+</code></pre>
+<h3>Toolbar Customization</h3>
+<p>Toolbars now use the same customization engine as detail/edit views (and hash tags). No longer need to override <code>createToolLayout()</code>.</p>
+<pre><code>this.registerCustomization('detail/tools', 'account_detail', {
+at: function(tool){ return tool.id === 'edit'; },
+type: 'insert',
+where: 'after',
+value: {
+    id: 'customButton',
+    icon: 'content/images/icons/Hello_World_24.png',
+    action: 'showHelloWorld'
+}
+});
+</code></pre>
+<h3>Multiple Insert Customizations</h3>
+<p>Before the registerCustomization engine would only insert one value at a time, causing multiple calls to insert items at the same place. Now you
+may pass an array for the <code>value</code> key and it will insert each object sequentially at that point. Note this only works when <code>type</code> is <code>insert</code>.</p>
+<pre><code>this.registerCustomization('detail/tools', 'account_detail', {
+    at: function(tool){ return tool.id === 'edit'; },
+    type: 'insert',
+    where: 'after',
+    value: [{
+        id: 'b1',
+        icon: 'content/images/icons/b1.png',
+        action: 'b1Function'
+    }, {
+        id: 'b2',
+        icon: 'content/images/icons/b2.png',
+        action: 'b2Function'
+    }]
+});
+// results in a toolbar with: [Edit][B1][B2]
+</code></pre>
+<h3>View Security</h3>
+<p>Now that secured actions is available via SData in SalesLogix 8.0+ each individual view now has a <code>security</code> property that can be set to a string defining the secured action required.</p>
+<p>When a user logs in the security is stored in:</p>
+<p><code>App.context.userSecurity</code></p>
+<p>as a hash table with each key as the action and the value as true. If a key does not exist in that list it is assumed the user does not have the security permissions to access that view.</p>
+<h4>Example:</h4>
+<p>Ticket List may be defined as:</p>
+<pre><code>define('...Ticket.List', [], function() { return declare('...Ticket.List', [], {
+    security: 'Entities/Ticket/View'
+}); });
+</code></pre>
+<p>Say, a user named Lee has the following actions:</p>
+<pre><code>App.context.userSecurity = {
+    Entities/Account/View: true,
+    Entities/Contact/View: true,
+    Entities/Opportunity/View: true
+}
+</code></pre>
+<p>while user called Barb has these:</p>
+<pre><code>App.context.userSecurity = {
+    Entities/Account/View: true,
+    Entities/Ticket/View: true,
+    Entities/Opportunity/View: true
+}
+</code></pre>
+<p>When Lee logs in, his Home page will NOT have Tickets and he will not be able to navigate to Tickets in anyway. Even if Account Detail has a &quot;related Tickets&quot; shortcut it will not function.
+Whereas Barb will have it on her Home page (but not Contacts).</p>
+<p>For SalesLogix 7.5.4 and below since it does not reply with a users secured actions it will set the <code>userSecurity</code> to <code>null</code> and grant full access just as
+before.</p>
+</article>
+
+</section>
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-argos__ActionMixin.html">argos/_ActionMixin</a></li><li><a href="module-argos__ConfigureBase.html">argos/_ConfigureBase</a></li><li><a href="module-argos__CustomizationMixin.html">argos/_CustomizationMixin</a></li><li><a href="module-argos__DetailBase.html">argos/_DetailBase</a></li><li><a href="module-argos__DraggableBase.html">argos/_DraggableBase</a></li><li><a href="module-argos__EditBase.html">argos/_EditBase</a></li><li><a href="module-argos__LegacySDataDetailMixin.html">argos/_LegacySDataDetailMixin</a></li><li><a href="module-argos__LegacySDataEditMixin.html">argos/_LegacySDataEditMixin</a></li><li><a href="module-argos__LegacySDataListMixin.html">argos/_LegacySDataListMixin</a></li><li><a href="module-argos__ListBase.html">argos/_ListBase</a></li><li><a href="module-argos__PullToRefreshMixin.html">argos/_PullToRefreshMixin</a></li><li><a href="module-argos__RelatedViewWidgetBase.html">argos/_RelatedViewWidgetBase</a></li><li><a href="module-argos__RelatedViewWidgetDetailMixin.html">argos/_RelatedViewWidgetDetailMixin</a></li><li><a href="module-argos__RelatedViewWidgetEditMixin.html">argos/_RelatedViewWidgetEditMixin</a></li><li><a href="module-argos__RelatedViewWidgetListMixin.html">argos/_RelatedViewWidgetListMixin</a></li><li><a href="module-argos__SDataDetailMixin.html">argos/_SDataDetailMixin</a></li><li><a href="module-argos__SDataEditMixin.html">argos/_SDataEditMixin</a></li><li><a href="module-argos__SDataListMixin.html">argos/_SDataListMixin</a></li><li><a href="module-argos__ServiceMixin.html">argos/_ServiceMixin</a></li><li><a href="module-argos__Templated.html">argos/_Templated</a></li><li><a href="module-argos_actions.html">argos/actions</a></li><li><a href="module-argos_actions_connection.html">argos/actions/connection</a></li><li><a href="module-argos_Application.html">argos/Application</a></li><li><a href="module-argos_ApplicationModule.html">argos/ApplicationModule</a></li><li><a href="module-argos_Calendar.html">argos/Calendar</a></li><li><a href="module-argos_ConfigurableSelectionModel.html">argos/ConfigurableSelectionModel</a></li><li><a href="module-argos_Convert.html">argos/Convert</a></li><li><a href="module-argos_CultureInfo.html">argos/CultureInfo</a></li><li><a href="module-argos_DateTimePicker.html">argos/DateTimePicker</a></li><li><a href="module-argos_Detail.html">argos/Detail</a></li><li><a href="module-argos_Dialogs_BusyIndicator.html">argos/Dialogs/BusyIndicator</a></li><li><a href="module-argos_Dialogs_Modal.html">argos/Dialogs/Modal</a></li><li><a href="module-argos_Dialogs_Toast.html">argos/Dialogs/Toast</a></li><li><a href="module-argos_DraggableList.html">argos/DraggableList</a></li><li><a href="module-argos_Dropdown.html">argos/Dropdown</a></li><li><a href="module-argos_Edit.html">argos/Edit</a></li><li><a href="module-argos_ErrorManager.html">argos/ErrorManager</a></li><li><a href="module-argos_FieldManager.html">argos/FieldManager</a></li><li><a href="module-argos_Fields__Field.html">argos/Fields/_Field</a></li><li><a href="module-argos_Fields_BooleanField.html">argos/Fields/BooleanField</a></li><li><a href="module-argos_Fields_DateField.html">argos/Fields/DateField</a></li><li><a href="module-argos_Fields_DecimalField.html">argos/Fields/DecimalField</a></li><li><a href="module-argos_Fields_DropdownField.html">argos/Fields/DropdownField</a></li><li><a href="module-argos_Fields_DurationField.html">argos/Fields/DurationField</a></li><li><a href="module-argos_Fields_EditorField.html">argos/Fields/EditorField</a></li><li><a href="module-argos_Fields_HiddenField.html">argos/Fields/HiddenField</a></li><li><a href="module-argos_Fields_LookupField.html">argos/Fields/LookupField</a></li><li><a href="module-argos_Fields_NoteField.html">argos/Fields/NoteField</a></li><li><a href="module-argos_Fields_PhoneField.html">argos/Fields/PhoneField</a></li><li><a href="module-argos_Fields_SelectField.html">argos/Fields/SelectField</a></li><li><a href="module-argos_Fields_SignatureField.html">argos/Fields/SignatureField</a></li><li><a href="module-argos_Fields_TextAreaField.html">argos/Fields/TextAreaField</a></li><li><a href="module-argos_Fields_TextField.html">argos/Fields/TextField</a></li><li><a href="module-argos_Format.html">argos/Format</a></li><li><a href="module-argos_GroupedList.html">argos/GroupedList</a></li><li><a href="module-argos_Groups__GroupBySection.html">argos/Groups/_GroupBySection</a></li><li><a href="module-argos_Groups_DateTimeSection.html">argos/Groups/DateTimeSection</a></li><li><a href="module-argos_Groups_GroupByValueSection.html">argos/Groups/GroupByValueSection</a></li><li><a href="module-argos_I18n.html">argos/I18n</a></li><li><a href="module-argos_LanguageService.html">argos/LanguageService</a></li><li><a href="module-argos_List.html">argos/List</a></li><li><a href="module-argos_MainToolbar.html">argos/MainToolbar</a></li><li><a href="module-argos_Models__ModelBase.html">argos/Models/_ModelBase</a></li><li><a href="module-argos_Models__OfflineModelBase.html">argos/Models/_OfflineModelBase</a></li><li><a href="module-argos_Models_Adapter.html">argos/Models/Adapter</a></li><li><a href="module-argos_Models_Briefcase_Offline.html">argos/Models/Briefcase/Offline</a></li><li><a href="module-argos_Models_Manager.html">argos/Models/Manager</a></li><li><a href="module-argos_Models_RecentlyViewed_Offline.html">argos/Models/RecentlyViewed/Offline</a></li><li><a href="module-argos_Models_SDataModelBase.html">argos/Models/SDataModelBase</a></li><li><a href="module-argos_Models_Types.html">argos/Models/Types</a></li><li><a href="module-argos_Offline__DetailOfflineMixin.html">argos/Offline/_DetailOfflineMixin</a></li><li><a href="module-argos_Offline__ListOfflineMixin.html">argos/Offline/_ListOfflineMixin</a></li><li><a href="module-argos_Offline_Manager.html">argos/Offline/Manager</a></li><li><a href="module-argos_reducers.html">argos/reducers</a></li><li><a href="module-argos_RelatedViewManager.html">argos/RelatedViewManager</a></li><li><a href="module-argos_RelatedViewWidget.html">argos/RelatedViewWidget</a></li><li><a href="module-argos_RelativeDateTimePicker.html">argos/RelativeDateTimePicker</a></li><li><a href="module-argos_Scene.html">argos/Scene</a></li><li><a href="module-argos_SearchWidget.html">argos/SearchWidget</a></li><li><a href="module-argos_SelectionModel.html">argos/SelectionModel</a></li><li><a href="module-argos_SohoIcons.html">argos/SohoIcons</a></li><li><a href="module-argos_Store_PouchDB.html">argos/Store/PouchDB</a></li><li><a href="module-argos_Store_SData.html">argos/Store/SData</a></li><li><a href="module-argos_TabWidget.html">argos/TabWidget</a></li><li><a href="module-argos_TimePicker.html">argos/TimePicker</a></li><li><a href="module-argos_Toolbar.html">argos/Toolbar</a></li><li><a href="module-argos_Utility.html">argos/Utility</a></li><li><a href="module-argos_View.html">argos/View</a></li><li><a href="module-argos_Views_ConfigureQuickActions.html">argos/Views/ConfigureQuickActions</a></li><li><a href="module-argos_Views_FileSelect.html">argos/Views/FileSelect</a></li><li><a href="module-argos_Views_Link.html">argos/Views/Link</a></li><li><a href="module-argos_Views_Signature.html">argos/Views/Signature</a></li><li><a href="module-argos_WidgetBase.html">argos/WidgetBase</a></li><li><a href="module-crm_Action.html">crm/Action</a></li><li><a href="module-crm_Aggregate.html">crm/Aggregate</a></li><li><a href="module-crm_Application.html">crm/Application</a></li><li><a href="module-crm_ApplicationModule.html">crm/ApplicationModule</a></li><li><a href="module-crm_AttachmentManager.html">crm/AttachmentManager</a></li><li><a href="module-crm_Bootstrap.html">crm/Bootstrap</a></li><li><a href="module-crm_Bootstrap_localization.html">crm/Bootstrap/localization</a></li><li><a href="module-crm_Environment.html">crm/Environment</a></li><li><a href="module-crm_FileManager.html">crm/FileManager</a></li><li><a href="module-crm_Format.html">crm/Format</a></li><li><a href="module-crm_GroupUtility.html">crm/GroupUtility</a></li><li><a href="module-crm_Integrations_BOE_Aggregate.html">crm/Integrations/BOE/Aggregate</a></li><li><a href="module-crm_Integrations_BOE_Utility.html">crm/Integrations/BOE/Utility</a></li><li><a href="module-crm_MingleUtility.html">crm/MingleUtility</a></li><li><a href="module-crm_PicklistService.html">crm/PicklistService</a></li><li><a href="module-crm_Recurrence.html">crm/Recurrence</a></li><li><a href="module-crm_SalesProcessUtility.html">crm/SalesProcessUtility</a></li><li><a href="module-crm_Template.html">crm/Template</a></li><li><a href="module-crm_Utility.html">crm/Utility</a></li><li><a href="module-crm_Validator.html">crm/Validator</a></li><li><a href="module-crm_Views__GroupListMixin.html">crm/Views/_GroupListMixin</a></li><li><a href="module-crm_Views__MetricDetailMixin.html">crm/Views/_MetricDetailMixin</a></li><li><a href="module-crm_Views__MetricListMixin.html">crm/Views/_MetricListMixin</a></li><li><a href="module-crm_Views__RightDrawerBaseMixin.html">crm/Views/_RightDrawerBaseMixin</a></li><li><a href="module-crm_Views__RightDrawerListMixin.html">crm/Views/_RightDrawerListMixin</a></li><li><a href="module-crm_Views__SpeedSearchRightDrawerListMixin.html">crm/Views/_SpeedSearchRightDrawerListMixin</a></li><li><a href="module-crm_Views_Charts__ChartMixin.html">crm/Views/Charts/_ChartMixin</a></li><li><a href="module-crm_Views_Charts_GenericBar.html">crm/Views/Charts/GenericBar</a></li><li><a href="module-crm_Views_Charts_GenericLine.html">crm/Views/Charts/GenericLine</a></li><li><a href="module-crm_Views_Charts_GenericPie.html">crm/Views/Charts/GenericPie</a></li><li><a href="module-crm_Views_MetricWidget.html">crm/Views/MetricWidget</a></li><li><a href="module-crm_Views_Offline__RightDrawerListMixin.html">crm/Views/Offline/_RightDrawerListMixin</a></li><li><a href="module-crm_Views_RecentlyViewed__RightDrawerListMixin.html">crm/Views/RecentlyViewed/_RightDrawerListMixin</a></li></ul><h3>Classes</h3><ul><li><a href="module-_crm_Integrations_BOE_Aggregate.html">/crm/Integrations/BOE/Aggregate</a></li><li><a href="module-argos__ActionMixin.html">argos/_ActionMixin</a></li><li><a href="module-argos__ConfigureBase.html">argos/_ConfigureBase</a></li><li><a href="module-argos__CustomizationMixin.html">argos/_CustomizationMixin</a></li><li><a href="module-argos__DetailBase.html">argos/_DetailBase</a></li><li><a href="module-argos__DraggableBase.html">argos/_DraggableBase</a></li><li><a href="module-argos__EditBase.html">argos/_EditBase</a></li><li><a href="module-argos__LegacySDataDetailMixin.html">argos/_LegacySDataDetailMixin</a></li><li><a href="module-argos__LegacySDataEditMixin.html">argos/_LegacySDataEditMixin</a></li><li><a href="module-argos__LegacySDataListMixin.html">argos/_LegacySDataListMixin</a></li><li><a href="module-argos__ListBase.html">argos/_ListBase</a></li><li><a href="module-argos__RelatedViewWidgetBase.html">argos/_RelatedViewWidgetBase</a></li><li><a href="module-argos__SDataEditMixin.html">argos/_SDataEditMixin</a></li><li><a href="module-argos_Application.html">argos/Application</a></li><li><a href="module-argos_ApplicationModule.html">argos/ApplicationModule</a></li><li><a href="module-argos_Calendar.html">argos/Calendar</a></li><li><a href="module-argos_ConfigurableSelectionModel.html">argos/ConfigurableSelectionModel</a></li><li><a href="module-argos_Convert.html">argos/Convert</a></li><li><a href="module-argos_DateTimePicker.html">argos/DateTimePicker</a></li><li><a href="module-argos_Detail.html">argos/Detail</a></li><li><a href="module-argos_Dialogs_BusyIndicator.html">argos/Dialogs/BusyIndicator</a></li><li><a href="module-argos_Dialogs_Modal.html">argos/Dialogs/Modal</a></li><li><a href="module-argos_Dialogs_Toast.html">argos/Dialogs/Toast</a></li><li><a href="module-argos_DraggableList.html">argos/DraggableList</a></li><li><a href="module-argos_Dropdown.html">argos/Dropdown</a></li><li><a href="module-argos_Edit.html">argos/Edit</a></li><li><a href="module-argos_ErrorManager.html">argos/ErrorManager</a></li><li><a href="module-argos_FieldManager.html">argos/FieldManager</a></li><li><a href="module-argos_Fields__SignatureField.html">argos/Fields//SignatureField</a></li><li><a href="module-argos_Fields__Field.html">argos/Fields/_Field</a></li><li><a href="module-argos_Fields_BooleanField.html">argos/Fields/BooleanField</a></li><li><a href="module-argos_Fields_DateField.html">argos/Fields/DateField</a></li><li><a href="module-argos_Fields_DecimalField.html">argos/Fields/DecimalField</a></li><li><a href="module-argos_Fields_DropdownField.html">argos/Fields/DropdownField</a></li><li><a href="module-argos_Fields_DurationField.html">argos/Fields/DurationField</a></li><li><a href="module-argos_Fields_EditorField.html">argos/Fields/EditorField</a></li><li><a href="module-argos_Fields_HiddenField.html">argos/Fields/HiddenField</a></li><li><a href="module-argos_Fields_LookupField.html">argos/Fields/LookupField</a></li><li><a href="module-argos_Fields_NoteField.html">argos/Fields/NoteField</a></li><li><a href="module-argos_Fields_PhoneField.html">argos/Fields/PhoneField</a></li><li><a href="module-argos_Fields_SelectField.html">argos/Fields/SelectField</a></li><li><a href="module-argos_Fields_TextAreaField.html">argos/Fields/TextAreaField</a></li><li><a href="module-argos_Fields_TextField.html">argos/Fields/TextField</a></li><li><a href="module-argos_Format.html">argos/Format</a></li><li><a href="module-argos_GroupedList.html">argos/GroupedList</a></li><li><a href="module-argos_Groups__GroupBySection.html">argos/Groups/_GroupBySection</a></li><li><a href="module-argos_Groups_DateTimeSection.html">argos/Groups/DateTimeSection</a></li><li><a href="module-argos_Groups_GroupByValueSection.html">argos/Groups/GroupByValueSection</a></li><li><a href="module-argos_LanguageService.html">argos/LanguageService</a></li><li><a href="module-argos_List.html">argos/List</a></li><li><a href="module-argos_MainToolbar.html">argos/MainToolbar</a></li><li><a href="module-argos_Models__ModelBase.html">argos/Models/_ModelBase</a></li><li><a href="module-argos_Models__OfflineModelBase.html">argos/Models/_OfflineModelBase</a></li><li><a href="module-argos_Models_Adapter.html">argos/Models/Adapter</a></li><li><a href="module-argos_Models_Briefcase_Offline.html">argos/Models/Briefcase/Offline</a></li><li><a href="module-argos_Models_Manager.html">argos/Models/Manager</a></li><li><a href="module-argos_Models_RecentlyViewed_Offline.html">argos/Models/RecentlyViewed/Offline</a></li><li><a href="module-argos_Models_SDataModelBase.html">argos/Models/SDataModelBase</a></li><li><a href="module-argos_Offline__DetailOfflineMixin.html">argos/Offline/_DetailOfflineMixin</a></li><li><a href="module-argos_Offline__ListOfflineMixin.html">argos/Offline/_ListOfflineMixin</a></li><li><a href="module-argos_Offline_Manager.html">argos/Offline/Manager</a></li><li><a href="module-argos_RelatedViewManager.html">argos/RelatedViewManager</a></li><li><a href="module-argos_RelatedViewWidget.html">argos/RelatedViewWidget</a></li><li><a href="module-argos_RelativeDateTimePicker.html">argos/RelativeDateTimePicker</a></li><li><a href="module-argos_Scene.html">argos/Scene</a></li><li><a href="module-argos_SearchWidget.html">argos/SearchWidget</a></li><li><a href="module-argos_SelectionModel.html">argos/SelectionModel</a></li><li><a href="module-argos_Store_PouchDB.html">argos/Store/PouchDB</a></li><li><a href="module-argos_Store_SData.html">argos/Store/SData</a></li><li><a href="module-argos_TabWidget.html">argos/TabWidget</a></li><li><a href="module-argos_TimePicker.html">argos/TimePicker</a></li><li><a href="module-argos_Toolbar.html">argos/Toolbar</a></li><li><a href="module-argos_Utility.html">argos/Utility</a></li><li><a href="module-argos_View.html">argos/View</a></li><li><a href="module-argos_Views_ConfigureQuickActions.html">argos/Views/ConfigureQuickActions</a></li><li><a href="module-argos_Views_FileSelect.html">argos/Views/FileSelect</a></li><li><a href="module-argos_Views_Link.html">argos/Views/Link</a></li><li><a href="module-argos_Views_Signature.html">argos/Views/Signature</a></li><li><a href="module-argos_WidgetBase.html">argos/WidgetBase</a></li><li><a href="module-crm_Action.html">crm/Action</a></li><li><a href="module-crm_Aggregate.html">crm/Aggregate</a></li><li><a href="module-crm_Application.html">crm/Application</a></li><li><a href="module-crm_ApplicationModule.html">crm/ApplicationModule</a></li><li><a href="module-crm_AttachmentManager.html">crm/AttachmentManager</a></li><li><a href="module-crm_Environment.html">crm/Environment</a></li><li><a href="module-crm_FileManager.html">crm/FileManager</a></li><li><a href="module-crm_Format.html">crm/Format</a></li><li><a href="module-crm_GroupUtility.html">crm/GroupUtility</a></li><li><a href="module-crm_Integrations_BOE_Utility.html">crm/Integrations/BOE/Utility</a></li><li><a href="module-crm_MingleUtility.html">crm/MingleUtility</a></li><li><a href="module-crm_PicklistService.html">crm/PicklistService</a></li><li><a href="module-crm_Recurrence.html">crm/Recurrence</a></li><li><a href="module-crm_SalesProcessUtility.html">crm/SalesProcessUtility</a></li><li><a href="module-crm_Template.html">crm/Template</a></li><li><a href="module-crm_Utility.html">crm/Utility</a></li><li><a href="module-crm_Validator.html">crm/Validator</a></li><li><a href="module-crm_Views__SpeedSearchRightDrawerListMixin.html">crm/Views/_SpeedSearchRightDrawerListMixin</a></li><li><a href="module-crm_Views_Charts_GenericBar.html">crm/Views/Charts/GenericBar</a></li><li><a href="module-crm_Views_Charts_GenericLine.html">crm/Views/Charts/GenericLine</a></li><li><a href="module-crm_Views_Charts_GenericPie.html">crm/Views/Charts/GenericPie</a></li><li><a href="module-crm_Views_MetricWidget.html">crm/Views/MetricWidget</a></li></ul><h3>Mixins</h3><ul><li><a href="module-argos__PullToRefreshMixin.html">argos/_PullToRefreshMixin</a></li><li><a href="module-argos__RelatedViewWidgetDetailMixin.html">argos/_RelatedViewWidgetDetailMixin</a></li><li><a href="module-argos__RelatedViewWidgetEditMixin.html">argos/_RelatedViewWidgetEditMixin</a></li><li><a href="module-argos__RelatedViewWidgetListMixin.html">argos/_RelatedViewWidgetListMixin</a></li><li><a href="module-argos__SDataDetailMixin.html">argos/_SDataDetailMixin</a></li><li><a href="module-argos__SDataListMixin.html">argos/_SDataListMixin</a></li><li><a href="module-argos__ServiceMixin.html">argos/_ServiceMixin</a></li><li><a href="module-argos__Templated.html">argos/_Templated</a></li><li><a href="module-crm_Views__GroupListMixin.html">crm/Views/_GroupListMixin</a></li><li><a href="module-crm_Views__MetricDetailMixin.html">crm/Views/_MetricDetailMixin</a></li><li><a href="module-crm_Views__MetricListMixin.html">crm/Views/_MetricListMixin</a></li><li><a href="module-crm_Views__RightDrawerBaseMixin.html">crm/Views/_RightDrawerBaseMixin</a></li><li><a href="module-crm_Views__RightDrawerListMixin.html">crm/Views/_RightDrawerListMixin</a></li><li><a href="module-crm_Views_Charts__ChartMixin.html">crm/Views/Charts/_ChartMixin</a></li><li><a href="module-crm_Views_Offline__RightDrawerListMixin.html">crm/Views/Offline/_RightDrawerListMixin</a></li><li><a href="module-crm_Views_RecentlyViewed__RightDrawerListMixin.html">crm/Views/RecentlyViewed/_RightDrawerListMixin</a></li></ul><h3>Tutorials</h3><ul><li><a href="tutorial-amd.html">AMD - Define and Declare</a></li><li><a href="tutorial-browser_setup.html">Browser Setup / Information</a></li><li><a href="tutorial-stores.html">Data Stores</a></li><li><a href="tutorial-lifecycles.html">View Lifecycles</a></li><li><a href="tutorial-upgrading_v12_to_v20.html">Upgrading 1.2 to 2.0</a></li><li><a href="tutorial-wire_detail_to_edit.html">Wiring Detail to Edit</a></li><li><a href="tutorial-wire_list_to_detail.html">Wiring List to Detail</a></li><li><a href="tutorial-wire_list_to_edit.html">Wiring List to Edit</a></li><li><a href="tutorial-grouped_list.html">Grouped List</a></li><li><a href="tutorial-basic_auth.html">Login - Basic Authentication</a></li><li><a href="tutorial-hashtags.html">#Hashtags</a></li><li><a href="tutorial-list_actions.html">List Actions</a></li><li><a href="tutorial-quick_actions.html">Quick Actions</a></li><li><a href="tutorial-related_views.html">Related Views</a></li><li><a href="tutorial-detail_layout.html">Detail Layout</a></li><li><a href="tutorial-validation.html">Validation</a></li><li><a href="tutorial-list_search.html">List Search Widget</a></li><li><a href="tutorial-advanced_localization.html">Localization - Advanced</a></li><li><a href="tutorial-navigation.html">Navigation</a></li><li><a href="tutorial-toolbars.html">Toolbars</a></li><li><a href="tutorial-localization_detection.html">localization_detection</a></li><li><a href="tutorial-localization.html">Localization - Basic</a></li><li><a href="tutorial-overview.html">Overview</a></li><li><a href="tutorial-template_guide.html">Template Guide</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.4</a> on Fri Jun 05 2020 13:35:43 GMT-0400 (Eastern Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

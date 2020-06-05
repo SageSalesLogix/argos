@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: argos-sdk/src/Calendar.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: argos-sdk/src/Calendar.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/* Copyright (c) 2010, Sage Software, Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/**
+ * @module argos/Calendar
+ */
+import declare from 'dojo/_base/declare';
+import _ActionMixin from './_ActionMixin';
+import _WidgetBase from 'dijit/_WidgetBase';
+import _Templated from './_Templated';
+import Dropdown from './Dropdown';
+import getResource from './I18n';
+
+const resource = getResource('calendar');
+
+/**
+ * @class
+ * @alias module:argos/Calendar
+ * @extends module:argos/_Templated
+ */
+const __class = declare('argos.Calendar', [_WidgetBase, _Templated], /** @lends module:argos/Calendar.prototype */{
+  _ActionMixin: null,
+  widgetTemplate: new Simplate([
+    '&lt;div id="{%= $.id %}" class="calendar">',
+    '&lt;div class="calendar-monthview monthview is-fullsize is-selectable">',
+    '{%! $.calendarHeaderTemplate %}',
+    '{%! $.calendarTableTemplate %}',
+    '{%! $.calendarFooterTemplate %}',
+    '&lt;/div>',
+    '&lt;/div>',
+  ]),
+  calendarHeaderTemplate: new Simplate([
+    '&lt;div class="calendar__header">',
+    `&lt;button type="button" class="btn-icon prev hide-focus" data-action="decrementMonth">
+      &lt;svg class="icon" focusable="false" aria-hidden="true" role="presentation">
+        &lt;use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#icon-previous-page">&lt;/use>
+      &lt;/svg>
+    &lt;/button>`,
+    '&lt;div class="month" data-dojo-attach-point="monthNode" data-action="toggleMonthModal">&lt;/div>',
+    '&lt;div class="year" data-dojo-attach-point="yearNode" data-action="toggleYearModal">&lt;/div>',
+    `&lt;button type="button" class="btn-icon next hide-focus" data-action="incrementMonth">
+    &lt;svg class="icon" focusable="false" aria-hidden="true" role="presentation">
+      &lt;use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#icon-next-page">&lt;/use>
+    &lt;/svg>
+    &lt;/button>`,
+    '&lt;/div>',
+  ]),
+  calendarTableTemplate: new Simplate([
+    '&lt;table class="monthview-table" aria-label="Calendar" role="application">',
+    '&lt;thead>',
+    '{%! $.calendarWeekDaysTemplate %}',
+    '&lt;/thead>',
+    '&lt;tbody data-dojo-attach-point="weeksNode">&lt;/tbody>',
+    '&lt;/table>',
+  ]),
+  calendarFooterTemplate: new Simplate([
+    '&lt;div class="calendar-footer" data-dojo-attach-point="footerNode">',
+    '&lt;button class="btn-secondary clear" data-action="clearCalendar" data-dojo-attach-point="clearButton">&lt;span>{%= $.clearText %}&lt;/span>&lt;/button>',
+    '&lt;button class="btn-secondary toToday" type="button" data-action="goToToday" data-dojo-attach-point="todayButton">&lt;span>{%= $.todayText %}&lt;/span>&lt;/button>',
+    '&lt;/div>',
+  ]),
+  calendarTableDayTemplate: new Simplate([
+    '&lt;td class="day {%= $.month %} {%= $.weekend %} {%= $.selected %} {%= $.isToday %}" data-action="changeDay" data-date="{%= $.date %}">',
+    '&lt;span class="day-container">',
+    '&lt;span aria-hidden="true" class="day-text">',
+    '{%= $.day %}',
+    '&lt;/span>',
+    '&lt;/span>',
+    '&lt;/td>',
+  ]),
+  calendarTableDayActiveTemplate: new Simplate([
+    '&lt;div class="day__active">',
+    '&lt;/div>',
+  ]),
+  calendarTableWeekStartTemplate: new Simplate([
+    '&lt;tr>',
+  ]),
+  calendarTableWeekEndTemplate: new Simplate([
+    '&lt;/tr>',
+  ]),
+  calendarWeekDaysTemplate: new Simplate([
+    '&lt;tr>',
+    '&lt;th>{%= $.weekDaysShortText[0] %}&lt;/th>',
+    '&lt;th>{%= $.weekDaysShortText[1] %}&lt;/th>',
+    '&lt;th>{%= $.weekDaysShortText[2] %}&lt;/th>',
+    '&lt;th>{%= $.weekDaysShortText[3] %}&lt;/th>',
+    '&lt;th>{%= $.weekDaysShortText[4] %}&lt;/th>',
+    '&lt;th>{%= $.weekDaysShortText[5] %}&lt;/th>',
+    '&lt;th>{%= $.weekDaysShortText[6] %}&lt;/th>',
+    '&lt;/tr>',
+  ]),
+
+  // Localization
+  titleText: resource.titleText,
+  amText: resource.amText,
+  pmText: resource.pmText,
+  clearText: resource.clearText,
+  todayText: resource.todayText,
+
+  // Date is an object containing selected day, month, year, time, todayMoment (today), selectedDateMoment, etc.
+  date: null,
+  id: 'generic_calendar',
+  // This boolean value is used to trigger the modal hide and show and must be used by each entity
+  isModal: false,
+  noClearButton: false,
+  showTimePicker: true,
+  showSubValues: true,
+  _currentMonth: null,
+  _currentYear: null,
+  _monthDropdown: null,
+  _selectWeek: false,
+  _selectedDay: null,
+  _widgetName: 'calendar',
+  _yearDropdown: null,
+  constructor: function constructor() {
+    const m = this.getCurrentDateMoment();
+    let monthsText = m._locale._months;
+
+    if (monthsText.standalone) {
+      monthsText = monthsText.standalone;
+    }
+    this.monthsText = monthsText.map((val, i) => {
+      return {
+        text: val,
+        value: i,
+        key: i,
+      };
+    });
+    this.weekDaysShortText = m._locale._weekdaysMin;
+  },
+  postCreate: function postCreate() {
+    this._ActionMixin = new _ActionMixin();
+    this._ActionMixin.postCreate(this);
+  },
+  changeDay: function changeDay(params) {
+    if (!this._selectWeek) {
+      this.changeSingleDay(params);
+    } else {
+      this.changeWeek(params);
+    }
+    this.onChangeDay(params);
+    return this;
+  },
+  onChangeDay: function onChangeDay() {
+  },
+  changeMonthShown: function changeMonthShown({ monthNumber }) {
+    this._monthDropdown.setValue(monthNumber);
+    return this;
+  },
+  changeSingleDay: function changeSingleDay(params) {
+    if (params) {
+      const selected = $('.is-selected', this.weeksNode);
+
+      if (selected) {
+        selected.each((i, day) => {
+          $(day).removeClass('is-selected');
+        });
+      }
+
+      if (selected) {
+        $(selected).removeClass('is-selected');
+      }
+
+      if (params.$source) {
+        this._selectedDay = params.$source;
+        $(params.$source).addClass('is-selected');
+      }
+
+      if (params.date) {
+        this.date.selectedDateMoment = moment(params.date, 'YYYY-MM-DD');
+      }
+
+      if (this.date.monthNumber !== this.date.selectedDateMoment.month()) {
+        this.refreshCalendar(this.date);
+      }
+    }
+    return this;
+  },
+  changeWeek: function changeWeek(params) {
+    if (params) {
+      const selected = $('.is-selected', this.weeksNode);
+
+      if (selected) {
+        selected.each((i, day) => {
+          $(day).removeClass('is-selected');
+        });
+      }
+
+      if (params.$source.parentNode) {
+        this._selectedDay = params.$source;
+        $(params.$source.parentNode).children().each((i, day) => {
+          $(day).addClass('is-selected');
+        });
+      }
+
+      if (params.date) {
+        this.date.selectedDateMoment = moment(params.date, 'YYYY-MM-DD');
+      }
+
+      if (this.date.monthNumber !== this.date.selectedDateMoment.month()) {
+        this.refreshCalendar(this.date);
+      }
+    }
+    return this;
+  },
+  changeYearShown: function changeYearShown({ year }) {
+    this._yearDropdown.setValue(year);
+    return this;
+  },
+  checkAndRenderDay: function checkAndRenderDay(data = {}) {
+    const dayIndexer = data.day + data.startingDay - 1;
+    if (data.day === data.todayMoment.date() &amp;&amp; data.todayMoment.month() === data.dateMoment.month() &amp;&amp; data.todayMoment.year() === data.dateMoment.year()) {
+      data.isToday = 'is-today';
+    } else {
+      data.isToday = '';
+    }
+    if (dayIndexer % 7 === data.weekEnds.Sunday || dayIndexer % 7 === data.weekEnds.Saturday) {
+      data.weekend = 'weekend';
+    } else {
+      data.weekend = '';
+    }
+    data.date = data.dateMoment.clone().date(data.day).format('YYYY-MM-DD');
+    const day = $(this.calendarTableDayTemplate.apply(data, this));
+    if (data.day === this.date.dayNode &amp;&amp; data.month.indexOf('alternate') === -1) {
+      this._selectedDay = day[0];
+    }
+    if (this.showSubValues) {
+      this.setSubValue(day, data)
+        .setActiveDay(day);
+    }
+    $(data.week).append(day);
+  },
+  clearCalendar: function clearCalendar() {
+    const selected = $('.is-selected', this.weeksNode)[0];
+
+    if (selected) {
+      $(selected).removeClass('is-selected');
+    }
+    this.date.selectedDateMoment = null;
+  },
+  createMonthDropdown: function createMonthDropdown() {
+    if (!this._monthDropdown) {
+      this._monthDropdown = new Dropdown({ id: `month-dropdown-${this.id}`, dropdownClass: 'dropdown--medium input-sm', onSelect: this.setMonth, onSelectScope: this });
+      this._monthDropdown.createList({ items: this.monthsText, defaultValue: this.date.selectedDateMoment.month() });
+      $(this.monthNode).append(this._monthDropdown.domNode);
+    }
+    return this;
+  },
+  createYearDropdown: function createYearDropdown() {
+    if (!this._yearDropdown) {
+      this._yearDropdown = new Dropdown({ id: `year-dropdown-${this.id}`, onSelect: this.setYear, dropdownClass: 'dropdown-mx', onSelectScope: this });
+      this._yearDropdown.createList({ items: this.getYearRange(), defaultValue: this.date.selectedDateMoment.format('YYYY') });
+      $(this.yearNode).append(this._yearDropdown.domNode);
+    }
+    return this;
+  },
+  decrementMonth: function decrementMonth() {
+    this.date.selectedDateMoment.subtract({ months: 1 });
+    this.refreshCalendar(this.date);
+  },
+  destroy: function destroy() {
+    this._yearDropdown.destroy();
+    this._monthDropdown.destroy();
+    this.inherited(destroy, arguments);
+  },
+  getContent: function getContent() {
+    if (this.options.timeless) {
+      // Revert back to timeless
+      this.date.selectedDateMoment.add({
+        minutes: this.date.selectedDateMoment.utcOffset(),
+      });
+    }
+    return this.date;
+  },
+  goToToday: function goToToday() {
+    this.date.todayMoment = this.getCurrentDateMoment();
+    this.date.selectedDateMoment = this.date.todayMoment;
+    this.refreshCalendar(this.date); // This will reload the data.
+    const day = $('.is-today', this.weeksNode)[0];
+    let params = {};
+    if (day) {
+      params = { $source: day, date: day.dataset.date };
+    }
+    this.changeDay(params);
+  },
+  getDateTime: function getDateTime() {
+    const result = this.date.selectedDateMoment;
+    return result.toDate();
+  },
+  getCurrentDateMoment: function getCurrentDateMoment() {
+    return moment();
+  },
+  getSelectedDateMoment: function getSelectedDateMoment() {
+    return this.date.selectedDateMoment;
+  },
+  getYearRange: function getYearRange() {
+    const items = [];
+    const thisYear = this.date.todayMoment.year();
+    for (let i = thisYear - 10; i &lt;= thisYear + 10; i++) {
+      items.push(
+        {
+          value: `${i}`,
+          key: `${i}`,
+        }
+      );
+    }
+    return items;
+  },
+  incrementMonth: function incrementMonth() {
+    this.date.selectedDateMoment.add({ months: 1 });
+    this.refreshCalendar(this.date);
+  },
+  init: function init() {
+    this.inherited(init, arguments);
+  },
+  isActive: function isActive(day) {
+    if (day) {
+      return $('.day__active', day)[0];
+    }
+  },
+  postRenderCalendar: function postRenderCalendar() {
+    if (this._selectWeek) {
+      this.changeWeek({ $source: this._selectedDay });
+    }
+  },
+  refreshCalendar: function refreshCalendar(date = {}) {
+    this._refreshCalendar(date);
+    this.onRefreshCalendar(true);
+    return this;
+  },
+  _refreshCalendar: function refreshCalendar(date = {}) {
+    $(this.weeksNode).empty();
+    this.renderCalendar(date)
+      .changeMonthShown(date)
+      .changeYearShown(date);
+    return this;
+  },
+  onRefreshCalendar: function onRefreshCalendar() {
+  },
+  removeActive: function removeActive(day) {
+    if (day) {
+      const active = this.isActive(day);
+      if (active) {
+        $(active).remove();
+      }
+    }
+    return this;
+  },
+  refresh: function refresh(options) {
+    this.date.todayMoment = this.getCurrentDateMoment();
+    this._refreshCalendar(this.date);
+    this.onRefreshCalendar(options);
+  },
+  renderCalendar: function renderCalendar({ todayMoment, selectedDateMoment }) {
+    const daysInMonth = selectedDateMoment.daysInMonth();
+    const startingDay = selectedDateMoment.clone().startOf('month').day();
+    const endPrevMonth = selectedDateMoment.clone().startOf('month').subtract({ days: startingDay });
+    const startNextMonth = selectedDateMoment.clone().endOf('month').add({ days: 1 });
+    const data = {
+      todayMoment,
+      selectedDateMoment,
+      dateMoment: endPrevMonth.clone(),
+      week: $(this.calendarTableWeekStartTemplate.apply()),
+      startingDay: endPrevMonth.clone().startOf('month').day(),
+      weekEnds: {
+        Sunday: 0,
+        Saturday: 6,
+      },
+    };
+
+    // Iterate through the days that are in the start week of the current month but are in the previous month
+    data.month = 'alternate prev-month';
+    for (let day = endPrevMonth.date(); day &lt; endPrevMonth.date() + startingDay; day++) {
+      data.day = day;
+      this.checkAndRenderDay(data);
+    }
+
+    data.month = '';
+    data.startingDay = startingDay;
+    data.dateMoment = selectedDateMoment.clone();
+    for (let day = 1; day &lt;= daysInMonth; day++) {
+      if (day === selectedDateMoment.date()) {
+        data.selected = 'is-selected';
+        this.date.dayNode = day;
+      } else {
+        data.selected = '';
+      }
+      data.day = day;
+      this.checkAndRenderDay(data);
+      if ((day + startingDay) % 7 === 0) {
+        $(data.week).append(this.calendarTableWeekEndTemplate.apply());
+        $(this.weeksNode).append(data.week);
+        data.week = $(this.calendarTableWeekStartTemplate.apply());
+      }
+    }
+
+    data.selected = '';
+    data.startingDay = startNextMonth.day();
+    data.dateMoment = startNextMonth.clone();
+    // Iterate through remaining days of the week based on 7 days in the week and ensure there are 6 weeks shown (for consistency)
+    data.month = 'alternate next-month';
+    for (let day = 1; day &lt;= (1 + data.weekEnds.Saturday - startNextMonth.day()); day++) {
+      data.day = day;
+      this.checkAndRenderDay(data);
+    }
+    $(data.week).append($(this.calendarTableWeekEndTemplate.apply()));
+    $(this.weeksNode).append(data.week);
+
+    if (this.weeksNode.children.length === 5) {
+      data.week = $(this.calendarTableWeekStartTemplate.apply());
+      for (let day = 2 + data.weekEnds.Saturday - startNextMonth.day(); day &lt;= (8 + data.weekEnds.Saturday - startNextMonth.day()); day++) {
+        data.day = day;
+        this.checkAndRenderDay(data);
+      }
+      $(data.week).append($(this.calendarTableWeekEndTemplate.apply()));
+      $(this.weeksNode).append(data.week);
+    }
+
+    this.setDateObject(selectedDateMoment);
+
+    this.postRenderCalendar();
+
+    return this;
+  },
+  setActiveDay: function setActiveDay(day = {}) {
+    if (day.subValue) {
+      const active = this.calendarTableDayActiveTemplate.apply({ count: day.subValue }, this);
+      $(day).append(active);
+    }
+    return this;
+  },
+  setDateObject: function setDateObject(dateMoment = {}) {
+    this.date.day = dateMoment.date();
+    this.date.month = dateMoment.format('MMMM');
+    this.date.monthNumber = dateMoment.month();
+    this.date.year = dateMoment.year();
+    this.date.date = moment(dateMoment).toDate();
+
+    return this;
+  },
+  setMonth: function setMonth() {
+    const monthNumber = Number(this._monthDropdown.getValue());
+    this.date.selectedDateMoment.month(monthNumber);
+    this.refreshCalendar(this.date);
+  },
+  setSubValue: function setSubValue() {
+    return this;
+  },
+  setYear: function setYear() {
+    this.date.selectedDateMoment.year(this._yearDropdown.getValue());
+    this.refreshCalendar(this.date);
+  },
+  show: function show(options = {}) {
+    this.date = {};
+    this.options = options || this.options;
+
+    this.titleText = this.options.label ? this.options.label : this.titleText;
+    this.showTimePicker = this.options &amp;&amp; this.options.showTimePicker;
+    if (this.options.timeless) {
+      // Undo timeless
+      const startDate = moment(this.options &amp;&amp; this.options.date);
+      startDate.subtract({
+        minutes: startDate.utcOffset(),
+      });
+      this.date.selectedDateMoment = startDate;
+    } else {
+      this.date.selectedDateMoment = moment((this.options &amp;&amp; this.options.date) || moment().clone());
+    }
+    this.date.todayMoment = moment();
+    if (this.isModal || this.options.isModal || this.noClearButton || this.options.noClearButton) {
+      this.clearButton.style.display = 'none';
+    }
+    this.createMonthDropdown()
+      .createYearDropdown();
+
+    this.refreshCalendar(this.date);
+  },
+  toggleSelectWeek: function toggleSelectWeek() {
+    this._selectWeek = !this._selectWeek;
+    this.changeDay({ $source: this._selectedDay });
+  },
+});
+
+export default __class;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-argos__ActionMixin.html">argos/_ActionMixin</a></li><li><a href="module-argos__ConfigureBase.html">argos/_ConfigureBase</a></li><li><a href="module-argos__CustomizationMixin.html">argos/_CustomizationMixin</a></li><li><a href="module-argos__DetailBase.html">argos/_DetailBase</a></li><li><a href="module-argos__DraggableBase.html">argos/_DraggableBase</a></li><li><a href="module-argos__EditBase.html">argos/_EditBase</a></li><li><a href="module-argos__LegacySDataDetailMixin.html">argos/_LegacySDataDetailMixin</a></li><li><a href="module-argos__LegacySDataEditMixin.html">argos/_LegacySDataEditMixin</a></li><li><a href="module-argos__LegacySDataListMixin.html">argos/_LegacySDataListMixin</a></li><li><a href="module-argos__ListBase.html">argos/_ListBase</a></li><li><a href="module-argos__PullToRefreshMixin.html">argos/_PullToRefreshMixin</a></li><li><a href="module-argos__RelatedViewWidgetBase.html">argos/_RelatedViewWidgetBase</a></li><li><a href="module-argos__RelatedViewWidgetDetailMixin.html">argos/_RelatedViewWidgetDetailMixin</a></li><li><a href="module-argos__RelatedViewWidgetEditMixin.html">argos/_RelatedViewWidgetEditMixin</a></li><li><a href="module-argos__RelatedViewWidgetListMixin.html">argos/_RelatedViewWidgetListMixin</a></li><li><a href="module-argos__SDataDetailMixin.html">argos/_SDataDetailMixin</a></li><li><a href="module-argos__SDataEditMixin.html">argos/_SDataEditMixin</a></li><li><a href="module-argos__SDataListMixin.html">argos/_SDataListMixin</a></li><li><a href="module-argos__ServiceMixin.html">argos/_ServiceMixin</a></li><li><a href="module-argos__Templated.html">argos/_Templated</a></li><li><a href="module-argos_actions.html">argos/actions</a></li><li><a href="module-argos_actions_connection.html">argos/actions/connection</a></li><li><a href="module-argos_Application.html">argos/Application</a></li><li><a href="module-argos_ApplicationModule.html">argos/ApplicationModule</a></li><li><a href="module-argos_Calendar.html">argos/Calendar</a></li><li><a href="module-argos_ConfigurableSelectionModel.html">argos/ConfigurableSelectionModel</a></li><li><a href="module-argos_Convert.html">argos/Convert</a></li><li><a href="module-argos_CultureInfo.html">argos/CultureInfo</a></li><li><a href="module-argos_DateTimePicker.html">argos/DateTimePicker</a></li><li><a href="module-argos_Detail.html">argos/Detail</a></li><li><a href="module-argos_Dialogs_BusyIndicator.html">argos/Dialogs/BusyIndicator</a></li><li><a href="module-argos_Dialogs_Modal.html">argos/Dialogs/Modal</a></li><li><a href="module-argos_Dialogs_Toast.html">argos/Dialogs/Toast</a></li><li><a href="module-argos_DraggableList.html">argos/DraggableList</a></li><li><a href="module-argos_Dropdown.html">argos/Dropdown</a></li><li><a href="module-argos_Edit.html">argos/Edit</a></li><li><a href="module-argos_ErrorManager.html">argos/ErrorManager</a></li><li><a href="module-argos_FieldManager.html">argos/FieldManager</a></li><li><a href="module-argos_Fields__Field.html">argos/Fields/_Field</a></li><li><a href="module-argos_Fields_BooleanField.html">argos/Fields/BooleanField</a></li><li><a href="module-argos_Fields_DateField.html">argos/Fields/DateField</a></li><li><a href="module-argos_Fields_DecimalField.html">argos/Fields/DecimalField</a></li><li><a href="module-argos_Fields_DropdownField.html">argos/Fields/DropdownField</a></li><li><a href="module-argos_Fields_DurationField.html">argos/Fields/DurationField</a></li><li><a href="module-argos_Fields_EditorField.html">argos/Fields/EditorField</a></li><li><a href="module-argos_Fields_HiddenField.html">argos/Fields/HiddenField</a></li><li><a href="module-argos_Fields_LookupField.html">argos/Fields/LookupField</a></li><li><a href="module-argos_Fields_NoteField.html">argos/Fields/NoteField</a></li><li><a href="module-argos_Fields_PhoneField.html">argos/Fields/PhoneField</a></li><li><a href="module-argos_Fields_SelectField.html">argos/Fields/SelectField</a></li><li><a href="module-argos_Fields_SignatureField.html">argos/Fields/SignatureField</a></li><li><a href="module-argos_Fields_TextAreaField.html">argos/Fields/TextAreaField</a></li><li><a href="module-argos_Fields_TextField.html">argos/Fields/TextField</a></li><li><a href="module-argos_Format.html">argos/Format</a></li><li><a href="module-argos_GroupedList.html">argos/GroupedList</a></li><li><a href="module-argos_Groups__GroupBySection.html">argos/Groups/_GroupBySection</a></li><li><a href="module-argos_Groups_DateTimeSection.html">argos/Groups/DateTimeSection</a></li><li><a href="module-argos_Groups_GroupByValueSection.html">argos/Groups/GroupByValueSection</a></li><li><a href="module-argos_I18n.html">argos/I18n</a></li><li><a href="module-argos_LanguageService.html">argos/LanguageService</a></li><li><a href="module-argos_List.html">argos/List</a></li><li><a href="module-argos_MainToolbar.html">argos/MainToolbar</a></li><li><a href="module-argos_Models__ModelBase.html">argos/Models/_ModelBase</a></li><li><a href="module-argos_Models__OfflineModelBase.html">argos/Models/_OfflineModelBase</a></li><li><a href="module-argos_Models_Adapter.html">argos/Models/Adapter</a></li><li><a href="module-argos_Models_Briefcase_Offline.html">argos/Models/Briefcase/Offline</a></li><li><a href="module-argos_Models_Manager.html">argos/Models/Manager</a></li><li><a href="module-argos_Models_RecentlyViewed_Offline.html">argos/Models/RecentlyViewed/Offline</a></li><li><a href="module-argos_Models_SDataModelBase.html">argos/Models/SDataModelBase</a></li><li><a href="module-argos_Models_Types.html">argos/Models/Types</a></li><li><a href="module-argos_Offline__DetailOfflineMixin.html">argos/Offline/_DetailOfflineMixin</a></li><li><a href="module-argos_Offline__ListOfflineMixin.html">argos/Offline/_ListOfflineMixin</a></li><li><a href="module-argos_Offline_Manager.html">argos/Offline/Manager</a></li><li><a href="module-argos_reducers.html">argos/reducers</a></li><li><a href="module-argos_RelatedViewManager.html">argos/RelatedViewManager</a></li><li><a href="module-argos_RelatedViewWidget.html">argos/RelatedViewWidget</a></li><li><a href="module-argos_RelativeDateTimePicker.html">argos/RelativeDateTimePicker</a></li><li><a href="module-argos_Scene.html">argos/Scene</a></li><li><a href="module-argos_SearchWidget.html">argos/SearchWidget</a></li><li><a href="module-argos_SelectionModel.html">argos/SelectionModel</a></li><li><a href="module-argos_SohoIcons.html">argos/SohoIcons</a></li><li><a href="module-argos_Store_PouchDB.html">argos/Store/PouchDB</a></li><li><a href="module-argos_Store_SData.html">argos/Store/SData</a></li><li><a href="module-argos_TabWidget.html">argos/TabWidget</a></li><li><a href="module-argos_TimePicker.html">argos/TimePicker</a></li><li><a href="module-argos_Toolbar.html">argos/Toolbar</a></li><li><a href="module-argos_Utility.html">argos/Utility</a></li><li><a href="module-argos_View.html">argos/View</a></li><li><a href="module-argos_Views_ConfigureQuickActions.html">argos/Views/ConfigureQuickActions</a></li><li><a href="module-argos_Views_FileSelect.html">argos/Views/FileSelect</a></li><li><a href="module-argos_Views_Link.html">argos/Views/Link</a></li><li><a href="module-argos_Views_Signature.html">argos/Views/Signature</a></li><li><a href="module-argos_WidgetBase.html">argos/WidgetBase</a></li><li><a href="module-crm_Action.html">crm/Action</a></li><li><a href="module-crm_Aggregate.html">crm/Aggregate</a></li><li><a href="module-crm_Application.html">crm/Application</a></li><li><a href="module-crm_ApplicationModule.html">crm/ApplicationModule</a></li><li><a href="module-crm_AttachmentManager.html">crm/AttachmentManager</a></li><li><a href="module-crm_Bootstrap.html">crm/Bootstrap</a></li><li><a href="module-crm_Bootstrap_localization.html">crm/Bootstrap/localization</a></li><li><a href="module-crm_Environment.html">crm/Environment</a></li><li><a href="module-crm_FileManager.html">crm/FileManager</a></li><li><a href="module-crm_Format.html">crm/Format</a></li><li><a href="module-crm_GroupUtility.html">crm/GroupUtility</a></li><li><a href="module-crm_Integrations_BOE_Aggregate.html">crm/Integrations/BOE/Aggregate</a></li><li><a href="module-crm_Integrations_BOE_Utility.html">crm/Integrations/BOE/Utility</a></li><li><a href="module-crm_MingleUtility.html">crm/MingleUtility</a></li><li><a href="module-crm_PicklistService.html">crm/PicklistService</a></li><li><a href="module-crm_Recurrence.html">crm/Recurrence</a></li><li><a href="module-crm_SalesProcessUtility.html">crm/SalesProcessUtility</a></li><li><a href="module-crm_Template.html">crm/Template</a></li><li><a href="module-crm_Utility.html">crm/Utility</a></li><li><a href="module-crm_Validator.html">crm/Validator</a></li><li><a href="module-crm_Views__GroupListMixin.html">crm/Views/_GroupListMixin</a></li><li><a href="module-crm_Views__MetricDetailMixin.html">crm/Views/_MetricDetailMixin</a></li><li><a href="module-crm_Views__MetricListMixin.html">crm/Views/_MetricListMixin</a></li><li><a href="module-crm_Views__RightDrawerBaseMixin.html">crm/Views/_RightDrawerBaseMixin</a></li><li><a href="module-crm_Views__RightDrawerListMixin.html">crm/Views/_RightDrawerListMixin</a></li><li><a href="module-crm_Views__SpeedSearchRightDrawerListMixin.html">crm/Views/_SpeedSearchRightDrawerListMixin</a></li><li><a href="module-crm_Views_Charts__ChartMixin.html">crm/Views/Charts/_ChartMixin</a></li><li><a href="module-crm_Views_Charts_GenericBar.html">crm/Views/Charts/GenericBar</a></li><li><a href="module-crm_Views_Charts_GenericLine.html">crm/Views/Charts/GenericLine</a></li><li><a href="module-crm_Views_Charts_GenericPie.html">crm/Views/Charts/GenericPie</a></li><li><a href="module-crm_Views_MetricWidget.html">crm/Views/MetricWidget</a></li><li><a href="module-crm_Views_Offline__RightDrawerListMixin.html">crm/Views/Offline/_RightDrawerListMixin</a></li><li><a href="module-crm_Views_RecentlyViewed__RightDrawerListMixin.html">crm/Views/RecentlyViewed/_RightDrawerListMixin</a></li></ul><h3>Classes</h3><ul><li><a href="module-_crm_Integrations_BOE_Aggregate.html">/crm/Integrations/BOE/Aggregate</a></li><li><a href="module-argos__ActionMixin.html">argos/_ActionMixin</a></li><li><a href="module-argos__ConfigureBase.html">argos/_ConfigureBase</a></li><li><a href="module-argos__CustomizationMixin.html">argos/_CustomizationMixin</a></li><li><a href="module-argos__DetailBase.html">argos/_DetailBase</a></li><li><a href="module-argos__DraggableBase.html">argos/_DraggableBase</a></li><li><a href="module-argos__EditBase.html">argos/_EditBase</a></li><li><a href="module-argos__LegacySDataDetailMixin.html">argos/_LegacySDataDetailMixin</a></li><li><a href="module-argos__LegacySDataEditMixin.html">argos/_LegacySDataEditMixin</a></li><li><a href="module-argos__LegacySDataListMixin.html">argos/_LegacySDataListMixin</a></li><li><a href="module-argos__ListBase.html">argos/_ListBase</a></li><li><a href="module-argos__RelatedViewWidgetBase.html">argos/_RelatedViewWidgetBase</a></li><li><a href="module-argos__SDataEditMixin.html">argos/_SDataEditMixin</a></li><li><a href="module-argos_Application.html">argos/Application</a></li><li><a href="module-argos_ApplicationModule.html">argos/ApplicationModule</a></li><li><a href="module-argos_Calendar.html">argos/Calendar</a></li><li><a href="module-argos_ConfigurableSelectionModel.html">argos/ConfigurableSelectionModel</a></li><li><a href="module-argos_Convert.html">argos/Convert</a></li><li><a href="module-argos_DateTimePicker.html">argos/DateTimePicker</a></li><li><a href="module-argos_Detail.html">argos/Detail</a></li><li><a href="module-argos_Dialogs_BusyIndicator.html">argos/Dialogs/BusyIndicator</a></li><li><a href="module-argos_Dialogs_Modal.html">argos/Dialogs/Modal</a></li><li><a href="module-argos_Dialogs_Toast.html">argos/Dialogs/Toast</a></li><li><a href="module-argos_DraggableList.html">argos/DraggableList</a></li><li><a href="module-argos_Dropdown.html">argos/Dropdown</a></li><li><a href="module-argos_Edit.html">argos/Edit</a></li><li><a href="module-argos_ErrorManager.html">argos/ErrorManager</a></li><li><a href="module-argos_FieldManager.html">argos/FieldManager</a></li><li><a href="module-argos_Fields__SignatureField.html">argos/Fields//SignatureField</a></li><li><a href="module-argos_Fields__Field.html">argos/Fields/_Field</a></li><li><a href="module-argos_Fields_BooleanField.html">argos/Fields/BooleanField</a></li><li><a href="module-argos_Fields_DateField.html">argos/Fields/DateField</a></li><li><a href="module-argos_Fields_DecimalField.html">argos/Fields/DecimalField</a></li><li><a href="module-argos_Fields_DropdownField.html">argos/Fields/DropdownField</a></li><li><a href="module-argos_Fields_DurationField.html">argos/Fields/DurationField</a></li><li><a href="module-argos_Fields_EditorField.html">argos/Fields/EditorField</a></li><li><a href="module-argos_Fields_HiddenField.html">argos/Fields/HiddenField</a></li><li><a href="module-argos_Fields_LookupField.html">argos/Fields/LookupField</a></li><li><a href="module-argos_Fields_NoteField.html">argos/Fields/NoteField</a></li><li><a href="module-argos_Fields_PhoneField.html">argos/Fields/PhoneField</a></li><li><a href="module-argos_Fields_SelectField.html">argos/Fields/SelectField</a></li><li><a href="module-argos_Fields_TextAreaField.html">argos/Fields/TextAreaField</a></li><li><a href="module-argos_Fields_TextField.html">argos/Fields/TextField</a></li><li><a href="module-argos_Format.html">argos/Format</a></li><li><a href="module-argos_GroupedList.html">argos/GroupedList</a></li><li><a href="module-argos_Groups__GroupBySection.html">argos/Groups/_GroupBySection</a></li><li><a href="module-argos_Groups_DateTimeSection.html">argos/Groups/DateTimeSection</a></li><li><a href="module-argos_Groups_GroupByValueSection.html">argos/Groups/GroupByValueSection</a></li><li><a href="module-argos_LanguageService.html">argos/LanguageService</a></li><li><a href="module-argos_List.html">argos/List</a></li><li><a href="module-argos_MainToolbar.html">argos/MainToolbar</a></li><li><a href="module-argos_Models__ModelBase.html">argos/Models/_ModelBase</a></li><li><a href="module-argos_Models__OfflineModelBase.html">argos/Models/_OfflineModelBase</a></li><li><a href="module-argos_Models_Adapter.html">argos/Models/Adapter</a></li><li><a href="module-argos_Models_Briefcase_Offline.html">argos/Models/Briefcase/Offline</a></li><li><a href="module-argos_Models_Manager.html">argos/Models/Manager</a></li><li><a href="module-argos_Models_RecentlyViewed_Offline.html">argos/Models/RecentlyViewed/Offline</a></li><li><a href="module-argos_Models_SDataModelBase.html">argos/Models/SDataModelBase</a></li><li><a href="module-argos_Offline__DetailOfflineMixin.html">argos/Offline/_DetailOfflineMixin</a></li><li><a href="module-argos_Offline__ListOfflineMixin.html">argos/Offline/_ListOfflineMixin</a></li><li><a href="module-argos_Offline_Manager.html">argos/Offline/Manager</a></li><li><a href="module-argos_RelatedViewManager.html">argos/RelatedViewManager</a></li><li><a href="module-argos_RelatedViewWidget.html">argos/RelatedViewWidget</a></li><li><a href="module-argos_RelativeDateTimePicker.html">argos/RelativeDateTimePicker</a></li><li><a href="module-argos_Scene.html">argos/Scene</a></li><li><a href="module-argos_SearchWidget.html">argos/SearchWidget</a></li><li><a href="module-argos_SelectionModel.html">argos/SelectionModel</a></li><li><a href="module-argos_Store_PouchDB.html">argos/Store/PouchDB</a></li><li><a href="module-argos_Store_SData.html">argos/Store/SData</a></li><li><a href="module-argos_TabWidget.html">argos/TabWidget</a></li><li><a href="module-argos_TimePicker.html">argos/TimePicker</a></li><li><a href="module-argos_Toolbar.html">argos/Toolbar</a></li><li><a href="module-argos_Utility.html">argos/Utility</a></li><li><a href="module-argos_View.html">argos/View</a></li><li><a href="module-argos_Views_ConfigureQuickActions.html">argos/Views/ConfigureQuickActions</a></li><li><a href="module-argos_Views_FileSelect.html">argos/Views/FileSelect</a></li><li><a href="module-argos_Views_Link.html">argos/Views/Link</a></li><li><a href="module-argos_Views_Signature.html">argos/Views/Signature</a></li><li><a href="module-argos_WidgetBase.html">argos/WidgetBase</a></li><li><a href="module-crm_Action.html">crm/Action</a></li><li><a href="module-crm_Aggregate.html">crm/Aggregate</a></li><li><a href="module-crm_Application.html">crm/Application</a></li><li><a href="module-crm_ApplicationModule.html">crm/ApplicationModule</a></li><li><a href="module-crm_AttachmentManager.html">crm/AttachmentManager</a></li><li><a href="module-crm_Environment.html">crm/Environment</a></li><li><a href="module-crm_FileManager.html">crm/FileManager</a></li><li><a href="module-crm_Format.html">crm/Format</a></li><li><a href="module-crm_GroupUtility.html">crm/GroupUtility</a></li><li><a href="module-crm_Integrations_BOE_Utility.html">crm/Integrations/BOE/Utility</a></li><li><a href="module-crm_MingleUtility.html">crm/MingleUtility</a></li><li><a href="module-crm_PicklistService.html">crm/PicklistService</a></li><li><a href="module-crm_Recurrence.html">crm/Recurrence</a></li><li><a href="module-crm_SalesProcessUtility.html">crm/SalesProcessUtility</a></li><li><a href="module-crm_Template.html">crm/Template</a></li><li><a href="module-crm_Utility.html">crm/Utility</a></li><li><a href="module-crm_Validator.html">crm/Validator</a></li><li><a href="module-crm_Views__SpeedSearchRightDrawerListMixin.html">crm/Views/_SpeedSearchRightDrawerListMixin</a></li><li><a href="module-crm_Views_Charts_GenericBar.html">crm/Views/Charts/GenericBar</a></li><li><a href="module-crm_Views_Charts_GenericLine.html">crm/Views/Charts/GenericLine</a></li><li><a href="module-crm_Views_Charts_GenericPie.html">crm/Views/Charts/GenericPie</a></li><li><a href="module-crm_Views_MetricWidget.html">crm/Views/MetricWidget</a></li></ul><h3>Mixins</h3><ul><li><a href="module-argos__PullToRefreshMixin.html">argos/_PullToRefreshMixin</a></li><li><a href="module-argos__RelatedViewWidgetDetailMixin.html">argos/_RelatedViewWidgetDetailMixin</a></li><li><a href="module-argos__RelatedViewWidgetEditMixin.html">argos/_RelatedViewWidgetEditMixin</a></li><li><a href="module-argos__RelatedViewWidgetListMixin.html">argos/_RelatedViewWidgetListMixin</a></li><li><a href="module-argos__SDataDetailMixin.html">argos/_SDataDetailMixin</a></li><li><a href="module-argos__SDataListMixin.html">argos/_SDataListMixin</a></li><li><a href="module-argos__ServiceMixin.html">argos/_ServiceMixin</a></li><li><a href="module-argos__Templated.html">argos/_Templated</a></li><li><a href="module-crm_Views__GroupListMixin.html">crm/Views/_GroupListMixin</a></li><li><a href="module-crm_Views__MetricDetailMixin.html">crm/Views/_MetricDetailMixin</a></li><li><a href="module-crm_Views__MetricListMixin.html">crm/Views/_MetricListMixin</a></li><li><a href="module-crm_Views__RightDrawerBaseMixin.html">crm/Views/_RightDrawerBaseMixin</a></li><li><a href="module-crm_Views__RightDrawerListMixin.html">crm/Views/_RightDrawerListMixin</a></li><li><a href="module-crm_Views_Charts__ChartMixin.html">crm/Views/Charts/_ChartMixin</a></li><li><a href="module-crm_Views_Offline__RightDrawerListMixin.html">crm/Views/Offline/_RightDrawerListMixin</a></li><li><a href="module-crm_Views_RecentlyViewed__RightDrawerListMixin.html">crm/Views/RecentlyViewed/_RightDrawerListMixin</a></li></ul><h3>Tutorials</h3><ul><li><a href="tutorial-amd.html">AMD - Define and Declare</a></li><li><a href="tutorial-browser_setup.html">Browser Setup / Information</a></li><li><a href="tutorial-stores.html">Data Stores</a></li><li><a href="tutorial-lifecycles.html">View Lifecycles</a></li><li><a href="tutorial-upgrading_v12_to_v20.html">Upgrading 1.2 to 2.0</a></li><li><a href="tutorial-wire_detail_to_edit.html">Wiring Detail to Edit</a></li><li><a href="tutorial-wire_list_to_detail.html">Wiring List to Detail</a></li><li><a href="tutorial-wire_list_to_edit.html">Wiring List to Edit</a></li><li><a href="tutorial-grouped_list.html">Grouped List</a></li><li><a href="tutorial-basic_auth.html">Login - Basic Authentication</a></li><li><a href="tutorial-hashtags.html">#Hashtags</a></li><li><a href="tutorial-list_actions.html">List Actions</a></li><li><a href="tutorial-quick_actions.html">Quick Actions</a></li><li><a href="tutorial-related_views.html">Related Views</a></li><li><a href="tutorial-detail_layout.html">Detail Layout</a></li><li><a href="tutorial-validation.html">Validation</a></li><li><a href="tutorial-list_search.html">List Search Widget</a></li><li><a href="tutorial-advanced_localization.html">Localization - Advanced</a></li><li><a href="tutorial-navigation.html">Navigation</a></li><li><a href="tutorial-toolbars.html">Toolbars</a></li><li><a href="tutorial-localization_detection.html">localization_detection</a></li><li><a href="tutorial-localization.html">Localization - Basic</a></li><li><a href="tutorial-overview.html">Overview</a></li><li><a href="tutorial-template_guide.html">Template Guide</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.4</a> on Fri Jun 05 2020 13:35:40 GMT-0400 (Eastern Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
